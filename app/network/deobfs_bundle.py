@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
+from app.core.numbers import positive_int as _positive_int
 from app.core.settings import load_settings
 from app.network.build_fingerprint import ActiveProtocolBuildFingerprintProvider
 from app.network.deobfs_report import DeobfuscationReportError, parse_deobfuscation_report
@@ -250,15 +251,6 @@ def _strict_non_negative_int(value: object, label: str) -> int:
         raise DeobfuscationEvidenceBundleError(f"{label} must be a non-negative integer")
     return int(value)
 
-
-def _positive_int(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 

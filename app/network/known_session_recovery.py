@@ -4,6 +4,7 @@ import json
 from logging import Logger
 from typing import Any
 
+from app.core.numbers import coerce_positive_int as _positive_int
 from app.core.logger import get_runtime_logger
 from app.network.character_resolver import CharacterResolution, CharacterSlotResolver
 from app.network.character_runtime_state import CharacterRuntimeStateStore, character_runtime_state
@@ -21,12 +22,6 @@ _IDENTITY_TYPE_URLS = frozenset(
 )
 
 
-def _positive_int(value: object) -> int | None:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 def _trusted_client_label(row: dict[str, Any]) -> str:

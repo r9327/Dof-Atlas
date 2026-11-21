@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import re
 from typing import Any, Mapping
+from app.core.numbers import optional_int as _safe_int
 
+from app.core.doduda_rows import array_rows as _array
 from app.modules.encyclopedia.services.adventure_route_adapter import AdventureRouteAdapter
 from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
 
@@ -11,11 +13,6 @@ SENTINEL_COORD = -2147483648
 COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
 
-def _safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _safe_map_id(value: Any) -> int | None:
@@ -37,13 +34,6 @@ def _coord_from_text(value: Any) -> tuple[int, int] | None:
     x = _safe_coord(match.group(1))
     y = _safe_coord(match.group(2))
     return (x, y) if x is not None and y is not None else None
-
-
-def _array(value: Any) -> list[Any]:
-    if isinstance(value, dict):
-        inner = value.get("Array", [])
-        return inner if isinstance(inner, list) else []
-    return value if isinstance(value, list) else []
 
 
 class GuideUltimeRouteAdapter(AdventureRouteAdapter):

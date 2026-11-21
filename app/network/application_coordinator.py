@@ -107,15 +107,24 @@ class NetworkApplicationCoordinator:
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.RLock()
+        # stop() is terminal for this coordinator. Only a crashed/interrupted
+        # worker may restart; a late UI callback must never reopen UAC/capture.
+        self._shutdown_requested = False
         self._operation_lock = threading.RLock()
         self._context_ready = False
         self._context: tuple[QuestCatalog, Any, Any] | None = None
+        self._worker_compact_context_ready = False
         self._calibration_pending = False
         self._next_runtime_retry_at = 0.0
         self._applied_journal_evidence_keys: set[tuple[Any, ...]] = set()
         self._last_status = NetworkApplicationStatus(False, False, "waiting_context")
         self._last_calibration = self.calibration.status()
         self._last_runtime = NetworkControllerStatus(False, "waiting_context")
+
+    @property
+    def worker_compact_context_ready(self) -> bool:
+        with self._lock:
+            return self._worker_compact_context_ready and self._context_ready
 
     @property
     def is_worker_running(self) -> bool:
@@ -136,16 +145,23 @@ class NetworkApplicationCoordinator:
             raise TypeError("quest_catalog must be a QuestCatalog")
         if achievement_provider is None:
             raise ValueError("achievement_provider is required")
-        self.calibration.configure_context(quest_catalog=quest_catalog)
-        self.runtime.configure_context(
-            quest_catalog=quest_catalog,
-            achievement_provider=achievement_provider,
-            guide_provider=guide_provider,
-        )
         with self._lock:
+            if self._shutdown_requested:
+                # A late Encyclopedia/Qt initialization may finish after
+                # close. Do not repopulate controllers that stop() disposed.
+                return
+            self.calibration.configure_context(quest_catalog=quest_catalog)
+            self.runtime.configure_context(
+                quest_catalog=quest_catalog,
+                achievement_provider=achievement_provider,
+                guide_provider=guide_provider,
+            )
             first_context = not self._context_ready
             self._context_ready = True
             self._context = (quest_catalog, achievement_provider, guide_provider)
+            # An external Encyclopedia context may retain huge UI catalogues.
+            # Only the worker-created compact context has the small-memory flag.
+            self._worker_compact_context_ready = False
             if first_context:
                 self._applied_journal_evidence_keys.clear()
         self.start_worker()
@@ -154,10 +170,24 @@ class NetworkApplicationCoordinator:
 
     def start_worker(self) -> bool:
         with self._lock:
+            if self._shutdown_requested:
+                return False
             if self.is_worker_running:
                 return True
             if self._thread is not None and self._thread.is_alive():
                 return False
+            # A prior stop/crash must not replay privileged commands or
+            # publish old progress/status events in a fresh worker session.
+            # Valid progress is persisted by the bridge; the UI will refresh
+            # from that source when its Encyclopedia page becomes visible.
+            # The lock prevents a concurrent status publisher from being
+            # interleaved with this reset.
+            for queue in (self._commands, self._results, self._statuses):
+                while True:
+                    try:
+                        queue.get_nowait()
+                    except Empty:
+                        break
             self._stop_event.clear()
             thread = threading.Thread(
                 target=self._run,
@@ -174,32 +204,48 @@ class NetworkApplicationCoordinator:
                 return False
             return True
 
+    def _enqueue_command(self, command: str) -> bool:
+        """Atomically reject commands racing with explicit shutdown."""
+
+        with self._lock:
+            if self._shutdown_requested or not self.start_worker():
+                return False
+            # start_worker() may be wrapped by a test or integration adapter
+            # that synchronously triggers stop(). Never queue after that.
+            if self._shutdown_requested or self._stop_event.is_set():
+                return False
+            self._commands.put(command)
+            return True
+
     def request_start_calibration(self) -> bool:
         with self._lock:
+            if self._shutdown_requested:
+                return False
             if not self._context_ready:
                 self._publish_status(NetworkApplicationStatus(False, False, "waiting_context"))
                 return False
-        if not self.start_worker():
-            return False
-        self._commands.put("start_calibration")
-        return True
+        return self._enqueue_command("start_calibration")
 
     def request_prepare_capture(self) -> bool:
         """Trigger the Windows elevation prompt before catalogue preload."""
 
-        if not self.start_worker():
-            return False
-        self._commands.put("prepare_capture")
-        return True
+        return self._enqueue_command("prepare_capture")
 
     def request_start_verified_runtime(self) -> bool:
         with self._lock:
-            if not self._context_ready:
+            if self._shutdown_requested or not self._context_ready:
                 return False
-        if not self.start_worker():
-            return False
-        self._commands.put("start_runtime")
-        return True
+        return self._enqueue_command("start_runtime")
+
+    def request_start_compact_runtime(self) -> bool:
+        """Start from Home without synchronously loading Quests on the Qt thread."""
+        with self._lock:
+            if self._shutdown_requested:
+                return False
+            ready = self._context_ready
+        if ready:
+            return self.request_start_verified_runtime()
+        return self._enqueue_command("start_compact_runtime")
 
     def latest_status(self) -> NetworkApplicationStatus:
         with self._lock:
@@ -233,10 +279,20 @@ class NetworkApplicationCoordinator:
         return rows
 
     def stop(self, join_timeout: float = 3.0) -> bool:
-        self._stop_event.set()
+        with self._lock:
+            self._shutdown_requested = True
+            self._stop_event.set()
         with self._operation_lock:
-            calibration_stopped = bool(self.calibration.stop())
-            runtime_stopped = bool(self.runtime.stop())
+            try:
+                calibration_stopped = bool(self.calibration.stop())
+            except Exception:
+                self.logger.exception("Network calibration cleanup failed.")
+                calibration_stopped = False
+            try:
+                runtime_stopped = bool(self.runtime.stop())
+            except Exception:
+                self.logger.exception("Network runtime cleanup failed.")
+                runtime_stopped = False
             capture_stopped = self._close_capture_source()
         with self._lock:
             self._calibration_pending = False
@@ -260,6 +316,10 @@ class NetworkApplicationCoordinator:
                     command = self._commands.get(timeout=0.15)
                 except Empty:
                     command = None
+                # stop() can arrive while Queue.get() is waiting. Do not
+                # execute the just-received command after shutdown began.
+                if self._stop_event.is_set():
+                    break
                 if command is not None:
                     self._handle_command(command)
                 if self._stop_event.is_set():
@@ -271,9 +331,17 @@ class NetworkApplicationCoordinator:
             self.logger.exception("Network coordinator worker failed.")
             self._publish_current("coordinator_error")
         finally:
+            # Always attempt every cleanup step, even if a calibration
+            # controller raises while a background worker is exiting.
             with self._operation_lock:
-                self.calibration.stop()
-                self.runtime.stop()
+                try:
+                    self.calibration.stop()
+                except Exception:
+                    self.logger.exception("Network calibration final cleanup failed.")
+                try:
+                    self.runtime.stop()
+                except Exception:
+                    self.logger.exception("Network runtime final cleanup failed.")
                 self._close_capture_source()
             with self._lock:
                 self._calibration_pending = False
@@ -287,8 +355,13 @@ class NetworkApplicationCoordinator:
         return True
 
     def _handle_command(self, command: str) -> None:
+        if self._stop_event.is_set():
+            return
         if command == "prepare_capture":
             self._prepare_capture()
+            return
+        if command == "start_compact_runtime":
+            self._start_compact_runtime()
             return
         if command == "start_calibration":
             self._start_calibration()
@@ -296,10 +369,55 @@ class NetworkApplicationCoordinator:
         if command == "start_runtime":
             self._start_runtime()
 
+    def _start_compact_runtime(self) -> None:
+        """Resolve a cold, minimal network context on the existing worker.
+
+        The Home retry control is an explicit opt-in. It must not block Qt
+        by compiling the network Quest catalogue on the caller thread.
+        """
+        with self._lock:
+            if self._shutdown_requested or self._stop_event.is_set():
+                return
+            already_ready = self._context_ready
+        if already_ready:
+            self._start_runtime()
+            return
+        self._publish_current("network_context_loading")
+        try:
+            from app.modules.encyclopedia.providers import (
+                AchievementProvider, GuideProvider,
+            )
+            from app.quest_catalog_details import load_network_catalog
+
+            catalog = load_network_catalog()
+            achievements = AchievementProvider()
+            guides = GuideProvider()
+        except Exception:
+            self.logger.exception("Cold network context loading failed.")
+            self._publish_current("network_context_load_failed")
+            return
+        with self._lock:
+            if self._shutdown_requested or self._stop_event.is_set():
+                return
+            if self._context_ready:
+                # An Encyclopedia context arrived while this worker was
+                # reading disk: preserve the newer live configuration.
+                self.request_start_verified_runtime()
+                return
+            self.configure_context(
+                quest_catalog=catalog,
+                achievement_provider=achievements,
+                guide_provider=guides,
+            )
+            if not self._shutdown_requested and not self._stop_event.is_set():
+                self._worker_compact_context_ready = True
+
     def _prepare_capture(self) -> None:
         """Launch and pause the reusable helper so UAC happens immediately."""
 
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             if self.runtime.is_running or self.calibration.is_running:
                 return
             try:
@@ -314,18 +432,30 @@ class NetworkApplicationCoordinator:
                 self.logger.exception("Early network capture preparation failed.")
                 self._publish_current(reason)
                 return
+        if self._stop_event.is_set():
+            return
         self._publish_current("capture_ready_waiting_context")
 
     def _start_calibration(self) -> None:
         """Start passive exact-build calibration for safe live idz."""
 
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             if self.runtime.is_running and not self.runtime.stop():
                 self._publish_current("runtime_stop_failed_before_calibration")
                 return
             self._last_calibration = self.calibration.start()
+        # stop() may have been requested while calibration.start() held the
+        # operation lock. Do not re-arm calibration after stop cleared it.
+        if self._stop_event.is_set():
+            return
         pending = self._last_calibration.reason in _CALIBRATION_PENDING_REASONS
         with self._lock:
+            # Also check inside the state lock: stop() may finish clearing
+            # this flag between the earlier stop guard and this assignment.
+            if self._stop_event.is_set():
+                return
             self._calibration_pending = pending
         self._publish_current(self._last_calibration.reason)
         if self._last_calibration.reason == "mapping_already_ready":
@@ -333,12 +463,16 @@ class NetworkApplicationCoordinator:
 
     def _start_runtime(self) -> None:
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             with self._lock:
                 calibration_pending = self._calibration_pending
             if calibration_pending or self.calibration.is_running:
                 self._publish_current("calibration_running")
                 return
             self._last_runtime = self.runtime.start_if_ready()
+        if self._stop_event.is_set():
+            return
         self._publish_current(self._last_runtime.reason)
         if self._last_runtime.reason in _RUNTIME_REASONS_REQUIRING_CALIBRATION:
             self._start_calibration()
@@ -359,15 +493,32 @@ class NetworkApplicationCoordinator:
         self._start_runtime()
 
     def _poll_calibration(self) -> None:
+        if self._stop_event.is_set():
+            return
         with self._lock:
             if not self._calibration_pending:
                 return
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             status = self.calibration.poll()
+        # stop() signals before acquiring the operation lock. A poll already
+        # in progress must not publish identities or apply Quest evidence
+        # once shutdown has begun.
+        if self._stop_event.is_set():
+            return
         self._last_calibration = status
         for result in self.calibration.drain_identity_results():
+            if self._stop_event.is_set():
+                return
             self._results.put(result)
+        if self._stop_event.is_set():
+            return
         self._apply_calibration_journal_evidence()
+        # Journal evidence may finish after stop() began. Do not publish its
+        # old state or re-enable runtime as a final calibration side effect.
+        if self._stop_event.is_set():
+            return
         terminal = status.reason not in _CALIBRATION_PENDING_REASONS
         if terminal:
             with self._lock:
@@ -418,6 +569,8 @@ class NetworkApplicationCoordinator:
         return True, session_id
 
     def _apply_calibration_journal_evidence(self) -> None:
+        if self._stop_event.is_set():
+            return
         from app.network.protocol_calibration import QuestJournalCalibrationEvidence
 
         evidences = tuple(getattr(self.calibration, "verified_journal_evidences", ()) or ())
@@ -425,10 +578,14 @@ class NetworkApplicationCoordinator:
             evidence = getattr(self.calibration, "verified_journal_evidence", None)
             evidences = (evidence,) if evidence is not None else ()
         for evidence in evidences:
+            if self._stop_event.is_set():
+                return
             if isinstance(evidence, QuestJournalCalibrationEvidence):
                 self._apply_one_calibration_journal_evidence(evidence)
 
     def _apply_one_calibration_journal_evidence(self, evidence: Any) -> None:
+        if self._stop_event.is_set():
+            return
         from app.network.current_protocol_profile import (
             DOFUS_361010_PROFILE,
             dofus_361010_profile_digest,
@@ -475,7 +632,7 @@ class NetworkApplicationCoordinator:
         if bridge is None:
             return
         identified, session_id = self._identify_calibration_character(bridge, evidence)
-        if not identified:
+        if not identified or self._stop_event.is_set():
             return
 
         journal_result = bridge.handle(
@@ -497,6 +654,8 @@ class NetworkApplicationCoordinator:
             self._applied_journal_evidence_keys.add(evidence_key)
 
     def _apply_calibration_evidence(self) -> None:
+        if self._stop_event.is_set():
+            return
         from app.network.events import QuestCompletedEvent
 
         certificate = getattr(self.calibration, "verified_certificate", None)
@@ -506,13 +665,15 @@ class NetworkApplicationCoordinator:
         if bridge is None:
             return
         identified, session_id = self._identify_calibration_character(bridge, certificate)
-        if not identified:
+        if not identified or self._stop_event.is_set():
             return
 
         # The reviewed journal was already reconciled when exact-build,
         # same-session identity evidence became available. The full certificate
         # adds only independently verified live final-step completions.
         for quest_id in certificate.verified_quest_ids:
+            if self._stop_event.is_set():
+                return
             result = bridge.handle(
                 QuestCompletedEvent(
                     session_id=session_id,
@@ -525,23 +686,48 @@ class NetworkApplicationCoordinator:
                 self._results.put(result)
 
     def _drain_runtime_results(self) -> None:
+        if self._stop_event.is_set():
+            return
         for result in self.runtime.drain_results(100):
+            if self._stop_event.is_set():
+                return
             reason = str(result.reason or "")
             activates_character = bool(
                 result.accepted
                 and result.character_key
-                and (
-                    reason.startswith("character_")
-                    or reason.startswith("quest_journal_")
-                )
+                and reason in {
+                    "character_identified",
+                    "character_identified_with_quest_journal",
+                }
             )
-            if result.changed or activates_character:
+            # Session routing is not quest progression. Avoid rebuilding
+            # views on character identification or disconnect when no quest
+            # or achievement actually changed. Journal reconciliation and
+            # other genuine progress mutations still reach the Qt bridge.
+            progress_changed = bool(
+                result.accepted
+                and result.changed
+                and reason not in {
+                    "character_identified", "session_closed",
+                }
+            )
+            # A confirmed session close needs one lightweight connected-
+            # accounts refresh, but must never invalidate progress widgets.
+            connection_changed = bool(
+                result.accepted and result.changed and result.character_key
+                and reason == "session_closed"
+            )
+            if progress_changed or activates_character or connection_changed:
                 self._results.put(result)
+        if self._stop_event.is_set():
+            return
         if self._last_runtime.running and not self.runtime.is_running:
             self._last_runtime = self.runtime.status()
             self._publish_current(self._last_runtime.reason)
 
     def _publish_current(self, reason: str) -> None:
+        if self._stop_event.is_set():
+            return
         calibration = self._last_calibration
         runtime = self._last_runtime
         calibrating = bool(
@@ -575,7 +761,7 @@ class NetworkApplicationCoordinator:
 
     def _publish_status(self, status: NetworkApplicationStatus) -> None:
         with self._lock:
-            if status == self._last_status:
+            if self._stop_event.is_set() or status == self._last_status:
                 return
             self._last_status = status
         record_validation("network_status", running=status.running,
@@ -585,6 +771,9 @@ class NetworkApplicationCoordinator:
                           completed=status.distinct_completion_count,
                           journal_observed=status.quest_journal_observation_count,
                           journal_verified=status.quest_journal_verified_count)
+        if self._stop_event.is_set():
+            return
         self.logger.info("Network status: reason=%s running=%s calibrating=%s",
                          status.reason, status.running, status.calibrating)
-        self._statuses.put(status)
+        if not self._stop_event.is_set():
+            self._statuses.put(status)

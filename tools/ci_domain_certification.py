@@ -46,6 +46,13 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
+    # Reviewed PR #365 scope manifests. These files only route AI context;
+    # keep each path explicit so a future scope cannot inherit CI ownership.
+    ".ai/scopes/craft.yaml",
+    ".ai/scopes/encyclopedia_achievements.yaml",
+    ".ai/scopes/encyclopedia_guide.yaml",
+    ".ai/scopes/encyclopedia_quests.yaml",
+    ".ai/scopes/shared_ui.yaml",
     # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
     ".ai/scopes/organizer.yaml",
     ".ai/scopes/macro_runtime.yaml",
@@ -201,6 +208,10 @@ def owners_for(path: str) -> frozenset[str]:
         raise ValueError("Unsafe changed path")
     if path in REVIEWED_CI_INSTRUCTION_PATHS:
         return frozenset({"ci"})
+    if path == "tests/test_doctor_ui_qt.py":
+        # Exact contract suite for the real Qt Doctor evidence collector.
+        # Future Qt tests must acquire ownership independently.
+        return frozenset({"ci", "ui"})
     # Only the reviewed Organizer feature contracts are owned documentation.
     # Generic docs remain excluded rather than inheriting a broad wildcard.
     if path in {
@@ -372,16 +383,49 @@ def owners_for(path: str) -> frozenset[str]:
         # interact with Quest and Guide providers; fail closed for siblings.
         return frozenset({"quests", "guides", "ui"})
     if path in {
+        "app/modules/encyclopedia/widgets/achievement_entity_section.py",
+        "tests/test_entity_link_roles.py",
+    }:
+        # Reviewed semantic entity links: Success/Quest detail and Guides all
+        # reuse the shared Qt-free color roles. Keep both paths explicit.
+        return frozenset({"quests", "guides", "ui"})
+    if path in {"tests/test_network_home_status.py", "tests/test_home_page.py"}:
+        # Only the two reviewed Home network tests own startup/UI/identity:
+        # state reduction and actual mini-indicator transition. This does
+        # not certify the native network/capture runtime.
+        return frozenset({"startup", "ui", "identity"})
+    if path == "app/modules/encyclopedia/widgets/filter_panel.py":
+        # Exact-SHA Graphify confirms the Success filter uses the shared Qt
+        # components and is exercised by the Dev UI contract. Keep the same
+        # cross-domain coverage as the Success catalogue; no widget wildcard.
+        return frozenset({"quests", "guides", "ui"})
+    if path in {
+        "app/modules/encyclopedia/widgets/quest_detail_view.py",
+        "tests/test_quest_detail_view.py",
+    }:
+        # Graphify exact-SHA: the shared Quest sheet is consumed by Quêtes,
+        # Guides and the common Qt presentation. Keep this exact and closed.
+        return frozenset({"quests", "guides", "ui"})
+    if path in {
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        "tests/test_shared_manual_guide_view.py",
         "app/modules/encyclopedia/views/guides_view.py",
         "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
         "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
+        "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
+        "tests/test_guide_continuous_route_panel.py",
     }:
-        # All four concrete guide readers have both Guide logic and Qt clients.
+        # Concrete guide readers and the continuous route panel have both
+        # Guide logic and Qt clients.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
+        return frozenset({"guides", "ui"})
+    if path == "app/modules/encyclopedia/views/guide_ultime_generated_view.py":
+        # Concrete generated Guide Qt reader: the Guide runtime and shared
+        # Unity widgets are both direct consumers. No sibling wildcard.
         return frozenset({"guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/encyclopedia_page.py",
+        "tests/test_encyclopedia_page.py",
         "app/modules/encyclopedia/views/guide_catalog_view.py",
         "app/modules/encyclopedia/views/guide_featured_home.py",
         "app/modules/encyclopedia/views/guide_library_sources.py",
@@ -389,6 +433,15 @@ def owners_for(path: str) -> frozenset[str]:
     }:
         # Catalog widgets and the Encyclopedia shell have Guide and UI consumers.
         return frozenset({"guides", "ui"})
+    if path in {
+        "app/assets/themes/dofus_unity/sprites/atlas-control-check.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-mixed.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg",
+    }:
+        # These four reviewed passive 14x14 Atlas SVG glyphs have no links,
+        # scripts or game-extracted data. Every OTHER SVG stays unowned.
+        return frozenset({"ui", "data"})
     if path.startswith("app/assets/themes/dofus_unity/"):
         # Owned *only* as UI/data inputs, not approved for redistribution.
         if Path(path).suffix.lower() in {".png", ".ttf", ".md"}:
@@ -445,6 +498,27 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "data"})
     if path == "tests/test_organizer_layout.py":
         return frozenset({"ui", "identity"})
+    if path == "tests/test_organizer_ui.py":
+        # Reviewed direct Qt owner for Organizer's transparent host material.
+        # No test_organizer* wildcard and no game-input privilege.
+        return frozenset({"organizer", "ui", "identity"})
+    if path == "tools/dev_ui_snapshot.py":
+        # Developer Qt screenshot producer; not an application runtime.
+        return frozenset({"ci", "ui"})
+    if path == "tests/capture_app_shell_ui.py":
+        # Exact real-shell screenshot scenario: Home, Craft, Quest/Guide shell,
+        # character view and the startup navigation lifecycle. No tests/* rule.
+        return frozenset({"ci", "ui", "startup", "craft", "quests", "guides", "identity"})
+    if path == "tests/capture_app_popups_ui.py":
+        # Exact Qt popup/dialog inventory. It paints shared UI, Craft, Guide,
+        # Zaap and startup surfaces but performs no native game input.
+        return frozenset({"ci", "ui", "startup", "craft", "guides", "organizer"})
+    if path == "tests/test_popup_interaction_inventory.py":
+        # Real mouse/key lifecycle checks for all concrete popup families.
+        return frozenset({"ci", "ui", "startup", "craft", "guides", "organizer"})
+    if path == "tests/test_equipment_deferred_start.py":
+        # Real Qt Equipment lifecycle + shared component presentation.
+        return frozenset({"startup", "ui"})
     if path == "tests/test_world_scan_async_loading.py":
         return frozenset({"ui"})
     if path == "tests/test_startup_preload_window_visibility.py":
@@ -459,8 +533,15 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "ui"})
     if path == "tests/test_unity_wallpaper_cleaner.py":
         return frozenset({"ui", "data"})
-    if path in {"tests/test_unity_skin.py", "tests/test_theme_runtime_cache.py"}:
-        # Canonical Unity palette / Qt stylesheet cache regression contracts.
+    if path in {
+        "tests/test_theme.py",
+        "tests/test_components.py",
+        "tests/test_unity_skin.py",
+        "tests/test_theme_runtime_cache.py",
+        "tests/test_unity_palette.py",
+    }:
+        # Exact reviewed Unity Qt and stdlib-only palette contracts.
+        # New/unreviewed test names still fail closed.
         return frozenset({"ui"})
     if path == "tests/test_runtime_regression_contracts.py":
         # Existing contracts cover Zaap/Guide routing, identity, persistence,
@@ -511,6 +592,10 @@ def owners_for(path: str) -> frozenset[str]:
             # consumers with structured provider data.  The old substring
             # fallback ("achievement" -> Guides only) under-reported its
             # closed-world owners.
+            return frozenset({"quests", "guides", "ui", "data"})
+        if leaf == "encyclopedia_final_mission":
+            # Exact real-provider Qt contract for Quest detail, Guide routes,
+            # retained Successes and their local catalogue inputs.
             return frozenset({"quests", "guides", "ui", "data"})
         if leaf == "release_certification_fixes":
             # Exact reviewed test: Guide identity and CI/RAM thresholds.

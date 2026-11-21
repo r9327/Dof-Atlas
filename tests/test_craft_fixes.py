@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from app.pages.craft_page import CraftPage, CraftResourceDialog, craft_image_item
+from app.pages.craft_page import CraftPage, CraftResourceDialog, craft_image_item, quantity_spinbox
 from local_dofus_data.normalizer import craft_category_for_item
 
 
@@ -26,6 +26,78 @@ class CraftFixesTests(unittest.TestCase):
         page = CraftPage(Mock(), defer_runtime=True)
         self.addCleanup(page.deleteLater)
         return page
+
+    def test_craft_quantity_width_reuses_shared_unity_rule(self):
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        small = quantity_spinbox(1, maximum=9)
+        large = quantity_spinbox(1, maximum=999999)
+        try:
+            self.assertLess(small.width(), large.width())
+            self.assertGreaterEqual(
+                large.width(),
+                large.fontMetrics().horizontalAdvance("999999")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"],
+            )
+            self.assertEqual(small.styleSheet(), "")
+            self.assertEqual(large.styleSheet(), "")
+        finally:
+            small.deleteLater()
+            large.deleteLater()
+
+    def test_craft_dialogs_use_single_shared_ui_shell(self):
+        from app.pages.craft_page import ItemSetDialog, LevelingDialog, RouteDialog
+        from app.ui.components import AtlasDialog, AtlasDialogHeader
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+
+        dialogs = (
+            CraftResourceDialog({}, []),
+            ItemSetDialog(None, lambda *_args: None),
+            LevelingDialog(
+                "Alchimiste",
+                {"source": "atlas-local", "kind": "harvest", "entries": []},
+                lambda _name: None, lambda _craft: None,
+            ),
+            RouteDialog("Alchimiste", {"name": "Ressource sans route"}),
+        )
+        try:
+            for dialog in dialogs:
+                with self.subTest(dialog=type(dialog).__name__):
+                    self.assertIsInstance(dialog, AtlasDialog)
+                    self.assertEqual(dialog.objectName(), "AtlasDialog")
+                    self.assertIs(dialog.layout(), dialog.content_layout)
+                    self.assertEqual(dialog.layout_density, "compact")
+                    x = UNITY_LAYOUT_SIZES_PX["dialog_compact_padding_x"]
+                    y = UNITY_LAYOUT_SIZES_PX["dialog_compact_padding_y"]
+                    self.assertEqual(
+                        dialog.content_layout.getContentsMargins(), (x, y, x, y)
+                    )
+                    self.assertEqual(dialog.styleSheet(), "")
+                    self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
+                    self.assertGreaterEqual(dialog.minimumWidth(), 400)
+                    if isinstance(dialog, (CraftResourceDialog, LevelingDialog)):
+                        from app.ui.components import AtlasButton
+                        close = [
+                            button for button in dialog.findChildren(AtlasButton)
+                            if button.text() == "Fermer"
+                        ]
+                        self.assertEqual(len(close), 1)
+                        # Footer width follows the label/theme, not a Craft
+                        # hardcoded 110/120 pixel fixed size.
+                        self.assertGreater(close[0].maximumWidth(), 120)
+        finally:
+            for dialog in dialogs:
+                dialog.close()
+                dialog.deleteLater()
+
+    def test_craft_title_is_the_indexed_unity_component(self):
+        from app.ui.components import AtlasPageTitle
+
+        page = self.make_page()
+        title = page.findChild(AtlasPageTitle, "PageTitle")
+        self.assertIsNotNone(title)
+        self.assertEqual(title.text(), "Craft")
+        self.assertEqual(title.styleSheet(), "")
 
     def test_click_any_job_opens_leveling_automatically(self):
         page = self.make_page()
@@ -41,13 +113,17 @@ class CraftFixesTests(unittest.TestCase):
             page.show()
             page.refresh_jobs()
             QApplication.processEvents()
-            for job in ("Mineur", "Forgeron"):
+            for expected_calls, job in enumerate(("Mineur", "Forgeron"), start=1):
                 with self.subTest(job=job):
                     buttons = [page.job_buttons_layout.itemAt(index).widget()
                                for index in range(page.job_buttons_layout.count())]
                     button = next(button for button in buttons if button.text() == job)
                     QTest.mouseClick(button, Qt.LeftButton)
-                    QTest.qWait(35)
+                    self.assertEqual(page.selected_job, job)
+                    for _ in range(25):
+                        if open_dialog.call_count >= expected_calls:
+                            break
+                        QTest.qWait(20)
                     open_dialog.assert_called_with(job)
             self.assertEqual(open_dialog.call_count, 2)
             page.close()
@@ -201,8 +277,11 @@ class CraftFixesTests(unittest.TestCase):
         ):
             page.show_resources()
             previous = page.resource_dialog
+            # This window must remain non-modal despite the shared dialog shell.
+            self.assertFalse(previous.isModal())
             page.show_resources()
             current = page.resource_dialog
+            self.assertFalse(current.isModal())
             self.assertIsNot(previous, current)
             previous.finished.emit(0)
             self.assertIs(page.resource_dialog, current)

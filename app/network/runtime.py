@@ -170,10 +170,27 @@ class NetworkEventRuntime:
                         break
                     self.logger.exception("Network event application failed; reader remains active.")
                     continue
-                if result.changed or (
-                    result.accepted and result.character_key
-                    and result.reason.startswith("character_")
-                ):
+                # stop() can arrive while the bridge is applying an event.
+                # Never leak its result across the outgoing reader boundary.
+                if self._stop_event.is_set():
+                    break
+                reason = str(result.reason or "")
+                activates_character = reason in {
+                    "character_identified",
+                    "character_identified_with_quest_journal",
+                }
+                # Session closure is not quest progress, but the shell
+                # must learn that a connected-client snapshot changed.
+                # Retain it as a distinct event all the way to the Qt bridge;
+                # never reinterpret it as an activation or progress mutation.
+                connection_changed = reason == "session_closed" and bool(result.changed)
+                progress_changed = bool(
+                    result.changed and reason not in {
+                        "character_identified", "session_closed",
+                    }
+                )
+                if (result.accepted and result.character_key
+                        and (progress_changed or activates_character or connection_changed)):
                     self._results.put(result)
         finally:
             try:

@@ -10,7 +10,6 @@ from typing import Any
 from PySide6.QtCore import QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QColor, QPainter, QPalette
 from PySide6.QtWidgets import (
-    QComboBox,
     QFrame,
     QLabel,
     QLineEdit,
@@ -35,8 +34,12 @@ from app.modules.encyclopedia.providers import AchievementProvider, QuestProvide
 from app.modules.encyclopedia.services import AchievementProgressService, QuestGraphService, QuestProgressService
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+
+ACHIEVEMENT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["achievements"]
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,6 +56,23 @@ _INITIAL_RESULT_ROWS = 16
 @dataclass(frozen=True, slots=True)
 class _AchievementListRef:
     id: int
+
+
+def _positive_entity_id(value: object) -> int | None:
+    """Accept only real positive IDs from local or cross-module entity links."""
+
+    if type(value) is int:
+        return value if value > 0 else None
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not cleaned.isascii() or not cleaned.isdecimal():
+        return None
+    try:
+        identifier = int(cleaned)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return identifier if identifier > 0 else None
 
 
 def _alignment_order_achievement_ranks() -> dict[int, int]:
@@ -171,7 +191,7 @@ class AchievementsView(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(8)
+        root.setSpacing(UNITY_SPACING_PX["md"])
 
         self.search = QLineEdit()
         self.search.setObjectName("EncyclopediaSearch")
@@ -192,8 +212,8 @@ class AchievementsView(QWidget):
         self.category_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.category_tree.currentItemChanged.connect(self.on_category_changed)
         self.category_panel.layout().addWidget(self.category_tree, 1)
-        self.category_panel.setMinimumWidth(235)
-        self.category_panel.setMaximumWidth(300)
+        self.category_panel.setMinimumWidth(ACHIEVEMENT_GEOMETRY["category_min_width"])
+        self.category_panel.setMaximumWidth(ACHIEVEMENT_GEOMETRY["category_max_width"])
         self.splitter.addWidget(self.category_panel)
 
         self.success_panel = self._panel("GuideCenterPanel", "SUCCÈS")
@@ -202,14 +222,19 @@ class AchievementsView(QWidget):
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list_widget.setItemDelegate(AchievementListDelegate(self.list_widget))
         self.list_widget.itemClicked.connect(self.on_achievement_clicked)
+        # Enter/Return (and accessible activation) must open the same detail as a click.
+        self.list_widget.itemActivated.connect(self.on_achievement_clicked)
         self.success_panel.layout().addWidget(self.list_widget, 1)
-        self.success_panel.setMinimumWidth(285)
+        self.success_panel.setMinimumWidth(ACHIEVEMENT_GEOMETRY["success_list_min_width"])
         self.splitter.addWidget(self.success_panel)
 
         self.detail_stack = QStackedWidget()
         self.detail_stack.setObjectName("AchievementDetailStack")
         self.detail_stack.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        # Keep the third column present even before the first detail is loaded.
+        self.detail_stack.setMinimumWidth(ACHIEVEMENT_GEOMETRY["detail_min_width"])
         self.splitter.addWidget(self.detail_stack)
+        self.splitter.setCollapsible(2, False)
 
         self.detail_scroll = QScrollArea()
         self.detail_scroll.setObjectName("GuideRightPanelScroll")
@@ -222,14 +247,15 @@ class AchievementsView(QWidget):
         self.detail_content.setObjectName("AchievementDetailContent")
         self.detail_content.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.detail_layout = QVBoxLayout(self.detail_content)
-        self.detail_layout.setContentsMargins(12, 12, 12, 12)
-        self.detail_layout.setSpacing(10)
+        inset = ACHIEVEMENT_GEOMETRY["detail_padding"]
+        self.detail_layout.setContentsMargins(inset, inset, inset, inset)
+        self.detail_layout.setSpacing(ACHIEVEMENT_GEOMETRY["detail_gap"])
         self.detail_scroll.setWidget(self.detail_content)
 
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 0)
         self.splitter.setStretchFactor(2, 1)
-        self.splitter.setSizes([245, 315, 640])
+        self.splitter.setSizes(list(ACHIEVEMENT_GEOMETRY["initial_splitter_sizes"]))
 
         if defer_runtime:
             self.show_runtime_loading()
@@ -238,7 +264,24 @@ class AchievementsView(QWidget):
             self.populate_categories()
             self.refresh()
 
+    def _discard_pending_catalogue(self) -> None:
+        """Invalidate stale list work before an async loading/error placeholder."""
+
+        timer = getattr(self, "_achievement_batch_timer", None)
+        if timer is not None:
+            timer.stop()
+        self._achievement_render_generation += 1
+        self._achievement_pending_rows.clear()
+        self._achievement_visible_row_by_id.clear()
+        self._achievement_batch_retry_count = 0
+        self._achievement_pending_selected_id = None
+        self._achievement_rows_dirty = False
+        self._catalog_refresh_signature = None
+        self.filtered = []
+        self._tree_items.clear()
+
     def show_runtime_loading(self) -> None:
+        self._discard_pending_catalogue()
         self.category_tree.clear()
         self.list_widget.clear()
         item = QListWidgetItem("Chargement des succès…")
@@ -247,6 +290,7 @@ class AchievementsView(QWidget):
         self.show_empty()
 
     def show_runtime_error(self, message: str) -> None:
+        self._discard_pending_catalogue()
         self.category_tree.clear()
         self.list_widget.clear()
         item = QListWidgetItem(str(message or "Chargement des succès impossible."))
@@ -294,8 +338,9 @@ class AchievementsView(QWidget):
         panel = QFrame()
         panel.setObjectName(object_name)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(8)
+        inset = UNITY_SPACING_PX["lg"]
+        layout.setContentsMargins(inset, inset, inset, inset)
+        layout.setSpacing(UNITY_SPACING_PX["md"])
         label = QLabel(title)
         label.setObjectName("GuideSectionTitle")
         layout.addWidget(label)
@@ -400,79 +445,144 @@ class AchievementsView(QWidget):
             return
         self.selected_category_id = int(value)
         if self.search.text():
+            # A category change is an explicit navigation, not a keystroke:
+            # refresh its catalogue now so direct success links never inspect
+            # stale search results while the debounce timer is still pending.
             self.search.clear()
-        else:
-            self.refresh()
+            timer = getattr(self, "_search_debounce_timer", None)
+            if timer is not None:
+                timer.stop()
+        self.refresh()
 
     def select_achievement(self, achievement_id: int) -> bool:
-        achievement = self.provider.get_by_id(int(achievement_id))
-        if achievement is None or not self.provider.is_retained(achievement.id):
+        # The same positive-ID contract protects every entry point to
+        # Quêtes/Succès, including external links and injected entity rows.
+        achievement_id = _positive_entity_id(achievement_id)
+        if achievement_id is None:
             return False
-        target_category_id = achievement.subcategory_id or achievement.category_id
+        # A stale/deleted deep link is never permission to read a compatibility
+        # Achievement JSONL on the Qt thread. Cheap membership comes first,
+        # including when a compact sidecar cannot resolve its category.
+        if not self.provider.is_retained(achievement_id):
+            return False
+        # Deep links need only the category and retained-membership proof.
+        # The compact provider already keeps both in its small sidecar;
+        # hydrating an Achievement here can read JSONL on the Qt thread.
+        category_lookup = getattr(type(self.provider), "catalogue_category_for_id", None)
+        target_category_id = (
+            category_lookup(self.provider, achievement_id)
+            if callable(category_lookup) else None
+        )
+        if target_category_id is None and not callable(category_lookup):
+            # Older providers lack a resident category index and retain their
+            # existing compatibility lookup. A compact provider can report an
+            # absent/corrupt category index even for a retained Success: never
+            # scan its JSONL on the Qt navigation path just to find a tab.
+            achievement = self.provider.get_by_id(achievement_id)
+            if achievement is None:
+                return False
+            target_category_id = achievement.subcategory_id or achievement.category_id
         tree_item = self._tree_items.get(target_category_id)
         if tree_item is not None:
             if tree_item.parent() is not None:
                 tree_item.parent().setExpanded(True)
             self.category_tree.setCurrentItem(tree_item)
         if self.search.text():
+            # setCurrentItem emits no category change when the target is
+            # already selected. Clear the stale search snapshot before
+            # looking for a directly linked achievement in this category.
             self.search.clear()
-        for row, candidate in enumerate(self.filtered):
-            if candidate.id == achievement.id:
-                # Direct navigation must open the real detail immediately.
-                # Rendering every preceding QListWidgetItem synchronously
-                # can stall Qt for a deep link near the end of a category.
-                # Keep selection pending; its row will be highlighted when
-                # a later scroll batch naturally reaches it.
-                self._achievement_pending_selected_id = achievement.id
-                if row < self.list_widget.count():
-                    self.list_widget.setCurrentRow(row)
-                self.show_achievement(achievement.id)
-                return True
+            timer = getattr(self, "_search_debounce_timer", None)
+            if timer is not None:
+                timer.stop()
+            self.refresh()
+        if any(candidate.id == achievement_id for candidate in self.filtered):
+            # A damaged compact record can be skipped when batches render.
+            # The filtered-index position then diverges from QListWidget rows:
+            # never highlight a different Success simply because the index
+            # happens to be smaller than the visible list length.
+            self._achievement_pending_selected_id = achievement_id
+            visible_row = self._achievement_visible_row_by_id.get(achievement_id)
+            item = self.list_widget.item(visible_row) if visible_row is not None else None
+            if item is not None and item.data(Qt.UserRole) == achievement_id:
+                self.list_widget.setCurrentRow(visible_row)
+            else:
+                # A deferred or corrupted target has no legitimate painted
+                # item yet. Clear the *previous* row highlight rather than
+                # visually associating another Success with the opened detail.
+                self.list_widget.setCurrentRow(-1)
+            # The real detail opens immediately, regardless of whether the
+            # catalogue viewport has materialized the requested row.
+            self.show_achievement(achievement_id)
+            return True
+        if callable(category_lookup):
+            # Retained membership was verified before any category lookup.
+            # A stale sidecar/category tree/filtered snapshot must not suppress
+            # a valid direct link. Leave the old row unselected rather than
+            # highlighting an unrelated Success or hydrating JSONL on Qt.
+            self._achievement_pending_selected_id = achievement_id
+            self.list_widget.setCurrentRow(-1)
+            self.show_achievement(achievement_id)
+            return True
         return False
 
     def on_achievement_clicked(self, item: QListWidgetItem) -> None:
-        achievement_id = item.data(Qt.UserRole)
+        achievement_id = _positive_entity_id(item.data(Qt.UserRole))
         if achievement_id is None:
+            # A corrupt/deferred compact row may leave a malformed UserRole.
+            # Do not raise from a Qt itemClicked/itemActivated callback.
             return
-        achievement_id = int(achievement_id)
-        if (
-            self.current_achievement_id == achievement_id
-            and (self._detail_open or
-                 self._detail_requested is not None and
-                 self._detail_requested[1] == achievement_id)
-        ):
-            self.close_detail_panel()
+        # Re-activating the selected success must never silently empty column 3.
+        # A pending request is already deduplicated in show_achievement().
+        if self.current_achievement_id == achievement_id and self._detail_open:
             return
         self.show_achievement(achievement_id)
 
     def show_achievement(self, achievement_id: int) -> None:
-        achievement_id = int(achievement_id)
+        achievement_id = _positive_entity_id(achievement_id)
+        if achievement_id is None:
+            return
         if self._detail_requested is not None and self._detail_requested[1] == achievement_id:
             return
-        summary = self.provider.get_by_id(achievement_id)
-        if summary is None or not self.provider.is_retained(achievement_id):
+        # In production the compact provider answers membership directly
+        # from its retained-ID set. get_by_id() materializes a compatibility
+        # Achievement and may seek/parse the cache on the Qt click path.
+        # The detail worker performs the actual rich read only when needed.
+        if not self.provider.is_retained(achievement_id):
             self.show_empty()
             return
+        # Direct links and manual clicks both change the *current* list
+        # selection. Later lazy batches must not reselect the first result.
+        self._achievement_pending_selected_id = achievement_id
         self._detail_generation += 1
         generation = self._detail_generation
         self._detail_requested = None
         self.current_achievement_id = achievement_id
 
-        # Only MemoryBoundAchievementProvider's cold path starts a disposable
-        # subprocess / parses rich source on demand. Preserve the lightweight
-        # normal provider path and cache-hit semantics.
+        # A cold rich detail may need a subprocess (development) or to build
+        # reward-source indexes (installed runtime). Keep both on the bounded
+        # worker; warmed and cached details retain the synchronous fast path.
         recent = getattr(self.provider, "_recent_rich_details", None)
         active_id = getattr(self.provider, "_detail_cache_id", None)
         active = getattr(self.provider, "_detail_cache", None)
         hot = active_id == achievement_id and active is not None
         warm = isinstance(recent, dict) and achievement_id in recent
+        needs_index = getattr(self.provider, "detail_source_index_required", None)
+        cold_sources = (
+            getattr(self.provider, "detail_sources_ready", True) is False
+            and (not callable(needs_index) or needs_index())
+        )
         if hot and self._detail_worker_running:
             # A running worker may currently mutate the provider's LRU.
             # Render the already-read immutable detail without touching
             # provider caches or starting another subprocess.
             self._display_achievement(active)
             return
-        if not self._detail_worker_running and (not isinstance(recent, dict) or hot or warm):
+        if (
+            not self._detail_worker_running
+            and not cold_sources
+            and (not isinstance(recent, dict) or hot or warm)
+        ):
             achievement = self.provider.get_detail_by_id(achievement_id)
             if achievement is None:
                 self.show_empty()
@@ -503,6 +613,17 @@ class AchievementsView(QWidget):
 
         def load_detail() -> None:
             try:
+                # Catalogue loading no longer prepares heavyweight optional
+                # reward indexes. The first actual detail prepares them here,
+                # on this bounded worker, not on the Qt click path.
+                needs_index = getattr(provider, "detail_source_index_required", None)
+                if (
+                    getattr(provider, "detail_sources_ready", True) is False
+                    and (not callable(needs_index) or needs_index())
+                ):
+                    prepare = getattr(provider, "prepare_detail_sources", None)
+                    if callable(prepare):
+                        prepare()
                 detail = provider.get_detail_by_id(achievement_id)
             except Exception:
                 _LOGGER.exception("Chargement du succès %s impossible", achievement_id)
@@ -581,6 +702,7 @@ class AchievementsView(QWidget):
     def build_alignment_order_panel(self) -> QFrame:
         panel = QFrame()
         panel.setObjectName("AchievementAlignmentPanel")
+        apply_unity_panel_shadow(panel)
         panel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(9, 8, 9, 8)
@@ -596,11 +718,10 @@ class AchievementsView(QWidget):
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
 
-        combo = QComboBox()
+        combo = AtlasComboBox()
         combo.setObjectName("AchievementAlignmentOrderCombo")
-        combo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-        combo.setMinimumContentsLength(16)
-        combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        # Keep the same content-driven width as the Dev UI reference.
+        # The popup can show full order names even if the panel is narrow.
         combo.addItem("Choisir un Ordre...", None)
         order_quest_ids = _order_quest_ids()
         for side, orders in order_quest_ids.items():
@@ -647,8 +768,9 @@ class AchievementsView(QWidget):
 
     def add_alignment_guide_button(self, layout: QVBoxLayout, side: str) -> None:
         city = "Bonta" if side == "bonta" else "Brâkmar"
-        guide_button = AtlasButton(f"Ouvrir le Guide Alignement {city}")
-        guide_button.setObjectName("GuideBreadcrumbButton")
+        guide_button = AtlasButton(
+            f"Ouvrir le Guide Alignement {city}", variant="guide_breadcrumb"
+        )
         guide_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
         guide_button.clicked.connect(
             lambda _checked=False, guide_id=_alignment_guide_ids()[side]: self.open_guide(guide_id)
@@ -766,7 +888,7 @@ class AchievementsView(QWidget):
         self.close_detail_panel()
 
     def show_quest(self, quest_id: int) -> bool:
-        return self.open_quest_in_quests(int(quest_id))
+        return self.open_quest_in_quests(quest_id)
 
 
     def show_current_achievement(self) -> None:
@@ -775,7 +897,7 @@ class AchievementsView(QWidget):
 
     def on_alignment_quest_activated(self, entity_type: str, entity_id: object) -> None:
         if str(entity_type) == "quest":
-            self.open_quest_in_quests(int(entity_id))
+            self.open_quest_in_quests(entity_id)
 
     def open_guide(self, guide_id: str) -> bool:
         if self.navigate_callback is None:
@@ -784,20 +906,22 @@ class AchievementsView(QWidget):
 
     def open_linked_entity(self, entity_type: str, entity_id: int) -> bool:
         if str(entity_type) == "quest":
-            return self.open_quest_in_quests(int(entity_id))
+            return self.open_quest_in_quests(entity_id)
         if str(entity_type) == "achievement":
-            return self.select_achievement(int(entity_id))
-        if self.navigate_callback is None:
+            return self.select_achievement(entity_id)
+        valid_id = _positive_entity_id(entity_id)
+        if self.navigate_callback is None or valid_id is None:
             return False
-        return bool(self.navigate_callback(str(entity_type), int(entity_id), source="achievement"))
+        return bool(self.navigate_callback(str(entity_type), valid_id, source="achievement"))
 
     def open_prerequisite_in_quests(self, quest_id: int) -> bool:
-        if self.navigate_callback is None:
+        valid_id = _positive_entity_id(quest_id)
+        if self.navigate_callback is None or valid_id is None:
             return False
         return bool(
             self.navigate_callback(
                 "quest",
-                int(quest_id),
+                valid_id,
                 source="achievement_prerequisite",
                 achievement_id=self.current_achievement_id,
             )
@@ -805,9 +929,9 @@ class AchievementsView(QWidget):
 
     def open_shared_entity(self, entity_type: str, entity_id: int | str, **_context: object) -> bool:
         if str(entity_type) == "achievement":
-            return self.select_achievement(int(entity_id))
+            return self.select_achievement(entity_id)
         if str(entity_type) == "quest":
-            return self.open_quest_in_quests(int(entity_id))
+            return self.open_quest_in_quests(entity_id)
         if self.navigate_callback is None:
             return False
         return bool(self.navigate_callback(str(entity_type), entity_id, source="achievement"))
@@ -818,6 +942,11 @@ class AchievementsView(QWidget):
         self._detail_open = False
         self.detail_stack.setCurrentWidget(self.detail_scroll)
         self.clear_detail()
+        hint = QLabel("Sélectionnez un succès pour afficher ses détails.")
+        hint.setObjectName("MutedLabel")
+        hint.setWordWrap(True)
+        self.detail_layout.addWidget(hint)
+        self.detail_layout.addStretch(1)
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
         self._detail_generation += 1
@@ -839,8 +968,12 @@ class AchievementsView(QWidget):
         self._catalog_refresh_signature: tuple[object, ...] | None = None
         self._achievement_render_generation = 0
         self._achievement_pending_rows: list[int] = []
+        # Newly painted rows only: avoid re-scanning thousands of QListWidget
+        # items each time a viewport-sized batch is appended.
+        self._achievement_visible_row_by_id: dict[int, int] = {}
         self._achievement_pending_selected_id: int | None = None
         self._achievement_rows_dirty = False
+        self._achievement_batch_retry_count = 0
         self._achievement_completed_ids: frozenset[int] = frozenset()
         self._achievement_batch_timer: QTimer | None = None
         self._achievement_rendering_batch = False
@@ -906,6 +1039,12 @@ class AchievementsView(QWidget):
             ], tokens
 
         if tokens:
+            compact_search = getattr(self.provider, "search_catalogue_ids", None)
+            if callable(compact_search):
+                return [
+                    _AchievementListRef(int(ident))
+                    for ident in compact_search(self.search.text())
+                ], tokens
             candidates = self.provider.search(self.search.text())
         elif self.selected_category_id is not None:
             candidates = self.provider.get_by_category(self.selected_category_id)
@@ -948,6 +1087,17 @@ class AchievementsView(QWidget):
             # Pending rows are the intentionally deferred part of the *same*
             # catalogue snapshot. A redundant refresh while scrolling must
             # not clear the visible list, restart batches and lose selection.
+            # An explicit refresh after both bounded I/O attempts, however,
+            # is the recovery path for a cache that has since been repaired.
+            if (
+                getattr(self, "_achievement_batch_retry_count", 0) >= 2
+                and self._achievement_pending_rows
+                and self.isVisible()
+            ):
+                timer = self._achievement_batch_timer
+                if timer is not None and not timer.isActive():
+                    self._achievement_batch_retry_count = 0
+                    timer.start(0)
             return
 
         self.close_detail_panel()
@@ -957,6 +1107,8 @@ class AchievementsView(QWidget):
         selected_id = previous_id if any(row.id == previous_id for row in filtered) else (filtered[0].id if filtered else None)
 
         self._achievement_render_generation += 1
+        self._achievement_visible_row_by_id.clear()
+        self._achievement_batch_retry_count = 0
         self._achievement_pending_selected_id = int(selected_id) if selected_id is not None else None
         self._achievement_completed_ids = frozenset(
             int(value) for value in self.progress_service.state_for(self.character_key).completed_achievements
@@ -994,11 +1146,16 @@ class AchievementsView(QWidget):
         selected_id = self._achievement_pending_selected_id
         if selected_id is None:
             return
-        for row in range(self.list_widget.count()):
+        current = self.list_widget.currentItem()
+        if current is not None and current.data(Qt.UserRole) == selected_id:
+            # setCurrentRow() scrolls the viewport to the active row. Repeating
+            # it on every batch snaps users back to the first Success.
+            return
+        row = self._achievement_visible_row_by_id.get(selected_id)
+        if row is not None:
             item = self.list_widget.item(row)
-            if int(item.data(Qt.UserRole) or 0) == int(selected_id):
+            if item is not None and item.data(Qt.UserRole) == selected_id:
                 self.list_widget.setCurrentRow(row)
-                return
 
     def _render_next_achievement_batch(self) -> None:
         if (
@@ -1019,13 +1176,65 @@ class AchievementsView(QWidget):
 
             self.list_widget.blockSignals(True)
             try:
-                row_loader = getattr(self.provider, "catalogue_row_by_id", None)
-                for achievement_id in batch:
+                # Only real batch-capable providers use the optimized path.
+                # Existing test doubles keep the original single-row contract.
+                batch_loader = getattr(type(self.provider), "catalogue_rows_by_ids", None)
+                try:
+                    if callable(batch_loader):
+                        primitive_rows = batch_loader(self.provider, batch)
+                    else:
+                        row_loader = getattr(self.provider, "catalogue_row_by_id", None)
+                        primitive_rows = [
+                            row_loader(ident) if callable(row_loader) else None
+                            for ident in batch
+                        ]
+                    if len(primitive_rows) != len(batch):
+                        raise ValueError("Incomplete compact Success batch")
+                except Exception:
+                    # Restore the batch for an explicit retry. Never drop
+                    # Success IDs silently after a temporary cache read error.
+                    self._achievement_pending_rows[:0] = batch
+                    self._achievement_rows_dirty = True
+                    self._achievement_batch_retry_count = (
+                        getattr(self, "_achievement_batch_retry_count", 0) + 1
+                    )
+                    _LOGGER.exception("Chargement du catalogue Succès interrompu")
+                    self.status_callback("Liste des Succès momentanément indisponible")
+                    if self._achievement_batch_retry_count == 1:
+                        # One bounded retry for transient I/O, not an infinite
+                        # 0-ms loop that would freeze the Qt event loop.
+                        timer = self._achievement_batch_timer
+                        if timer is not None:
+                            timer.start(250)
+                    return
+                self._achievement_batch_retry_count = 0
+                for achievement_id, payload in zip(batch, primitive_rows):
                     if generation != self._achievement_render_generation:
                         return
-                    payload = row_loader(achievement_id) if callable(row_loader) else None
+                    if (
+                        payload is not None
+                        and (
+                            not isinstance(payload, (tuple, list))
+                            or len(payload) != 4
+                            or type(payload[0]) is not int
+                            or payload[0] != achievement_id
+                        )
+                    ):
+                        # A damaged source index must not display the wrong
+                        # Success under another ID or open the wrong detail.
+                        payload = None
                     if payload is None:
-                        achievement = self.provider.get_by_id(int(achievement_id))
+                        try:
+                            achievement = self.provider.get_by_id(int(achievement_id))
+                        except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+                            # A single damaged cached record cannot prevent
+                            # later, valid successes in this same viewport
+                            # batch from becoming visible.
+                            _LOGGER.exception(
+                                "Lecture de la ligne Succès %s impossible",
+                                achievement_id,
+                            )
+                            continue
                         if achievement is None:
                             continue
                         name = str(achievement.name or "")
@@ -1042,6 +1251,7 @@ class AchievementsView(QWidget):
                     item.setForeground(done_color if completed else todo_color)
                     item.setData(COMPLETED_ROLE, completed)
                     self.list_widget.addItem(item)
+                    self._achievement_visible_row_by_id[achievement_id] = self.list_widget.count() - 1
             finally:
                 self.list_widget.blockSignals(False)
 
@@ -1054,7 +1264,16 @@ class AchievementsView(QWidget):
                 # The old timer chain eventually instantiated every success in
                 # the selected category. Keep only an initial viewport resident;
                 # the next batch is requested by scrolling or direct navigation.
-                if self.list_widget.count() < _INITIAL_RESULT_ROWS:
+                # The viewport may fit the initial rows on a tall window.
+                # With no scrollbar there is no valueChanged signal to load
+                # the remaining results, so keep filling until scrolling
+                # becomes possible (without eagerly materializing the catalog).
+                bar = self.list_widget.verticalScrollBar()
+                needs_more_visible_rows = (
+                    bar.maximum() == 0
+                    and self.list_widget.viewport().height() > 0
+                )
+                if self.list_widget.count() < _INITIAL_RESULT_ROWS or needs_more_visible_rows:
                     timer = self._achievement_batch_timer
                     if timer is not None:
                         timer.start()
@@ -1077,12 +1296,22 @@ class AchievementsView(QWidget):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         timer = self._achievement_batch_timer
+        bar = self.list_widget.verticalScrollBar()
+        needs_more_visible_rows = (
+            bar.maximum() == 0
+            and self.list_widget.viewport().height() > 0
+        )
         if (
             self._achievement_rows_dirty
-            and self.list_widget.count() < _INITIAL_RESULT_ROWS
+            and (
+                self.list_widget.count() < _INITIAL_RESULT_ROWS
+                or needs_more_visible_rows
+            )
             and timer is not None
             and not timer.isActive()
         ):
+            # Resume the viewport-sized batch after returning to this tab.
+            # A hidden widget must not require a scroll it cannot perform.
             timer.start()
 
     def refresh_completion_styles(self) -> None:
@@ -1105,11 +1334,10 @@ class AchievementsView(QWidget):
     def open_quest_in_quests(self, quest_id: int) -> bool:
         """Leave Succès and open the shared Quêtes page for linked quests."""
 
-        try:
-            quest_id = int(quest_id)
-        except (TypeError, ValueError):
+        quest_id = _positive_entity_id(quest_id)
+        if quest_id is None or self.navigate_callback is None:
             return False
-        if self.quest_provider.get_quest(quest_id) is None or self.navigate_callback is None:
+        if self.quest_provider.get_quest(quest_id) is None:
             return False
         return bool(
             self.navigate_callback(

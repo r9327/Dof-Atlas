@@ -5,6 +5,9 @@ import re
 from typing import Any
 
 from app.core.text import normalize_key as normalize_text
+from app.modules.encyclopedia.services.guide_source_media import (
+    drop_source_images, source_image_key,
+)
 
 
 _ACTION_START_RE = re.compile(
@@ -248,9 +251,11 @@ def apply_player_line_policy(lines: list[dict[str, Any]]) -> list[dict[str, Any]
             row["text"] = text
             expanded.append(row)
             continue
-        for part in split_real_actions(text):
+        for part_index, part in enumerate(split_real_actions(text)):
             split_row = copy.deepcopy(row)
             split_row["text"] = ensure_drop_purchase_alternative(part)
+            if part_index:
+                drop_source_images(split_row)
             expanded.append(split_row)
 
     action_texts = [
@@ -267,14 +272,18 @@ def apply_player_line_policy(lines: list[dict[str, Any]]) -> list[dict[str, Any]
         filtered.append(row)
 
     result: list[dict[str, Any]] = []
-    seen: set[tuple[str, str, str]] = set()
+    seen: set[tuple[str, str, str, str]] = set()
     for row in filtered:
+        media_key = source_image_key(row)
         key = (
             str(row.get("kind") or "").strip(),
             str(row.get("position") or "").strip(),
             normalize_text(row.get("text")),
+            media_key,
         )
-        if key[2] and key not in seen:
+        # A source screenshot without prose remains an image-only row.
+        # Distinct screenshots accompanying identical text remain distinct.
+        if (key[2] or media_key) and key not in seen:
             seen.add(key)
             result.append(row)
     return result

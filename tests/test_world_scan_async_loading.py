@@ -83,6 +83,47 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
             finally:
                 self._dispose_panel(panel)
 
+
+    def test_map_buttons_reuse_the_shared_unity_button(self) -> None:
+        """Map actions use AtlasButton, preserving their existing selectors."""
+        from app.ui.components import AtlasButton, AtlasPageTitle
+
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                toolbar_button = panel.make_button("Actualiser", "WorldRefreshButton")
+                self.assertIsInstance(toolbar_button, AtlasButton)
+                self.assertEqual(toolbar_button.objectName(), "WorldRefreshButton")
+                from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+                geometry = UNITY_MODULE_GEOMETRY_PX["world_scan"]
+                self.assertEqual(toolbar_button.height(), geometry["toolbar_button_height"])
+                toolbar = panel.findChild(world_scan_module.QFrame, "MapToolbar")
+                margins = toolbar.layout().contentsMargins()
+                self.assertEqual(
+                    (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                    geometry["toolbar_margins"],
+                )
+                self.assertEqual(toolbar.layout().spacing(), geometry["toolbar_spacing"])
+                self.assertEqual(panel.detail_panel.layout().spacing(), geometry["detail_spacing"])
+                self.assertEqual(panel.world_menu_list.spacing(), geometry["menu_item_spacing"])
+                self.assertEqual(panel.status_label.height(), geometry["status_height"])
+                title = panel.findChild(AtlasPageTitle, "PageTitle")
+                self.assertIsNotNone(title)
+                self.assertEqual(title.text(), "Scan Monde")
+                self.assertEqual(title.height(), 28)
+                panel.rebuild_world_menu(["Amakna"])
+                self.assertIsInstance(panel.world_buttons["Amakna"], AtlasButton)
+                self.assertEqual(
+                    panel.world_buttons["Amakna"].objectName(), "WorldMenuItem"
+                )
+                self.assertEqual(
+                    panel.world_buttons["Amakna"].height(),
+                    geometry["world_menu_item_height"],
+                )
+            finally:
+                toolbar_button.deleteLater()
+                self._dispose_panel(panel)
+
     def test_first_show_only_starts_worker_and_keeps_db_off_ui_thread(self) -> None:
         with (
             patch.object(world_scan_module, "WorldService", _FakeWorldService),

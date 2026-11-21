@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasStatusBadge
 
 
 class HideCompletedButton(AtlasButton):
@@ -155,11 +155,8 @@ class CompactScroll(QScrollArea):
         self.layout.addStretch(1)
 
 
-class StatusBadge(QLabel):
-    def __init__(self, text: str, state: str = "neutral", parent=None) -> None:
-        super().__init__(text, parent)
-        self.setObjectName("StatusBadge")
-        self.setProperty("state", state)
+# Preserve the old dashboard import without a second badge implementation.
+StatusBadge = AtlasStatusBadge
 
 
 class ActivityBadge(QLabel):

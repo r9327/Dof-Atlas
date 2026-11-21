@@ -217,6 +217,29 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                 self.assertLessEqual(cell_width, viewport_width)
                 self.assertLessEqual(cell_width, 320)
 
+    def test_catalogue_columns_resize_from_indexed_guide_values(self) -> None:
+        from app.modules.encyclopedia.widgets.guide_card import GuideHomeColumns
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+        columns = GuideHomeColumns(QListView(), QListView())
+        try:
+            self.assertEqual(columns.layout().spacing(), geometry["library_columns_spacing"])
+            threshold = geometry["library_columns_horizontal_min_width"]
+            columns.set_available_width(threshold - 1)
+            self.assertEqual(columns.layout().direction(), QBoxLayout.TopToBottom)
+            self.assertEqual(
+                columns._left.maximumHeight(), geometry["library_left_stacked_max_height"]
+            )
+            columns.set_available_width(threshold)
+            self.assertEqual(columns.layout().direction(), QBoxLayout.LeftToRight)
+            self.assertEqual(
+                columns._left.maximumWidth(), geometry["library_left_max_width"]
+            )
+        finally:
+            columns.close()
+            columns.deleteLater()
+
     def test_lazy_home_search_navigation_and_responsive_grid(self) -> None:
         provider = _CatalogProvider()
         with tempfile.TemporaryDirectory() as directory:
@@ -258,8 +281,8 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
-                    # Alignements have real nested entries in the left menu;
-                    # changing the menu does NOT overwrite the right Dofus grid.
+                    # Selecting a category updates the right grid while
+                    # keeping featured optimized routes in the left column.
                     alignments = view._category_nodes["alignements"]
                     self.assertEqual(
                         sum(bool(alignments.child(i).data(0, Qt.UserRole + 1))
@@ -267,21 +290,29 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         2,
                     )
                     view.library_categories.setCurrentItem(alignments)
+                    self.assertEqual(view.library_results_title.text(), "ALIGNEMENTS")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["dofus_turquoise", "dofus_cawotte"],
+                        ["alignement_bonta", "alignement_brakmar"],
                     )
                     view.library_categories.setCurrentItem(alignments.child(0))
                     self.assertEqual(requested[-1], "alignement_bonta")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["dofus_turquoise", "dofus_cawotte"],
+                        ["alignement_bonta", "alignement_brakmar"],
                     )
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
-                    self.assertEqual(self._ids(view.home_dofus_model), [])
-                    self.assertFalse(view.home_dofus_list.isVisible())
+                    self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
                     view.set_search_text("")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["alignement_bonta", "alignement_brakmar"],
+                    )
+                    view.library_categories.setCurrentItem(
+                        view._category_nodes["dofus"]
+                    )
+                    self.assertEqual(view.library_results_title.text(), "DOFUS")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
                         ["dofus_turquoise", "dofus_cawotte"],

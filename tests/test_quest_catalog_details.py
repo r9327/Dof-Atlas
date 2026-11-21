@@ -18,6 +18,7 @@ from app.quest_catalog_details import (
     _solution_combat_rows,
     ensure_detail_source_offsets,
     load_lazy_catalog,
+    load_quest_ids,
 )
 from app.quest_source_index import (
     JsonSourceMapping,
@@ -31,6 +32,56 @@ def record(quest_id):
 
 
 class QuestDetailsTests(unittest.TestCase):
+    def test_source_map_coordinates_never_coerce_invalid_positions(self):
+        # A valid source map may recover coordinates that the objective lacks.
+        maps = {17: {"posX": "-03", "posY": "04"}}
+        self.assertEqual(qc.map_label(17, {"x": 1, "y": -2}, maps), "[1,-2]")
+        self.assertEqual(qc.map_label(17, {"x": None, "y": 2}, maps), "[-3,4]")
+        self.assertEqual(qc.map_label(17, {"x": 2**31, "y": 3}, maps), "[-3,4]")
+
+        # Do not silently convert booleans, fractional values or overflow
+        # into a navigable /travel link or an objective starting position.
+        invalid = (True, False, 1.5, -2.5, 2**31, -(2**31), -(2**31) - 1)
+        for value in invalid:
+            with self.subTest(value=value):
+                self.assertEqual(qc.map_label(None, {"x": value, "y": 3}, {}), "")
+                self.assertEqual(qc.map_label(None, {"x": 3, "y": value}, {}), "")
+                self.assertEqual(
+                    qc.map_label(5, {"x": None, "y": None},
+                                 {5: {"posX": value, "posY": 3}}),
+                    "",
+                )
+        self.assertEqual(qc.map_label(None, {"x": "3", "y": "-04"}, {}), "[3,-4]")
+        self.assertEqual(qc.map_label(None, {"x": -(2**31) + 1, "y": 0}, {}),
+                         "[-2147483647,0]")
+
+    def test_compact_quest_id_inventory_preserves_duplicate_titles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            index_path = root / "quest_ids.sqlite3"
+            with sqlite3.connect(index_path) as connection:
+                connection.execute(
+                    "CREATE TABLE quests (id INTEGER PRIMARY KEY, name TEXT)"
+                )
+                connection.executemany(
+                    "INSERT INTO quests VALUES (?, ?)",
+                    [(20, "Même nom"), (10, "Même nom"), (30, "Autre quête")],
+                )
+            with (
+                patch("app.quest_catalog_details.ensure_lazy_catalog_cache") as ensure,
+                patch(
+                    "app.quest_catalog_details._cache_identity",
+                    return_value=((), index_path),
+                ),
+                patch("app.quest_catalog_details.load_lazy_catalog",
+                      side_effect=AssertionError("must not hydrate Quest objects")),
+            ):
+                self.assertEqual(
+                    load_quest_ids(root, cache_root=root / "cache"),
+                    (10, 20, 30),
+                )
+                ensure.assert_called_once_with(root, cache_root=root / "cache")
+
     def test_solution_combats_have_stable_compact_evidence_without_rich_detail(self):
         evidence = _solution_combat_rows({
             "solution_steps": [

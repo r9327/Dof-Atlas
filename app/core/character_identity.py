@@ -32,7 +32,13 @@ def character_id_from_key(value: object) -> int | None:
     raw = text[len(CHARACTER_KEY_PREFIX) :]
     if not raw.isdigit():
         return None
-    parsed = int(raw)
+    try:
+        parsed = int(raw)
+    except (TypeError, ValueError, OverflowError):
+        # Python rejects unbounded integer strings. An untrusted network
+        # identity must return False from is_character_key(), not raise into
+        # the Qt event loop or escape a UI signal handler.
+        return None
     if parsed <= 0:
         return None
     return parsed if text == character_key(parsed) else None

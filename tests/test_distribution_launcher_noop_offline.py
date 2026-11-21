@@ -496,7 +496,14 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         """The visible path selection must call the locked migration, not raw copy."""
         fake_tk = MagicMock()
         fake_ttk = MagicMock()
-        fake_tk.IntVar.side_effect = _Variable
+        percent_history = []
+
+        class _TrackedPercent(_Variable):
+            def set(self, value):
+                percent_history.append(value)
+                super().set(value)
+
+        fake_tk.IntVar.side_effect = _TrackedPercent
         fake_tk.StringVar.side_effect = _Variable
         window = fake_tk.Tk.return_value
         scheduled = []
@@ -513,6 +520,7 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
             self.assertEqual(target, destination)
             self.assertEqual(launcher.ROOT, source)
             self.assertIsNotNone(progress)
+            progress(100, 100)  # Copy complete, but no Atlas health ACK yet.
             order.append("guarded_migration")
             self.assertIsNotNone(after_relocation)
             after_relocation(target, held_guard)
@@ -555,6 +563,10 @@ class HiddenUpdaterWindowTests(unittest.TestCase):
         self.assertEqual(order, ["guarded_migration", "launch", "source_lock_released"])
         guarded.assert_called_once()
         raw_copy.assert_not_called()
+        # A finished move alone must not flash 100% before successful launch.
+        self.assertIn(96, percent_history)
+        self.assertEqual(percent_history[-1], 100)
+        self.assertEqual(percent_history.count(100), 1)
 
     def test_real_delta_shows_progress_only_once(self):
         result, window = self._drive([

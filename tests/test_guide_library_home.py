@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QListView, QLineEdit, QListWidget
+from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QLabel, QListView, QLineEdit, QListWidget
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -91,12 +91,18 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         view.home_scroll.widget().objectName(), "GuidesHomeContent"
                     )
                     self.assertEqual(view.library_right.objectName(), "GuideLibraryResults")
+                    headings = view.findChildren(QLabel, "GuideLibrarySectionTitle")
+                    self.assertEqual(len(headings), 3)
+                    self.assertTrue(all(label.styleSheet() == "" for label in headings))
+                    # Theme stylesheet owns selected/hover states for every module.
+                    self.assertEqual(view.library_categories.styleSheet(), "")
                     for card in view.featured_cards.values():
                         self.assertIn("qlineargradient(", card.styleSheet())
                         self.assertIn("stop:0 #354971", card.styleSheet())
-                    self.assertIsNone(
+                    self.assertIsNotNone(
                         view.findChild(QListWidget, "GuideLibraryUnavailableList")
                     )
+                    self.assertFalse(view.unavailable_list.isVisible())
                 finally:
                     view.deleteLater()
                     self.app.processEvents()
@@ -139,6 +145,39 @@ class GuideLibraryHomeTests(unittest.TestCase):
         self.assertIn(page, switched)
         self.assertEqual(requested, ["catalog"])
 
+    def test_featured_card_and_pair_geometry_follow_dev_ui_index(self):
+        from app.modules.encyclopedia.views.guide_featured_home import (
+            FeaturedGuideCard, FeaturedPair,
+        )
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+        cards = (
+            FeaturedGuideCard("guide_complet", "Guide optimisé", lambda _id: None),
+            FeaturedGuideCard("dofus_sylvestre", "Sylvestre", lambda _id: None),
+        )
+        pair = FeaturedPair(cards)
+        try:
+            card = cards[0]
+            self.assertEqual(card.layout().getContentsMargins(), geometry["featured_compact_margins"])
+            self.assertEqual(card.layout().spacing(), geometry["featured_compact_spacing"])
+            self.assertEqual(card.minimumHeight(), geometry["featured_compact_min_height"])
+            self.assertEqual(card.maximumHeight(), geometry["featured_compact_max_height"])
+            self.assertEqual(card.artwork.width(), geometry["featured_compact_artwork_box"])
+            self.assertEqual(card.progress.maximumHeight(), geometry["featured_compact_progress_max_height"])
+            self.assertEqual(pair.layout().getContentsMargins(), geometry["featured_pair_margins"])
+            self.assertEqual(pair.layout().spacing(), geometry["featured_pair_spacing"])
+            pair.resize(geometry["featured_pair_horizontal_min_width"], 200)
+            pair.show()
+            self.app.processEvents()
+            self.assertEqual(pair.pair_layout.direction(), QBoxLayout.LeftToRight)
+            pair.resize(geometry["featured_pair_horizontal_min_width"] - 1, 200)
+            self.app.processEvents()
+            self.assertEqual(pair.pair_layout.direction(), QBoxLayout.TopToBottom)
+        finally:
+            pair.close()
+            pair.deleteLater()
+
     def test_two_featured_cards_and_stable_alignment_tree(self):
         provider = _Provider()
         with tempfile.TemporaryDirectory() as directory:
@@ -177,6 +216,16 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertTrue(all(isinstance(card.graphicsEffect(), QGraphicsDropShadowEffect)
                                         for card in view.featured_cards.values()))
                     self.assertEqual(view.library_category, "dofus")
+                    self.assertEqual(
+                        view.library_categories.topLevelItem(0).data(0, Qt.UserRole),
+                        "dofus",
+                    )
+                    self.assertEqual(
+                        view.library_categories.topLevelItem(
+                            view.library_categories.topLevelItemCount() - 1
+                        ).data(0, Qt.UserRole),
+                        "events",
+                    )
                     # Responsive layout follows the actual LEFT width; cards
                     # stay compact whether two fit alongside or must stack.
                     expected = (QBoxLayout.LeftToRight
@@ -223,11 +272,15 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(requested, [])
                     view.refresh_home()
                     self.assertTrue(dimensions.isExpanded())
-                    self.assertEqual(view.library_results_title.text(), "DOFUS")
-                    self.assertTrue(view.home_dofus_list.isVisible())
-                    self.assertIsNone(
-                        view.findChild(QListWidget, "GuideLibraryUnavailableList")
-                    )
+                    self.assertEqual(view.library_results_title.text(), "DIMENSIONS DIVINES")
+                    self.assertFalse(view.home_dofus_list.isVisible())
+                    self.assertFalse(view.home_empty.isVisible())
+                    self.assertTrue(view.unavailable_list.isVisibleTo(view))
+                    self.assertGreater(view.unavailable_list.count(), 0)
+                    self.assertTrue(all(
+                        not (view.unavailable_list.item(i).flags() & Qt.ItemIsEnabled)
+                        for i in range(view.unavailable_list.count())
+                    ))
                     alignments.setExpanded(False)
                     view.set_search_text("no-matching-library-entry")
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
@@ -237,6 +290,48 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.app.processEvents()
                     self.assertEqual(view.home_columns.layout().direction(),
                                      QBoxLayout.TopToBottom)
+                finally:
+                    view.close()
+                    view.deleteLater()
+                    self.app.processEvents()
+
+    def test_category_menu_fits_collapsed_rows_and_scrolls_expanded_rows(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch(
+                "app.modules.encyclopedia.views.guide_catalog_view.catalog_route_map_count_hint",
+                return_value=0,
+            ):
+                view = GuideCatalogView(
+                    lambda _message: None,
+                    provider=_Provider(),
+                    quest_progress_path=Path(directory) / "progress.json",
+                    defer_runtime=True,
+                )
+                view._progress_snapshot = lambda: {}
+                view.hydrate_runtime()
+                view.resize(1180, 780)
+                view.show()
+                self.app.processEvents()
+                try:
+                    tree = view.library_categories
+                    view._sync_library_tree_height()
+                    folded = tree.height()
+                    self.assertLessEqual(folded, 250)
+                    self.assertEqual(tree.minimumHeight(), tree.maximumHeight())
+
+                    dimensions = view._category_nodes["dimensions"]
+                    self.assertGreater(dimensions.childCount(), 0)
+                    dimensions.setExpanded(True)
+                    self.app.processEvents()
+                    self.assertGreaterEqual(tree.height(), folded)
+                    self.assertLessEqual(tree.height(), 250)
+                    self.assertEqual(tree.height(), tree.maximumHeight())
+                    self.assertGreater(tree.verticalScrollBar().maximum(), 0)
+
+                    dimensions.setExpanded(False)
+                    self.app.processEvents()
+                    self.assertEqual(tree.height(), folded)
+                    self.assertEqual(tree.minimumHeight(), tree.maximumHeight())
                 finally:
                     view.close()
                     view.deleteLater()

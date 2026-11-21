@@ -11,6 +11,9 @@ from uuid import uuid4
 from threading import RLock
 from typing import Any
 
+from app.modules.encyclopedia.services.guide_source_media import (
+    carry_source_images, has_source_images, source_image_key,
+)
 from app.modules.encyclopedia.services.guide_ultime_manual_conditions import GuideUltimeManualConditionsMixin
 from app.modules.encyclopedia.services.guide_ultime_manual_route import (
     _manual_tree_signature,
@@ -1274,7 +1277,22 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 if isinstance(value, str) and normalize_text(value)
             ]
             for action in waypoint.get("actions", []) or []:
-                self._append_line(result, "action", position, action, waypoint_quests or quest_names)
+                # A waypoint action may carry its own screenshot. Preserve
+                # only explicitly authored media on that exact action row.
+                value = (
+                    action.get("do") or action.get("action")
+                    or action.get("instruction") or action.get("text")
+                    if isinstance(action, dict) else action
+                )
+                before = len(result)
+                self._append_line(
+                    result, "action", position, value,
+                    waypoint_quests or quest_names,
+                )
+                self._forward_authored_line_images(
+                    result, before, action if isinstance(action, dict) else {},
+                    position=position,
+                )
 
         for route_row in stage.get("route", []) or []:
             if not isinstance(route_row, dict):
@@ -1293,7 +1311,11 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 or route_row.get("instruction")
                 or route_row.get("note")
             )
+            before = len(result)
             self._append_line(result, "action", position, raw_action, quest_names)
+            self._forward_authored_line_images(
+                result, before, route_row, position=position,
+            )
 
         for field in (
             "conditional_actions",
@@ -1692,10 +1714,19 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 text += f" {suffix}"
             self._append_line(result, kind, "", text, quest_names)
 
+        media_attached = False
         for key in ("requirement", "instruction", "action", "do", "note", "policy", "warning", "condition"):
             child = value.get(key)
             if isinstance(child, str) and child.strip():
+                before = len(result)
                 self._append_line(result, kind, "", child, quest_names)
+                if not media_attached and len(result) > before:
+                    self._forward_authored_line_images(result, before, value)
+                    media_attached = True
+
+        if not media_attached and has_source_images(value):
+            # The authored value might contain an image but no text at all.
+            self._forward_authored_line_images(result, len(result), value)
 
         if not name and kamas in (None, ""):
             for key, child in value.items():
@@ -1738,6 +1769,20 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             return f"Fais le donjon {name}{f' et bats {boss}' if boss and boss != name else ''}."
         quantity = value.get("quantity")
         return f"Tue {quantity} × {name}." if quantity not in (None, "") else f"Tue {name}."
+
+    @staticmethod
+    def _forward_authored_line_images(
+        result: list[dict[str, Any]],
+        first_new_line: int,
+        source: dict[str, Any],
+        *, position: str = "",
+    ) -> None:
+        if not has_source_images(source):
+            return
+        if len(result) <= first_new_line:
+            # A documented screenshot can stand alone without fake prose.
+            result.append({"kind": "image", "position": position, "text": ""})
+        carry_source_images(source, result[first_new_line])
 
     def _append_line(
         self,
@@ -1927,6 +1972,11 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         seen: set[str] = set()
         for row in lines:
             key = normalize_text(f"{row.get('position', '')} {row.get('text', '')}")
+            # Two distinct authored screenshots are not duplicate route
+            # instructions even if their captions are both empty.
+            media_key = source_image_key(row)
+            if media_key:
+                key += "|source-image:" + media_key
             if key and key not in seen:
                 seen.add(key)
                 result.append(row)

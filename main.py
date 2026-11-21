@@ -13,12 +13,12 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Callable
 from weakref import WeakSet
 
-from PySide6.QtCore import QObject, QEvent, QPoint, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QPixmap
+from PySide6.QtCore import QDate, QDateTime, QObject, QEvent, QPoint, QSize, Qt, QTime, QTimer, Signal
+from PySide6.QtGui import QCloseEvent, QColor, QCursor, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QCalendarWidget,
     QCheckBox,
-    QComboBox,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.background_work import background_io_priority
+from app.core.character_identity import is_character_key
 from app.constants import (
     APP_NAME,
     CLIENT_INDEX_JSON,
@@ -63,11 +64,18 @@ from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
-from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle, atlas_application_icon
+from app.ui.components import (
+    AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
+    AtlasStatusBadge, apply_unity_calendar_weekdays, atlas_application_icon,
+)
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
-from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
+from app.ui.unity_skin import (
+    UnityBackdrop, apply_unity_panel_shadow, unity_enabled,
+    register_unity_fonts, sprite_icon_path, unity_settings_icon,
+)
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
 
@@ -560,7 +568,7 @@ def run_startup_preload(app: QApplication, splash: QSplashScreen | None = None) 
         splash.showMessage(
             f"Préchargement · {label}",
             Qt.AlignBottom | Qt.AlignCenter,
-            QColor("#dbe5f2"),
+            QColor(unity_painted_ui_color("splash.status")),
         )
         splash.repaint()
 
@@ -596,10 +604,12 @@ class HoverMenuButton(AtlasButton):
     _CLOSE_GRACE_TICKS = 6
 
     def __init__(self, text: str, parent: QWidget | None = None) -> None:
-        super().__init__(text, parent)
-        self.setObjectName("TopNavButton")
-        self.setFocusPolicy(Qt.NoFocus)
+        super().__init__(text, parent, variant="navigation")
+        # Tab must reach the same menu family as mouse hover. Mouse-only
+        # NoFocus made its actions unreachable without a pointer.
+        self.setFocusPolicy(Qt.TabFocus)
         self._hover_menu: QMenu | None = None
+        self._cursor_at_menu_close: QPoint | None = None
         self._outside_ticks = 0
         self._poll_timer = QTimer(self)
         self._poll_timer.setInterval(self._POLL_MS)
@@ -611,10 +621,21 @@ class HoverMenuButton(AtlasButton):
         menu.aboutToHide.connect(self._menu_hidden)
 
     def enterEvent(self, event) -> None:
-        self.open_hover_menu()
+        # Qt can send a new enter event when a popup releases the mouse.
+        # A stationary cursor must not immediately reopen the dismissed menu.
+        if QCursor.pos() != self._cursor_at_menu_close:
+            self._cursor_at_menu_close = None
+            self.open_hover_menu()
         super().enterEvent(event)
 
-    def open_hover_menu(self) -> None:
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key_Down, Qt.Key_F4) and self._hover_menu is not None:
+            self.open_hover_menu(keyboard=True)
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def open_hover_menu(self, *, keyboard: bool = False) -> None:
         menu = self._hover_menu
         if menu is None:
             return
@@ -625,15 +646,31 @@ class HoverMenuButton(AtlasButton):
 
         if menu.isVisible():
             self._outside_ticks = 0
+            if keyboard:
+                # Native QMenu handles Escape/Enter itself. Cursor polling is
+                # only valid for hover-open menus, not a keyboard popup.
+                self._poll_timer.stop()
+                self._select_first_menu_action(menu)
             return
 
         HoverMenuButton._active_button = self
         self._outside_ticks = 0
         self.setDown(False)
-        self.clearFocus()
+        if not keyboard:
+            self.clearFocus()
         menu.popup(self.mapToGlobal(QPoint(0, self.height())))
-        if not self._poll_timer.isActive():
+        if keyboard:
+            self._poll_timer.stop()
+            self._select_first_menu_action(menu)
+        elif not self._poll_timer.isActive():
             self._poll_timer.start()
+
+    @staticmethod
+    def _select_first_menu_action(menu: QMenu) -> None:
+        for action in menu.actions():
+            if action.isEnabled() and action.isVisible() and not action.isSeparator():
+                menu.setActiveAction(action)
+                return
 
     def close_hover_menu(self) -> None:
         self._poll_timer.stop()
@@ -650,6 +687,7 @@ class HoverMenuButton(AtlasButton):
         self.update()
 
     def _menu_hidden(self) -> None:
+        self._cursor_at_menu_close = QCursor.pos()
         self._poll_timer.stop()
         self._outside_ticks = 0
         self.setDown(False)
@@ -677,7 +715,6 @@ class HoverMenuButton(AtlasButton):
             self._menu_hidden()
             return
 
-        from PySide6.QtGui import QCursor
         pos = QCursor.pos()
 
         # QMenu est une popup et capte la souris : on détecte directement
@@ -861,6 +898,15 @@ class AtlasWindow(QMainWindow):
         self.tray_icon: QSystemTrayIcon | None = None
         self._background_services_stopped = False
         self._last_active_dofus_hwnd = 0
+        # Network changes to a hidden Encyclopedia are refreshed on return,
+        # not by rebuilding an invisible Qt tab for every completed quest.
+        self._pending_network_progress_character = ""
+        self._almanax_service = None  # Lazy, after Home is visible.
+        # One lightweight wake-up at the next local midnight; no polling
+        # and no Almanax HTTP request during startup/preload.
+        self._almanax_rollover_timer = QTimer(self)
+        self._almanax_rollover_timer.setSingleShot(True)
+        self._almanax_rollover_timer.timeout.connect(self._refresh_almanax_today)
 
         central = UnityBackdrop() if unity_enabled() else QWidget()
         self.setCentralWidget(central)
@@ -879,8 +925,12 @@ class AtlasWindow(QMainWindow):
         self.home_page.installEventFilter(self)
         self.home_page.continueRequested.connect(self.open_guide_progress)
         self.home_page.changeCharacterRequested.connect(self.open_character_selector)
-        self.home_page.network_bridge.characterActivated.connect(
-            self.on_network_character_activated
+        self.home_page.almanaxRequested.connect(lambda: self.show_page("Almanax"))
+        self.home_page.network_bridge.charactersIdentified.connect(
+            self.on_network_characters_identified
+        )
+        self.home_page.network_bridge.connectionsChanged.connect(
+            self.on_network_connections_changed
         )
         self.home_page.network_bridge.progressChanged.connect(self.on_network_progress_changed)
         self.register_page("Home", self.home_page)
@@ -890,14 +940,18 @@ class AtlasWindow(QMainWindow):
         self.register_page("Craft", self.loading_page("Craft"))
         self.register_page("Quetes", self.loading_page("Encyclopédie"))
         self.register_page("Equipement", self.loading_page("Équipement"))
-        self.register_page("Almanax", self.placeholder_page("Almanax", "Le module Almanax sera intégré ici.", badge="En travaux"))
+        self.register_page("Almanax", self.loading_page("Almanax"))
         self.register_page("Settings", self.create_settings_page())
+        self.register_page("Dev UI", self.loading_page("Dev · UI"))
 
         self.page_factories["Organizer"] = self.create_organizer_page
         self.page_factories["Scan Monde"] = self.create_world_scan_page
         self.page_factories["Craft"] = self.create_craft_page
         self.page_factories["Quetes"] = self.create_encyclopedia_page
         self.page_factories["Equipement"] = self.create_equipment_page
+        self.page_factories["Almanax"] = self.create_almanax_page
+        # Loaded only when requested via Settings; never part of normal startup.
+        self.page_factories["Dev UI"] = self.create_dev_ui_page
 
         self.top_nav = self.build_top_nav()
         root.addWidget(self.top_nav)
@@ -905,8 +959,12 @@ class AtlasWindow(QMainWindow):
         self.module_subnav = QFrame()
         self.module_subnav.setObjectName("ModuleSubNav")
         self.module_subnav_layout = QHBoxLayout(self.module_subnav)
-        self.module_subnav_layout.setContentsMargins(10, 4, 10, 4)
-        self.module_subnav_layout.setSpacing(4)
+        self.module_subnav_layout.setContentsMargins(
+            *UNITY_MODULE_GEOMETRY_PX["shell"]["subnav_margins"]
+        )
+        self.module_subnav_layout.setSpacing(
+            UNITY_MODULE_GEOMETRY_PX["shell"]["subnav_spacing"]
+        )
         self.module_subnav.setVisible(False)
         root.addWidget(self.module_subnav)
 
@@ -969,23 +1027,25 @@ class AtlasWindow(QMainWindow):
         nav = QFrame()
         nav.setObjectName("TopNav")
         layout = QHBoxLayout(nav)
-        layout.setContentsMargins(10, 6, 10, 6)
-        layout.setSpacing(4)
+        layout.setContentsMargins(*UNITY_MODULE_GEOMETRY_PX["shell"]["top_nav_margins"])
+        layout.setSpacing(UNITY_MODULE_GEOMETRY_PX["shell"]["top_nav_spacing"])
 
         self.brand_button = AtlasButton("")
         self.brand_button.setObjectName("TopNavBrand")
         self.brand_button.setIcon(self.shell_icon)
         self.brand_button.setIconSize(QSize(0, 0))
-        self.brand_button.setMinimumWidth(170)
-        self.brand_button.setCursor(Qt.PointingHandCursor)
+        self.brand_button.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["brand_min_width"])
         brand_layout = QHBoxLayout(self.brand_button)
-        brand_layout.setContentsMargins(8, 0, 8, 0)
-        brand_layout.setSpacing(8)
+        brand_inset = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_padding_x"]
+        brand_layout.setContentsMargins(brand_inset, 0, brand_inset, 0)
+        brand_layout.setSpacing(UNITY_MODULE_GEOMETRY_PX["shell"]["brand_spacing"])
         self.brand_icon_label = QLabel()
         self.brand_icon_label.setObjectName("TopNavBrandIcon")
-        self.brand_icon_label.setFixedSize(32, 32)
+        brand_box = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_icon_box"]
+        self.brand_icon_label.setFixedSize(brand_box, brand_box)
         self.brand_icon_label.setAlignment(Qt.AlignCenter)
-        self.brand_icon_label.setPixmap(self.shell_icon.pixmap(QSize(30, 30)))
+        brand_artwork = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_artwork"]
+        self.brand_icon_label.setPixmap(self.shell_icon.pixmap(QSize(brand_artwork, brand_artwork)))
         self.brand_icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         brand_layout.addWidget(self.brand_icon_label)
         brand_text = QLabel(APP_NAME)
@@ -994,14 +1054,14 @@ class AtlasWindow(QMainWindow):
         brand_layout.addWidget(brand_text, 1)
         self.brand_button.clicked.connect(lambda: self.show_page("Home"))
         layout.addWidget(self.brand_button)
-        layout.addSpacing(8)
+        layout.addSpacing(UNITY_MODULE_GEOMETRY_PX["shell"]["nav_content_gap"])
 
-        organizer = AtlasButton("Organizer")
-        organizer.setObjectName("TopNavButton")
+        organizer = AtlasButton("Organizer", variant="navigation")
         inventory_sprite = sprite_icon_path("inventory")
         if inventory_sprite:
             organizer.setIcon(QIcon(str(inventory_sprite)))
-            organizer.setIconSize(QSize(18, 18))
+            nav_icon = UNITY_MODULE_GEOMETRY_PX["shell"]["nav_icon"]
+            organizer.setIconSize(QSize(nav_icon, nav_icon))
         organizer.clicked.connect(lambda: self.show_page("Organizer"))
         layout.addWidget(organizer)
         self.nav_buttons.append((organizer, "Organizer"))
@@ -1066,8 +1126,7 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(stuffs)
         self.nav_buttons.append((stuffs, "Stuffs"))
 
-        almanax = AtlasButton("Almanax")
-        almanax.setObjectName("TopNavButton")
+        almanax = AtlasButton("Almanax", variant="navigation")
         almanax.clicked.connect(lambda: self.show_page("Almanax"))
         layout.addWidget(almanax)
         self.nav_buttons.append((almanax, "Almanax"))
@@ -1082,23 +1141,31 @@ class AtlasWindow(QMainWindow):
 
         layout.addStretch(1)
 
-        self.character_combo = QComboBox()
+        self.character_combo = AtlasComboBox()
         self.character_combo.setObjectName("TopNavCharacterCombo")
-        self.character_combo.setMinimumWidth(150)
-        self.character_combo.setMaximumWidth(210)
+        self.character_combo.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_min_width"])
+        self.character_combo.setMaximumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_max_width"])
         self.character_combo.setToolTip("Personnage actif")
         self.character_combo.currentIndexChanged.connect(self.on_global_character_changed)
         layout.addWidget(self.character_combo)
 
-        self.settings_button = AtlasButton("⚙")
+        self.settings_button = AtlasButton("")
         self.settings_button.setObjectName("TopNavSettings")
-        self.settings_button.setFixedSize(34, 34)
+        self.settings_button.setAccessibleName("Paramètres")
+        settings_icon = UNITY_MODULE_GEOMETRY_PX["shell"]["settings_icon"]
+        self.settings_button.setIcon(unity_settings_icon(settings_icon))
+        self.settings_button.setIconSize(QSize(settings_icon, settings_icon))
+        settings_box = UNITY_MODULE_GEOMETRY_PX["shell"]["settings_button_box"]
+        self.settings_button.setFixedSize(settings_box, settings_box)
         self.settings_button.setToolTip("Paramètres")
         self.settings_button.clicked.connect(lambda: self.show_page("Settings"))
         layout.addWidget(self.settings_button)
         return nav
 
-    def refresh_global_characters(self) -> None:
+    def refresh_global_characters(
+        self, *, verified_initial_key: str = "", allow_default_selection: bool = True,
+        network_refresh: bool = False,
+    ) -> None:
         previous_key = str(self.current_character_key or "")
         known_characters = self._known_characters()
         connected_characters = self._connected_characters(known_characters)
@@ -1117,6 +1184,16 @@ class AtlasWindow(QMainWindow):
             ),
             -1,
         )
+        if selected_index < 0 and not previous_key and verified_initial_key:
+            matches = [
+                index
+                for index, character in enumerate(connected_characters)
+                if character.key == verified_initial_key
+            ]
+            # A network packet can initialize only an unambiguous verified ID.
+            # No heuristics based on window name or the list's first entry.
+            if len(matches) == 1:
+                selected_index = matches[0]
 
         # A Home return should not destroy/recreate every combo icon and Qt
         # item when the canonical connected-character projection is unchanged.
@@ -1139,9 +1216,12 @@ class AtlasWindow(QMainWindow):
             )
             for character, icon_path in character_rows
         )
+        projection_changed = combo_signature != getattr(
+            self, "_character_combo_signature", None
+        )
         previous_blocked = self.character_combo.blockSignals(True)
         try:
-            if combo_signature != getattr(self, "_character_combo_signature", None):
+            if projection_changed:
                 self.character_combo.clear()
                 for character, icon_path in character_rows:
                     icon = QIcon(icon_path) if icon_path else QIcon()
@@ -1163,7 +1243,7 @@ class AtlasWindow(QMainWindow):
                 self.character_combo.setCurrentIndex(-1)
                 self.current_character_key = selected.key
                 self.current_character_label = selected.label
-            elif connected_characters:
+            elif connected_characters and allow_default_selection:
                 self.character_combo.setCurrentIndex(0)
                 selected = connected_characters[0]
                 self.current_character_key = selected.key
@@ -1171,17 +1251,28 @@ class AtlasWindow(QMainWindow):
             else:
                 self.character_combo.setCurrentIndex(-1)
                 self.current_character_key = ""
-                self.current_character_label = "Aucun personnage connecté"
+                self.current_character_label = (
+                    "Aucun personnage sélectionné" if connected_characters
+                    else "Aucun personnage connecté"
+                )
         finally:
             self.character_combo.blockSignals(previous_blocked)
 
-        self.persist_selected_character()
+        # Only repeated network identity notifications may skip persistence.
+        # Manual actions (notably deletion, which clears the key *before*
+        # calling here) still save even if the final key is already empty.
+        if not network_refresh or self.current_character_key != previous_key:
+            self.persist_selected_character()
         self.home_page.set_character(
             self.current_character_key,
             self.current_character_label,
             self.character_icon_path(self.current_character_label, class_key=getattr(known_by_key.get(self.current_character_key), "class_key", "")),
         )
-        self.sync_selected_character_to_pages()
+        # Scope deduplication to network notifications. Home navigation,
+        # manual profile edits and Organizer reorders must still resync pages
+        # even if their connected-combo projection did not change.
+        if not network_refresh or projection_changed or self.current_character_key != previous_key:
+            self.sync_selected_character_to_pages()
         self._refresh_runtime_hotkeys_for_client_mapping()
 
     @staticmethod
@@ -1260,53 +1351,73 @@ class AtlasWindow(QMainWindow):
     def on_network_progress_changed(self, character_key: str) -> None:
         from app.ui.network_bridge import refresh_visible_encyclopedia_widgets
 
+        target = str(character_key or "").strip()
+        if not target:
+            return
         page = self.page_widgets.get("Quetes")
-        if page is not None:
-            refresh_visible_encyclopedia_widgets((page,), character_key)
+        if page is not None and refresh_visible_encyclopedia_widgets((page,), target):
+            if getattr(self, "_pending_network_progress_character", "") == target:
+                self._pending_network_progress_character = ""
+            return
+        # A hidden page is never rebuilt in the background. Track only the
+        # currently selected character; selecting another already reloads it.
+        if target == self.current_character_key:
+            self._pending_network_progress_character = target
+
+    def on_network_characters_identified(self, character_keys: object) -> None:
+        """Refresh account choices once for a batch of verified identities."""
+
+        if not isinstance(character_keys, (tuple, list)):
+            return
+        identities = tuple(dict.fromkeys(
+            str(key or "").strip() for key in character_keys
+            if str(key or "").strip()
+        ))
+        if not identities:
+            return
+        if len(identities) == 1:
+            # Keep the existing single-account path and verified-ID guard.
+            self.on_network_character_activated(identities[0])
+            return
+        # Several sessions do not prove which window is foreground.
+        # In particular, a fresh profile must not default to the first
+        # connected account merely because its packet arrived first.
+        self.refresh_global_characters(
+            allow_default_selection=False, network_refresh=True,
+        )
+
+    def on_network_connections_changed(self, character_keys: object) -> None:
+        """Refresh live account membership without inventing a focus event."""
+
+        if not isinstance(character_keys, (tuple, list)):
+            return
+        if not any(
+            isinstance(key, str) and is_character_key(key)
+            for key in character_keys
+        ):
+            return
+        # An ended transport does not necessarily mean an account is offline
+        # (another session may exist). Recompute from the verified runtime
+        # snapshots and preserve manual selection without disk churn.
+        self.refresh_global_characters(
+            allow_default_selection=False, network_refresh=True,
+        )
 
     def on_network_character_activated(self, character_key: str) -> None:
-        """Refresh learned profiles and display the intended Dofus client."""
+        """Refresh verified identities without mistaking login for window focus."""
 
         target = str(character_key or "").strip()
         if not target:
             return
-        self.refresh_global_characters()
-
-        index_payload = read_json(CLIENT_INDEX_JSON, {})
-        clients = index_payload.get("clients", []) if isinstance(index_payload, dict) else []
-        clients = [client for client in clients if isinstance(client, dict)]
-        favorite_clients = [client for client in clients if bool(client.get("primary"))]
-        selected_client = favorite_clients[0] if len(favorite_clients) == 1 else None
-        if selected_client is None and self._last_active_dofus_hwnd > 0:
-            active_clients = [
-                client
-                for client in clients
-                if int(client.get("handle") or 0) == self._last_active_dofus_hwnd
-            ]
-            selected_client = active_clients[0] if len(active_clients) == 1 else None
-        if selected_client is None and len(clients) == 1:
-            selected_client = clients[0]
-
-        preferred_name = str(
-            (selected_client or {}).get("character_name")
-            or (selected_client or {}).get("name")
-            or ""
-        ).strip()
-        if not preferred_name:
-            return
-        preferred_key = normalize_key(preferred_name)
-        matches = [
-            index
-            for index in range(self.character_combo.count())
-            if normalize_key(self.character_combo.itemText(index)) == preferred_key
-        ]
-        if len(matches) != 1:
-            return
-        self.character_combo.setCurrentIndex(matches[0])
-        if self.current_character_key != str(
-            getattr(self.character_combo.currentData(), "key", "") or ""
-        ):
-            self.on_global_character_changed()
+        # An identified TCP session is not proof of window focus. Preserve
+        # existing manual selection. Only an initially unselected account may
+        # be initialized from its exact verified character:<id>, atomically
+        # with the one profile refresh (never two intermediary selections).
+        self.refresh_global_characters(
+            verified_initial_key=target,
+            allow_default_selection=False,
+            network_refresh=True,
+        )
 
     def prepare_network_capture(self) -> None:
         """Request UAC as soon as the visible shell enters its event loop."""
@@ -1317,13 +1428,16 @@ class AtlasWindow(QMainWindow):
             prepare()
 
     def on_organizer_active_window(self, hwnd: int) -> None:
-        """Remember the active Dofus client for no-favorite multi-account mode."""
+        """Keep the foreground handle without guessing which account owns it."""
 
         try:
             self._last_active_dofus_hwnd = max(0, int(hwnd))
         except (TypeError, ValueError, OverflowError):
             return
-        self.refresh_global_characters()
+        # A foreground HWND alone does not establish a verified character
+        # identity. Reconcile connected profiles but never pick the first
+        # account from an otherwise neutral multi-account selection.
+        self.refresh_global_characters(allow_default_selection=False)
 
     def persist_selected_character(self) -> None:
         profiles = read_json(PROFILE_FILE, default_profiles())
@@ -1597,16 +1711,21 @@ class AtlasWindow(QMainWindow):
 
         target_index = labels.index(label)
         tab_bar = page.tabs.tabBar()
+        allowed_tabs = (
+            guide_tabs if label in guide_tabs
+            else bestiary_tabs if label in bestiary_tabs
+            else set(labels)
+        )
+
+        def restore_tab_group_visibility() -> None:
+            # Reuse one visibility rule before and after lazy tab hydration.
+            # Qt may make a hidden sibling visible during removeTab/insertTab.
+            for index, tab_name in enumerate(page.tab_labels()):
+                tab_bar.setTabVisible(index, tab_name in allowed_tabs)
 
         was_blocked = page.tabs.blockSignals(True)
         try:
-            for index, tab_name in enumerate(labels):
-                if label in guide_tabs:
-                    tab_bar.setTabVisible(index, tab_name in guide_tabs)
-                elif label in bestiary_tabs:
-                    tab_bar.setTabVisible(index, tab_name in bestiary_tabs)
-                else:
-                    tab_bar.setTabVisible(index, True)
+            restore_tab_group_visibility()
             page.tabs.setCurrentIndex(target_index)
         finally:
             page.tabs.blockSignals(was_blocked)
@@ -1617,12 +1736,15 @@ class AtlasWindow(QMainWindow):
         refreshed_labels = page.tab_labels()
         if label in refreshed_labels:
             final_index = refreshed_labels.index(label)
-            if page.tabs.currentIndex() != final_index:
-                was_blocked = page.tabs.blockSignals(True)
-                try:
+            was_blocked = page.tabs.blockSignals(True)
+            try:
+                # The view may have replaced its selected lazy tab above;
+                # enforce the group once more on the *final* tab bar.
+                restore_tab_group_visibility()
+                if page.tabs.currentIndex() != final_index:
                     page.tabs.setCurrentIndex(final_index)
-                finally:
-                    page.tabs.blockSignals(was_blocked)
+            finally:
+                page.tabs.blockSignals(was_blocked)
 
         active_group = self.page_nav_group.get("Quetes", "")
         self.refresh_nav_selection(active_group)
@@ -1635,7 +1757,9 @@ class AtlasWindow(QMainWindow):
         except (TypeError, ValueError):
             resolved_quest = None
         self.pending_guide_target = (str(guide_id), resolved_quest)
-        self.show_page("Quetes")
+        # Deep links must restore the Encyclopedia tab group, even after a
+        # Bestiary visit hid Guide/Quest/Success tabs in the shared shell.
+        self.open_encyclopedia_tab(GUIDES_TAB)
         self._schedule_owned_callback(0, self.finish_pending_guide_target)
 
     def finish_pending_guide_target(self) -> None:
@@ -1668,6 +1792,8 @@ class AtlasWindow(QMainWindow):
         if not hasattr(self, "module_subnav_layout"):
             return
 
+        self._module_subnav_spec = None
+        self._module_subnav_buttons = ()
         while self.module_subnav_layout.count():
             item = self.module_subnav_layout.takeAt(0)
             widget = item.widget()
@@ -1681,22 +1807,29 @@ class AtlasWindow(QMainWindow):
         active_label: str,
         callback,
     ) -> None:
-        self.clear_module_subnav()
+        # Reuse the actual Qt controls when only the active tool/stuff changes.
+        # Recreating the whole row on every click causes geometry flicker and
+        # briefly duplicates deleted Qt widgets until their deferred teardown.
+        spec = (group, tuple(labels), callback)
+        if getattr(self, "_module_subnav_spec", None) != spec:
+            self.clear_module_subnav()
+            buttons: list[AtlasButton] = []
+            for label in labels:
+                button = AtlasButton(label, variant="navigation")
+                button.clicked.connect(
+                    lambda _checked=False, value=label: callback(value)
+                )
+                self.module_subnav_layout.addWidget(button)
+                buttons.append(button)
+            self.module_subnav_layout.addStretch(1)
+            self._module_subnav_buttons = tuple(buttons)
+            self._module_subnav_spec = spec
 
-        for label in labels:
-            button = AtlasButton(label)
-            button.setObjectName(
-                "TopNavButtonActive"
-                if label == active_label
-                else "TopNavButton"
+        for label, button in zip(labels, self._module_subnav_buttons):
+            button.set_variant(
+                "navigation_active" if label == active_label else "navigation"
             )
-            button.setCursor(Qt.PointingHandCursor)
-            button.clicked.connect(
-                lambda _checked=False, value=label: callback(value)
-            )
-            self.module_subnav_layout.addWidget(button)
 
-        self.module_subnav_layout.addStretch(1)
         self.module_subnav.setVisible(True)
         self.refresh_nav_selection(group)
 
@@ -1786,13 +1919,207 @@ class AtlasWindow(QMainWindow):
         heading = AtlasPageTitle(title)
         layout.addWidget(heading)
         if badge:
-            state = QLabel(badge)
-            state.setObjectName("HomePlaceholderBadge")
+            state = AtlasStatusBadge(badge, state="blocked")
             layout.addWidget(state, 0, Qt.AlignLeft)
         text = QLabel(message)
         text.setObjectName("CompactLabel")
         text.setWordWrap(True)
         layout.addWidget(text)
+        layout.addStretch(1)
+        return page
+
+    def _ensure_almanax_service(self):
+        if self._almanax_service is None:
+            from app.services.almanax_service import AlmanaxDataService
+
+            service = AlmanaxDataService(self)
+            service.dayAvailable.connect(self._on_almanax_day_available)
+            service.dayUnavailable.connect(self._on_almanax_day_unavailable)
+            service.itemIconAvailable.connect(self._on_almanax_item_icon_available)
+            self._almanax_service = service
+        return self._almanax_service
+
+    def _request_almanax_day(self, day_key: str, *, refresh: bool = False) -> None:
+        if not self.quit_requested:
+            self._ensure_almanax_service().request_day(day_key, refresh=refresh)
+
+    def _refresh_almanax_today(self) -> None:
+        if self.quit_requested:
+            return
+        day_key = QDate.currentDate().toString("yyyy-MM-dd")
+        self.home_page.set_almanax_loading(day_key)
+        self._request_almanax_day(day_key)
+        # Re-arm after every refresh (including navigation back to Home).
+        # QDateTime uses local civil time, including the DST transition,
+        # rather than assuming that every day lasts exactly 24 hours.
+        tomorrow = QDate.currentDate().addDays(1)
+        midnight = QDateTime(tomorrow, QTime(0, 0, 1))
+        delay_ms = max(1000, QDateTime.currentDateTime().msecsTo(midnight))
+        self._almanax_rollover_timer.start(delay_ms)
+
+    def _on_almanax_day_available(self, day_key: str, day: object, cached: bool) -> None:
+        if self.quit_requested:
+            return
+        if day_key == QDate.currentDate().toString("yyyy-MM-dd"):
+            self.home_page.set_almanax_day(day, cached=cached)
+        calendar = getattr(self, "almanax_calendar", None)
+        if calendar is None or calendar.selectedDate().toString("yyyy-MM-dd") != day_key:
+            return
+        offering = str(getattr(day, "offering", "") or "")
+        quantity = int(getattr(day, "quantity", 0) or 0)
+        bonus = str(getattr(day, "bonus", "") or "")
+        category = str(getattr(day, "bonus_type", "") or "")
+        reward = int(getattr(day, "reward_kamas", 0) or 0)
+        rows = [
+            f"Offrande : {quantity} × {offering}" if offering
+            else "Offrande non renseignée par la source",
+            f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
+        ]
+        if category:
+            rows.append(f"Catégorie : {category}")
+        if reward > 0:
+            rows.append(f"Récompense : {reward:,} kamas".replace(",", " "))
+        self.almanax_day_detail.setText("\n".join(rows))
+        self.almanax_status_badge.setText(
+            "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"
+        )
+        self.almanax_status_badge.set_state("info" if cached else "active")
+
+    def _on_almanax_item_icon_available(self, day_key: str, icon: QPixmap) -> None:
+        if self.quit_requested:
+            return
+        if day_key == QDate.currentDate().toString("yyyy-MM-dd"):
+            self.home_page.set_almanax_item_icon(day_key, icon)
+        calendar = getattr(self, "almanax_calendar", None)
+        if calendar is None or calendar.selectedDate().toString("yyyy-MM-dd") != day_key:
+            return
+        self.almanax_offering_icon.setPixmap(
+            icon.scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
+        self.almanax_offering_icon.show()
+
+    def _on_almanax_day_unavailable(self, day_key: str, _reason: str) -> None:
+        if self.quit_requested:
+            return
+        if day_key == QDate.currentDate().toString("yyyy-MM-dd"):
+            self.home_page.set_almanax_unavailable(day_key)
+        calendar = getattr(self, "almanax_calendar", None)
+        if calendar is None or calendar.selectedDate().toString("yyyy-MM-dd") != day_key:
+            return
+        self.almanax_status_badge.setText("Données indisponibles")
+        self.almanax_status_badge.set_state("blocked")
+        self.almanax_day_detail.setText(
+            "Aucune offrande ni bonus sourcé pour cette date. "
+            "Vérifiez la connexion ou réessayez."
+        )
+        self.almanax_offering_icon.clear()
+        self.almanax_offering_icon.hide()
+
+    def create_almanax_page(self) -> QWidget:
+        """Browse sourced Almanax offerings, including future calendar dates."""
+        page = QWidget()
+        page.setObjectName("AlmanaxPage")
+        page.setProperty("atlasUnityPage", True)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(24, 16, 24, 24)
+        layout.setSpacing(12)
+        breadcrumb = AtlasBreadcrumb(compact=True)
+        breadcrumb_home = AtlasButton("Accueil", variant="guide_breadcrumb")
+        breadcrumb_home.clicked.connect(lambda: self.show_page("Home"))
+        breadcrumb.row.addWidget(breadcrumb_home)
+        breadcrumb.add_separator()
+        breadcrumb.add_current("Almanax")
+        apply_unity_panel_shadow(breadcrumb)
+        layout.addWidget(breadcrumb)
+        layout.addWidget(AtlasPageTitle("Almanax"))
+        self.almanax_status_badge = AtlasStatusBadge(
+            "Chargement des données…", state="neutral",
+        )
+        layout.addWidget(self.almanax_status_badge, 0, Qt.AlignLeft)
+        self.almanax_calendar = QCalendarWidget(page)
+        calendar = self.almanax_calendar
+        calendar.setObjectName("AlmanaxCalendar")
+        calendar.setFirstDayOfWeek(Qt.Monday)
+        apply_unity_calendar_weekdays(calendar)
+        calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
+        calendar.setGridVisible(True)
+        calendar.setSelectedDate(QDate.currentDate())
+        calendar.setMaximumWidth(680)
+        apply_unity_panel_shadow(calendar)
+        layout.addWidget(calendar, 0, Qt.AlignHCenter)
+
+        day_nav = QHBoxLayout()
+        day_nav.setContentsMargins(0, 0, 0, 0)
+        day_nav.addStretch()
+        previous_day = AtlasButton("‹ Jour précédent", variant="secondary")
+        previous_day.setObjectName("AlmanaxPreviousDayButton")
+        previous_day.clicked.connect(
+            lambda: calendar.setSelectedDate(calendar.selectedDate().addDays(-1))
+        )
+        day_nav.addWidget(previous_day)
+        today_button = AtlasButton("Aujourd’hui", variant="secondary")
+        today_button.setObjectName("AlmanaxTodayButton")
+        today_button.clicked.connect(
+            lambda: calendar.setSelectedDate(QDate.currentDate())
+        )
+        day_nav.addWidget(today_button)
+        next_day = AtlasButton("Jour suivant ›", variant="secondary")
+        next_day.setObjectName("AlmanaxNextDayButton")
+        next_day.clicked.connect(
+            lambda: calendar.setSelectedDate(calendar.selectedDate().addDays(1))
+        )
+        day_nav.addWidget(next_day)
+        day_nav.addStretch()
+        layout.addLayout(day_nav)
+
+        self.almanax_selected_date_label = QLabel(page)
+        self.almanax_selected_date_label.setObjectName("AlmanaxSelectedDate")
+        self.almanax_selected_date_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.almanax_selected_date_label)
+        self.almanax_offering_icon = QLabel(page)
+        self.almanax_offering_icon.setObjectName("AlmanaxOfferingIcon")
+        self.almanax_offering_icon.setFixedSize(64, 64)
+        self.almanax_offering_icon.setAlignment(Qt.AlignCenter)
+        self.almanax_offering_icon.hide()
+        layout.addWidget(self.almanax_offering_icon, 0, Qt.AlignHCenter)
+        self.almanax_day_detail = QLabel("Chargement de l'offrande et du bonus…", page)
+        self.almanax_day_detail.setObjectName("AlmanaxDayDetails")
+        self.almanax_day_detail.setWordWrap(True)
+        self.almanax_day_detail.setAlignment(Qt.AlignCenter)
+        self.almanax_day_detail.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        layout.addWidget(self.almanax_day_detail)
+
+        source = QLabel("Source : Dofusdude · Dofus 3 · données communautaires", page)
+        source.setObjectName("MutedLabel")
+        source.setAlignment(Qt.AlignCenter)
+        layout.addWidget(source)
+
+        refresh_button = AtlasButton("Actualiser", variant="secondary")
+        refresh_button.setObjectName("AlmanaxRefreshButton")
+        refresh_button.clicked.connect(
+            lambda: self._request_almanax_day(
+                calendar.selectedDate().toString("yyyy-MM-dd"), refresh=True,
+            )
+        )
+        layout.addWidget(refresh_button, 0, Qt.AlignHCenter)
+
+        def update_date() -> None:
+            self.almanax_selected_date_label.setText(
+                calendar.selectedDate().toString("dddd d MMMM yyyy")
+            )
+            self.almanax_status_badge.setText("Chargement des données…")
+            self.almanax_status_badge.set_state("neutral")
+            self.almanax_day_detail.setText(
+                "Recherche des données pour le jour sélectionné…"
+            )
+            self.almanax_offering_icon.clear()
+            self.almanax_offering_icon.hide()
+            self._request_almanax_day(
+                calendar.selectedDate().toString("yyyy-MM-dd")
+            )
+
+        calendar.selectionChanged.connect(update_date)
+        update_date()
         layout.addStretch(1)
         return page
 
@@ -1812,8 +2139,19 @@ class AtlasWindow(QMainWindow):
         info.setObjectName("MutedLabel")
         info.setWordWrap(True)
         layout.addWidget(info)
+        developer_button = AtlasButton("Dev · Bibliothèque UI Unity", variant="secondary")
+        developer_button.setToolTip(
+            "Prévisualiser les vrais composants UI communs et tester leurs clics."
+        )
+        developer_button.clicked.connect(lambda: self.show_page("Dev UI"))
+        layout.addWidget(developer_button)
         layout.addStretch(1)
         return page
+
+    def create_dev_ui_page(self) -> QWidget:
+        from app.pages.dev_ui_page import DevUiPage
+
+        return DevUiPage(on_back=lambda: self.show_page("Settings"))
 
     def loading_page(self, name: str) -> QWidget:
         page = QWidget()
@@ -1842,6 +2180,8 @@ class AtlasWindow(QMainWindow):
     def show_page(self, name: str) -> None:
         if name == "Home":
             self.refresh_global_characters()
+            if self._post_preload_services_started:
+                self._refresh_almanax_today()
         if name in self.page_factories:
             self.pending_page_name = name
             self._schedule_owned_callback(0, lambda target=name: self.ensure_pending_page_loaded(target))
@@ -1875,6 +2215,7 @@ class AtlasWindow(QMainWindow):
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            self.release_reconstructible_page("Dev UI", self.create_dev_ui_page)
             # The cartography canvas is reconstructible; keep only the last
             # selected world/map and history, never the loaded Qt widget tree.
             # Active I/O deliberately prevents hibernation until a safe visit.
@@ -1895,6 +2236,14 @@ class AtlasWindow(QMainWindow):
                 page, _resolve_encyclopedia_page()
             ):
                 page.set_character_key(self.current_character_key)
+                if (self.current_character_key
+                        and getattr(self, "_pending_network_progress_character", "")
+                        == self.current_character_key):
+                    current = page.tabs.currentWidget()
+                    refresh = getattr(current, "refresh_external_progress", None)
+                    if callable(refresh):
+                        refresh()
+                        self._pending_network_progress_character = ""
             self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
 
@@ -2030,13 +2379,9 @@ class AtlasWindow(QMainWindow):
 
     def refresh_nav_selection(self, active_group: str) -> None:
         for button, group in self.nav_buttons:
-            object_name = "TopNavButtonActive" if group == active_group and active_group else "TopNavButton"
-            if button.objectName() == object_name:
-                continue
-            button.setObjectName(object_name)
-            button.style().unpolish(button)
-            button.style().polish(button)
-            button.update()
+            button.set_variant(
+                "navigation_active" if group == active_group and active_group else "navigation"
+            )
 
     def ensure_page_loaded(self, name: str) -> QWidget | None:
         factory = self.page_factories.get(name)
@@ -2282,6 +2627,8 @@ class AtlasWindow(QMainWindow):
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
+            # Real Almanax data is optional; never compete with initial preload.
+            self._schedule_owned_callback(1200, self._refresh_almanax_today)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:
             self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
 
@@ -2632,6 +2979,13 @@ class AtlasWindow(QMainWindow):
         self.showNormal()
         self.raise_()
         self.activateWindow()
+        # Restoring a hidden window does not switch the current Atlas page:
+        # replay its deferred network refresh once the Qt widget is visible.
+        pending = getattr(self, "_pending_network_progress_character", "")
+        if pending and pending == self.current_character_key:
+            self._schedule_owned_callback(
+                0, lambda key=pending: self.on_network_progress_changed(key),
+            )
 
     def quit_from_tray(self) -> None:
         self.quit_requested = True
@@ -2782,9 +3136,23 @@ class AtlasWindow(QMainWindow):
         self.reload_runtime()
         self._ensure_runtime().launch_travel(text)
 
-    def launch_guide_travel(self, text: str, character_keys) -> None:
+    def launch_guide_travel(self, text: str, character_keys) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        # The runtime's session refresh can invalidate a worker's captured
+        # roster. Reject concurrent Guide requests *before* reloading it.
+        runtime = self.runtime
+        if runtime is not None and (
+            runtime.macro_lock.active_label
+            or getattr(runtime.macro_lock, "emergency_latched", False) is True
+        ):
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_guide_travel(
+            text, tuple(character_keys or ()),
+        ))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
         if self.quit_requested or self._background_services_stopped:
@@ -2946,7 +3314,7 @@ def main() -> int:
             splash.showMessage(
                 "Ouverture de l'interface...",
                 Qt.AlignBottom | Qt.AlignCenter,
-                QColor("#dbe5f2"),
+                QColor(unity_painted_ui_color("splash.status")),
             )
             app.processEvents()
         app.setStyleSheet(atlas_stylesheet())

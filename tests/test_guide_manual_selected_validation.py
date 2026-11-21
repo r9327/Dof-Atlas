@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -104,6 +104,95 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.view._show_index(index)
         QApplication.processEvents()
 
+    def test_bonta_order_button_targets_selected_not_browsing_character(self) -> None:
+        from unittest.mock import Mock
+
+        self.participants.save_selected_keys(("character:2",))
+        self.service.manual_order_choice_required = (
+            lambda character_key, _card: character_key == "character:2"
+        )
+        self.service.manual_order_options_for_card = (
+            lambda _card: ("Œil Attentif",)
+        )
+        self.service.set_bonta_order = Mock()
+
+        self.view.refresh()
+        button = self.view.findChild(QPushButton, "GuideManualOrderButton")
+        self.assertIsNotNone(button)
+        self.assertEqual(button.text(), "Œil Attentif")
+        button.click()
+        self.service.set_bonta_order.assert_called_once_with(
+            "character:2", "Œil Attentif",
+        )
+
+    def test_multiple_selected_characters_show_order_prompt_not_write_button(self) -> None:
+        from unittest.mock import Mock
+
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        self.service.manual_order_choice_required = (
+            lambda character_key, _card: character_key == "character:2"
+        )
+        self.service.manual_order_options_for_card = (
+            lambda _card: ("Œil Attentif",)
+        )
+        self.service.set_bonta_order = Mock()
+
+        self.view.refresh()
+        notice = self.view.findChild(QFrame, "GuideManualOrderChoice")
+        self.assertIsNotNone(notice)
+        self.assertTrue(any(
+            "un seul personnage" in label.text()
+            for label in notice.findChildren(QLabel)
+        ))
+        self.assertIsNone(self.view.findChild(QPushButton, "GuideManualOrderButton"))
+        self.service.set_bonta_order.assert_not_called()
+
+    def test_order_control_never_writes_browsing_profile_without_selection(self) -> None:
+        from unittest.mock import Mock
+
+        self.participants.save_selected_keys(())
+        self.service.manual_order_choice_required = lambda *_args: True
+        self.service.manual_order_options_for_card = (
+            lambda _card: ("Œil Attentif",)
+        )
+        self.service.set_bonta_order = Mock()
+        self.view.refresh()
+        self.assertIsNone(self.view.findChild(QPushButton, "GuideManualOrderButton"))
+        self.service.set_bonta_order.assert_not_called()
+
+    def test_legend_exists_only_on_first_rendered_guide_sheet(self) -> None:
+        self._show_sheet(0)
+        first = self.view.cards_layout.itemAt(0).widget()
+        self.assertIsNotNone(first.findChild(QFrame, "GuideManualLegendCard"))
+        self._show_sheet(1)
+        second = self.view.cards_layout.itemAt(0).widget()
+        self.assertIsNone(second.findChild(QFrame, "GuideManualLegendCard"))
+        self.assertEqual(self.view.rendered_card_count, 1)
+
+    def test_validation_stays_plain_text_with_indexed_checked_outline(self) -> None:
+        from app.ui.theme import PALETTE, atlas_stylesheet
+
+        style = atlas_stylesheet()
+        checked_selector = "#GuideManualPageCheck:checked {"
+        checked_disabled_selector = "#GuideManualPageCheck:checked:disabled {"
+        self.assertIn(checked_selector, style)
+        self.assertIn(checked_disabled_selector, style)
+        for selector in (checked_selector, checked_disabled_selector):
+            rules = style.split(selector, 1)[1].split("}", 1)[0]
+            self.assertIn(f"color: {PALETTE['GREEN']}", rules)
+            self.assertIn(f"border-color: {PALETTE['GREEN_BORDER']}", rules)
+            self.assertNotIn("background:", rules)
+        self.participants.save_selected_keys(("character:1",))
+        self._show_sheet()
+        button = self.view.validation_layout.itemAt(0).widget()
+        self.assertEqual(button.text(), "Valider")
+        self.assertFalse(button.isChecked())
+        button.click()
+        self._show_sheet(0)
+        validated = self.view.validation_layout.itemAt(0).widget()
+        self.assertEqual(validated.text(), "Valider")
+        self.assertTrue(validated.isChecked())
+
     def test_empty_selection_never_writes_global_character(self) -> None:
         self.participants.save_selected_keys(())
         self._show_sheet()
@@ -143,7 +232,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         QApplication.processEvents()
         self._show_sheet(0)
         control = self.view.validation_layout.itemAt(0).widget()
-        self.assertEqual(control.text(), "Annuler validation")
+        self.assertEqual(control.text(), "Valider")
         control.click()
         self.assertTrue(self._check("character:1"))
         self.assertFalse(self._check("character:2"))
@@ -164,7 +253,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
 
         self.service.automatic.add(("character:2", 0))
         self._show_sheet()
-        self.assertEqual(self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation")
+        self.assertEqual(self.view.validation_layout.itemAt(0).widget().text(), "Valider")
         self.view.validation_layout.itemAt(0).widget().click()
         self.assertFalse(self._check("character:2"))
         self.assertTrue(self.service.card_auto_complete("character:2", self.service.cards[0]))
@@ -205,17 +294,19 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertIn("progression inconnue", unknown.toolTip())
         self.assertEqual(known_zero.progress, 0)
         self.assertIn("0 %", known_zero.toolTip())
-        self.assertEqual(self.view.route_progress_label.text(), "—")
+        self.assertEqual(self.view.global_progress_label.text(), "—")
         self.assertIsNone(self.view.progress_donut._percent)
-        self.assertFalse(self.view.current_button.isEnabled())
+        self.assertEqual(self.view.global_progress_label.text(), "—")
+        self.assertEqual(self.view.global_progress_bar.value(), 0)
+        self.assertFalse(hasattr(self.view, "current_button"))
 
     def test_known_zero_progress_still_displays_zero(self) -> None:
         self.participants.save_selected_keys(("character:1",))
         self.view._refresh_participants_panel()
         self.view._refresh_header()
         self.assertEqual(self.view._participant_buttons["character:1"].progress, 0)
-        self.assertEqual(self.view.route_progress_label.text(), "0 %")
-        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (0, 2))
+        self.assertEqual(self.view.global_progress_label.text(), "0 %")
+        self.assertEqual((self.view.global_progress_bar.value(), self.view.global_progress_bar.maximum()), (0, 2))
         self.assertEqual(self.view.progress_donut._percent, 0)
 
     def test_external_progress_refresh_updates_existing_portrait(self) -> None:
@@ -243,8 +334,8 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
             "character:2", self.service.progress_id, self.service.page_key(second, 1), True,
         )
         self.view.refresh()
-        self.assertEqual(self.view.route_progress_label.text(), "0 %")
-        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (0, 2))
+        self.assertEqual(self.view.global_progress_label.text(), "0 %")
+        self.assertEqual((self.view.global_progress_bar.value(), self.view.global_progress_bar.maximum()), (0, 2))
         self.assertEqual(self.view.progress_donut._percent, 0)
 
     def test_last_click_refreshes_completed_state_without_reopening_guide(self) -> None:
@@ -259,14 +350,15 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self._show_sheet(1)
         self.view.validation_layout.itemAt(0).widget().click()
         QApplication.processEvents()
-        self.assertEqual(self.view.route_progress_label.text(), "100 %")
-        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
-        self.assertEqual(self.view.current_button.property("guideFullText"), "Terminé")
-        # Compact viewport hides only the caption, not its meaning.
-        self.assertEqual(self.view.current_button.accessibleName(), "Terminé")
-        self.assertFalse(self.view.current_button.isEnabled())
+        self.assertEqual(self.view.global_progress_label.text(), "100 %")
+        self.assertEqual((self.view.global_progress_bar.value(), self.view.global_progress_bar.maximum()), (2, 2))
+        # Completion lives in the global bar; the duplicate "Actuelle" action is gone.
+        self.assertFalse(hasattr(self.view, "current_button"))
+        self.assertEqual(self.view.global_progress_label.text(), "100 %")
+        self.assertEqual(self.view.global_progress_bar.value(), 2)
+        self.assertEqual(self.view.page_jump.suffix(), "/2")
         self.assertEqual(
-            self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation"
+            self.view.validation_layout.itemAt(0).widget().text(), "Valider"
         )
 
     def test_completed_team_has_no_phantom_current_sheet(self) -> None:
@@ -279,9 +371,11 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
                 True,
             )
         self.view.refresh()
-        self.assertEqual(self.view.route_progress_label.text(), "100 %")
-        self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
-        self.assertFalse(self.view.current_button.isEnabled())
+        self.assertEqual(self.view.global_progress_label.text(), "100 %")
+        self.assertEqual((self.view.global_progress_bar.value(), self.view.global_progress_bar.maximum()), (2, 2))
+        self.assertFalse(hasattr(self.view, "current_button"))
+        self.assertEqual(self.view.global_progress_label.text(), "100 %")
+        self.assertEqual(self.view.global_progress_bar.value(), 2)
 
 
 if __name__ == "__main__":

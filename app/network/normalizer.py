@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from app.core.numbers import coerce_positive_int
 from app.network.events import (
     AchievementCompletedEvent,
     AchievementObjectiveCompletedEvent,
@@ -151,11 +152,7 @@ class ProtocolEventNormalizer:
 
     @staticmethod
     def _positive_int(value: Any) -> int | None:
-        try:
-            parsed = int(value)
-        except (TypeError, ValueError, OverflowError):
-            return None
-        return parsed if parsed > 0 else None
+        return coerce_positive_int(value)
 
     @classmethod
     def _optional_positive_int(cls, value: Any) -> int | None:

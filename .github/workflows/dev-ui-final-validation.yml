@@ -1,0 +1,74 @@
+name: Atlas Dev UI — page finale et captures 3 parties
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/dev-ui-final-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dev-ui-only:
+    name: Page Dev UI · capture Qt Windows · tests ciblés
+    runs-on: windows-latest
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout exact PR HEAD
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          lfs: false
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned Qt
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test only Dev UI contracts
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_dev_ui_page
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Capture real page, all indexed sections, popup and dialog
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.dev_ui_snapshot --output artifacts/dev-ui --width 1440 --height 900
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $proof = Get-Content artifacts/dev-ui/dev-ui-capture.json -Raw | ConvertFrom-Json
+          $expectedFamilies = python -c "from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX; print(len(UNITY_UI_FAMILY_INDEX))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ([int]$proof.families -ne [int]$expectedFamilies.Trim() -or [int]$proof.horizontal_scroll_max -ne 0) {
+            throw "Dev UI index or width contract failed"
+          }
+          foreach ($preset in @('compact','standard','large','full_hd')) {
+            $entry = $proof.viewport_profiles.$preset
+            if ($null -eq $entry -or [int]$entry.horizontal_scroll_max -ne 0 -or [int]$entry.columns -lt 1) {
+              throw "Dev UI responsive layout failed for $preset"
+            }
+            if (-not (Test-Path $proof.screenshots."responsive_$preset")) { throw "Missing Qt responsive screenshot $preset" }
+          }
+          if ([int]$proof.family_dropdown_height -gt 230) {
+            throw "Dev UI list popup exceeds compact 8-row contract"
+          }
+          foreach ($key in @('viewport','complete','page_complete','part_1','part_2','part_3','family_dropdown','dialog')) {
+            if (-not (Test-Path $proof.screenshots.$key)) { throw "Missing Qt capture $key" }
+          }
+      - name: Upload exact SHA Dev UI screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dev-ui-final-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/dev-ui/*
+          if-no-files-found: warn

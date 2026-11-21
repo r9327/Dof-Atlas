@@ -6,9 +6,13 @@ into a certified inventory claim.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unicodedata
+
+from app.core.numbers import positive_int as _positive_int
+from app.core.text import normalize_key
 import zlib
 from dataclasses import dataclass
 from typing import Any, Iterable
@@ -61,30 +65,72 @@ def item_identity(item_id: int | None, name: str) -> str:
     return f"item:{item_id}" if item_id is not None else f"name:{normalized_name(name)}"
 
 
-def _positive_int(value: Any) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
+
+
+PREPARATION_CATEGORIES = (
+    "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets",
+)
 
 
 def category_for(name: str, kind: str = "") -> str:
+    """One category source for authored data, summary, filter and Guide UI."""
     category = normalized_name(kind)
     label = normalized_name(name)
     if category in {"prerequis", "prerequisite", "gate", "condition"}:
         return "Prérequis"
-    if category in {"metier", "metiers", "profession"}:
+    if category in {"metier", "metiers", "profession", "professions"}:
         return "Métiers"
+    # The real item name wins over a generic "Objets" tag. An explicit
+    # semantic category wins when the name is descriptive rather than literal.
     if "pierre d ame" in label or "soul stone" in label:
         return "Pierres d'âme"
-    if "potion" in label:
+    if category in {"pierre d ame", "pierres d ame", "soul stone", "soul stones"}:
+        return "Pierres d'âme"
+    if category in {"potion", "potions"} or "potion" in label:
         return "Potions"
+    if category in {"clef", "clefs", "cle", "cles", "key", "keys"}:
+        return "Clefs"
     if label.startswith(("clef ", "cle ", "clefs ", "cles ")):
         return "Clefs"
     return "Objets"
+
+
+def matches_preparation_category(
+    category: str, name: str, selected: str,
+) -> bool:
+    """The summary, read-only preview and live selector filter identically."""
+    return selected == "Tout" or category_for(name, category) == selected
+
+
+def preparation_stock_presentation(
+    required: int,
+    owned: int,
+    *,
+    ready: bool,
+    confirmed: int = 0,
+    participants: int = 1,
+) -> tuple[str, str]:
+    """One stock label and explanation for both Guide and Dev UI.
+
+    Owned quantities are unsaved session drafts. Reaching the target never
+    implies that the user confirmed the durable Prêt state.
+    """
+    remaining = max(0, int(required) - int(owned))
+    if ready:
+        label = "Prêt"
+    elif remaining:
+        label = f"Manque {remaining}"
+    elif participants > 1 and confirmed:
+        label = f"{confirmed}/{participants} prêts"
+    else:
+        label = "À valider"
+    hint = (
+        f"Encore {remaining} à obtenir" if remaining
+        else "Quantité atteinte · coche Prêt pour confirmer"
+    )
+    if participants > 1:
+        hint += f" · {confirmed}/{participants} personnages prêts"
+    return label, hint
 
 
 def _structured_entries(raw: Any, *, origin: str = "") -> Iterable[dict[str, Any]]:
@@ -355,7 +401,85 @@ def aggregate_remaining(
     return tuple(needs)
 
 
+@dataclass(frozen=True, slots=True)
+class TeamPreparationNeed:
+    """Combined authored need for the selected, explicitly identified team."""
+
+    item_key: str
+    item_id: int | None
+    name: str
+    category: str
+    required_by_character: tuple[tuple[str, int | None], ...]
+    confidence_by_character: tuple[tuple[str, str], ...] = ()
+    sources: tuple[str, ...] = ()
+
+    @property
+    def required_total(self) -> int | None:
+        quantities = [value for _character, value in self.required_by_character]
+        return sum(quantities) if all(value is not None for value in quantities) else None
+
+
+def preparation_progress_item_key(item_id: int | None, name: str) -> str:
+    """Stable saved ready-key. Do not change this encoding or old ticks reset."""
+    if item_id is not None:
+        return f"item:{item_id}"
+    digest = hashlib.sha256(normalize_key(name).encode("utf-8")).hexdigest()[:16]
+    return f"name:{digest}"
+
+
+def preparation_ready_key(guide_id: str, item_key: str) -> str:
+    """Stable persisted Prêt marker shared by every Guide renderer."""
+    return f"__ui:preparation_ready:{guide_id or 'guide_complet'}:{item_key}"
+
+
+def aggregate_team_remaining(
+    per_character: Iterable[tuple[str, Iterable[PreparationNeed]]],
+) -> tuple[TeamPreparationNeed, ...]:
+    """Combine per-character needs without mixing their progress or stock.
+
+    Only already-verified participant keys are passed by the caller.
+    Unknown required quantities stay unknown, even for one team member.
+    """
+    grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    for character_key, needs in per_character:
+        for need in needs:
+            key = preparation_progress_item_key(need.item_id, need.name)
+            item = grouped.setdefault(
+                (key, need.category),
+                {
+                    "item_id": need.item_id,
+                    "name": need.name,
+                    "category": need.category,
+                    "required": {},
+                    "confidence": {},
+                    "sources": set(),
+                },
+            )
+            item["required"][character_key] = need.quantity
+            item["confidence"][character_key] = need.confidence
+            item["sources"].update(need.sources)
+    return tuple(
+        TeamPreparationNeed(
+            item_key=key, item_id=row["item_id"],
+            name=row["name"], category=row["category"],
+            required_by_character=tuple(sorted(row["required"].items())),
+            confidence_by_character=tuple(sorted(row["confidence"].items())),
+            sources=tuple(sorted(row["sources"])),
+        )
+        for (key, _category), row in sorted(
+            grouped.items(),
+            key=lambda item: (
+                item[1]["category"],
+                normalize_key(item[1]["name"]),
+            ),
+        )
+    )
+
+
 __all__ = [
     "PreparationClaim", "PreparationNeed", "card_claims", "aggregate_remaining",
-    "category_for", "item_identity", "normalized_name",
+    "PREPARATION_CATEGORIES", "category_for", "matches_preparation_category",
+    "preparation_stock_presentation", "item_identity", "normalized_name",
+    "TeamPreparationNeed", "preparation_progress_item_key", "preparation_ready_key",
+    "aggregate_team_remaining",
 ]

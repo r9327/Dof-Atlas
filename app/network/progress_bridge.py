@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from logging import Logger
 from typing import Any
 
+from app.core.numbers import coerce_positive_int
 from app.core.logger import get_runtime_logger
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
@@ -260,7 +261,10 @@ class NetworkProgressBridge:
             if journal_result.accepted:
                 return EventApplicationResult(
                     True,
-                    bool(route_changed or journal_result.changed),
+                    bool(journal_result.changed),
+                    # The reason already signals an identity transition.
+                    # "changed" must represent persistent progress only, so
+                    # an unchanged journal cannot repaint the entire catalogue.
                     "character_identified_with_quest_journal",
                     resolution.character_key,
                 )
@@ -563,11 +567,7 @@ class NetworkProgressBridge:
 
     @staticmethod
     def _positive_int(value: Any) -> int | None:
-        try:
-            parsed = int(value)
-        except (TypeError, ValueError, OverflowError):
-            return None
-        return parsed if parsed > 0 else None
+        return coerce_positive_int(value)
 
 
 __all__ = ["EventApplicationResult", "NetworkProgressBridge"]

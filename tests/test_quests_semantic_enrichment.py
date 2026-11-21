@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.tools.audit_quests_guides_semantic import base_result, compare_images, compare_quest_info
+from app.modules.encyclopedia.tools.audit_quests_guides_semantic import (
+    base_result, compare_images, compare_quest_info, local_start_position_coverage,
+)
 from app.modules.encyclopedia.tools.enrich_quests import (
     EXTRACTION_SCHEMA_VERSION,
     build_mapping,
@@ -31,6 +33,320 @@ class FakeQuest:
 
 
 class QuestSemanticEnrichmentTests(unittest.TestCase):
+    def test_local_only_audit_never_hydrates_guides_successes_or_web(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from app.modules.encyclopedia.tools import audit_quests_guides_semantic as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "local_coverage.json"
+            sources = Mock()
+            sources.mapping.return_value = {
+                "10": {
+                    "launch_position": {"position": "[3,4]"},
+                    "solution_blocks": [
+                        {"type": "text", "content": "Parler au PNJ."},
+                    ],
+                },
+                "20": {"solution_blocks": []},
+            }
+            with (
+                patch.object(mod, "DEFAULT_LOCAL_COVERAGE", output),
+                patch("app.quest_catalog_details.load_quest_ids", return_value=(10, 20)),
+                patch.object(mod, "QuestProvider",
+                             side_effect=AssertionError("must not hydrate Quest catalog")),
+                patch.object(mod, "GuideProvider",
+                             side_effect=AssertionError("must stay local")),
+                patch.object(mod, "AchievementProvider",
+                             side_effect=AssertionError("must stay light")),
+                patch.object(mod, "build_audit",
+                             side_effect=AssertionError("must skip full audit")),
+                patch.object(mod, "read_json_file",
+                             side_effect=AssertionError("must not eagerly load enriched JSON")),
+                patch.object(mod, "QuestSources", return_value=sources),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(mod.main([
+                    "--local-coverage-only",
+                    "--online", "full",
+                ]), 0)
+            self.assertNotEqual(output, mod.DEFAULT_JSON)
+            sources.mapping.assert_called_once_with(
+                mod.ENRICHED_PATH, "quests", required=True,
+            )
+            sources.close.assert_called_once_with()
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["scope"], "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS")
+            self.assertEqual(payload["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED")
+            self.assertEqual(payload["quests_considered"], 2)
+            self.assertEqual(payload["counts"]["LOCAL_START_DECLARED"], 1)
+            self.assertEqual(payload["counts"]["NO_DECLARED_START"], 1)
+            self.assertEqual(payload["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 1)
+            self.assertEqual(payload["missing_instruction_quest_ids"], [20])
+            self.assertEqual(payload["priority_missing_both_quest_ids"], [20])
+            self.assertEqual(
+                payload["needs_review"],
+                [{"quest_id": 20, "status": "NO_DECLARED_START"}],
+            )
+
+    def test_local_coverage_closes_sqlite_readers_after_audit_error(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from app.modules.encyclopedia.tools import audit_quests_guides_semantic as mod
+
+        sources = Mock()
+        sources.mapping.return_value = {"10": {}}
+        with (
+            patch("app.quest_catalog_details.load_quest_ids", return_value=(10,)),
+            patch.object(mod, "QuestProvider",
+                         side_effect=AssertionError("must not hydrate Quest catalog")),
+            patch.object(mod, "QuestSources", return_value=sources),
+            patch.object(
+                mod, "local_start_position_coverage",
+                side_effect=RuntimeError("source changed during audit"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "source changed"):
+                mod.main(["--local-coverage-only"])
+        sources.close.assert_called_once_with()
+
+    def test_local_coverage_rejects_missing_enrichment_without_false_report(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from app.modules.encyclopedia.tools import audit_quests_guides_semantic as mod
+        from app.quest_source_index import QuestSourceError
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            missing = root / "missing_quests_enriched.json"
+            output = root / "coverage.json"
+            with (
+                patch.object(mod, "ENRICHED_PATH", missing),
+                patch("app.quest_catalog_details.load_quest_ids", return_value=(10,)),
+                patch.object(mod, "QuestProvider",
+                             side_effect=AssertionError("must not hydrate Quest catalog")),
+                redirect_stdout(StringIO()),
+            ):
+                with self.assertRaises(QuestSourceError):
+                    mod.main([
+                        "--local-coverage-only",
+                        "--json-output", str(output),
+                    ])
+            self.assertFalse(output.exists())
+
+    def test_local_coverage_reads_sparse_enrichment_with_existing_disk_index(self):
+        from app.quest_source_index import QuestSources
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "quests_enriched.json"
+            path.write_text(json.dumps({
+                "quests": {
+                    "10": {
+                        "launch_position": {"position": "[3,4]"},
+                        "solution_blocks": [{"type": "text", "content": "Parler"}],
+                    },
+                    "20": {"solution_blocks": []},
+                    "30": {"solution_blocks": [
+                        {"type": "heading", "content": "Préparation"},
+                    ]},
+                },
+            }), encoding="utf-8")
+            sources = QuestSources(root / "offsets", disk_backed=True)
+            try:
+                enrichment = sources.mapping(path, "quests", required=False)
+                report = local_start_position_coverage(enrichment, [30, 10, 20, 99])
+                self.assertEqual(report["quests_considered"], 4)
+                self.assertEqual(report["counts"]["LOCAL_START_DECLARED"], 1)
+                self.assertEqual(
+                    report["missing_instruction_quest_ids"], [20, 30, 99],
+                )
+                self.assertEqual(report["priority_missing_both_quest_ids"], [20, 30, 99])
+                # One bounded row cache; JSON is never loaded as one dict.
+                self.assertLessEqual(len(enrichment._cache), 128)
+                self.assertIsNotNone(enrichment._disk_index)
+            finally:
+                sources.close()
+
+    def test_local_start_coverage_distinguishes_source_gaps_from_real_positions(self):
+        rows = {
+            "10": {
+                "launch_position": {"position": "[3,4]"},
+                "source_meta": {"startCoords": "[03, 4]"},
+                "solution_blocks": [{"type": "text", "content": "Instruction"}],
+            },
+            "20": {
+                "launch_position": {"position": "[0,0]"},
+                "source_meta": {"startCoords": "[1,0]"},
+            },
+            "30": {"launch_position": {"position": "position inconnue"}},
+            "50": {"solution_blocks": []},
+            "60": {"source_meta": {"startCoords": "[5, -6]"}},
+            "70": {"launch_position": {"position": "[-2147483648, 2]"}},
+            "80": {"launch_position": {"position": "[2147483648, 2]"}},
+            "90": {"launch_position": {"position": "[" + "9" * 5000 + ",2]"}},
+        }
+        report = local_start_position_coverage(rows, [90, 80, 70, 60, 50, 40, 30, 20, 10])
+        self.assertEqual(report["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED")
+        self.assertEqual(report["quests_considered"], 9)
+        self.assertEqual(report["counts"]["LOCAL_START_DECLARED"], 2)
+        self.assertEqual(report["counts"]["CONFLICTING_DECLARED_START"], 1)
+        self.assertEqual(report["counts"]["INVALID_START_COORDINATES"], 4)
+        self.assertEqual(report["counts"]["NO_DECLARED_START"], 1)
+        self.assertEqual(report["counts"]["NO_ENRICHMENT"], 1)
+        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 8)
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 8)
+        self.assertEqual(
+            report["missing_instruction_quest_ids"],
+            [20, 30, 40, 50, 60, 70, 80, 90],
+        )
+        self.assertEqual(
+            report["priority_missing_both_quest_ids"],
+            [20, 30, 40, 50, 70, 80, 90],
+        )
+        self.assertEqual(
+            [(row["quest_id"], row["status"]) for row in report["needs_review"]],
+            [
+                (20, "CONFLICTING_DECLARED_START"),
+                (30, "INVALID_START_COORDINATES"),
+                (40, "NO_ENRICHMENT"),
+                (50, "NO_DECLARED_START"),
+                (70, "INVALID_START_COORDINATES"),
+                (80, "INVALID_START_COORDINATES"),
+                (90, "INVALID_START_COORDINATES"),
+            ],
+        )
+        issues = report["declared_start_issues"]
+        self.assertEqual(
+            [issue["quest_id"] for issue in issues],
+            [20, 30, 70, 80, 90],
+        )
+        self.assertEqual(issues[0], {
+            "quest_id": 20,
+            "status": "CONFLICTING_DECLARED_START",
+            "launch_position": "[0,0]",
+            "source_start_coords": "[1,0]",
+            "truncated": False,
+        })
+        self.assertEqual(issues[1]["launch_position"], "position inconnue")
+        self.assertEqual(issues[2]["launch_position"], "[-2147483648, 2]")
+        self.assertEqual(issues[3]["launch_position"], "[2147483648, 2]")
+        self.assertTrue(issues[-1]["truncated"])
+        self.assertLessEqual(len(issues[-1]["launch_position"]), 80)
+        self.assertNotIn(10, [issue["quest_id"] for issue in issues])
+        # The report retains declared data as review evidence only.
+        self.assertEqual(
+            report["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED",
+        )
+
+    def test_local_documentation_coverage_does_not_count_empty_or_image_blocks(self):
+        rows = {
+            "1": {"solution_blocks": [
+                {"type": "text", "content": "  "},
+                {"type": "image", "content": "Une image", "image_path": "a.png"},
+            ]},
+            "2": {"solution_blocks": [
+                {"type": "text", "content": "Parler au PNJ."},
+            ]},
+            "3": {"solution_blocks": [
+                {"content": "Texte sans type non affiché"},
+            ]},
+            "4": {"solution_blocks": [
+                {"type": "heading", "content": "Étape 1"},
+                {"type": "subtitle", "content": "Préparation"},
+            ]},
+            "5": {"solution_blocks": [
+                {"type": "heading", "content": "Étape 2"},
+                {"type": "text", "content": "Parler au gardien."},
+            ]},
+            "6": {"solution_blocks": [
+                {},
+                {"type": "text", "content": "   "},
+            ]},
+            "7": {"solution_blocks": [
+                {"type": "image", "image_path": "illustration.webp"},
+            ]},
+            "8": {"solution_blocks": [
+                {"type": "text", "content": "Qf>=20"},
+            ]},
+            "9": {"solution_blocks": [
+                {"type": "text", "content": "Mini-carte L’aperçu de la carte sera affiché ici sur le site."},
+            ]},
+            "10": {"solution_blocks": [
+                {"type": "text", "content": "Découvrir la carte : 9999"},
+            ]},
+        }
+        report = local_start_position_coverage(rows, range(1, 11))
+        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 9)
+        self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 3)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 7)
+        self.assertEqual(
+            report["missing_instruction_quest_ids"],
+            [1, 3, 4, 6, 7, 8, 9],
+        )
+        self.assertNotIn(10, report["missing_instruction_quest_ids"])
+
+    def test_quest_coverage_counts_only_fallback_instructions_actually_rendered(self):
+        rows = {
+            "1": {"solution_steps": [
+                {"title": "Suite", "description": "Parler au garde."},
+            ]},
+            "2": {"solution_steps": [
+                {"objectives": [
+                    {"text": "Découvrir la carte : 9999",
+                     "position": "[-2147483648,0]"},
+                ]},
+            ]},
+            "3": {"solution_steps": [
+                {"description": "Qf>=20",
+                 "objectives": [{"text": "Mini-carte L’aperçu de la carte sera affiché ici sur le site."}]},
+            ]},
+            # A real image block already suppresses the source-steps fallback.
+            "4": {
+                "solution_blocks": [
+                    {"type": "image", "image_path": "illustration.webp"},
+                ],
+                "solution_steps": [{"description": "Étape non visible."}],
+            },
+            # The artificial heading is filtered, so the fallback is visible.
+            "5": {
+                "solution_blocks": [{"type": "heading", "content": "Étape 1"}],
+                "solution_steps": [{"description": "Avancer vers la sortie."}],
+            },
+            # A genuine standalone heading is visible and suppresses fallback.
+            "6": {
+                "solution_blocks": [{"type": "heading", "content": "Préparation"}],
+                "solution_steps": [{"description": "Texte de secours invisible."}],
+            },
+            "7": {
+                "solution_blocks": [
+                    {"type": "text", "content": "Mini-carte L’aperçu de la carte sera affiché ici sur le site."},
+                ],
+                "solution_steps": [{"description": "Parlez au capitaine."}],
+            },
+            "8": {
+                "solution_blocks": [{"type": "text", "position": "[ 003, -06 ]"}],
+            },
+            "9": {
+                "solution_blocks": [{"type": "text", "position": "[2147483648,3]"}],
+            },
+        }
+        report = local_start_position_coverage(rows, range(1, 10))
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 8)
+        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 5)
+        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 4)
+        self.assertEqual(report["fallback_instruction_quest_ids"], [1, 2, 5, 7])
+        self.assertEqual(report["missing_instruction_quest_ids"], [3, 4, 6, 9])
+        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 4, 6, 9])
+
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]
         source_a = [{"id": 2, "name": "Beta"}, {"id": 1, "name": "Alpha"}]

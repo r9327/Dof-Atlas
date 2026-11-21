@@ -129,6 +129,9 @@ class GuideLogicalRowOracleTests(unittest.TestCase):
         plain = QFrame(sheet)
         plain.setObjectName("GuideManualLineRow")
         QLabel("• Sans position", plain)
+        combat = QFrame(sheet)
+        combat.setObjectName("GuideManualCombatLineRow")
+        QLabel("• Faire les combats requis", combat)
         paired = QFrame(sheet)
         paired.setObjectName("GuideManualLineRow")
         layout = QHBoxLayout(paired)
@@ -145,7 +148,13 @@ class GuideLogicalRowOracleTests(unittest.TestCase):
         layout.addWidget(shortcut)
         self.assertEqual(
             mounted_action_line_html(sheet),
-            ["• Sans position", "• [1,2]", "• [1,2]", "— Dubious duplicate"],
+            [
+                "• Sans position",
+                "• Faire les combats requis",
+                "• [1,2]",
+                "• [1,2]",
+                "— Dubious duplicate",
+            ],
         )
         sheet.deleteLater()
 
@@ -187,6 +196,24 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertTrue(settle(completed.is_set, timeout=0.5))
         worker.join(0.5)
         self.assertFalse(worker.is_alive())
+
+    def test_doctor_captures_real_guide_preparation_in_verify_mode(self):
+        source = Path("tools/atlas_doctor_lib/doctor_ui_qt.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("preparation_filter_group", source)
+        self.assertIn("view.preparation_filter.setCurrentIndex(index)", source)
+        self.assertIn('"preparation-open"', source)
+        self.assertIn('"preparation-filter-" + filter_name.lower()', source)
+        verify_block = source[
+            source.index("    # Exercise the real Preparation drawer")
+            :source.index("    for turn in range(1 if smoke else repeats):")
+        ]
+        self.assertIn("session.check(", verify_block)
+        self.assertIn("view.preparation_button.setChecked(True)", verify_block)
+        self.assertIn("view.global_details_button.setChecked(True)", verify_block)
+        self.assertIn("view.global_details_panel.isVisible()", verify_block)
+        self.assertNotIn("view.summary_button", source)
 
     def test_real_scene_prepares_disk_only_quest_indexes_before_interaction(self):
         source = Path(
@@ -363,7 +390,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         overlay.deleteLater()
         settle()
 
-    def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
+    def test_collision_overlay_hidden_scroll_and_disconnected_global_drawer_are_detectable(self):
         overlay = QPushButton("Occluding overlay", self.view)
         overlay.setGeometry(self.view.next_button.geometry())
         # Map from the nested nav parent into the top-level view.
@@ -378,12 +405,18 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.view.content.setMinimumWidth(2000)
         settle()
         self.assertTrue(geometry_observations(self.view, self.view)["horizontal_overflow"])
-        click_target(self.view, self.view.settings_button)
+        # This Guide no longer has Route/lock controls. A disconnected
+        # global disclosure must not be mistaken for an opened content panel.
+        self.view.content.setMinimumWidth(0)
         settle()
-        self.view.route_lock_check.toggled.disconnect()
-        click_target(self.view, self.view.route_lock_check)
-        self.assertTrue(self.view.route_lock_check.isChecked())
-        self.assertFalse(self.service.manual_checked("character:1", self.view.ROUTE_LOCK_PROGRESS_KEY))
+        disclosure = self.view.global_details_button
+        self.assertFalse(disclosure.isChecked())
+        self.assertFalse(self.view.global_details_panel.isVisible())
+        disclosure.toggled.disconnect()
+        disclosure.click()
+        settle()
+        self.assertTrue(disclosure.isChecked())
+        self.assertFalse(self.view.global_details_panel.isVisible())
 
     def test_real_quest_signal_without_final_effect_fails_and_localizes_each_transition(self):
         sheet = self.view.findChild(QFrame, "GuideManualSheet")
@@ -821,9 +854,9 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         # runaway sessions must still fail closed.
         session = UiSession(self.folder, "verify")
         session.scenario = "budget-boundary"
-        session.step = 127
+        session.step = 143
         evidence = session.snapshot(self.view)
-        self.assertEqual(session.step, 128)
+        self.assertEqual(session.step, 144)
         self.assertTrue(all(name.endswith("-tree.json") for name in evidence))
         with self.assertRaisesRegex(RuntimeError, "action budget exceeded"):
             session.snapshot(self.view)

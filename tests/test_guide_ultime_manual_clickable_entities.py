@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 from urllib.parse import quote
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
@@ -60,6 +61,86 @@ class GuideUltimeManualClickableEntityTests(unittest.TestCase):
             GuideUltimeManualCard._copy_text_for_link(f"item-copy:{encoded}"),
             "Bière du Chabrulé",
         )
+
+    def test_refused_travel_copies_command_before_showing_copied_tooltip(self) -> None:
+        card = SimpleNamespace(
+            _copy_text_for_link=GuideUltimeManualCard._copy_text_for_link,
+            travel_command_callback=lambda value: False,
+        )
+        module = "app.modules.encyclopedia.views.guide_ultime_manual_view"
+        with (
+            patch(f"{module}.QApplication.clipboard") as clipboard,
+            patch(f"{module}.QToolTip.showText") as tooltip,
+            patch(f"{module}.QCursor.pos"),
+            patch(f"{module}.QTimer.singleShot"),
+        ):
+            GuideUltimeManualCard._copy_link_target(card, "travel-copy:5,-6")
+            clipboard.return_value.setText.assert_called_once_with("/travel 5,-6")
+            self.assertEqual(tooltip.call_args.args[1], "Commande copiée")
+
+    def test_travel_callback_error_copies_command_instead_of_losing_it(self) -> None:
+        def failed_send(_command: str) -> bool:
+            raise RuntimeError("Verified capture unavailable")
+
+        card = SimpleNamespace(
+            _copy_text_for_link=GuideUltimeManualCard._copy_text_for_link,
+            travel_command_callback=failed_send,
+        )
+        module = "app.modules.encyclopedia.views.guide_ultime_manual_view"
+        with (
+            patch(f"{module}.QApplication.clipboard") as clipboard,
+            patch(f"{module}.QToolTip.showText") as tooltip,
+            patch(f"{module}.QCursor.pos"),
+            patch(f"{module}.QTimer.singleShot"),
+            patch(f"{module}._LOGGER.exception") as logger,
+        ):
+            GuideUltimeManualCard._copy_link_target(card, "travel-copy:5,-6")
+            clipboard.return_value.setText.assert_called_once_with("/travel 5,-6")
+            self.assertEqual(tooltip.call_args.args[1], "Commande copiée")
+            logger.assert_called_once()
+
+    def test_successful_travel_dispatch_does_not_claim_a_clipboard_copy(self) -> None:
+        calls = []
+        card = SimpleNamespace(
+            _copy_text_for_link=GuideUltimeManualCard._copy_text_for_link,
+            travel_command_callback=lambda value: calls.append(value) or True,
+        )
+        module = "app.modules.encyclopedia.views.guide_ultime_manual_view"
+        with (
+            patch(f"{module}.QApplication.clipboard") as clipboard,
+            patch(f"{module}.QToolTip.showText") as tooltip,
+            patch(f"{module}.QCursor.pos"),
+            patch(f"{module}.QTimer.singleShot"),
+        ):
+            GuideUltimeManualCard._copy_link_target(card, "travel-copy:5,-6")
+            self.assertEqual(calls, ["/travel 5,-6"])
+            clipboard.assert_not_called()
+            self.assertEqual(tooltip.call_args.args[1], "Déplacement demandé")
+
+    def test_manual_position_links_accept_spaced_coordinates(self) -> None:
+        rendered = GuideUltimeManualCard._format_line_html(
+            "", "[ 003, -06 ]", "Rejoins la carte.", [], [],
+        )
+        self.assertIn('href="travel-copy:3,-6"', rendered)
+        self.assertIn("[ 003, -06 ]", rendered)
+
+    def test_missing_location_sentinel_is_never_a_manual_travel_link(self) -> None:
+        self.assertIsNone(
+            GuideUltimeManualCard._copy_text_for_link(
+                "travel-copy:-2147483648,5"
+            )
+        )
+        self.assertIsNone(
+            GuideUltimeManualCard._copy_text_for_link(
+                "travel-copy:5,-2147483648"
+            )
+        )
+        rendered = GuideUltimeManualCard._format_line_html(
+            "", "[-2147483648,5] puis [3,-6]", "Rejoins la carte.", [], [],
+        )
+        self.assertNotIn('href="travel-copy:-2147483648,5"', rendered)
+        self.assertIn('href="travel-copy:3,-6"', rendered)
+        self.assertIn("[-2147483648,5]", rendered)
 
     def test_coordinate_link_builds_travel_command(self) -> None:
         self.assertEqual(

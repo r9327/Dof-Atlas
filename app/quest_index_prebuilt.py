@@ -8,7 +8,6 @@ on a user's first launch without changing the QuestCatalog public contract.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import sqlite3
@@ -17,6 +16,8 @@ from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
 
+from app.core.file_hash import sha256_file as _sha256
+from app.core.file_stamp import source_file_sizes
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
 from app.quest_catalog import QUEST_CATALOG_SOURCE_FILES
 
@@ -29,21 +30,7 @@ BUNDLE_ROOT = DATA_DIR / "bootstrap"
 
 
 def _source_sizes(data_dir: Path) -> dict[str, int]:
-    sizes: dict[str, int] = {}
-    for _label, relative in QUEST_CATALOG_SOURCE_FILES:
-        try:
-            sizes[str(relative).replace("\\", "/")] = (Path(data_dir) / relative).stat().st_size
-        except OSError:
-            sizes[str(relative).replace("\\", "/")] = -1
-    return sizes
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    return source_file_sizes(data_dir, QUEST_CATALOG_SOURCE_FILES)
 
 
 def _check_index(path: Path, *, minimum: int = MIN_QUESTS) -> int:

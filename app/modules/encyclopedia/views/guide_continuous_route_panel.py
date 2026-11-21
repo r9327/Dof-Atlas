@@ -5,12 +5,12 @@ progression. Sommaire stays open until the user explicitly closes it.
 """
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 
-from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
+from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QProgressBar, QScrollArea, QSizePolicy, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.constants import DATA_DIR
@@ -25,6 +25,16 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
     visible_object_references,
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
+from app.ui.components import (
+    AtlasGuideDisclosure, AtlasGuideParticipantButton, atlas_guide_character_icon,
+)
+from app.ui.unity_palette import (
+    UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
+)
+
+
+ROUTE_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_route"]
 
 
 class _GuideCharacterProgressButton(QToolButton):
@@ -78,6 +88,7 @@ class ContinuousGuideRoutePanel(QWidget):
         *,
         available_characters: Iterable[object] = (),
         verified_travel_plans: Mapping[str, Mapping[str, object]] | None = None,
+        available_characters_provider: Callable[[], Iterable[object]] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("GuideContinuousRoutePanel")
@@ -96,9 +107,9 @@ class ContinuousGuideRoutePanel(QWidget):
             row for row in available_characters
             if is_character_key(getattr(row, "key", ""))
         )
+        self._available_characters_provider = available_characters_provider
         self._character_actions = {}
         self.character_icon_buttons = {}
-        self._summary_open = False
         self._preparation_open = False
 
         layout = QVBoxLayout(self)
@@ -108,8 +119,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideContinuousPosition")
         head.addWidget(self.position_label, 1)
-        self.participants_button = QToolButton()
-        self.participants_button.setObjectName("GuideContinuousCharactersButton")
+        self.participants_button = AtlasGuideParticipantButton()
         self.participants_button.setPopupMode(QToolButton.InstantPopup)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self._characters_menu = QMenu(self.participants_button)
@@ -129,12 +139,6 @@ class ContinuousGuideRoutePanel(QWidget):
         if not self._character_actions:
             empty = self._characters_menu.addAction("Aucun personnage identifié")
             empty.setEnabled(False)
-        head.addWidget(self.participants_button)
-        self.summary_toggle = QToolButton()
-        self.summary_toggle.setObjectName("GuideContinuousSommaireButton")
-        self.summary_toggle.setText("Sommaire")
-        self.summary_toggle.clicked.connect(self.toggle_summary)
-        head.addWidget(self.summary_toggle)
         portraits = QHBoxLayout()
         portraits.setSpacing(4)
         for character in self.available_characters:
@@ -143,7 +147,8 @@ class ContinuousGuideRoutePanel(QWidget):
             button = _GuideCharacterProgressButton()
             button.setObjectName("GuideContinuousCharacterPortrait")
             button.setCheckable(True)
-            button.setFixedSize(34, 34)
+            icon_box = ROUTE_GEOMETRY["route_icon_box"]
+            button.setFixedSize(icon_box, icon_box)
             button.setCursor(Qt.PointingHandCursor)
             button.setToolTip(str(getattr(character, "label", "") or character.key))
             class_key = str(getattr(character, "class_key", "") or "").strip().lower()
@@ -152,7 +157,8 @@ class ContinuousGuideRoutePanel(QWidget):
                 icon = QIcon(str(image_path))
                 if not icon.isNull():
                     button.setIcon(icon)
-                    button.setIconSize(QSize(21, 21))
+                    artwork_size = ROUTE_GEOMETRY["route_icon_artwork"]
+                    button.setIconSize(QSize(artwork_size, artwork_size))
                     button.setToolButtonStyle(Qt.ToolButtonIconOnly)
             if button.icon().isNull():
                 button.setText(button.toolTip()[:1].upper() or "?")
@@ -164,34 +170,13 @@ class ContinuousGuideRoutePanel(QWidget):
         if self.character_icon_buttons:
             portraits.addStretch(1)
             layout.addLayout(portraits)
-        self.route_progress = QProgressBar()
-        self.route_progress.setObjectName("GuideContinuousRouteProgress")
-        self.route_progress.setRange(0, 100)
-        self.route_progress.setTextVisible(True)
-        layout.addWidget(self.route_progress)
-
         work = QHBoxLayout()
         work.setSpacing(9)
-        self.summary = QListView()
-        self.summary.setObjectName("GuideContinuousSommaire")
-        self.summary.setMinimumWidth(170)
-        self.summary.setMaximumWidth(250)
-        self.summary_model = QStringListModel([
-            f"Fiche {i} — {str(row.get('title') or f'Étape {i}')}"
-            for i, row in enumerate(self.rows, 1)
-        ], self)
-        self.summary.setModel(self.summary_model)
-        self.summary.clicked.connect(
-            lambda index: self.show_step(self.navigation.step_ids[index.row()])
-        )
-        work.addWidget(self.summary, 1)
-
         content = QFrame()
         content.setObjectName("GuideContinuousCard")
         detail = QVBoxLayout(content)
         detail.setContentsMargins(8, 8, 8, 8)
         detail.setSpacing(6)
-        detail.addLayout(head)
         self.title_label = QLabel()
         self.title_label.setObjectName("GuideContinuousTitle")
         self.title_label.setTextFormat(Qt.PlainText)
@@ -204,25 +189,22 @@ class ContinuousGuideRoutePanel(QWidget):
         detail.addWidget(self.body_label)
         # Bounded, optional view: even a guide with dozens of object hints
         # must not push step navigation out of the visible window.
-        self.preparation_toggle = self._button(
-            "À préparer", "GuideContinuousPreparationToggle"
-        )
+        self.preparation_toggle = AtlasGuideDisclosure()
+        self.preparation_toggle.setText("À préparer")
         self.preparation_toggle.setToolTip(
             "Références d'objets à vérifier — quantités et achats non certifiés"
         )
-        self.preparation_toggle.clicked.connect(self.toggle_preparation)
-        detail.addWidget(self.preparation_toggle)
+        self.preparation_toggle.toggled.connect(self._on_preparation_toggled)
         self.preparation_scroll = QScrollArea()
         self.preparation_scroll.setObjectName("GuideContinuousPreparationScroll")
         self.preparation_scroll.setWidgetResizable(True)
-        self.preparation_scroll.setMaximumHeight(136)
+        self.preparation_scroll.setMaximumHeight(ROUTE_GEOMETRY["detail_max_height"])
         self.preparation_label = QLabel()
         self.preparation_label.setObjectName("GuideContinuousPreparationItems")
         self.preparation_label.setTextFormat(Qt.PlainText)
         self.preparation_label.setWordWrap(True)
         self.preparation_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.preparation_scroll.setWidget(self.preparation_label)
-        detail.addWidget(self.preparation_scroll)
         self.progress_label = QLabel()
         self.progress_label.setObjectName("GuideContinuousProgress")
         self.progress_label.setWordWrap(True)
@@ -244,7 +226,8 @@ class ContinuousGuideRoutePanel(QWidget):
         self.travel_button.setToolTip(
             "Déplacement indisponible sans trajet vérifié et participants identifiés"
         )
-        self.validate_button = self._button("✓", "GuideContinuousValidate")
+        self.validate_button = self._button("Valider", "GuideContinuousValidate")
+        self.validate_button.setCheckable(True)
         self.validate_button.setToolTip(
             "Cocher/décocher manuellement cette fiche pour les personnages sélectionnés"
         )
@@ -255,6 +238,90 @@ class ContinuousGuideRoutePanel(QWidget):
         # action has its own width so it cannot squeeze or overlap them.
         detail.addWidget(self.travel_button)
         work.addWidget(content, 3)
+
+        # Share the indexed Unity Guide header selectors without changing
+        # source-only manual validation or trusted travel permissions.
+        self.compact_header = QFrame()
+        self.compact_header.setObjectName("GuideCompactHeader")
+        header = QVBoxLayout(self.compact_header)
+        header.setContentsMargins(10, 8, 10, 8)
+        header.setSpacing(6)
+        header.addLayout(head)
+        overall = QHBoxLayout()
+        heading = QLabel("Progression globale")
+        heading.setObjectName("GuideGlobalProgressTitle")
+        self.global_progress_value = QLabel("—")
+        self.global_progress_value.setObjectName("GuideCompactMetricValue")
+        overall.addWidget(heading)
+        overall.addStretch(1)
+        overall.addWidget(self.global_progress_value)
+        self.global_progress_bar = QProgressBar()
+        self.global_progress_bar.setObjectName("GuideGlobalProgress")
+        self.global_progress_bar.setRange(0, 100)
+        self.global_progress_bar.setTextVisible(False)
+        self.global_progress_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
+        self.global_progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.preparation_bar = QProgressBar()
+        self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
+        self.preparation_bar.setRange(0, 1)
+        self.preparation_bar.setValue(0)
+        self.preparation_bar.setTextVisible(False)
+        self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
+        self.preparation_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.preparation_bar.setToolTip(
+            "Préparation non certifiée : uniquement des références indicatives"
+        )
+        prep_label = QLabel("—")
+        prep_label.setObjectName("GuideCompactMetricValue")
+        self.preparation_toggle.setAccessibleName("Afficher Préparation")
+        self.preparation_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.preparation_toggle.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
+        character_size = UNITY_CONTROL_SIZES_PX["guide_character_button"]
+        icon_size = UNITY_CONTROL_SIZES_PX["guide_character_icon"]
+        self.participants_button.setFixedSize(character_size, character_size)
+        self.participants_button.setIconSize(QSize(icon_size, icon_size))
+        self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        character_icon = atlas_guide_character_icon(icon_size)
+        if character_icon.isNull():
+            character_icon = _guide_symbol_icon(self.participants_button, "people")
+        self.participants_button.setIcon(character_icon)
+        self.participants_button.setToolTip("Sélectionner les personnages")
+        self.participants_button.setAccessibleName("Personnages")
+        head.addWidget(self.participants_button, 0, Qt.AlignVCenter)
+
+        # Same #363 global/provision layout; no redundant Route/Sommaire.
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
+        grid.setVerticalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        self._metric_grid = grid
+        global_metric = QVBoxLayout()
+        global_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        global_metric.addLayout(overall)
+        global_metric.addWidget(self.global_progress_bar)
+        grid.addLayout(global_metric, 0, 0, 2, 1)
+        grid.setColumnStretch(0, 1)
+        caption = QHBoxLayout()
+        caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+        caption_label = QLabel("À préparer")
+        caption_label.setObjectName("GuideCompactMetricTitle")
+        caption.addWidget(caption_label)
+        caption.addStretch(1)
+        caption.addWidget(prep_label)
+        grid.addLayout(caption, 0, 1)
+        line = QHBoxLayout()
+        line.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+        line.addWidget(self.preparation_bar, 1, Qt.AlignVCenter)
+        line.addWidget(self.preparation_toggle)
+        grid.addLayout(line, 1, 1)
+        grid.setColumnStretch(1, 1)
+        grid.addWidget(self.preparation_scroll, 2, 1, 1, 1, Qt.AlignTop)
+        header.addLayout(grid)
+        layout.insertWidget(0, self.compact_header)
         layout.addLayout(work, 1)
         self.navigation.show_actual()
         self.refresh()
@@ -267,14 +334,17 @@ class ContinuousGuideRoutePanel(QWidget):
         button.setCursor(Qt.PointingHandCursor)
         return button
 
-    def toggle_summary(self) -> None:
-        self._summary_open = not self._summary_open
-        self.summary.setVisible(self._summary_open)
-
     def toggle_preparation(self) -> None:
-        self._preparation_open = not self._preparation_open
+        if self.preparation_toggle.isEnabled():
+            self.preparation_toggle.setChecked(not self.preparation_toggle.isChecked())
+
+    def _on_preparation_toggled(self, opened: bool) -> None:
+        self._preparation_open = opened
         self.preparation_scroll.setVisible(
-            self._preparation_open and self.preparation_toggle.isVisibleTo(self)
+            opened and self.preparation_toggle.isEnabled()
+        )
+        self.preparation_toggle.setAccessibleName(
+            "Masquer Préparation" if opened else "Afficher Préparation"
         )
 
     def set_characters(self, character_keys: Iterable[str]) -> None:
@@ -330,8 +400,11 @@ class ContinuousGuideRoutePanel(QWidget):
         if not isinstance(value, Mapping):
             return None
         x, y = value.get("x"), value.get("y")
-        if (type(x) is not int or type(y) is not int
-                or -(2**31) in (x, y)):
+        if (
+            type(x) is not int or type(y) is not int
+            or not all(-(2**31) < coordinate < 2**31 for coordinate in (x, y))
+        ):
+            # Do not turn overflowed/missing map coordinates into game input.
             return None
         return x, y
 
@@ -391,6 +464,26 @@ class ContinuousGuideRoutePanel(QWidget):
             return None
         if not isinstance(plan.get("evidence"), str) or not plan["evidence"].strip():
             return None
+        # Preserve offline identities for manual progress, but do not send
+        # game input to an old connected snapshot. Re-read the verified
+        # participant inventory only when a signed travel plan is usable.
+        try:
+            rows = (
+                self._available_characters_provider()
+                if callable(self._available_characters_provider)
+                else self.available_characters
+            )
+            online = {
+                row.key for row in rows
+                if getattr(row, "key", None) in registered
+                and getattr(row, "connected", False) is True
+            }
+        except Exception:
+            from app.core.logger import get_runtime_logger
+            get_runtime_logger().exception("Guide participant connection lookup failed")
+            return None
+        if any(key not in online for key in selected):
+            return None
         destination = self._exact_coordinates(plan.get("destination"))
         if destination is None:
             return None
@@ -418,12 +511,10 @@ class ContinuousGuideRoutePanel(QWidget):
         position = self.navigation.position()
         total_checks = position.total_steps * len(position.selected_character_keys)
         completed_checks = sum(position.completed_by_character.values())
-        self.route_progress.setValue(
-            round(100 * completed_checks / total_checks) if total_checks else 0
-        )
-        self.route_progress.setFormat(
-            f"Route · {completed_checks}/{total_checks} étapes validées"
-            if total_checks else "Route · aucun personnage sélectionné"
+        percent = round(100 * completed_checks / total_checks) if total_checks else 0
+        self.global_progress_bar.setValue(percent)
+        self.global_progress_value.setText(
+            f"{percent} %" if total_checks else "—"
         )
         selected = set(position.selected_character_keys)
         self.participants_button.setText(f"Mes personnages ({len(selected)})")
@@ -449,6 +540,18 @@ class ContinuousGuideRoutePanel(QWidget):
             current is not None and bool(position.selected_character_keys)
         )
         self.validate_button.setVisible(current is not None)
+        all_validated = bool(current and position.selected_character_keys) and all(
+            self.navigation.progress.is_manual_step_completed(
+                key, self.navigation.guide_id, current,
+            ) for key in position.selected_character_keys
+        )
+        self.validate_button.setChecked(all_validated)
+        self.validate_button.setText("Valider")
+        self.validate_button.setToolTip(
+            "Annuler la validation manuelle de cette fiche pour les personnages sélectionnés"
+            if all_validated else
+            "Valider manuellement cette fiche pour les personnages sélectionnés"
+        )
         travel = self._current_verified_travel()
         self.travel_button.setEnabled(travel is not None)
         if current is None:
@@ -469,12 +572,16 @@ class ContinuousGuideRoutePanel(QWidget):
             visible_object_references(self.route, current) if current else ()
         )
         self.preparation_toggle.setText(f"À préparer ({len(references)})")
-        self.preparation_toggle.setVisible(bool(references))
+        self.preparation_toggle.setEnabled(bool(references))
+        if not references and self.preparation_toggle.isChecked():
+            # A new source step without references must not leave an invisible
+            # drawer logically open with its shared chevron pointing upward.
+            self.preparation_toggle.setChecked(False)
         self.preparation_scroll.setVisible(bool(references) and self._preparation_open)
         self.preparation_label.setText(
             "Références à vérifier (aucun achat présumé) :\n"
             + "\n".join(
-                "• " + item.label
+                item.label
                 + (" · facultatif" if item.optional_or_conditional else "")
                 + (" · sur le trajet" if item.obtainable_on_route else "")
                 + (f" · étape {item.needed_at_step}"
@@ -497,10 +604,6 @@ class ContinuousGuideRoutePanel(QWidget):
             if position.completed_by_character
             else "Aucun personnage sélectionné"
         )
-        if index >= 0:
-            self.summary.selectionModel().clearSelection()
-            self.summary.setCurrentIndex(self.summary_model.index(index))
-        self.summary.setVisible(self._summary_open)
 
 
 __all__ = ["ContinuousGuideRoutePanel"]

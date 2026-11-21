@@ -85,6 +85,581 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
+
+    def test_compact_category_resolves_deep_links_without_summary_reads(self) -> None:
+        from types import SimpleNamespace
+
+        provider = MemoryBoundAchievementProvider()
+        provider._compact_retained_set = frozenset({10, 11})
+        provider._compact_category_ids = {
+            1: (10, 11), 2: (10,), 3: (11,),
+        }
+        provider._categories = {
+            1: SimpleNamespace(parent_id=0),
+            2: SimpleNamespace(parent_id=1),
+            3: SimpleNamespace(parent_id=1),
+        }
+        with (
+            patch.object(provider, "_ensure_loaded"),
+            patch.object(provider, "_summary_by_id",
+                         side_effect=AssertionError("no JSONL summary on deep link")),
+        ):
+            self.assertEqual(provider.catalogue_category_for_id(10), 2)
+            self.assertEqual(provider.catalogue_category_for_id(11), 3)
+            self.assertIsNone(provider.catalogue_category_for_id(99))
+            provider._compact_category_ids = {1: (10,)}
+            self.assertEqual(provider.catalogue_category_for_id(10), 1)
+            provider._compact_category_ids = {5: (10,)}
+            self.assertIsNone(provider.catalogue_category_for_id(10))
+
+    def test_compact_visible_batch_opens_jsonl_only_once(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            rows = (
+                {"kind": "achievement", "value": {
+                    "id": 10, "name": "Premier", "level": 20, "points": 5}},
+                {"kind": "achievement", "value": {
+                    "id": 11, "name": "Second", "level": 40, "points": 10}},
+            )
+            content = b""
+            offsets = {}
+            for row in rows:
+                payload = (json.dumps(row) + "\n").encode("utf-8")
+                offsets[row["value"]["id"]] = (len(content), len(payload))
+                content += payload
+            path.write_bytes(content)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10, 11})
+            provider._compact_external_index = offsets
+            open_real = Path.open
+            opens = []
+
+            def counted_open(target, *args, **kwargs):
+                if target == path:
+                    opens.append(True)
+                return open_real(target, *args, **kwargs)
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=AssertionError("no rich object for valid compact rows")),
+                patch.object(Path, "open", counted_open),
+            ):
+                self.assertEqual(provider.catalogue_rows_by_ids([10, 11]), [
+                    (10, "Premier", 20, 5),
+                    (11, "Second", 40, 10),
+                ])
+                self.assertEqual(len(opens), 1)
+
+    def test_compact_batch_ignores_malformed_span_types_while_retaining_valid_rows(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            valid = (
+                json.dumps({"kind": "achievement", "value": {
+                    "id": 10, "name": "Valide", "level": 50, "points": 5,
+                }}) + "\n"
+            ).encode("utf-8")
+            cache.write_bytes(valid)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10, 11})
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_external_index = {10: (0, len(valid))}
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "catalogue_row_by_id",
+                             side_effect=lambda ident: None),
+            ):
+                self.assertEqual(provider.catalogue_rows_by_ids([10]), [
+                    (10, "Valide", 50, 5),
+                ])
+                for broken in (
+                    ("bad", 4), (True, 4), (0, False),
+                    (0, -1), (0, len(valid) + 1),
+                    ("0", "4"), (0,), [],
+                ):
+                    with self.subTest(span=broken):
+                        provider._compact_external_index[11] = broken
+                        self.assertEqual(
+                            provider.catalogue_rows_by_ids([10, 11]),
+                            [(10, "Valide", 50, 5), None],
+                        )
+
+    def test_compact_visible_batch_falls_back_for_invalid_offset(self) -> None:
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            payload = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "name": "Valide", "level": 1, "points": 3,
+            }}) + "\n").encode("utf-8")
+            path.write_bytes(payload)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10, 11})
+            provider._compact_external_index = {
+                10: (0, len(payload)),
+                11: (10 ** 12, 2 ** 31),  # Never an unbounded read.
+            }
+            fallback = SimpleNamespace(name="Récupéré", level=10, points=7)
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=lambda ident: fallback if ident == 11 else None),
+                patch.object(provider, "is_retained", return_value=True),
+            ):
+                self.assertEqual(provider.catalogue_rows_by_ids([10, 11, 99]), [
+                    (10, "Valide", 1, 3),
+                    (11, "Récupéré", 10, 7),
+                    None,
+                ])
+
+    def test_compact_search_uses_one_file_and_never_materializes_rich_rows(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            rows = (
+                {"kind": "achievement", "value": {
+                    "id": 10, "name": "First", "search_text": "grand_monstre",
+                }},
+                {"kind": "achievement", "value": {
+                    "id": 11, "name": "Second", "search_text": "petit_monstre",
+                }},
+                {"kind": "achievement", "value": {
+                    "id": 12, "name": "Third", "search_text": "grand_monstre_rare",
+                }},
+            )
+            offsets = {}
+            content = b""
+            for row in rows:
+                payload = (json.dumps(row) + "\n").encode("utf-8")
+                offsets[row["value"]["id"]] = (len(content), len(payload))
+                content += payload
+            cache.write_bytes(content)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset((10, 11, 12))
+            provider._compact_external_index = offsets
+            opened = []
+            original_open = Path.open
+
+            def count_open(path, *args, **kwargs):
+                if path == cache:
+                    opened.append(True)
+                return original_open(path, *args, **kwargs)
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=AssertionError("rich Success should stay cold")),
+                patch.object(Path, "open", count_open),
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand monstre"), (10, 12))
+                self.assertEqual(len(opened), 1)
+
+    def test_compact_search_reuses_lightweight_strings_across_queries(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            rows = [
+                {"kind": "achievement", "value": {
+                    "id": 10, "search_text": "grand_monstre",
+                }},
+                {"kind": "achievement", "value": {
+                    "id": 11, "search_text": "petit_monstre",
+                }},
+            ]
+            data = b""
+            offsets = {}
+            for row in rows:
+                raw = (json.dumps(row) + "\n").encode("utf-8")
+                offsets[row["value"]["id"]] = (len(data), len(raw))
+                data += raw
+            cache.write_bytes(data)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_retained_set = frozenset((10, 11))
+            provider._compact_external_index = offsets
+            real_open = Path.open
+            opened = []
+
+            def counted_open(path, *args, **kwargs):
+                if path == cache:
+                    opened.append(True)
+                return real_open(path, *args, **kwargs)
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=AssertionError("rich details stay cold")),
+                patch.object(Path, "open", counted_open),
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+                self.assertEqual(provider.search_catalogue_ids("monstre"), (10, 11))
+                self.assertEqual(provider.search_catalogue_ids("petit"), (11,))
+                self.assertEqual(len(opened), 1)
+
+    def test_compact_search_cache_invalidates_after_atomic_file_swap(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            first = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "grand",
+            }}) + "\n").encode("utf-8")
+            second = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "petit",
+            }}) + "\n").encode("utf-8")
+            self.assertEqual(len(first), len(second))
+            cache.write_bytes(first)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10,)
+            provider._compact_retained_set = frozenset({10})
+            provider._compact_external_index = {10: (0, len(first))}
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+                replacement = cache.with_name("replacement.jsonl")
+                replacement.write_bytes(second)
+                stat = cache.stat()
+                os.utime(replacement, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+                replacement.replace(cache)
+                self.assertEqual(provider.search_catalogue_ids("grand"), ())
+                self.assertEqual(provider.search_catalogue_ids("petit"), (10,))
+
+    def test_precomputed_sidecar_search_needs_no_jsonl_scan(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            category = {"kind": "category", "value": {
+                "id": 1, "name": "Quêtes", "parent_id": 0,
+                "order": 0, "achievement_ids": [10],
+            }}
+            rows = [
+                {"kind": "meta", "cache_generation": "one-pair"},
+                category,
+                {"kind": "achievement", "value": {
+                    "id": 10, "search_text": "grand_monstre",
+                }},
+            ]
+            data = b""
+            offsets = {}
+            for row in rows:
+                raw = (json.dumps(row) + "\n").encode("utf-8")
+                if row["kind"] == "achievement":
+                    offsets["10"] = [len(data), len(raw)]
+                data += raw
+            cache.write_bytes(data)
+            sidecar = mod._achievement_compact_index_path(cache)
+            payload = {
+                "cache_generation": "one-pair",
+                "retained_ids": [10],
+                "offsets": offsets,
+                "by_category": {"1": [10]},
+                "search_texts": ["grand_monstre"],
+            }
+            sidecar.write_text(json.dumps(payload), encoding="utf-8")
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            ):
+                provider._load_from_compact_cache()
+                self.assertEqual(provider._compact_search_text_index, {10: "grand_monstre"})
+                with (
+                    patch.object(provider, "_ensure_loaded"),
+                    patch.object(Path, "open",
+                                 side_effect=AssertionError("search must not scan JSONL")),
+                ):
+                    self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+                    self.assertEqual(provider.search_catalogue_ids("petit"), ())
+
+                # Old schema-5 sidecars need no migration or forced rebuild.
+                payload.pop("search_texts")
+                sidecar.write_text(json.dumps(payload), encoding="utf-8")
+                provider._load_from_compact_cache()
+                self.assertIsNone(provider._compact_search_text_index)
+                with patch.object(provider, "_ensure_loaded"):
+                    self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+
+                # The JSON sidecar must not silently coerce malformed
+                # offsets into apparently valid seek positions.
+                original_offset = list(offsets["10"])
+                for bad_offset in (
+                    [True, 10], [0.5, 10], ["0", 10],
+                    [0, False], [0, -1], [0],
+                ):
+                    with self.subTest(offset=bad_offset):
+                        payload["offsets"]["10"] = bad_offset
+                        payload["retained_ids"] = [True, 10]
+                        sidecar.write_text(json.dumps(payload), encoding="utf-8")
+                        provider._load_from_compact_cache()
+                        self.assertEqual(provider._compact_retained_ids, (10,))
+                        self.assertNotIn(10, provider._compact_external_index)
+
+                # Category membership is a primitive index, not permission
+                # to coerce booleans/floats/strings into another Success ID.
+                payload["offsets"]["10"] = original_offset
+                payload["retained_ids"] = [True, 10, 10, -7, 0, 10]
+                payload["by_category"] = {
+                    "1": [True, 10, "10", 10.0, 10, 9999, 10],
+                    "2": [9999],
+                    "03": [10],
+                    "not-an-id": [10],
+                }
+                sidecar.write_text(json.dumps(payload), encoding="utf-8")
+                provider._load_from_compact_cache()
+                self.assertEqual(provider._compact_retained_ids, (10,))
+                self.assertEqual(provider._compact_category_ids, {
+                    1: (10,), 2: (),
+                })
+                with patch.object(provider, "_ensure_loaded"):
+                    self.assertEqual(provider.catalogue_ids(1), (10,))
+                    self.assertEqual(provider.count_by_category(1), 1)
+                    self.assertEqual(provider.catalogue_ids(3), ())
+
+    def test_compact_search_falls_back_only_for_broken_row_and_preserves_order(self):
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            raw = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "grand_monstre",
+            }}) + "\n").encode("utf-8")
+            cache.write_bytes(raw)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_retained_set = frozenset((10, 11))
+            provider._compact_external_index = {10: (0, len(raw)), 11: (0, -1)}
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=lambda ident: SimpleNamespace(
+                                 search_text="grand_monstre",
+                             ) if ident == 11 else None) as fallback,
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand monstre"), (10, 11))
+                fallback.assert_called_once_with(11)
+
+    def test_compact_search_rejects_malformed_offsets_without_losing_valid_ids(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            raw = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "grand_monstre",
+            }}) + "\n").encode("utf-8")
+            cache.write_bytes(raw)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_retained_set = frozenset({10, 11})
+            broken_spans = (
+                None, (), (0,), [], ("bad", 2), (True, 2),
+                (0, False), (0, -1), (0, len(raw) + 1),
+            )
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(
+                    provider, "_summary_by_id",
+                    side_effect=OSError("missing compact row"),
+                ) as recover,
+                patch.object(mod.logging.getLogger(mod.__name__), "exception") as logged,
+            ):
+                for span in broken_spans:
+                    with self.subTest(span=span):
+                        provider._compact_external_index = {
+                            10: (0, len(raw)), 11: span,
+                        }
+                        provider._compact_search_text_index = None
+                        provider._compact_search_generation = None
+                        self.assertEqual(
+                            provider.search_catalogue_ids("grand monstre"), (10,),
+                        )
+                self.assertEqual(recover.call_count, len(broken_spans))
+                self.assertEqual(logged.call_count, len(broken_spans))
+
+    def test_compact_progress_reads_reject_bad_spans_and_wrong_achievement(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            row = {"kind": "achievement", "value": {
+                "id": 10, "category_name": "Quêtes",
+                "progress_objectives": [[100, "npc", "Parler", "", []]],
+            }}
+            payload = (json.dumps(row) + "\n").encode("utf-8")
+            path.write_bytes(payload)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12, 13)
+            provider._compact_retained_set = frozenset(provider._compact_retained_ids)
+            provider._compact_external_index = {
+                10: (0, len(payload)),
+                11: (0, len(payload)),  # Valid JSON but belongs to a different ID.
+                12: (0, -1),  # read(-1) used to allocate the entire remaining file.
+                13: (len(payload) + 1, len(payload)),
+            }
+            expected = (10, "Quêtes", ((100, "npc", "Parler", "", ()),))
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                self.assertEqual(provider.progress_row_by_id(10), expected)
+                for ident in (11, 12, 13):
+                    with self.subTest(ident=ident):
+                        self.assertIsNone(provider.progress_row_by_id(ident))
+                self.assertEqual(provider.progress_catalogue(), (expected,))
+
+    def test_malformed_progress_offsets_do_not_hide_valid_catalogue(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            data = b""
+            offsets = {}
+            for ident in (10, 12):
+                row = (json.dumps({"kind": "achievement", "value": {
+                    "id": ident, "category_name": "Quêtes",
+                    "progress_objectives": [],
+                }}) + "\n").encode("utf-8")
+                offsets[ident] = (len(data), len(row))
+                data += row
+            cache.write_bytes(data)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset({10, 11, 12})
+            good = ((10, "Quêtes", ()), (12, "Quêtes", ()))
+            broken_spans = ((), (0,), ("bad", 1), (True, 3),
+                            (0, False), (0, -1), (0, len(data) + 1))
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                for broken in broken_spans:
+                    with self.subTest(span=broken):
+                        provider._compact_external_index = {
+                            **offsets, 11: broken,
+                        }
+                        self.assertIsNone(provider.progress_row_by_id(11))
+                        self.assertEqual(provider.progress_catalogue(), good)
+
+    def test_malformed_detail_offset_falls_back_to_matching_cached_row(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text(
+                json.dumps({"kind": "achievement", "value": {
+                    "id": 10, "name": "Détail conservé",
+                }}) + "\n",
+                encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10})
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache):
+                for broken in ((), (0,), ("bad", 8), (False, 8),
+                               (0, True), (0, -1)):
+                    with self.subTest(span=broken):
+                        provider._compact_external_index = {10: broken}
+                        row = provider._compact_value_by_id(10)
+                        self.assertIsNotNone(row)
+                        self.assertEqual(row["name"], "Détail conservé")
+
+    def test_one_progress_seek_error_preserves_other_compact_rows(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            offsets = {}
+            content = b""
+            for ident in (10, 11, 12):
+                encoded = (json.dumps({"kind": "achievement", "value": {
+                    "id": ident, "category_name": "Quêtes",
+                    "progress_objectives": [],
+                }}) + "\n").encode("utf-8")
+                offsets[ident] = (len(content), len(encoded))
+                content += encoded
+            path.write_bytes(content)
+            broken_offset = offsets[11][0]
+            real_open = Path.open
+
+            class BrokenRowStream(io.BytesIO):
+                def seek(self, offset, whence=0):
+                    if whence == 0 and offset == broken_offset:
+                        raise OSError("transient seek failure on one Success")
+                    return super().seek(offset, whence)
+
+            def fake_open(target, *args, **kwargs):
+                if target == path and args and args[0] == "rb":
+                    return BrokenRowStream(content)
+                return real_open(target, *args, **kwargs)
+
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset({10, 11, 12})
+            provider._compact_external_index = offsets
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(Path, "open", fake_open),
+            ):
+                self.assertEqual(provider.progress_catalogue(), (
+                    (10, "Quêtes", ()),
+                    (12, "Quêtes", ()),
+                ))
+
+    def test_compact_progress_catalogue_keeps_valid_rows_around_corrupt_json(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            data = b""
+            offsets = {}
+            for ident, payload in (
+                (10, {"kind": "achievement", "value": {
+                    "id": 10, "category_name": "A", "progress_objectives": [],
+                }}),
+                (11, b"{not-valid-json}"),
+                (12, {"kind": "achievement", "value": {
+                    "id": 12, "category_name": "C", "progress_objectives": [],
+                }}),
+            ):
+                row = (
+                    payload if isinstance(payload, bytes)
+                    else json.dumps(payload).encode("utf-8")
+                ) + b"\n"
+                offsets[ident] = (len(data), len(row))
+                data += row
+            path.write_bytes(data)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset((10, 11, 12))
+            provider._compact_external_index = offsets
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                self.assertIsNone(provider.progress_row_by_id(11))
+                self.assertEqual(provider.progress_catalogue(), (
+                    (10, "A", ()),
+                    (12, "C", ()),
+                ))
+
     def test_locked_builder_repairs_positive_count_but_missing_offset_sidecar(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
@@ -364,6 +939,9 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             self.assertEqual(sidecar["by_quest"], {"42": [10, 11], "99": [11]})
             self.assertEqual(sidecar["by_quest_ref_count"], 3)
             self.assertEqual(sidecar["retained_count"], 2)
+            # Lightweight builder/test rows are still valid without a search
+            # attribute; runtime Achievement rows publish their real strings.
+            self.assertEqual(sidecar["search_texts"], ["", ""])
             first = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
             self.assertEqual(first["cache_generation"], sidecar["cache_generation"])
 
@@ -768,6 +1346,64 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                         )
                 # A genuinely external ID still uses the external section.
                 self.assertIsNone(provider._compact_value_by_id(99))
+
+    def test_exceptional_compact_lookup_skips_corrupt_rows_not_valid_success(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text(
+                "\n".join((
+                    json.dumps({"kind": "meta"}),
+                    "{not-valid-json",
+                    json.dumps({"kind": "achievement", "value": {
+                        "id": 10, "name": "Retained",
+                    }}),
+                    json.dumps({"kind": "external_start"}),
+                    '{"kind":"achievement","value":BROKEN}',
+                    json.dumps({"kind": "achievement", "value": {
+                        "id": 999, "name": "External",
+                    }}),
+                )) + "\n", encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider.__new__(
+                MemoryBoundAchievementProvider
+            )
+            provider._compact_external_index = {10: (0, -1)}
+            provider._compact_retained_set = frozenset({10})
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache):
+                self.assertEqual(
+                    provider._compact_value_by_id(10)["name"], "Retained",
+                )
+                self.assertEqual(
+                    provider._compact_value_by_id(999)["name"], "External",
+                )
+
+    def test_compact_compat_list_skips_corrupt_and_nonobject_rows(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text(
+                "\n".join((
+                    json.dumps({"kind": "meta"}),
+                    "[]",
+                    '{"kind":"achievement","value":BAD}',
+                    json.dumps({"kind": "achievement", "value": {"id": 10, "name": "First"}}),
+                    json.dumps({"kind": "achievement", "value": {"name": "Missing ID"}}),
+                    json.dumps({"kind": "achievement", "value": {"id": 20, "name": "Second"}}),
+                )) + "\n", encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(mod.sys, "frozen", False, create=True),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_compat_achievement", side_effect=lambda value: value),
+            ):
+                rows = provider.load_all()
+            self.assertEqual([row.id for row in rows], [10, 20])
 
     def test_external_compat_lookup_rejects_boolean_achievement_id(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
+from app.core.numbers import optional_int as _safe_int
+from app.core.text import normalize_words as _norm
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
@@ -19,19 +20,6 @@ GUIDE_ULTIME_ROUTE_AUDIT_FILE = ROOT / "artifacts" / "guide_ultime_gps_route_aud
 GUIDE_ULTIME_PROGRESS_ID = "guide_ultime_v5"
 
 
-def _safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _norm(value: Any) -> str:
-    import unicodedata
-
-    text = unicodedata.normalize("NFKD", str(value or ""))
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    return re.sub(r"[^a-zA-Z0-9]+", " ", text.casefold()).strip()
 
 
 def _read_json(path: Path) -> dict[str, Any]:

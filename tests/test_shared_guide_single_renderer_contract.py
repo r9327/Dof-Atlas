@@ -78,13 +78,38 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "sylvestre" not in source
 
 
-    def test_both_sources_construct_the_exact_same_shared_view(self) -> None:
+    def test_guide_succes_and_catalogue_routes_share_the_same_renderer(self) -> None:
         source = ROUTER.read_text(encoding="utf-8")
         assert 'CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})' in source
         assert source.count("view = SharedGuideManualView(") == 2
+        # Any added guide entry must reuse SharedGuideManualView, not a fork.
+        assert "SharedGuideManualView(" in source
+        assert "class Sylvestre" not in source
         assert "GuideUltimeManualRuntimeService(" in source
         assert "GuideCatalogManualRuntimeService(" in source
 
+
+    def test_all_authorized_ganymede_entrypoints_use_indexed_guide_header(self) -> None:
+        """Both trusted continuous cutovers and imported manual guides share
+        the indexed Guide header controls; metadata-only rows stay disabled."""
+        source = ROUTER.read_text(encoding="utf-8")
+        continuous_router = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
+        continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(encoding="utf-8")
+        shared = SHARED.read_text(encoding="utf-8")
+        assert "SharedGuideManualView(" in source
+        assert "ContinuousGuideRoutePanel(" in continuous_router
+        assert 'replacement_status") == "TRUSTED_SOURCE_STEPS"' in continuous_router
+        for renderer in (continuous, shared):
+            for role in ("GuideCompactHeader", "GuideGlobalProgress",
+                         "GuideParticipantsButton", "GuideCompactPreparationProgress"):
+                assert role in renderer, (role, renderer[:80])
+        # Drawer geometry/arrow behaviour now lives in the indexed shared
+        # component instead of duplicating an object name in every renderer.
+        controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        assert 'self.setObjectName("GuideMetricDropdown")' in controls
+        assert "AtlasGuideDisclosure(" in shared
+        assert "GuideMetricDropdown" in continuous
+        assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
 
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
         for path in UI_STYLES.rglob("*.py") if UI_STYLES.exists() else ():

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QToolButton,
+    QProgressBar,
 )
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
@@ -191,67 +192,172 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         QApplication.processEvents()
         return service, view
 
+    def test_progress_header_uses_canonical_layout_metrics(self) -> None:
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+
+        _service, view = self._view()
+        try:
+            header = view.findChild(QFrame, "GuideCompactHeader")
+            self.assertIsNotNone(header)
+            margins = header.layout().contentsMargins()
+            self.assertEqual(
+                (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                (
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
+                ),
+            )
+            self.assertEqual(
+                view._header_content_layout.spacing(),
+                UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"],
+            )
+            self.assertEqual(
+                header.layout().spacing(),
+                UNITY_LAYOUT_SIZES_PX["guide_header_outer_spacing"],
+            )
+        finally:
+            view.close()
+
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
-            self.assertEqual(view.route_progress_label.text(), "0 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
-            self.assertEqual(view.progress_donut._percent, 0)
-            self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
-            self.assertNotIn("Quêtes", view.route_progress_label.text())
-            self.assertNotIn("Donjons", view.route_progress_label.text())
-            self.assertEqual(view.route_lock_check.text(), "Déverrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
+            self.assertEqual(view.global_progress_label.text(), "0 %")
+            self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (0, 2))
+            self.assertTrue(view.progress_donut.isHidden())
+            self.assertEqual(view.donut_count_label.text(), "0 fiches validées")
+            self.assertFalse(hasattr(view, "summary_button"))
+            self.assertFalse(hasattr(view, "route_bar"))
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertEqual(view.sheet_meta_label.text(), "ÉTAPE · CHAPITRE UN")
+            self.assertEqual(view.nav_page_label.text(), "1/2")
         finally:
             view.close()
+
+
+    def test_shared_guide_navigation_uses_universal_atlas_buttons(self) -> None:
+        from app.ui.components import AtlasButton
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        _service, view = self._view()
+        try:
+            for control in (view.prev_button, view.next_button, view.guide_button):
+                self.assertIsInstance(control, AtlasButton)
+            self.assertEqual(view.prev_button.objectName(), "GuideManualPrev")
+            self.assertEqual(view.next_button.objectName(), "GuideManualNextButton")
+            self.assertEqual(view.page_jump.objectName(), "GuideCompactPageJump")
+            self.assertEqual(view.page_jump.suffix(), "/2")
+            self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
+            self.assertEqual(view.global_details_button.objectName(), "GuideMetricDropdown")
+            self.assertEqual(view.participants_button.width(), UNITY_CONTROL_SIZES_PX["guide_character_button"])
+            self.assertEqual(view.global_details_button.width(), UNITY_CONTROL_SIZES_PX["progress_toggle_width"])
+            self.assertIs(
+                view._header_content_layout.itemAt(1).widget(), view.participants_panel,
+            )
+            self.assertIs(
+                view._metric_columns["Préparation"].itemAt(0).widget(),
+                view.preparation_panel,
+            )
+            self.assertIs(view.preparation_bar.parentWidget(), view.global_details_panel)
+            self.assertFalse(hasattr(view, "summary_panel"))
+            self.assertFalse(hasattr(view, "route_bar"))
+            self.assertTrue(view.preparation_bar.isEnabled())
+            self.assertEqual(view.prev_button.text(), "Précédent")
+            self.assertEqual(view.next_button.text(), "Suivant")
+        finally:
+            view.close()
+
+
+    def test_participant_portrait_sizes_are_shared_with_dev_ui(self) -> None:
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+        from app.modules.encyclopedia.views.shared_manual_guide_view import _ParticipantPortraitButton
+
+        portrait = _ParticipantPortraitButton("character:demo", progress=25)
+        try:
+            box = UNITY_CONTROL_SIZES_PX["guide_portrait_button"]
+            icon = UNITY_CONTROL_SIZES_PX["guide_portrait_icon"]
+            self.assertEqual((portrait.width(), portrait.height()), (box, box))
+            self.assertEqual((portrait.iconSize().width(), portrait.iconSize().height()), (icon, icon))
+            self.assertLess(icon, box)
+        finally:
+            portrait.close()
+
+    def test_progress_edges_match_at_four_window_sizes_with_drawers_open_and_closed(self) -> None:
+        from app.ui.components import AtlasComboBox
+        from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
+
+        _service, view = self._view()
+        try:
+            self.assertIsInstance(view.preparation_filter, AtlasComboBox)
+            self.assertEqual(view.preparation_filter.count(), 7)
+            for preset, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
+                with self.subTest(preset=preset):
+                    view.resize(width, height)
+                    view.show()
+                    for opened in (False, True):
+                        view.global_details_button.setChecked(opened)
+                        view.preparation_button.setChecked(opened)
+                        QApplication.processEvents()
+                        self.assertEqual(view.global_progress_bar.width(),
+                                         view.global_details_panel.width() if opened else view.global_progress_bar.width())
+                        if opened:
+                            self.assertTrue(view.global_details_panel.isVisible())
+                            self.assertTrue(view.preparation_panel.isVisible())
+                            self.assertLessEqual(
+                                view.preparation_filter.width(),
+                                view.preparation_panel.width(),
+                            )
+            self.assertEqual(view.preparation_filter.currentText(), "Tout")
+        finally:
+            view.close()
+
 
     def test_narrow_layout_preserves_named_actions(self) -> None:
         _service, view = self._view()
         try:
             view.resize(490, 320)
             QApplication.processEvents()
-            self.assertLess(view.width(), 520)
+            from app.ui.unity_palette import UNITY_LAYOUT_BREAKPOINTS_PX
+            self.assertLess(view.width(), UNITY_LAYOUT_BREAKPOINTS_PX["guide_header_compact_below"])
             self.assertEqual(view.participants_button.text(), "")
             self.assertFalse(view.participants_button.icon().isNull())
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertIn("Choisir les identités", view.participants_button.toolTip())
-            self.assertEqual(view.current_button.text(), "")
-            self.assertEqual(view.current_button.accessibleName(), "Actuelle")
-            self.assertTrue(view.current_button.icon().isNull() is False)
-            self.assertEqual(view.page_jump.maximumWidth(), 93)
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
+            from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+            self.assertLessEqual(
+                view.page_jump.maximumWidth(),
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_compact_max_width"],
+            )
+            self.assertEqual(view.page_jump.suffix(), "/2")
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
 
             view.resize(960, 640)
             QApplication.processEvents()
             self.assertEqual(view.participants_button.text(), "")
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
-            self.assertEqual(view.current_button.text(), "Actuelle")
-            self.assertEqual(view.page_jump.maximumWidth(), 115)
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
+            self.assertLessEqual(
+                view.page_jump.maximumWidth(),
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
+            )
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
         finally:
             view.close()
 
-    def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
-        service, view = self._view()
+    def test_obsolete_route_lock_is_removed_but_page_navigation_still_works(self) -> None:
+        _service, view = self._view()
         try:
-            view.route_lock_check.setChecked(True)
-            self.assertEqual(view.route_lock_check.text(), "Verrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
-            self.assertTrue(
-                service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
-            )
-            view._jump_from_progress(1.0)
-            self.assertEqual(view.view_index, 0)
-
+            self.assertIsNone(view.findChild(QToolButton, "GuideManualProgressLock"))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
             view.navigate_relative(1)
             self.assertEqual(view.view_index, 1)
-
-            view.route_lock_check.setChecked(False)
-            view._jump_from_progress(0.0)
+            view.navigate_relative(-1)
             self.assertEqual(view.view_index, 0)
         finally:
             view.close()
+
 
     def test_manual_ui_omits_obsolete_success_destination_and_breadcrumb_blocks(self) -> None:
         _service, view = self._view()
@@ -260,7 +366,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
-            self.assertEqual(view.guide_button.text(), "←")
+            self.assertFalse(view.guide_button.icon().isNull())
             self.assertEqual(view.guide_button.accessibleName(), "Fiche actuelle ou catalogue des guides")
             self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
@@ -350,34 +456,25 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_remains_open_and_filter_survives_repopulation(self) -> None:
+    def test_global_and_preparation_drawers_remain_open_during_page_navigation(self) -> None:
         _service, view = self._view()
         try:
-            view.summary_button.click()
+            view.show()
+            view.global_details_button.click()
+            view.preparation_button.click()
             QApplication.processEvents()
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
-            self.assertEqual(view.summary_list.count(), 2)
-
-            view.summary_search.setText("Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
-
-            view.summary_list.itemClicked.emit(view.summary_list.item(1))
+            self.assertTrue(view.global_details_panel.isVisible())
+            self.assertTrue(view.preparation_panel.isVisible())
+            view.navigate_relative(1)
             self.assertEqual(view.view_index, 1)
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
+            self.assertTrue(view.global_details_button.isChecked())
+            self.assertTrue(view.preparation_button.isChecked())
             view.navigate_relative(-1)
             self.assertEqual(view.view_index, 0)
-            self.assertFalse(view.summary_panel.isHidden())
-
-            view.summary_list.clear()
-            view._populate_summary()
-            self.assertEqual(view.summary_search.text(), "Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
+            self.assertTrue(view.preparation_panel.isVisible())
         finally:
             view.close()
+
 
     def test_previous_next_and_validation_share_the_bottom_navigation_row(self) -> None:
         _service, view = self._view()
@@ -527,6 +624,32 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
+    def test_existing_guide_inline_links_share_universal_styles_and_copy(self) -> None:
+        from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
+        from app.ui.theme import PALETTE
+
+        rendered = GuideUltimeManualCard._format_line_html(
+            "", "[5,-3]", "Parler à PNJ Exemple puis ramasser Ortie.",
+            ["PNJ Exemple"], ["Ortie"],
+        )
+        for kind, href in (
+            ("position", 'href="travel-copy:5,-3"'),
+            ("item", 'href="item-copy:Ortie"'),
+        ):
+            with self.subTest(kind=kind):
+                self.assertIn(href, rendered)
+                self.assertIn(f"color:{PALETTE[ENTITY_LINK_COLOR_ROLES[kind]]}", rendered)
+        self.assertIn(
+            f"color:{PALETTE[ENTITY_LINK_COLOR_ROLES['npc']]}", rendered
+        )
+        self.assertEqual(
+            GuideUltimeManualCard._copy_text_for_link("item-copy:Ortie"), "Ortie"
+        )
+        self.assertEqual(
+            GuideUltimeManualCard._copy_text_for_link("travel-copy:5,-3"),
+            "/travel 5,-3",
+        )
+
     def test_manual_line_positions_are_bold(self) -> None:
         rendered = GuideUltimeManualCard._format_line_html(
             "• ",
@@ -550,7 +673,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             QApplication.processEvents()
 
             self.assertEqual(view.view_index, 1)
-            self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
+            self.assertEqual(view.nav_page_label.text(), "2/2")
             self.assertEqual(bar.value(), bar.minimum())
         finally:
             view.close()
@@ -570,10 +693,10 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.active_index, 1)
             self.assertEqual(view.view_index, 1)
             self.assertEqual(bar.value(), bar.minimum())
-            self.assertEqual(view.route_progress_label.text(), "50 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (1, 2))
+            self.assertEqual(view.global_progress_label.text(), "50 %")
+            self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (1, 2))
             self.assertEqual(view.progress_donut._percent, 50)
-            self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
+            self.assertEqual(view.nav_page_label.text(), "2/2")
         finally:
             view.close()
 
@@ -598,23 +721,16 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_stays_open_until_its_button_is_explicitly_toggled(self) -> None:
+    def test_sommaire_has_no_visual_widgets_in_shared_reader(self) -> None:
         _service, view = self._view()
         try:
-            self.assertFalse(view.summary_panel.isVisible())
-            view.summary_button.click()
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_list.item(1).setSelected(True)
-            view._summary_item_clicked(view.summary_list.item(1))
-            view.go_active()
-            view.navigate_relative(1)
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_button.click()
-            self.assertFalse(view.summary_panel.isVisible())
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertFalse(hasattr(view, "summary_list"))
+            self.assertFalse(hasattr(view, "summary_button"))
+            self.assertFalse(hasattr(view, "route_bar"))
         finally:
             view.close()
+
 
     def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters(self) -> None:
         service = _FakeManualUiService()
@@ -641,6 +757,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         )
         try:
             self.assertFalse(view.preparation_panel.isVisible())
+            view.global_details_button.click()
             view.preparation_button.click()
             potion = next(need for need in view._preparation_needs if need.name == "Potion de test")
             self.assertEqual(
@@ -670,11 +787,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 ("Pierres d'âme", "Pierre d'âme moyenne"),
                 ("Clefs", "Clef de test"),
             ):
-                button = next(
-                    button for button in view.preparation_filter_group.buttons()
-                    if button.property("filterKey") == filter_key
-                )
-                button.click()
+                view.preparation_filter.setCurrentText(filter_key)
                 QApplication.processEvents()
                 selected_rows = [
                     view.preparation_rows_layout.itemAt(i).widget()
@@ -704,21 +817,30 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             participant_service=participants,
         )
         try:
+            view.global_details_button.click()
             view.preparation_button.click()
-            potions = next(
-                button
-                for button in view.preparation_filter_group.buttons()
-                if button.property("filterKey") == "Potions"
+            view.preparation_filter.setCurrentText("Potions")
+            self.assertEqual(view.preparation_filter.currentText(), "Potions")
+            ready = view.findChild(QCheckBox, "GuidePreparationReady")
+            # Exact visual/functional row order, shared by Guide and Ganymède.
+            line = ready.parentWidget().layout().itemAt(0).layout()
+            self.assertIs(line.itemAt(0).widget(), ready)
+            self.assertIn(
+                line.itemAt(1).widget().objectName(),
+                {"GuidePreparationQuantity", "GuidePreparationQuantityPlaceholder"},
             )
-            potions.click()
-            ready = view.findChild(QToolButton, "GuidePreparationReady")
+            copy_button = line.itemAt(2).widget()
+            self.assertEqual(copy_button.objectName(), "GuidePreparationItemCopy")
+            QApplication.clipboard().clear()
+            copy_button.click()
+            self.assertIn("Potion de test", QApplication.clipboard().text())
             ready.click()
             self.assertTrue(ready.isChecked())
             view.participants_button.click()
             portraits = view.findChildren(QToolButton, "GuideParticipantPortrait")
             portraits[1].click()
             QApplication.processEvents()
-            self.assertFalse(view.findChild(QToolButton, "GuidePreparationReady").isChecked())
+            self.assertFalse(view.findChild(QCheckBox, "GuidePreparationReady").isChecked())
         finally:
             view.close()
 

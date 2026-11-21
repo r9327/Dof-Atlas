@@ -45,6 +45,16 @@ class _FakeProvider:
         return (int(row.id), str(row.name), row.level, int(row.points))
 
 
+class _BatchFakeProvider(_FakeProvider):
+    def __init__(self, achievements) -> None:
+        super().__init__(achievements)
+        self.batch_calls: list[tuple[int, ...]] = []
+
+    def catalogue_rows_by_ids(self, achievement_ids: list[int]):
+        self.batch_calls.append(tuple(achievement_ids))
+        return [self.catalogue_row_by_id(ident) for ident in achievement_ids]
+
+
 class _FakeProgressService:
     def __init__(self, completed=()) -> None:
         self.completed = frozenset(int(value) for value in completed)
@@ -72,6 +82,7 @@ class _LightAchievementsView(AchievementsView):
         self._catalog_refresh_signature = None
         self._achievement_render_generation = 0
         self._achievement_pending_rows = []
+        self._achievement_visible_row_by_id = {}
         self._achievement_pending_selected_id = None
         self._achievement_rows_dirty = False
         self._achievement_completed_ids = frozenset()
@@ -128,6 +139,34 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_batch_provider_is_called_once_for_visible_rows(self) -> None:
+        view = self._view(50)
+        view.provider = _BatchFakeProvider(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            view.hide()
+            view.list_widget.clear()
+            view._achievement_pending_rows = [int(row.id) for row in view.filtered]
+            view._achievement_rows_dirty = True
+            view.show()
+            view._achievement_batch_timer.stop()
+            view.provider.batch_calls.clear()
+
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+
+            self.assertEqual(view.provider.batch_calls, [tuple(range(1, 9))])
+            self.assertEqual(view.list_widget.count(), _RESULT_BATCH_SIZE)
+            self.assertEqual(len(view._achievement_pending_rows), 50 - _RESULT_BATCH_SIZE)
+            self.assertTrue(bool(view.list_widget.item(1).data(COMPLETED_ROLE)))
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_visible_render_is_bounded_to_one_batch_per_callback(self) -> None:
         view = self._view()
         try:
@@ -160,6 +199,151 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_failed_compact_batch_can_retry_without_losing_ids(self) -> None:
+        class BrokenBatch(_BatchFakeProvider):
+            broken = True
+
+            def catalogue_rows_by_ids(self, ids):
+                if self.broken:
+                    raise OSError("temporary Success cache failure")
+                return super().catalogue_rows_by_ids(ids)
+
+        from unittest.mock import patch
+
+        view = self._view(40)
+        view.provider = BrokenBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            with patch(
+                "app.modules.encyclopedia.views.achievements_view._LOGGER.exception"
+            ) as logged:
+                view._render_next_achievement_batch()
+                logged.assert_called_once()
+            self.assertEqual(view.list_widget.count(), 0)
+            self.assertEqual(len(view._achievement_pending_rows), 40)
+            self.assertTrue(view._achievement_rows_dirty)
+            self.assertEqual(view._achievement_batch_retry_count, 1)
+            self.assertTrue(view._achievement_batch_timer.isActive())
+            view.provider.broken = False
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+            self.assertEqual(view.list_widget.count(), _RESULT_BATCH_SIZE)
+            self.assertEqual(len(view._achievement_pending_rows), 32)
+            self.assertEqual(view._achievement_batch_retry_count, 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_repeated_compact_failure_stops_automatic_retries(self) -> None:
+        class FailingBatch(_BatchFakeProvider):
+            def catalogue_rows_by_ids(self, _ids):
+                raise OSError("permanently damaged compact cache")
+
+        from unittest.mock import patch
+
+        view = self._view(24)
+        view.provider = FailingBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            # Reset automatic first-show attempts to a deterministic state.
+            view._achievement_batch_retry_count = 0
+            with patch(
+                "app.modules.encyclopedia.views.achievements_view._LOGGER.exception"
+            ):
+                view._render_next_achievement_batch()
+                self.assertEqual(view._achievement_batch_retry_count, 1)
+                self.assertTrue(view._achievement_batch_timer.isActive())
+                view._achievement_batch_timer.stop()
+                view._render_next_achievement_batch()
+            self.assertEqual(view._achievement_batch_retry_count, 2)
+            self.assertFalse(view._achievement_batch_timer.isActive())
+            self.assertEqual(view.list_widget.count(), 0)
+            self.assertEqual(len(view._achievement_pending_rows), 24)
+            # Refreshing after a repaired cache re-arms the bounded loader
+            # rather than treating the pending rows as a finished snapshot.
+            view.refresh()
+            self.assertEqual(view._achievement_batch_retry_count, 0)
+            self.assertTrue(view._achievement_batch_timer.isActive())
+            self.assertEqual(len(view._achievement_pending_rows), 24)
+            view._achievement_batch_timer.stop()
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_one_damaged_row_does_not_hide_healthy_successes_in_batch(self) -> None:
+        class DamagedRowBatch(_BatchFakeProvider):
+            def catalogue_rows_by_ids(self, ids):
+                rows = super().catalogue_rows_by_ids(ids)
+                rows[1] = None  # Simulate a stale/corrupt compact row.
+                return rows
+
+            def get_by_id(self, achievement_id):
+                if achievement_id == 2:
+                    raise OSError("compact source unreadable")
+                return super().get_by_id(achievement_id)
+
+        from unittest.mock import patch
+
+        view = self._view(24)
+        view.provider = DamagedRowBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            view.hide()
+            view.list_widget.clear()
+            view._achievement_pending_rows = [row.id for row in view.filtered]
+            view._achievement_visible_row_by_id.clear()
+            view._achievement_rows_dirty = True
+            view.show()
+            view._achievement_batch_timer.stop()
+            with patch(
+                "app.modules.encyclopedia.views.achievements_view._LOGGER.exception"
+            ) as logged:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            self.assertGreaterEqual(logged.call_count, 1)
+            self.assertEqual(
+                [view.list_widget.item(i).data(Qt.UserRole)
+                 for i in range(view.list_widget.count())],
+                [1, 3, 4, 5, 6, 7, 8],
+            )
+            self.assertNotIn(2, view._achievement_visible_row_by_id)
+            self.assertEqual(len(view._achievement_pending_rows), 16)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_compact_batch_never_labels_other_success_as_requested_id(self) -> None:
+        class WrongBatch(_BatchFakeProvider):
+            def catalogue_rows_by_ids(self, ids):
+                rows = super().catalogue_rows_by_ids(ids)
+                rows[0] = (999, "Wrong Success", 1, 1)
+                return rows
+
+        view = self._view(20)
+        view.provider = WrongBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+            self.assertEqual(view.list_widget.item(0).data(Qt.UserRole), 1)
+            self.assertEqual(view.list_widget.item(0).toolTip(), view.achievements[0].name)
+            self.assertNotIn("Wrong Success", view.list_widget.item(0).text())
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_repeated_refresh_preserves_deferred_success_batches(self) -> None:
         view = self._view(150)
         try:
@@ -182,6 +366,33 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             self.assertEqual(view._achievement_render_generation, snapshot_generation)
             self.assertEqual(view.list_widget.count(), visible)
             self.assertGreater(len(view._achievement_pending_rows), 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_search_uses_compact_ids_without_rich_catalogue_filter(self) -> None:
+        view = self._view(100)
+        try:
+            view.provider = _BatchFakeProvider(view.achievements)
+            requested = []
+
+            def compact_search(query):
+                requested.append(query)
+                return (7, 40)
+
+            def no_rich_search(_query):
+                raise AssertionError("search must not hydrate rich Successes")
+
+            view.provider.search_catalogue_ids = compact_search
+            view.provider.search = no_rich_search
+            view.search.setText("grand monstre")
+            view.refresh()
+
+            self.assertEqual(requested, ["grand monstre"])
+            self.assertEqual([item.id for item in view.filtered], [7, 40])
+            self.assertEqual(view._achievement_pending_rows, [7, 40])
+            self.assertEqual(view.list_widget.count(), 0)
         finally:
             view.close()
             view.deleteLater()
@@ -249,6 +460,76 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
                 if int(view.list_widget.item(row).data(Qt.UserRole)) == 61
             )
             self.assertTrue(bool(item_61.data(COMPLETED_ROLE)))
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_visible_batch_selection_keeps_user_scroll_position(self) -> None:
+        view = self._view(120)
+        try:
+            view.list_widget.setFixedHeight(110)
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            while view.list_widget.count() < 48 and view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            bar = view.list_widget.verticalScrollBar()
+            self.app.processEvents()
+            self.assertGreater(bar.maximum(), 0)
+            self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 1)
+            bar.setValue(bar.maximum())
+            before_scroll = bar.value()
+            view._apply_pending_achievement_selection()
+            self.assertEqual(bar.value(), before_scroll)
+            self.assertEqual(view._achievement_visible_row_by_id[1], 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_rebuilt_search_discards_old_achievement_row_index(self) -> None:
+        view = self._view(60)
+        try:
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            self.assertIn(1, view._achievement_visible_row_by_id)
+            view.search.setText("aucun succès correspondant")
+            view.refresh()
+            self.assertEqual(view._achievement_visible_row_by_id, {})
+            self.assertEqual(view.list_widget.count(), 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_opened_success_stays_selected_during_later_lazy_batches(self) -> None:
+        view = self._view(90)
+        try:
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            view.provider.get_detail_by_id = lambda ident: SimpleNamespace(
+                id=ident, name=f"Succès {ident}"
+            )
+            view._display_achievement = lambda _achievement: None
+
+            view.show_achievement(24)
+            self.assertEqual(view._achievement_pending_selected_id, 24)
+            while view.list_widget.count() < 40 and view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            view._apply_pending_achievement_selection()
+            self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 24)
+            if view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+                self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 24)
         finally:
             view.close()
             view.deleteLater()

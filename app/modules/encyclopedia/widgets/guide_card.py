@@ -11,6 +11,9 @@ from app.constants import DATA_DIR
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
 GUIDE_ID_ROLE = Qt.UserRole + 11
 GUIDE_ROLE = Qt.UserRole + 12
@@ -27,7 +30,7 @@ class GuideHomeColumns(QWidget):
         self.setObjectName("GuidesHomeColumns")
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(14)
+        layout.setSpacing(GUIDE_CARD_GEOMETRY["library_columns_spacing"])
         layout.addWidget(left, 1)
         layout.addWidget(right, 3)
         # Left is navigation, right is content: never give the menu a third
@@ -36,19 +39,29 @@ class GuideHomeColumns(QWidget):
         self._right = right
         left.setMinimumWidth(0)
         right.setMinimumWidth(0)
-        left.setMaximumWidth(295)
+        left.setMaximumWidth(GUIDE_CARD_GEOMETRY["library_left_max_width"])
         self._columns_layout = layout
 
     def set_available_width(self, width: int) -> None:
         """Use the outer viewport width, not a stale oversized child width."""
-        direction = QBoxLayout.LeftToRight if width >= 730 else QBoxLayout.TopToBottom
+        direction = (
+            QBoxLayout.LeftToRight
+            if width >= GUIDE_CARD_GEOMETRY["library_columns_horizontal_min_width"]
+            else QBoxLayout.TopToBottom
+        )
         if self._columns_layout.direction() != direction:
             self._columns_layout.setDirection(direction)
         # The maximum width is relaxed when the panes stack. Bound only the
         # stacked navigation height: otherwise its stretch consumes a quarter
         # of a short screen and pushes the Dofus cards below the fold.
-        self._left.setMaximumWidth(295 if direction == QBoxLayout.LeftToRight else 16777215)
-        self._left.setMaximumHeight(220 if direction == QBoxLayout.TopToBottom else 16777215)
+        self._left.setMaximumWidth(
+            GUIDE_CARD_GEOMETRY["library_left_max_width"]
+            if direction == QBoxLayout.LeftToRight else 16777215
+        )
+        self._left.setMaximumHeight(
+            GUIDE_CARD_GEOMETRY["library_left_stacked_max_height"]
+            if direction == QBoxLayout.TopToBottom else 16777215
+        )
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

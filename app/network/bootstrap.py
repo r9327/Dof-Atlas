@@ -169,16 +169,25 @@ def build_windows_network_runtime(
                 catchup_ready=catchup_ready,
             )
 
-    # Success points are static catalogue data, not a second progress source.
-    # Build this small index in normal runtime too because a verified Npcap
-    # AchievementsEvent contains IDs, while the score itself is the sum of the
-    # canonical point values already owned by AchievementProvider.
+    # Network needs static point values only. The compact provider reads its
+    # generation-matched scalar index instead of load_all(), which otherwise
+    # materializes every rich Success/objective/reward on capture startup.
+    # Older providers keep their original compatible path.
     try:
-        achievement_points_by_id = {
-            int(achievement.id): max(0, int(achievement.points))
-            for achievement in achievement_provider.load_all()
-            if int(achievement.id) > 0
-        }
+        point_index = getattr(achievement_provider, "achievement_points_index", None)
+        if callable(point_index):
+            achievement_points_by_id = {
+                ident: points
+                for ident, points in point_index().items()
+                if type(ident) is int and ident > 0
+                and type(points) is int and points >= 0
+            }
+        else:
+            achievement_points_by_id = {
+                int(achievement.id): max(0, int(achievement.points))
+                for achievement in achievement_provider.load_all()
+                if int(achievement.id) > 0
+            }
     except Exception:
         # Failure to build the optional profile index must never disable the
         # already-verified identity/quest runtime. It only means points stay

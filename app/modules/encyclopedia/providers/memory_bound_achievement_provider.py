@@ -517,6 +517,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids: tuple[int, ...] = ()
         self._compact_retained_set: frozenset[int] = frozenset()
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
+        # Optional compact scalars for the network score profile; do not
+        # construct every rich Achievement merely to sum its points.
+        self._compact_points_index: dict[int, int] | None = None
         self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
         self._compact_quest_link_stamp: tuple[int, int, int, int] | None = None
         # Optional precomputed relations in newer disposable sidecars.
@@ -525,6 +528,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_quest_map_stamp: tuple[int, int, int, int] | None = None
         self._compact_quest_sidecar_stamp: tuple[int, int, int, int] | None = None
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
+        # Search needs only normalized strings, never rich Success objects.
+        # Reuse one compact scan across debounced keystrokes; validate its
+        # source generation and discard it when the provider is released.
+        self._compact_search_text_index: dict[int, str] | None = None
+        self._compact_search_generation: tuple[int, ...] | None = None
         # One active rich detail + two previous ones. Reopening a Success must
         # not spend another 5s rebuilding a disposable detail worker.
         self._recent_rich_details: OrderedDict[int, Achievement] = OrderedDict()
@@ -570,12 +578,15 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids = ()
         self._compact_retained_set = frozenset()
         self._compact_category_ids = {}
+        self._compact_points_index = None
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
         self._compact_quest_ids_by_quest = None
         self._compact_quest_map_stamp = None
         self._compact_quest_sidecar_stamp = None
         self._compact_summary_cache.clear()
+        self._compact_search_text_index = None
+        self._compact_search_generation = None
         self._reset_sources()
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
@@ -819,38 +830,54 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         offsets: dict[int, tuple[int, int]] = {}
         if isinstance(raw_offsets, dict):
             for raw_id, span in raw_offsets.items():
-                if not isinstance(span, list) or len(span) != 2:
+                if (
+                    not isinstance(span, list) or len(span) != 2
+                    or type(span[0]) is not int or type(span[1]) is not int
+                    or span[0] < 0 or span[1] <= 0
+                ):
+                    # Do not coerce booleans, floats or numeric-looking strings
+                    # into trusted offsets. The per-row fallback handles gaps.
                     continue
                 try:
-                    offsets[int(raw_id)] = (int(span[0]), int(span[1]))
+                    offsets[int(raw_id)] = (span[0], span[1])
                 except (TypeError, ValueError):
                     continue
 
         def id_tuple_map(value: object) -> dict[int, tuple[int, ...]]:
+            """Read primitive category membership without inventing Success IDs."""
             output: dict[int, tuple[int, ...]] = {}
             if not isinstance(value, dict):
                 return output
+            valid_ids = frozenset(retained_ids)
             for raw_key, raw_ids in value.items():
-                if not isinstance(raw_ids, list):
-                    continue
-                try:
-                    key = int(raw_key)
-                except (TypeError, ValueError):
+                if (
+                    not isinstance(raw_key, str)
+                    or not 0 < len(raw_key) <= 20
+                    or not raw_key.isascii()
+                    or not raw_key.isdecimal()
+                    or str(int(raw_key)) != raw_key
+                    or not isinstance(raw_ids, list)
+                ):
                     continue
                 ids: list[int] = []
+                seen: set[int] = set()
                 for raw_id in raw_ids:
-                    try:
-                        ids.append(int(raw_id))
-                    except (TypeError, ValueError):
+                    if (type(raw_id) is not int or raw_id not in valid_ids
+                            or raw_id in seen):
                         continue
-                output[key] = tuple(ids)
+                    seen.add(raw_id)
+                    ids.append(raw_id)
+                output[int(raw_key)] = tuple(ids)
             return output
 
-        retained_ids = tuple(
-            int(value)
-            for value in (index_payload.get("retained_ids") or ())
-            if isinstance(value, int)
-        )
+        # A damaged sidecar must not duplicate a Success in searches,
+        # per-category lists or progression. Preserve the source's first
+        # occurrence and ignore bogus IDs without coercing booleans.
+        raw_retained_ids = index_payload.get("retained_ids")
+        retained_ids = tuple(dict.fromkeys(
+            value for value in raw_retained_ids
+            if type(value) is int and value > 0
+        )) if isinstance(raw_retained_ids, list) else ()
         if not categories or not retained_ids:
             raise RuntimeError("Index compact Succès incomplet")
         index_marker = index_payload.get("cache_generation")
@@ -878,7 +905,38 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_external_index = offsets
         self._compact_retained_ids = retained_ids
         self._compact_retained_set = frozenset(retained_ids)
+        # Modern sidecars already contain normalized search strings in
+        # retained-ID order. Use them without opening or decoding JSONL on
+        # the first search. Older sidecars fall back to one lazy scan.
+        search_texts = index_payload.get("search_texts")
+        if (
+            isinstance(search_texts, list)
+            and len(search_texts) == len(retained_ids)
+            and all(type(value) is str and len(value) <= 8192
+                    for value in search_texts)
+        ):
+            self._compact_search_text_index = dict(zip(retained_ids, search_texts))
+            self._compact_search_generation = (*source_generation, id(offsets))
+        else:
+            self._compact_search_text_index = None
+            self._compact_search_generation = None
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
+        raw_points = index_payload.get("points_by_id")
+        points_index: dict[int, int] | None = None
+        if isinstance(raw_points, dict) and len(raw_points) == index_payload.get("achievement_count"):
+            candidate: dict[int, int] = {}
+            for raw_id, points in raw_points.items():
+                if (
+                    not isinstance(raw_id, str) or not 0 < len(raw_id) <= 20
+                    or not raw_id.isascii() or not raw_id.isdecimal()
+                    or str(int(raw_id)) != raw_id
+                    or int(raw_id) <= 0 or type(points) is not int or points < 0
+                ):
+                    break
+                candidate[int(raw_id)] = points
+            else:
+                points_index = candidate
+        self._compact_points_index = points_index
         relation_rows = index_payload.get("by_quest")
         relation_count = index_payload.get("by_quest_ref_count")
         relation_map: dict[int, tuple[int, ...]] | None = None
@@ -910,6 +968,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
+        # Keep the sidecar search index installed above. Clearing it here
+        # forced a full JSONL scan on every first search despite the prebuilt
+        # search_texts already verified against this cache generation.
         self._detail_cache_id = None
         self._detail_cache = None
         self._recent_rich_details.clear()
@@ -1047,9 +1108,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 self._compact_external_index = index
 
         span = self._compact_external_index.get(achievement_id)
-        if span is not None:
+        if isinstance(span, (tuple, list)) and len(span) == 2:
             start, length = span
-            if start >= 0 and length > 0:
+            if type(start) is int and type(length) is int and start >= 0 and length > 0:
                 try:
                     with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
                         # Corrupt offsets must never trigger a negative seek
@@ -1091,7 +1152,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     if (not external and not retained_target
                             and '"external_start"' not in line):
                         continue
-                    row = json.loads(line)
+                    try:
+                        row = json.loads(line)
+                    except (ValueError, TypeError):
+                        # This is an exceptional recovery lookup after a
+                        # missing/corrupt offset. One broken JSONL record must
+                        # not hide a valid later Success or force a full rebuild.
+                        continue
                     if not isinstance(row, dict):
                         continue
                     kind = str(row.get("kind") or "")
@@ -1212,6 +1279,74 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             if self.is_retained(int(achievement.id))
         )
 
+    def catalogue_category_for_id(self, achievement_id: int) -> int | None:
+        """Find a retained Success's category from the resident sidecar.
+
+        A direct link must not decode a compatibility Achievement on the UI
+        thread just to open its category. Prefer a leaf over its parent, while
+        leaving older/noncompact providers on their existing detail path.
+        """
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if (
+            achievement_id not in self._compact_retained_set
+            or not self._compact_category_ids
+        ):
+            return None
+        parent_match: int | None = None
+        for category_id, identifiers in self._compact_category_ids.items():
+            if achievement_id not in identifiers:
+                continue
+            category = self._categories.get(category_id)
+            if category is None:
+                continue
+            if int(category.parent_id or 0):
+                return category_id
+            parent_match = category_id
+        return parent_match
+
+    @staticmethod
+    def _compact_catalogue_row(
+        stream: Any,
+        achievement_id: int,
+        span: tuple[int, int] | None,
+        total: int,
+    ) -> tuple[int, str, int | None, int] | None:
+        """Decode one validated primitive row from an already-open JSONL."""
+
+        if not isinstance(span, (tuple, list)) or len(span) != 2:
+            return None
+        start, length = span
+        # Never allow booleans, corrupted types, negative/unbounded reads or
+        # offsets beyond the current compact-file length.
+        if (
+            type(start) is not int or type(length) is not int
+            or start < 0 or length <= 0
+            or start > total or length > total - start
+        ):
+            return None
+        try:
+            stream.seek(start)
+            payload = json.loads(stream.read(length))
+            value = payload.get("value") if isinstance(payload, dict) else None
+            if (
+                isinstance(payload, dict)
+                and payload.get("kind") == "achievement"
+                and isinstance(value, dict)
+                and type(value.get("id")) is int
+                and value["id"] == achievement_id
+            ):
+                return (
+                    achievement_id,
+                    str(value.get("name") or ""),
+                    safe_int(value.get("level")),
+                    int(value.get("points") or 0),
+                )
+        except (OSError, UnicodeError, ValueError, TypeError):
+            pass
+        return None
+
     def catalogue_row_by_id(
         self,
         achievement_id: int,
@@ -1225,36 +1360,20 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             and achievement_id in self._compact_retained_set
             and self._compact_external_index is not None
         ):
-            span = self._compact_external_index.get(achievement_id)
-            if span is not None:
-                start, length = span
-                if start >= 0 and length > 0:
-                    try:
-                        with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                            # A broken offset must never cause read(-1) or a
-                            # multi-megabyte read from the compact catalogue.
-                            stream.seek(0, 2)
-                            total = stream.tell()
-                            if start <= total and length <= total - start:
-                                stream.seek(start)
-                                payload = json.loads(stream.read(length))
-                                value = payload.get("value") if isinstance(payload, dict) else None
-                                if (isinstance(payload, dict)
-                                        and payload.get("kind") == "achievement"
-                                        and isinstance(value, dict)
-                                        and type(value.get("id")) is int
-                                        and value["id"] == achievement_id):
-                                    return (
-                                        achievement_id,
-                                        str(value.get("name") or ""),
-                                        safe_int(value.get("level")),
-                                        int(value.get("points") or 0),
-                                    )
-                    except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                        pass
-                # A broken primitive offset is not an absent Success:
-                # delegate to the existing summary fallback below.
-
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(0, 2)
+                    row = self._compact_catalogue_row(
+                        stream,
+                        achievement_id,
+                        self._compact_external_index.get(achievement_id),
+                        stream.tell(),
+                    )
+                    if row is not None:
+                        return row
+            except OSError:
+                pass
+            # Invalid offsets keep the existing summary fallback.
         summary = self._summary_by_id(achievement_id)
         if summary is None or not self.is_retained(achievement_id):
             return None
@@ -1264,6 +1383,37 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             summary.level,
             int(summary.points or 0),
         )
+
+    def catalogue_rows_by_ids(
+        self,
+        achievement_ids: list[int],
+    ) -> list[tuple[int, str, int | None, int] | None]:
+        """Load only one visible batch while opening the compact file once."""
+
+        self._ensure_loaded()
+        identifiers = [int(value) for value in achievement_ids]
+        if not identifiers:
+            return []
+        if not self._compact_retained_set or self._compact_external_index is None:
+            return [self.catalogue_row_by_id(ident) for ident in identifiers]
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                stream.seek(0, 2)
+                total = stream.tell()
+                rows = [
+                    self._compact_catalogue_row(
+                        stream, ident, self._compact_external_index.get(ident), total
+                    ) if ident in self._compact_retained_set else None
+                    for ident in identifiers
+                ]
+        except OSError:
+            return [self.catalogue_row_by_id(ident) for ident in identifiers]
+        # Only the exceptional invalid-offset path may reopen the file.
+        # Preserve the existing source-recovery semantics for those rows.
+        return [
+            row if row is not None else self.catalogue_row_by_id(ident)
+            for ident, row in zip(identifiers, rows)
+        ]
 
     def load_retained(self) -> list[Achievement]:
         self._ensure_loaded()
@@ -1407,6 +1557,104 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             ]
         return list(self._by_quest.get(int(quest_id), ()))
 
+    def search_catalogue_ids(self, query: str) -> tuple[int, ...]:
+        """Search primitive text once per compact-file generation.
+
+        The first search reads one JSONL file without hydrating Achievement
+        objects. Subsequent keystrokes filter only short strings in memory.
+        """
+
+        self._ensure_loaded()
+        tokens = tuple(token for token in normalize_text(query).split("_") if token)
+        if not tokens:
+            return self.catalogue_ids()
+        if not self._compact_retained_ids or self._compact_external_index is None:
+            return tuple(
+                int(item.id) for item in self.search(query)
+                if self.is_retained(int(item.id))
+            )
+
+        try:
+            source = ACHIEVEMENT_COMPACT_CACHE.stat()
+            generation = (
+                source.st_size, source.st_mtime_ns, source.st_ctime_ns,
+                source.st_ino, id(self._compact_external_index),
+            )
+        except OSError:
+            return tuple(int(item.id) for item in self.search(query))
+        index = self._compact_search_text_index
+        if index is None or generation != self._compact_search_generation:
+            index = {}
+            damaged: list[int] = []
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    for achievement_id in self._compact_retained_ids:
+                        span = self._compact_external_index.get(achievement_id)
+                        if not isinstance(span, (tuple, list)) or len(span) != 2:
+                            damaged.append(achievement_id)
+                            continue
+                        start, length = span
+                        if (
+                            type(start) is not int or type(length) is not int
+                            or start < 0 or length <= 0
+                            or start > source.st_size
+                            or length > source.st_size - start
+                        ):
+                            damaged.append(achievement_id)
+                            continue
+                        try:
+                            stream.seek(start)
+                            row = json.loads(stream.read(length))
+                        except (OSError, UnicodeError, ValueError, TypeError):
+                            damaged.append(achievement_id)
+                            continue
+                        value = row.get("value") if isinstance(row, dict) else None
+                        if (
+                            not isinstance(row, dict)
+                            or row.get("kind") != "achievement"
+                            or not isinstance(value, dict)
+                            or type(value.get("id")) is not int
+                            or value["id"] != achievement_id
+                        ):
+                            damaged.append(achievement_id)
+                            continue
+                        index[achievement_id] = str(value.get("search_text") or "")
+            except OSError:
+                return tuple(int(item.id) for item in self.search(query))
+
+            # Only broken offsets need the prior summary recovery path.
+            for achievement_id in damaged:
+                try:
+                    summary = self._summary_by_id(achievement_id)
+                except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+                    # An isolated damaged record is not permission to lose
+                    # valid searchable Successes from this generation.
+                    logging.getLogger(__name__).exception(
+                        "Recherche Succès : index illisible pour %s",
+                        achievement_id,
+                    )
+                    summary = None
+                index[achievement_id] = (
+                    str(summary.search_text or "") if summary is not None else ""
+                )
+            try:
+                current = ACHIEVEMENT_COMPACT_CACHE.stat()
+            except OSError:
+                return ()
+            if (
+                current.st_size, current.st_mtime_ns, current.st_ctime_ns,
+                current.st_ino,
+            ) != generation[:4]:
+                # Never reuse or expose a mixed-generation search snapshot.
+                return ()
+            self._compact_search_text_index = index
+            self._compact_search_generation = generation
+        return tuple(
+            achievement_id
+            for achievement_id in self._compact_retained_ids
+            if all(token in index.get(achievement_id, "") for token in tokens)
+        )
+
     def search(self, query: str, limit: int | None = None) -> list[Achievement]:
         self._ensure_loaded()
         if not self._compact_retained_ids:
@@ -1451,17 +1699,32 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             and self._compact_external_index is not None
         ):
             span = self._compact_external_index.get(achievement_id)
-            if span is None:
+            if not isinstance(span, (tuple, list)) or len(span) != 2:
                 return None
             start, length = span
+            if (
+                type(start) is not int or type(length) is not int
+                or start < 0 or length <= 0
+            ):
+                return None
             try:
                 with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(0, 2)
+                    total = stream.tell()
+                    if start > total or length > total - start:
+                        return None
                     stream.seek(start)
                     payload = json.loads(stream.read(length))
             except (OSError, ValueError, TypeError, json.JSONDecodeError):
                 return None
             value = payload.get("value") if isinstance(payload, dict) else None
-            if not isinstance(value, dict):
+            if (
+                not isinstance(payload, dict)
+                or payload.get("kind") != "achievement"
+                or not isinstance(value, dict)
+                or type(value.get("id")) is not int
+                or value["id"] != achievement_id
+            ):
                 return None
             return (
                 achievement_id,
@@ -1495,15 +1758,36 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         rows: list[tuple[int, str, tuple[tuple[object, ...], ...]]] = []
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                stream.seek(0, 2)
+                total = stream.tell()
                 for achievement_id in self._compact_retained_ids:
                     span = self._compact_external_index.get(int(achievement_id))
-                    if span is None:
+                    if not isinstance(span, (tuple, list)) or len(span) != 2:
                         continue
                     start, length = span
-                    stream.seek(start)
-                    payload = json.loads(stream.read(length))
+                    # A corrupt sidecar must never turn read(-1) into a
+                    # full-cache allocation or mix another Success's progress.
+                    if (
+                        type(start) is not int or type(length) is not int
+                        or start < 0 or length <= 0
+                        or start > total or length > total - start
+                    ):
+                        continue
+                    try:
+                        stream.seek(start)
+                        payload = json.loads(stream.read(length))
+                    except (OSError, ValueError, TypeError, UnicodeError):
+                        # One failed seek/read or an invalid JSON row must
+                        # not erase progress from the rest of this catalogue.
+                        continue
                     value = payload.get("value") if isinstance(payload, dict) else None
-                    if not isinstance(value, dict):
+                    if (
+                        not isinstance(payload, dict)
+                        or payload.get("kind") != "achievement"
+                        or not isinstance(value, dict)
+                        or type(value.get("id")) is not int
+                        or value["id"] != achievement_id
+                    ):
                         continue
                     rows.append(
                         (
@@ -1516,19 +1800,20 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return ()
         return tuple(rows)
 
-    def load_runtime(self) -> None:
-        """Warm the catalogue and prepare details for in-process runtimes."""
-
-        self._ensure_loaded()
-        # The installed Windows EXE runs Success detail lookups in-process.
-        # Unlike the development subprocess path, that requires the detail
-        # source indexes to have been prepared before a Qt click invokes
-        # get_detail_by_id(). Do it in the existing background stage, not
-        # synchronously inside AchievementsView.show_achievement().
+    def detail_source_index_required(self) -> bool:
+        """Whether a cold rich detail uses the in-process source index."""
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
-        if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
-            self.prepare_detail_sources()
+        return bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir
+
+    def load_runtime(self) -> None:
+        """Warm Success summaries only; defer optional rewards until opened.
+
+        The first rich detail runs on the dedicated UI detail worker, including
+        in the installed in-process runtime. This avoids delaying the first
+        catalogue paint to index reward documents the user may never open.
+        """
+        self._ensure_loaded()
 
     def _compat_achievement(self, summary: Achievement) -> Achievement:
         achievement_id = int(summary.id)
@@ -1565,6 +1850,43 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             rewards=(points_reward,),
         )
 
+    def achievement_points_index(self) -> dict[int, int]:
+        """Only ID and points for network score lookup, not rich Successes.
+
+        New compact caches expose these scalars in their generation-matched
+        sidecar. Historical caches are streamed once without constructing
+        Achievement objects or retaining complete objective/reward trees.
+        """
+        self._ensure_loaded()
+        if self._compact_external_index is None:
+            return {
+                int(row.id): max(0, int(row.points or 0))
+                for row in self._achievements if int(row.id) > 0
+            }
+        if self._compact_points_index is not None:
+            return dict(self._compact_points_index)
+        points: dict[int, int] = {}
+        with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+            for raw_line in stream:
+                try:
+                    row = json.loads(raw_line)
+                except (TypeError, ValueError):
+                    continue
+                if not isinstance(row, dict) or row.get("kind") != "achievement":
+                    continue
+                value = row.get("value")
+                if not isinstance(value, dict):
+                    continue
+                achievement_id = value.get("id")
+                if type(achievement_id) is not int or achievement_id <= 0:
+                    continue
+                try:
+                    score = max(0, int(value.get("points") or 0))
+                except (TypeError, ValueError, OverflowError):
+                    continue
+                points[achievement_id] = score
+        return points
+
     def load_all(self) -> list[Achievement]:
         self._ensure_loaded()
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
@@ -1585,11 +1907,21 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 line = raw_line.strip()
                 if not line:
                     continue
-                row = json.loads(line)
-                value = row.get("value") if isinstance(row, dict) else None
-                if row.get("kind") != "achievement" or not isinstance(value, dict):
+                try:
+                    row = json.loads(line)
+                except (ValueError, TypeError):
+                    # Compatibility callers should not lose every valid
+                    # Success because one compact row is corrupt.
                     continue
-                summary = _achievement_from_dict(value)
+                if not isinstance(row, dict) or row.get("kind") != "achievement":
+                    continue
+                value = row.get("value")
+                if not isinstance(value, dict):
+                    continue
+                try:
+                    summary = _achievement_from_dict(value)
+                except (ValueError, TypeError, KeyError):
+                    continue
                 raw_progress = value.get("progress_objectives")
                 if isinstance(raw_progress, list) and raw_progress:
                     encoded = json.dumps(
@@ -1815,6 +2147,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._last_detail_subprocess_ms = 0.0
         self._last_detail_decode_ms = 0.0
         started = perf_counter()
+        # Other non-UI consumers may call get_detail_by_id directly. Retain
+        # their correctness without bringing index creation back to load_runtime.
+        # AchievementsView explicitly schedules cold calls on its worker.
+        if not self._detail_sources_ready:
+            self.prepare_detail_sources()
         detail = self._get_detail_in_process(achievement_id)
         self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
         self._last_detail_thread_name = current_thread().name
@@ -2039,6 +2376,16 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 "retained_count": len(retained),
                 "cache_generation": generation,
                 "retained_ids": [int(achievement.id) for achievement in retained],
+                # A network score needs all static points (including non-
+                # retained Successes), never the heavy compatibility objects.
+                "points_by_id": {
+                    str(row.id): max(0, int(row.points or 0))
+                    for row in provider._achievements if int(row.id) > 0
+                },
+                # Optional startup search acceleration. This primitive list
+                # replaces the first full-file scan for newly built caches.
+                # It is aligned one-to-one with retained_ids above.
+                "search_texts": [str(getattr(achievement, "search_text", "") or "") for achievement in retained],
                 "by_category": {
                     str(category_id): list(dict.fromkeys(achievement_ids))
                     for category_id, achievement_ids in sorted(by_category_ids.items())

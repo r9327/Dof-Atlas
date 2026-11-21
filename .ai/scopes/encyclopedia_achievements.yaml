@@ -8,6 +8,7 @@ working_set:
   - app/modules/encyclopedia/services/serialized_achievement_progress_service.py
   - app/modules/encyclopedia/services/achievement_progress_logic.py
   - app/modules/encyclopedia/widgets/achievement_detail_widget.py
+  - app/modules/encyclopedia/widgets/filter_panel.py
 shared_dependencies:
   - dofus_data
   - persistence_identity

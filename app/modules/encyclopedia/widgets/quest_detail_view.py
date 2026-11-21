@@ -23,6 +23,7 @@ from app.modules.encyclopedia.services import (
     QuestProgressService,
 )
 from app.modules.encyclopedia.services.guide_quest_view_model import (
+    _canonical_source_coordinate,
     clean_requirement_line,
     clean_text,
     quest_activity_labels,
@@ -34,7 +35,10 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPanelToggle
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
 
 
 QuestOpener = Callable[[int], object]
@@ -100,16 +104,16 @@ class QuestDetailView(QWidget):
         self.prerequisite_expanded: dict[tuple[str, int], bool] = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        root.setSpacing(QUEST_DETAIL_GEOMETRY["root_spacing"])
 
         self.header = QFrame()
         self.header.setObjectName("GuideHeader")
         header_layout = QHBoxLayout(self.header)
-        header_layout.setContentsMargins(8, 8, 10, 8)
-        header_layout.setSpacing(10)
+        header_layout.setContentsMargins(*QUEST_DETAIL_GEOMETRY["header_margins"])
+        header_layout.setSpacing(QUEST_DETAIL_GEOMETRY["header_spacing"])
         title_layout = QVBoxLayout()
         title_layout.setContentsMargins(0, 0, 0, 0)
-        title_layout.setSpacing(2)
+        title_layout.setSpacing(QUEST_DETAIL_GEOMETRY["title_spacing"])
         self.title_label = QLabel()
         self.title_label.setObjectName("GuideHeaderTitle")
         self.title_label.setWordWrap(True)
@@ -124,20 +128,27 @@ class QuestDetailView(QWidget):
         self.done_button.setFocusPolicy(Qt.NoFocus)
         self.done_button.clicked.connect(self.toggle_completed)
         header_layout.addWidget(self.done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
+        # The same Unity control serves Quêtes and the shared Guide quest sheet.
+        self._right_panel_collapsed = False
+        self._right_panel_saved_width = QUEST_DETAIL_GEOMETRY["saved_right_width"]
+        self._right_panel_scroll_position = 0
+        self.right_panel_toggle = AtlasPanelToggle()
+        self.right_panel_toggle.clicked.connect(self.toggle_right_panel)
+        header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
         root.addWidget(self.header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
         self.splitter.setObjectName("QuestDetailSplitter")
         self.center_panel, self.center_scroll, self.center_layout = self._build_column("GuideCenterPanel")
         self.right_panel, self.right_scroll, self.right_layout = self._build_column("GuideRightPanel")
-        self.center_panel.setMinimumWidth(340)
-        self.right_panel.setMinimumWidth(240)
-        self.right_panel.setMaximumWidth(380)
+        self.center_panel.setMinimumWidth(QUEST_DETAIL_GEOMETRY["center_min_width"])
+        self.right_panel.setMinimumWidth(QUEST_DETAIL_GEOMETRY["right_min_width"])
+        self.right_panel.setMaximumWidth(QUEST_DETAIL_GEOMETRY["right_max_width"])
         self.splitter.addWidget(self.center_panel)
         self.splitter.addWidget(self.right_panel)
         self.splitter.setStretchFactor(0, 70)
         self.splitter.setStretchFactor(1, 30)
-        self.splitter.setSizes([680, 300])
+        self.splitter.setSizes(list(QUEST_DETAIL_GEOMETRY["initial_splitter_sizes"]))
         root.addWidget(self.splitter, 1)
 
         # Keep the empty Quests screen lightweight. Importing the Guide view here
@@ -149,8 +160,9 @@ class QuestDetailView(QWidget):
         panel = QFrame()
         panel.setObjectName(object_name)
         panel_root = QVBoxLayout(panel)
-        panel_root.setContentsMargins(8, 8, 8, 8)
-        panel_root.setSpacing(6)
+        inset = QUEST_DETAIL_GEOMETRY["panel_padding"]
+        panel_root.setContentsMargins(inset, inset, inset, inset)
+        panel_root.setSpacing(QUEST_DETAIL_GEOMETRY["panel_spacing"])
         scroll = QScrollArea()
         scroll.setObjectName(f"{object_name}Scroll")
         scroll.setWidgetResizable(True)
@@ -163,10 +175,39 @@ class QuestDetailView(QWidget):
         content.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         layout = QVBoxLayout(content)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(QUEST_DETAIL_GEOMETRY["content_spacing"])
         scroll.setWidget(content)
         panel_root.addWidget(scroll, 1)
         return panel, scroll, layout
+
+    def toggle_right_panel(self) -> None:
+        self.set_right_panel_collapsed(not self._right_panel_collapsed)
+
+    def set_right_panel_collapsed(self, collapsed: bool) -> None:
+        """Hide only the information panel, keeping the current quest and scroll."""
+        collapsed = bool(collapsed)
+        if collapsed == self._right_panel_collapsed:
+            return
+        if collapsed:
+            sizes = self.splitter.sizes()
+            if len(sizes) == 2 and sizes[1] >= self.right_panel.minimumWidth():
+                self._right_panel_saved_width = min(self.right_panel.maximumWidth(), sizes[1])
+            self._right_panel_scroll_position = self.right_scroll.verticalScrollBar().value()
+
+        self._right_panel_collapsed = collapsed
+        self.right_panel.setVisible(not collapsed)
+        self.right_panel_toggle.set_collapsed(collapsed)
+
+        if not collapsed:
+            width = max(self.splitter.width(), sum(self.splitter.sizes()))
+            right = max(
+                self.right_panel.minimumWidth(),
+                min(self.right_panel.maximumWidth(), self._right_panel_saved_width),
+            )
+            if width > 0:
+                self.splitter.setSizes([max(self.center_panel.minimumWidth(), width - right), right])
+            bar = self.right_scroll.verticalScrollBar()
+            bar.setValue(min(self._right_panel_scroll_position, bar.maximum()))
 
     @classmethod
     def _clear_layout(cls, layout) -> None:
@@ -229,6 +270,9 @@ class QuestDetailView(QWidget):
         self._render_information(quest, guide, step, achievements)
         self.questChanged.emit(int(quest.id))
         if self.current_quest_id != previous_quest_id:
+            # A new quest always starts at its own top, even if info was hidden.
+            if self._right_panel_collapsed:
+                self._right_panel_scroll_position = 0
             for scroll in (self.center_scroll, self.right_scroll):
                 bar = scroll.verticalScrollBar()
                 bar.setValue(bar.minimum())
@@ -274,6 +318,33 @@ class QuestDetailView(QWidget):
         self.done_button.style().unpolish(self.done_button)
         self.done_button.style().polish(self.done_button)
 
+    @staticmethod
+    def _start_position_heading(quest: QuestRecord, position: str) -> str:
+        """Do not mislabel an objective coordinate as a proven quest start."""
+        if not position:
+            return "Zone de quête"
+        info = quest.source_info if isinstance(quest.source_info, dict) else {}
+        launch = info.get("launch_position")
+        meta = info.get("source_meta")
+        declared = (
+            str(launch.get("position") or "").strip() if isinstance(launch, dict) else "",
+            str(meta.get("startCoords") or "").strip() if isinstance(meta, dict) else "",
+        )
+        shown = _canonical_source_coordinate(position)
+        source_positions = tuple(
+            _canonical_source_coordinate(value) for value in declared
+        )
+        if not shown or shown not in source_positions:
+            return "Position d'objectif (départ non confirmé)"
+        # Conflicting or malformed declarations are review evidence, not a
+        # certified quest start. Formatting differences are not conflicts.
+        if (
+            any(value and not source for value, source in zip(declared, source_positions))
+            or len({source for source in source_positions if source}) > 1
+        ):
+            return "Départ à vérifier (sources incohérentes)"
+        return "Position de lancement (source locale)"
+
     def _render_solution(self, quest: QuestRecord, step: Any) -> None:
         ui = _guide_ui()
         ui.clear_layout(self.center_layout)
@@ -292,7 +363,7 @@ class QuestDetailView(QWidget):
         if launch_parts:
             self.center_layout.addWidget(
                 ui.text_label(
-                    f"Position de lancement : {' '.join(launch_parts)}",
+                    f"{self._start_position_heading(quest, start.position)} : {' '.join(launch_parts)}",
                     "QuestLaunchPosition",
                 )
             )
@@ -313,14 +384,21 @@ class QuestDetailView(QWidget):
             section.toggled.connect(lambda value, item_key=key: self.prerequisite_expanded.__setitem__(item_key, value))
             self.center_layout.addWidget(section)
 
-        if not getattr(quest, "solution_blocks", None) and getattr(quest, "source_solution_steps", None):
+        documentary_blocks = ui.quest_solution_blocks(quest)
+        if not documentary_blocks and getattr(quest, "source_solution_steps", None):
+            # A raw source array can contain only placeholders/technical data.
+            # Show the same fallback disclosure the actual reader uses, not
+            # a false "complete documentation" claim based on raw existence.
             self.center_layout.addWidget(
                 ui.text_label(
                     "Documentation locale complète indisponible — objectifs affichés à titre de repère.",
                     "MutedLabel",
                 )
             )
-        widgets = ui.quest_solution_document_widgets(quest, omit_first_image_path=start.map_image_path)
+        widgets = ui.quest_solution_document_widgets(
+            quest, omit_first_image_path=start.map_image_path,
+            source_blocks=documentary_blocks,
+        )
         if not widgets:
             self.center_layout.addWidget(
                 ui.text_label(
@@ -366,8 +444,9 @@ class QuestDetailView(QWidget):
         if achievements:
             buttons: list[QWidget] = []
             for achievement in achievements[:6]:
-                button = AtlasButton(str(getattr(achievement, "name", "")))
-                button.setObjectName("GuideInlineQuestButton")
+                button = AtlasButton(
+                    str(getattr(achievement, "name", "")), variant="guide_achievement_link"
+                )
                 button.clicked.connect(
                     lambda _checked=False, achievement_id=int(getattr(achievement, "id", 0) or 0): self.open_entity(
                         "achievement", achievement_id
@@ -395,8 +474,9 @@ class QuestDetailView(QWidget):
                 record = catalog.by_id.get(int(related_id))
                 if record is None:
                     continue
-                button = AtlasButton(f"{label} : {record.name}")
-                button.setObjectName("GuideInlineQuestButton")
+                button = AtlasButton(
+                    f"{label} : {record.name}", variant="guide_quest_link"
+                )
                 button.clicked.connect(
                     lambda _checked=False, target_id=int(record.id): self.open_related_quest(target_id)
                 )
@@ -524,11 +604,11 @@ class QuestDetailView(QWidget):
         row.setObjectName("GuidePrerequisiteRow")
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(7)
+        layout.setSpacing(QUEST_DETAIL_GEOMETRY["prerequisite_row_spacing"])
         marker = QLabel("✓" if completed is True else "○" if completed is False else "")
         marker.setObjectName("GuideTreeState")
         marker.setProperty("state", "done" if completed is True else "todo" if completed is False else "neutral")
-        marker.setFixedWidth(18)
+        marker.setFixedWidth(QUEST_DETAIL_GEOMETRY["prerequisite_marker_width"])
         marker.setAlignment(Qt.AlignCenter)
         layout.addWidget(marker, 0, Qt.AlignTop)
         button = AtlasButton(clean_text(text))

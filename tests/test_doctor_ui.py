@@ -148,9 +148,12 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertEqual(len(required), len(set(required)))
         self.assertIn("guides-lanyel/combat", required)
         for guide in ("guides-success", "guides-lanyel"):
-            for check in ("manual-persist", "manual-reopen",
+            for check in ("global-open", "global-close",
+                          "manual-persist", "manual-reopen",
                           "character-isolation", "manual-restore",
-                          "combat", "combat-character", "combat-restore"):
+                          "combat", "combat-character", "combat-restore",
+                          "preparation-open", "preparation-filter-potions",
+                          "preparation-filter-objets"):
                 self.assertIn(f"{guide}/{check}", required)
         self.assertIn("guides-success/geometry-3-960", required)
         self.assertIn("guides-success/bottom-3-960", required)
@@ -188,6 +191,9 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertIn("validator-smoke/manual-persist", smoke)
         self.assertIn("validator-smoke/participant-empty-blocked", smoke)
         self.assertIn("validator-smoke/participant-explicit-selection", smoke)
+        self.assertIn("validator-smoke/preparation-open", smoke)
+        self.assertIn("validator-smoke/preparation-filter-potions", smoke)
+        self.assertIn("validator-smoke/preparation-filter-objets", smoke)
 
     def test_timeout_or_native_crash_without_report_is_blocked_with_manifest_and_log(self):
         for effect in (subprocess.TimeoutExpired("worker", 1), subprocess.CompletedProcess([], -11)):

@@ -3,7 +3,6 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -15,6 +14,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.models.achievement import AchievementCategory
+from app.ui.components import AtlasComboBox, fit_unity_number_spinbox
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+FILTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["achievement_filters"]
 
 
 class AchievementFilterPanel(QWidget):
@@ -25,22 +29,25 @@ class AchievementFilterPanel(QWidget):
         self.setObjectName("AchievementFilterPanel")
         self.categories: list[AchievementCategory] = []
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(7)
+        root.setContentsMargins(*FILTER_GEOMETRY["page_margins"])
+        root.setSpacing(FILTER_GEOMETRY["page_spacing"])
         title = QLabel("Filtres")
         title.setObjectName("PanelTitle")
         root.addWidget(title)
 
-        self.category_combo = QComboBox()
-        self.subcategory_combo = QComboBox()
+        self.category_combo = AtlasComboBox()
+        self.subcategory_combo = AtlasComboBox()
         self.min_level = QSpinBox()
         self.max_level = QSpinBox()
-        self.state_combo = QComboBox()
+        self.state_combo = AtlasComboBox()
         self.hide_completed = QCheckBox("Masquer les succès terminés")
 
         self.min_level.setRange(0, 999)
         self.max_level.setRange(0, 999)
         self.max_level.setValue(999)
+        # Same compact numerical width contract as Guides, Quêtes and Craft.
+        fit_unity_number_spinbox(self.min_level)
+        fit_unity_number_spinbox(self.max_level)
         self.state_combo.addItems(["Tous", "Terminés", "Non terminés"])
 
         for label, widget in (
@@ -61,7 +68,7 @@ class AchievementFilterPanel(QWidget):
         self.category_content = QWidget()
         self.category_layout = QVBoxLayout(self.category_content)
         self.category_layout.setContentsMargins(0, 0, 0, 0)
-        self.category_layout.setSpacing(5)
+        self.category_layout.setSpacing(FILTER_GEOMETRY["category_spacing"])
         self.category_area.setWidget(self.category_content)
         root.addWidget(self._label("Progression catégories"))
         root.addWidget(self.category_area, 1)
@@ -94,8 +101,8 @@ class AchievementFilterPanel(QWidget):
             card = QFrame()
             card.setObjectName("CategoryProgressCard")
             layout = QVBoxLayout(card)
-            layout.setContentsMargins(7, 6, 7, 6)
-            layout.setSpacing(4)
+            layout.setContentsMargins(*FILTER_GEOMETRY["card_margins"])
+            layout.setSpacing(FILTER_GEOMETRY["card_spacing"])
             row = QHBoxLayout()
             label = QLabel(name)
             label.setObjectName("CompactLabel")

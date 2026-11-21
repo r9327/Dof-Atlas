@@ -98,6 +98,21 @@ class ModernCharacterPageTests(unittest.TestCase):
             self.assertIs(columns.itemAt(0).widget(), page.equipment_panel)
             self.assertIs(columns.itemAt(1).widget(), page.stats_panel)
             self.assertTrue(page.identity_panel.isHidden())
+            from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+            geometry = UNITY_MODULE_GEOMETRY_PX["character"]
+            self.assertEqual(page.layout().spacing(), UNITY_SPACING_PX["sm"])
+            self.assertEqual(columns.spacing(), UNITY_SPACING_PX["md"])
+            self.assertEqual(page.equipment_panel.layout().spacing(), UNITY_SPACING_PX["xs"])
+            self.assertEqual(page.stats_panel.layout().spacing(), UNITY_SPACING_PX["sm"])
+            for panel, key in (
+                (page.equipment_panel, "equipment_panel_margins"),
+                (page.stats_panel, "stats_panel_margins"),
+            ):
+                margin = panel.layout().contentsMargins()
+                self.assertEqual(
+                    (margin.left(), margin.top(), margin.right(), margin.bottom()),
+                    geometry[key],
+                )
 
             self.assertTrue(page.equipment_panel.isAncestorOf(page.achievement_points))
             self.assertTrue(page.equipment_panel.isAncestorOf(page.character_selector))
@@ -120,6 +135,25 @@ class ModernCharacterPageTests(unittest.TestCase):
             self.assertIn("Statistiques en jeu", page.stats_empty_label.text())
             self.assertTrue(page.stats_scroll.isHidden())
 
+            # The former 650 + 250 + 8 + 20 minimum exceeded the shell's
+            # 900px minimum, shifting the right card beyond the viewport.
+            # Preserve the 70/30 layout and the equipment/selector hierarchy
+            # while proving that the actual Qt geometry fits at both sizes.
+            self.assertLessEqual(page.minimumSizeHint().width(), 900)
+            for width in (900, 1180):
+                page.resize(width, 740)
+                page.show()
+                self.app.processEvents()
+                left = page.equipment_panel.geometry()
+                right = page.stats_panel.geometry()
+                self.assertGreater(right.left(), left.right())
+                self.assertLessEqual(
+                    right.right() + page.layout().contentsMargins().right(),
+                    page.width(),
+                )
+                self.assertGreaterEqual(page.character_selector.width(), 260)
+                self.assertTrue(page.character_selector.isVisibleTo(page))
+            page.close()
             page.deleteLater()
             self.app.processEvents()
 

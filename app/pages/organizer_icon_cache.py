@@ -5,6 +5,7 @@ from threading import RLock
 from typing import Any
 
 from app.constants import NETWORK_CHARACTER_BINDINGS_FILE
+from app.core.file_stamp import resolved_mtime_size_stamp as _file_stamp
 from app.network.character_resolver import merge_verified_binding_classes
 from app.pages import organizer_page as _organizer_page
 
@@ -14,15 +15,6 @@ _SOURCE_STAMP: tuple[tuple[str, int, int], tuple[str, int, int]] | None = None
 _CLASS_BY_CHARACTER: dict[str, str] = {}
 _ICON_BY_CLASS: dict[str, Path] = {}
 _PRESERVE_SIGNATURE: tuple[object, ...] | None = None
-
-
-def _file_stamp(path: Path) -> tuple[str, int, int]:
-    resolved = str(path.resolve())
-    try:
-        stat = path.stat()
-    except OSError:
-        return (resolved, 0, 0)
-    return (resolved, int(stat.st_mtime_ns), int(stat.st_size))
 
 
 def _client_index_path() -> Path:

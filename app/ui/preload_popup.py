@@ -9,7 +9,10 @@ from PySide6.QtWidgets import QApplication, QDialog, QLabel, QProgressBar, QVBox
 
 from app.background_work import install_preload_priority_bridge
 from app.ui.components import atlas_application_icon
-from app.ui.theme import PALETTE, TYPOGRAPHY
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+PRELOAD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["preload_popup"]
 
 
 PRELOAD_TASK_ORDER = ("quests", "encyclopedia", "craft")
@@ -40,18 +43,19 @@ class PreloadProgressPopup(QDialog):
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setWindowModality(Qt.ApplicationModal)
         self.setModal(True)
-        self.setFixedWidth(470)
+        self.setFixedWidth(PRELOAD_GEOMETRY["dialog_width"])
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 24, 32, 28)
-        layout.setSpacing(14)
+        layout.setContentsMargins(*PRELOAD_GEOMETRY["page_margins"])
+        layout.setSpacing(PRELOAD_GEOMETRY["page_spacing"])
 
         icon = atlas_application_icon()
         if not icon.isNull():
             self.logo_label = QLabel(self)
             self.logo_label.setObjectName("PreloadPopupLogo")
             self.logo_label.setAlignment(Qt.AlignCenter)
-            self.logo_label.setPixmap(icon.pixmap(QSize(64, 64)))
+            size = PRELOAD_GEOMETRY["logo_box"]
+            self.logo_label.setPixmap(icon.pixmap(QSize(size, size)))
             layout.addWidget(self.logo_label)
 
         title = QLabel("Dofus Atlas")
@@ -72,29 +76,6 @@ class PreloadProgressPopup(QDialog):
         self.progress.setTextVisible(True)
         self.progress.setFormat("%p %")
         layout.addWidget(self.progress)
-
-        self.setStyleSheet(
-            "#PreloadProgressPopup {"
-            f" background: {PALETTE['BG']}; border: 1px solid {PALETTE['BORDER']};"
-            " border-radius: 12px;"
-            "}"
-            "#PreloadPopupTitle {"
-            f" color: {PALETTE['TEXT']}; font-size: 22px; font-weight: 700;"
-            f" font-family: {TYPOGRAPHY['FONT_FAMILY']};"
-            "}"
-            "#PreloadPopupCurrent {"
-            f" color: {PALETTE['TEXT_MUTED']}; font-size: 12px;"
-            ' font-family: "Lexend", "Segoe UI";'
-            "}"
-            "#PreloadPopupProgress {"
-            f" background: {PALETTE['PANEL_2']}; color: {PALETTE['TEXT']};"
-            f" border: 1px solid {PALETTE['BORDER']}; border-radius: 6px;"
-            " min-height: 17px; text-align: center;"
-            "}"
-            "#PreloadPopupProgress::chunk {"
-            f" background: {PALETTE['GREEN']}; border-radius: 5px;"
-            "}"
-        )
 
         # The standalone launcher remains the only visible progress window.
         # The same Qt state machine still drives Home's reveal in silent mode.

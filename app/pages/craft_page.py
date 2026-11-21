@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import difflib
 import logging
-from functools import lru_cache
 from pathlib import Path
 from datetime import datetime
 from typing import Any, Callable
@@ -13,7 +12,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QCheckBox,
-    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -33,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from app import local_data_cache
+from app.core.item_artwork import item_with_artwork
 from app.constants import (
     CRAFT_SELECTION_FILE,
     HARVEST_ASSET_REPORT,
@@ -55,7 +54,14 @@ from app.storage import (
     short_label,
     write_json,
 )
-from app.ui.components import AtlasButton
+from app.ui.components import (
+    AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
+    fit_unity_number_spinbox,
+)
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+
+CRAFT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["craft"]
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 LOGGER = logging.getLogger(__name__)
@@ -63,57 +69,9 @@ LOGGER = logging.getLogger(__name__)
 _RESULT_BATCH_SIZE = 8
 
 
-_WEAPON_TYPES = {
-    "arme", "armes", "epee", "epees", "arc", "arcs", "dague", "dagues",
-    "baton", "batons", "baguette", "baguettes", "pelle", "pelles",
-    "marteau", "marteaux", "hache", "haches", "lance", "lances",
-    "faux",
-}
-_GROUPS = (
-    ({"anneau", "anneaux"}, "anneaux"),
-    ({"coiffe", "coiffes"}, "coiffes"),
-    ({"cape", "capes"}, "capes"),
-    ({"botte", "bottes"}, "bottes"),
-    ({"ceinture", "ceintures"}, "ceintures"),
-    ({"collier", "colliers", "amulette", "amulettes"}, "colliers"),
-    ({"bouclier", "boucliers"}, "boucliers"),
-    ({"trophee", "trophees"}, "trophees"),
-    ({"prysmaradite", "prysmaradites"}, "prysmaradite"),
-    (_WEAPON_TYPES, "armes"),
-)
-
-
-@lru_cache(maxsize=4096)
-def _find_nested_image(directory: str, filename: str, family: str) -> str:
-    root = Path(directory)
-    parts = set(family.split("_"))
-    for types, folder in _GROUPS:
-        if parts & types:
-            candidate = root / folder / filename
-            if candidate.is_file():
-                return str(candidate)
-    # Only use a generic fallback if there is a unique asset for that ID.
-    # Several categories may contain the same numeric sprite basename.
-    matches = list(root.glob("*/" + filename))
-    return str(matches[0]) if len(matches) == 1 else ""
-
-
 def craft_image_item(item: dict[str, Any], *, root: Path = ROOT_DIR) -> dict[str, Any]:
-    raw = item.get("image_path") or item.get("local_image_path")
-    if not raw:
-        return item
-    path = Path(str(raw))
-    absolute = path if path.is_absolute() else root / path
-    if absolute.is_file():
-        return item
-    directory = root / "data" / "images" / "items"
-    if absolute.parent != directory or absolute.suffix.lower() not in {".png", ".webp"}:
-        return item
-    family = normalize_key(" ".join(str(item.get(key) or "") for key in (
-        "type", "family", "category",
-    )))
-    found = _find_nested_image(str(directory), absolute.name, family)
-    return {**item, "image_path": found} if found else item
+    """Compatibility adapter; the Craft artwork service owns all lookup rules."""
+    return item_with_artwork(item, root=root)
 
 
 def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
@@ -121,46 +79,36 @@ def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
     spinbox.setObjectName("QuantitySpinBox")
     spinbox.setRange(1, maximum)
     spinbox.setValue(max(1, min(maximum, int(value or 1))))
-    spinbox.setMinimumWidth(86)
-    spinbox.setMaximumWidth(86)
+    fit_unity_number_spinbox(spinbox)
     spinbox.setAlignment(Qt.AlignCenter)
     spinbox.setToolTip("Quantité")
     return spinbox
 
 
-class CraftResourceDialog(QDialog):
+class CraftResourceDialog(AtlasDialog):
     def __init__(self, resources: dict[str, dict[str, Any]], missing: list[str], parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.resources = resources
         self.icon_cache = IconCache(26)
         self.resource_checks: list[QCheckBox] = []
-        self.setObjectName("CraftResourceDialog")
+        self.setAccessibleName("CraftResourceDialog")
         self.setWindowTitle("Ressources craft")
-        self.resize(500, 540)
+        self.resize(*CRAFT_GEOMETRY["resource_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-        root = QVBoxLayout(self)
-        root.setContentsMargins(14, 12, 14, 12)
-        root.setSpacing(8)
+        root = self.content_layout
 
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        title = QLabel("Ressources craft")
-        title.setObjectName("DialogTitle")
-        header.addWidget(title, 1)
-        count = QLabel(f"{len(resources)} ressource(s)")
-        count.setObjectName("DialogSubtitle")
-        count.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        header.addWidget(count)
-        root.addLayout(header)
+        root.addWidget(AtlasDialogHeader(
+            "Ressources craft",
+            f"{len(resources)} ressource(s)",
+            parent=self,
+        ))
 
         toolbar = QHBoxLayout()
         toolbar.setContentsMargins(0, 0, 0, 0)
         toolbar.setSpacing(6)
-        select_all = AtlasButton("Tout sélectionner")
-        select_all.setObjectName("SecondaryButton")
+        select_all = AtlasButton("Tout sélectionner", variant="secondary")
         select_all.clicked.connect(lambda: self.set_all_checked(True))
-        unselect_all = AtlasButton("Tout désélectionner")
-        unselect_all.setObjectName("SecondaryButton")
+        unselect_all = AtlasButton("Tout désélectionner", variant="secondary")
         unselect_all.clicked.connect(lambda: self.set_all_checked(False))
         toolbar.addWidget(select_all)
         toolbar.addWidget(unselect_all)
@@ -193,16 +141,16 @@ class CraftResourceDialog(QDialog):
             multiplier = QLabel("x")
             multiplier.setObjectName("MutedLabel")
             icon = QLabel()
-            icon.setFixedSize(28, 28)
+            box = CRAFT_GEOMETRY["resource_icon_box"]
+            icon.setFixedSize(box, box)
             icon.setAlignment(Qt.AlignCenter)
             item_info = info.get("item") if isinstance(info.get("item"), dict) else {"name": name, "image_path": info.get("image_path", "")}
-            resource_icon = self.icon_cache.icon_for_item(craft_image_item(item_info)).pixmap(24, 24)
+            resource_icon = self.icon_cache.icon_for_item(item_info).pixmap(24, 24)
             if not resource_icon.isNull():
                 icon.setPixmap(resource_icon)
-            label = QPushButton(name)
+            label = AtlasButton(name)
             label.setObjectName("ResourceNameButton")
             label.setFlat(True)
-            label.setCursor(Qt.PointingHandCursor)
             label.clicked.connect(lambda _checked=False, text=name: QApplication.clipboard().setText(text))
             layout.addWidget(checkbox)
             layout.addWidget(quantity)
@@ -220,9 +168,7 @@ class CraftResourceDialog(QDialog):
             root.addWidget(label)
         footer = QHBoxLayout()
         footer.addStretch(1)
-        close = AtlasButton("Fermer")
-        close.setObjectName("PrimaryActionButton")
-        close.setFixedWidth(120)
+        close = AtlasButton("Fermer", variant="primary")
         close.clicked.connect(self.accept)
         footer.addWidget(close)
         root.addLayout(footer)
@@ -253,17 +199,27 @@ class CraftResourceDialog(QDialog):
         super().keyPressEvent(event)
 
 
-class ItemSetDialog(QDialog):
+class ItemSetDialog(AtlasDialog):
     def __init__(self, item_set: dict[str, Any] | None, add_callback, parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.item_set = item_set or {}
         self.add_callback = add_callback
         self.icon_cache = IconCache(28)
         self.setWindowTitle("Panoplie")
-        self.resize(390, 460)
+        self.resize(*CRAFT_GEOMETRY["item_set_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
-        root = QVBoxLayout(self)
+        root = self.content_layout
+        name = (
+            self.item_set.get("name_fr") or self.item_set.get("name_en")
+            or f"Panoplie {self.item_set.get('ankama_id', '')}".strip()
+        )
+        root.addWidget(AtlasDialogHeader(
+            str(name),
+            f"{len(self.item_set.get('items', []))} objet(s) connu(s)"
+            if self.item_set else "",
+            parent=self,
+        ))
         if not item_set:
             empty = QLabel("Aucune panoplie connue pour cet équipement.")
             empty.setAlignment(Qt.AlignCenter)
@@ -273,12 +229,6 @@ class ItemSetDialog(QDialog):
             close.clicked.connect(self.accept)
             root.addWidget(close)
             return
-
-        name = item_set.get("name_fr") or item_set.get("name_en") or f"Panoplie {item_set.get('ankama_id', '')}"
-        title = QLabel(str(name))
-        title.setObjectName("PageTitle")
-        root.addWidget(title)
-        root.addWidget(QLabel(f"{len(item_set.get('items', []))} objet(s) connus"))
 
         area = QScrollArea()
         area.setWidgetResizable(True)
@@ -290,7 +240,7 @@ class ItemSetDialog(QDialog):
             row.setObjectName("ListRow")
             layout = QHBoxLayout(row)
             icon = QLabel()
-            icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(28, 28))
+            icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(28, 28))
             layout.addWidget(icon)
             layout.addWidget(QLabel(f"{item.get('name', 'Objet')}  Lvl {item.get('level', '?')}"), 1)
             add = AtlasButton("+")
@@ -312,25 +262,24 @@ class ItemSetDialog(QDialog):
         self.accept()
 
 
-class LevelingDialog(QDialog):
+class LevelingDialog(AtlasDialog):
     def __init__(self, job_name: str, guide: dict[str, Any], find_item_callback, add_craft_callback, parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.find_item_callback = find_item_callback
         self.add_craft_callback = add_craft_callback
         self.icon_cache = IconCache(28)
-        self.setObjectName("LevelingDialog")
+        self.setAccessibleName("LevelingDialog")
         local = guide.get("source") == "atlas-local"
         harvest = local and guide.get("kind") == "harvest"
         self.setWindowTitle(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
-        self.resize(660, 560)
+        self.resize(*CRAFT_GEOMETRY["leveling_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(14, 12, 14, 12)
-        root.setSpacing(8)
-        title = QLabel(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
-        title.setObjectName("DialogTitle")
-        root.addWidget(title)
+        root = self.content_layout
+        root.addWidget(AtlasDialogHeader(
+            f"{job_name} — Repères locaux" if local else f"{job_name} 0-200",
+            parent=self,
+        ))
         if local:
             note = QLabel(
                 "Ressources classées par progression, sans palier XP ni quantité garantie."
@@ -362,14 +311,15 @@ class LevelingDialog(QDialog):
             layout.setContentsMargins(8, 5, 8, 5)
             layout.setSpacing(8)
             icon = QLabel()
-            icon.setFixedSize(30, 30)
+            box = CRAFT_GEOMETRY["leveling_icon_box"]
+            icon.setFixedSize(box, box)
             icon.setAlignment(Qt.AlignCenter)
             if item:
-                icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(28, 28))
+                icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(28, 28))
             layout.addWidget(icon)
             level = QLabel(str(entry.get("level_range", "")))
             level.setObjectName("LevelBadge")
-            level.setFixedWidth(88)
+            level.setFixedWidth(CRAFT_GEOMETRY["leveling_level_badge_width"])
             level.setAlignment(Qt.AlignCenter)
             layout.addWidget(level)
             recipe = QLabel(
@@ -379,9 +329,12 @@ class LevelingDialog(QDialog):
             recipe.setObjectName("CompactLabel")
             recipe.setWordWrap(False)
             layout.addWidget(recipe, 1)
-            add = AtlasButton("Copier" if harvest else "+")
-            add.setObjectName("PrimaryActionButton")
-            add.setFixedSize(64 if harvest else 38, 28)
+            add = AtlasButton("Copier" if harvest else "+", variant="primary")
+            add.setFixedSize(
+                CRAFT_GEOMETRY["leveling_copy_action_width"] if harvest
+                else CRAFT_GEOMETRY["leveling_add_action_width"],
+                CRAFT_GEOMETRY["leveling_action_height"],
+            )
             if harvest:
                 add.clicked.connect(
                     lambda _checked=False, name=craft.get("name", ""):
@@ -396,9 +349,7 @@ class LevelingDialog(QDialog):
         root.addWidget(area, 1)
         footer = QHBoxLayout()
         footer.addStretch(1)
-        close = AtlasButton("Fermer")
-        close.setObjectName("SecondaryButton")
-        close.setFixedWidth(110)
+        close = AtlasButton("Fermer", variant="secondary")
         close.clicked.connect(self.accept)
         footer.addWidget(close)
         root.addLayout(footer)
@@ -409,7 +360,7 @@ class RouteImageLabel(QLabel):
         super().__init__(parent)
         self.zoom_callback = zoom_callback
         self.setAlignment(Qt.AlignCenter)
-        self.setMinimumHeight(230)
+        self.setMinimumHeight(CRAFT_GEOMETRY["route_image_min_height"])
 
     def wheelEvent(self, event) -> None:
         delta = 1 if event.angleDelta().y() > 0 else -1
@@ -417,21 +368,22 @@ class RouteImageLabel(QLabel):
         event.accept()
 
 
-class RouteDialog(QDialog):
+class RouteDialog(AtlasDialog):
     def __init__(self, job_name: str, item: dict[str, Any], parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.job_name = job_name
         self.item = item
         self.step = 1
         self.zoom = 1.0
         self.setWindowTitle(f"{job_name} - {item.get('name', 'Ressource')}")
-        self.resize(560, 420)
+        self.resize(*CRAFT_GEOMETRY["route_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
-        root = QVBoxLayout(self)
-        title = QLabel(f"{job_name} - {item.get('name', 'Ressource')}")
-        title.setObjectName("PageTitle")
-        root.addWidget(title)
+        root = self.content_layout
+        root.addWidget(AtlasDialogHeader(
+            f"{job_name} - {item.get('name', 'Ressource')}",
+            parent=self,
+        ))
         controls = QHBoxLayout()
         self.step_label = QLabel("Etape 1")
         controls.addWidget(self.step_label)
@@ -456,7 +408,10 @@ class RouteDialog(QDialog):
         self.refresh_image()
 
     def change_zoom(self, delta: int) -> None:
-        self.zoom = max(0.45, min(3.0, self.zoom + (0.15 * delta)))
+        minimum = CRAFT_GEOMETRY["route_zoom_min_percent"] / 100
+        maximum = CRAFT_GEOMETRY["route_zoom_max_percent"] / 100
+        increment = CRAFT_GEOMETRY["route_zoom_step_percent"] / 100
+        self.zoom = max(minimum, min(maximum, self.zoom + increment * delta))
         self.refresh_image()
 
     def refresh_image(self) -> None:
@@ -471,18 +426,21 @@ class RouteDialog(QDialog):
                 f"Chemin local attendu :\n{expected}"
             )
             return
-        pixmap = QPixmap(str(path))
-        if pixmap.isNull():
+        box = self.image.size()
+        size = QSize(
+            max(CRAFT_GEOMETRY["route_preview_min_width"], int(box.width() * self.zoom)),
+            max(CRAFT_GEOMETRY["route_preview_min_height"], int(box.height() * self.zoom)),
+        )
+        # Route images share the same bounded Qt thumbnail decoder as Craft
+        # icons, Quests and Guide preparation; no full-size reload on each zoom.
+        from app.modules.encyclopedia.services.image_service import (
+            ENCYCLOPEDIA_IMAGE_SERVICE,
+        )
+        scaled = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, size)
+        if scaled.isNull():
             self.image.setPixmap(QPixmap())
             self.image.setText("Capture illisible.")
             return
-        box = self.image.size()
-        scaled = pixmap.scaled(
-            max(180, int(box.width() * self.zoom)),
-            max(160, int(box.height() * self.zoom)),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation,
-        )
         self.image.setText("")
         self.image.setPixmap(scaled)
 
@@ -530,9 +488,10 @@ class CraftPage(QWidget):
         self.resource_dialog: CraftResourceDialog | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(6, 6, 6, 6)
-        title = QLabel("Craft")
-        title.setObjectName("PageTitle")
+        compact_gap = UNITY_SPACING_PX["sm"]
+        panel_padding = UNITY_SPACING_PX["md"]
+        root.setContentsMargins(compact_gap, compact_gap, compact_gap, compact_gap)
+        title = AtlasPageTitle("Craft")
         root.addWidget(title)
         self.retry_preload_button = AtlasButton("Réessayer le chargement Craft")
         self.retry_preload_button.setObjectName("CraftRetryPreload")
@@ -549,40 +508,41 @@ class CraftPage(QWidget):
         self.global_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         scroll_content = QWidget()
         content_root = QVBoxLayout(scroll_content)
-        content_root.setContentsMargins(4, 4, 4, 4)
-        content_root.setSpacing(6)
+        compact_inset = UNITY_SPACING_PX["xs"]
+        content_root.setContentsMargins(compact_inset, compact_inset, compact_inset, compact_inset)
+        content_root.setSpacing(compact_gap)
         self.global_scroll.setWidget(scroll_content)
         root.addWidget(self.global_scroll, 1)
 
         main_split = QVBoxLayout()
-        main_split.setSpacing(6)
+        main_split.setSpacing(compact_gap)
         content_root.addLayout(main_split, 1)
 
         self.craft_body_narrow = False
         self.craft_body = QGridLayout()
-        self.craft_body.setSpacing(6)
+        self.craft_body.setSpacing(compact_gap)
         main_split.addLayout(self.craft_body, 1)
 
         self.craft_left_panel = QFrame()
         self.craft_left_panel.setObjectName("CraftPanel")
+        apply_unity_panel_shadow(self.craft_left_panel)
         self.craft_left_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         left = QVBoxLayout(self.craft_left_panel)
-        left.setContentsMargins(8, 8, 8, 8)
-        left.setSpacing(6)
+        left.setContentsMargins(panel_padding, panel_padding, panel_padding, panel_padding)
+        left.setSpacing(compact_gap)
         category_row = QHBoxLayout()
-        category_row.setSpacing(4)
+        category_row.setSpacing(compact_inset)
         left.addLayout(category_row)
-        self.category_buttons: dict[str, QPushButton] = {}
+        self.category_buttons: dict[str, AtlasButton] = {}
         for key, label in (("equipment", "Équipement"), ("trophy_prysma", "Trophée / Prysmaradite"), ("resource", "Ressource craftable")):
-            button = AtlasButton(label)
-            button.setMaximumHeight(28)
+            button = AtlasButton(label, variant="secondary", size="compact")
             button.clicked.connect(lambda _checked=False, k=key: self.set_category(k))
             self.category_buttons[key] = button
             category_row.addWidget(button)
         self.search = QLineEdit()
         self.search.setObjectName("CraftSearch")
         self.search.setPlaceholderText("Rechercher un item...")
-        self.search.setMaximumWidth(360)
+        self.search.setMaximumWidth(CRAFT_GEOMETRY["search_max_width"])
         self.search.textChanged.connect(lambda _text: self.search_timer.start(120))
         left.addWidget(self.search)
         self.results = QListWidget()
@@ -597,17 +557,17 @@ class CraftPage(QWidget):
 
         self.craft_right_panel = QFrame()
         self.craft_right_panel.setObjectName("CraftPanel")
+        apply_unity_panel_shadow(self.craft_right_panel)
         self.craft_right_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         right = QVBoxLayout(self.craft_right_panel)
-        right.setContentsMargins(8, 8, 8, 8)
-        right.setSpacing(6)
+        right.setContentsMargins(panel_padding, panel_padding, panel_padding, panel_padding)
+        right.setSpacing(compact_gap)
         selection_header = QHBoxLayout()
         selection_title = QLabel("Sélection")
         selection_title.setObjectName("PanelTitle")
         selection_header.addWidget(selection_title)
         selection_header.addStretch(1)
-        clear_button = AtlasButton("Vider")
-        clear_button.setObjectName("SecondaryButton")
+        clear_button = AtlasButton("Vider", variant="secondary")
         clear_button.setMaximumWidth(58)
         selection_header.addWidget(clear_button)
         right.addLayout(selection_header)
@@ -617,9 +577,7 @@ class CraftPage(QWidget):
         self.selection_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.selection_list.setTextElideMode(Qt.ElideRight)
         right.addWidget(self.selection_list, 1)
-        craft_button = AtlasButton("Lancer le Craft")
-        craft_button.setObjectName("PrimaryActionButton")
-        craft_button.setFixedHeight(34)
+        craft_button = AtlasButton("Lancer le Craft", variant="primary", size="normal")
         craft_button.setMinimumWidth(180)
         right.addWidget(craft_button, alignment=Qt.AlignHCenter)
         clear_button.clicked.connect(self.clear_selection)
@@ -628,19 +586,23 @@ class CraftPage(QWidget):
 
         self.jobs_panel = QFrame()
         self.jobs_panel.setObjectName("CraftPanel")
+        apply_unity_panel_shadow(self.jobs_panel)
         jobs_root = QVBoxLayout(self.jobs_panel)
-        jobs_root.setContentsMargins(8, 8, 8, 8)
-        jobs_root.setSpacing(6)
+        jobs_root.setContentsMargins(panel_padding, panel_padding, panel_padding, panel_padding)
+        jobs_root.setSpacing(compact_gap)
         self.job_buttons_layout = QGridLayout()
-        self.job_buttons_layout.setSpacing(4)
+        self.job_buttons_layout.setSpacing(compact_inset)
         jobs_root.addLayout(self.job_buttons_layout)
         self.job_actions_layout = QHBoxLayout()
-        self.job_actions_layout.setSpacing(4)
+        self.job_actions_layout.setSpacing(compact_inset)
         jobs_root.addLayout(self.job_actions_layout)
         self.job_content = QWidget()
+        # Nested panel content is transparent: QWidget's default QSS fill
+        # otherwise paints a near-black rectangle over the Unity glass card.
+        self.job_content.setObjectName("AtlasTransparentHost")
         self.job_grid = QGridLayout(self.job_content)
         self.job_grid.setContentsMargins(0, 0, 0, 0)
-        self.job_grid.setSpacing(4)
+        self.job_grid.setSpacing(compact_inset)
         jobs_root.addWidget(self.job_content, 1)
         main_split.addWidget(self.jobs_panel, 1)
 
@@ -764,11 +726,6 @@ class CraftPage(QWidget):
         if callable(release):
             release()
 
-    def restyle_button(self, button: QPushButton) -> None:
-        button.style().unpolish(button)
-        button.style().polish(button)
-        button.update()
-
     def clear_layout(self, layout) -> None:
         while layout.count():
             item = layout.takeAt(0)
@@ -833,8 +790,7 @@ class CraftPage(QWidget):
 
     def update_category_buttons(self) -> None:
         for key, button in self.category_buttons.items():
-            button.setObjectName("ActiveButton" if key == self.category else "SecondaryButton")
-            self.restyle_button(button)
+            button.set_variant("selected" if key == self.category else "secondary")
 
     def category_for_item(self, item: dict[str, Any]) -> str:
         # SQLite/preload already classifies items. Load the normalizer only for
@@ -932,7 +888,7 @@ class CraftPage(QWidget):
             if generation != self._result_generation:
                 return
             entry = QListWidgetItem(
-                self.icon_cache.icon_for_item(craft_image_item(item)),
+                self.icon_cache.icon_for_item(item),
                 f"{item.get('name', 'Objet')} | Lvl {item.get('level', '?')} | {item.get('type', '')}",
             )
             entry.setData(Qt.UserRole, item)
@@ -1040,7 +996,7 @@ class CraftPage(QWidget):
                 layout = QHBoxLayout(widget)
                 layout.setContentsMargins(4, 2, 4, 2)
                 icon = QLabel()
-                icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(24, 24))
+                icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(24, 24))
                 layout.addWidget(icon)
                 label = QLabel(str(item.get("name", "Objet")))
                 label.setWordWrap(False)
@@ -1257,6 +1213,21 @@ class CraftPage(QWidget):
     def is_harvest_job(self, job_name: str) -> bool:
         return normalize_key(job_name) in HARVEST_JOBS
 
+    def has_leveling_content(self, job_name: str) -> bool:
+        guide = self.guide_for_job(job_name)
+        if isinstance(guide, dict) and guide.get("entries"):
+            return True
+        # Harvest professions have a lightweight, authored resource sequence
+        # even when the optional editorial JSON is not shipped. No SQLite
+        # scan or synthetic XP calculation is needed for the click.
+        if self.is_harvest_job(job_name):
+            selected = normalize_key(job_name)
+            return any(
+                normalize_key(name) == selected and bool(resources)
+                for name, resources in JOB_RESOURCE_GROUPS.items()
+            )
+        return False
+
     def job_icon_source(self, job: dict[str, Any]) -> dict[str, Any]:
         if job.get("image_path"):
             return job
@@ -1296,9 +1267,9 @@ class CraftPage(QWidget):
             button = AtlasButton(name)
             button.setMaximumHeight(28)
             if key == normalize_key(self.selected_job):
-                button.setObjectName("ActiveButton")
+                button.set_variant("selected")
             else:
-                button.setObjectName("SecondaryButton")
+                button.set_variant("secondary")
             # Keep the initial Craft surface independent from the local-data
             # adapter. Resolving a decorative job icon used to open the whole
             # SQLite/repository stack before the user had searched or selected
@@ -1316,11 +1287,15 @@ class CraftPage(QWidget):
             self.job_actions_layout.addStretch(1)
             return
 
-        guide = self.guide_for_job(self.selected_job)
-        if self.is_harvest_job(self.selected_job) and guide and guide.get("entries"):
-            leveling = AtlasButton("Leveling 0-200")
-            leveling.setObjectName("PrimaryActionButton")
-            leveling.setFixedHeight(30)
+        if self.has_leveling_content(self.selected_job):
+            source_guide = self.guide_for_job(self.selected_job)
+            authored = isinstance(source_guide, dict) and bool(source_guide.get("entries"))
+            label = "Leveling 0-200" if authored else "Repères de récolte"
+            leveling = AtlasButton(label, variant="primary", size="normal")
+            leveling.setToolTip(
+                "Guide Leveling local" if authored
+                else "Ressources locales classées, sans gains d'XP garantis"
+            )
             leveling.clicked.connect(lambda _checked=False, job=self.selected_job: self.open_leveling_dialog(job))
             self.job_actions_layout.addWidget(leveling)
         self.job_actions_layout.addStretch(1)
@@ -1349,7 +1324,7 @@ class CraftPage(QWidget):
                 button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
                 button.setText(short_label(label, 10))
                 button.setToolTip(label)
-                button.setIcon(self.icon_cache.icon_for_item(craft_image_item(item)))
+                button.setIcon(self.icon_cache.icon_for_item(item))
                 button.setIconSize(QSize(16, 16))
                 button.setFixedSize(56, 42)
                 button.clicked.connect(lambda _checked=False, job=job_name, target=item: self.show_route(job, target))
@@ -1363,8 +1338,14 @@ class CraftPage(QWidget):
     def set_job(self, job_name: str) -> None:
         self.selected_job = job_name
         self.refresh_jobs()
-        # Defer until Qt finishes the button-click signal (refresh_jobs rebuilds
-        # its sender). Harvest and crafting jobs use the same single-click flow.
+        # A job click opens its authored local guide only when it actually has
+        # entries. Missing/editorial guides should never cause a blocking
+        # warning popup on every selection. The explicit Leveling action can
+        # still offer the existing catalogue-based fallback when requested.
+        if not self.has_leveling_content(job_name):
+            return
+        # Rebuilding the job grid destroys the sender. Defer the modal until
+        # Qt has finished dispatching the click, and ignore stale selections.
         QTimer.singleShot(
             20,
             lambda selected=job_name: (

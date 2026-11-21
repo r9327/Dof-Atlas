@@ -579,16 +579,40 @@ class JsonSourceMapping(Mapping):
                 ).fetchone()
                 if row is None:
                     raise KeyError(key)
-                start, end = int(row[0]), int(row[1])
+                try:
+                    start, end = int(row[0]), int(row[1])
+                except (TypeError, ValueError, OverflowError):
+                    start, end = -1, -1
             else:
                 start, end = self._offsets[key]
+            # A disk-backed index validates one representative span at open,
+            # but any other row can be corrupt or replaced afterwards. Guard
+            # each individual read before seeking or allocating its payload.
+            if not (0 <= start < end <= self._stamp[1]):
+                if self.required:
+                    raise QuestSourceError(f"Invalid source offset for {key}: {self.path}")
+                raise KeyError(key)
             if self._stream is None:
                 self._stream = self.path.open('rb')
                 self._close_stream = weakref.finalize(self, self._stream.close)
-            self._stream.seek(start)
-            value = json.loads(self._stream.read(end - start))
-            if self.doduda:
-                value = value['data']
+            try:
+                self._stream.seek(start)
+                value = json.loads(self._stream.read(end - start))
+                if self.doduda:
+                    # A corrupt but in-bounds index can point at a different
+                    # valid row. Never associate that quest with the wrong ID.
+                    row = value["data"]
+                    if not isinstance(row, dict) or str(row.get("id")) != str(key):
+                        raise ValueError("Mismatched Doduda source record ID")
+                    value = row
+            except (ValueError, UnicodeError, TypeError, KeyError) as exc:
+                # A span can be in bounds yet decode to invalid JSON. Optional
+                # enrichment is skipped; mandatory game data fails explicitly.
+                if self.required:
+                    raise QuestSourceError(
+                        f"Invalid source JSON for {key}: {self.path}"
+                    ) from exc
+                raise KeyError(key) from exc
             self._cache[key] = value
             while len(self._cache) > 128:
                 self._cache.popitem(last=False)

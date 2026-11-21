@@ -16,9 +16,14 @@ def strip_accents(value: Any) -> str:
     return "".join(ch for ch in text if not unicodedata.combining(ch))
 
 
+def normalize_words(value: Any) -> str:
+    """Normalize Guide route names with spaces, not identifier underscores."""
+    return re.sub(r"[^a-zA-Z0-9]+", " ", strip_accents(value).casefold()).strip()
+
+
 def clean_auto_group_name(value: Any) -> str:
     text = re.sub(r"\s+", " ", str(value or "").replace("\r", " ").replace("\n", " ")).strip()
     return re.split(r"(?:^|\s+)-\s+", text, maxsplit=1)[0].strip()
 
 
-__all__ = ["clean_auto_group_name", "normalize_key", "strip_accents"]
+__all__ = ["clean_auto_group_name", "normalize_key", "normalize_words", "strip_accents"]

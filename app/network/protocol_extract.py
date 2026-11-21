@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.core.numbers import positive_int as _positive_int
 from app.network.contracts import _is_sha256
 
 import argparse
@@ -14,6 +15,7 @@ from typing import Any, Callable, Sequence
 
 from app.constants import ROOT_DIR
 from app.core.admin import process_id_for_window
+from app.core.file_hash import sha256_file
 from app.core.settings import load_settings
 from app.network.build_fingerprint import (
     ActiveProtocolBuildFingerprintProvider,
@@ -282,17 +284,11 @@ def _hash_named_files(paths: Sequence[Path], *, root: Path) -> str:
 
 
 def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
+    # Keep the protocol-specific error while reusing the canonical hash codec.
     try:
-        with path.open("rb") as stream:
-            while True:
-                chunk = stream.read(1024 * 1024)
-                if not chunk:
-                    break
-                digest.update(chunk)
+        return sha256_file(path)
     except OSError as exc:
         raise ProtocolExtractionError(f"cannot hash tool executable: {path}") from exc
-    return digest.hexdigest()
 
 
 def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
@@ -309,14 +305,6 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
         raise ProtocolExtractionError(f"cannot write extraction manifest: {path}") from exc
 
 
-def _positive_int(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 

@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from app.cartography.scan_status_service import get_status_color, normalize_status
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_PALETTE, unity_painted_ui_color
 
 
 class MapCanvasWidget(QWidget):
@@ -19,7 +20,7 @@ class MapCanvasWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("MapCanvas")
-        self.setMinimumSize(420, 320)
+        self.setMinimumSize(*UNITY_MODULE_GEOMETRY_PX["world_map"]["canvas_min_size"])
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.StrongFocus)
@@ -82,7 +83,7 @@ class MapCanvasWidget(QWidget):
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#070D16"))
+        painter.fillRect(self.rect(), QColor(unity_painted_ui_color("world_scan.placeholder")))
 
         if self.view is None:
             painter.end()
@@ -99,12 +100,12 @@ class MapCanvasWidget(QWidget):
             painter.save()
             painter.translate(self.offset)
             painter.scale(self.zoom, self.zoom)
-            painter.setPen(QPen(QColor("#182536"), 1 / max(self.zoom, 0.01)))
+            painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_GRID"]), 1 / max(self.zoom, 0.01)))
             for x in range(0, self.pixmap.width(), 100):
                 painter.drawLine(x, 0, x, self.pixmap.height())
             for y in range(0, self.pixmap.height(), 100):
                 painter.drawLine(0, y, self.pixmap.width(), y)
-            painter.setPen(QPen(QColor("#223044"), 2 / max(self.zoom, 0.01)))
+            painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_OUTLINE"]), 2 / max(self.zoom, 0.01)))
             painter.setBrush(Qt.NoBrush)
             painter.drawRect(QRectF(0, 0, self.pixmap.width(), self.pixmap.height()))
             self._draw_overlays(painter)
@@ -117,7 +118,7 @@ class MapCanvasWidget(QWidget):
             painter.translate(self.offset)
             painter.scale(self.zoom, self.zoom)
             painter.drawPixmap(0, 0, self.pixmap)
-            painter.setPen(QPen(QColor("#223044"), 2 / max(self.zoom, 0.01)))
+            painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_OUTLINE"]), 2 / max(self.zoom, 0.01)))
             painter.setBrush(Qt.NoBrush)
             painter.drawRect(QRectF(0, 0, self.pixmap.width(), self.pixmap.height()))
             self._draw_overlays(painter)
@@ -136,10 +137,12 @@ class MapCanvasWidget(QWidget):
         height = 28 + line_height * len(lines)
         rect = QRectF((self.width() - width) / 2, max(margin, (self.height() - height) / 2), width, height)
         painter.save()
-        painter.setPen(QPen(QColor("#2E4058"), 1))
-        painter.setBrush(QColor(9, 17, 28, 230))
+        painter.setPen(QPen(QColor(UNITY_PALETTE["BORDER"]), 1))
+        glass = QColor(UNITY_PALETTE["PANEL_2"])
+        glass.setAlpha(230)
+        painter.setBrush(glass)
         painter.drawRoundedRect(rect, 8, 8)
-        painter.setPen(QColor("#E7EEF8"))
+        painter.setPen(QColor(UNITY_PALETTE["TEXT"]))
         painter.drawText(rect.adjusted(16, 12, -16, -12), Qt.AlignLeft | Qt.AlignVCenter, self.placeholder_text)
         painter.restore()
 
@@ -303,7 +306,7 @@ class MapCanvasWidget(QWidget):
             painter.setPen(QPen(get_status_color(status, 230), 2.0 / max(self.zoom, 0.01)))
             painter.drawRoundedRect(rect, 3, 3)
             if selected:
-                painter.setPen(QPen(QColor("#F8C84E"), 3.0 / max(self.zoom, 0.01)))
+                painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_SELECTION"]), 3.0 / max(self.zoom, 0.01)))
                 painter.setBrush(Qt.NoBrush)
                 painter.drawRoundedRect(rect.adjusted(-2, -2, 2, 2), 4, 4)
 
@@ -322,8 +325,8 @@ class MapCanvasWidget(QWidget):
                     QPointF(marker.x() - radius, marker.y()),
                 ]
             )
-            painter.setBrush(QColor("#F8C84E") if selected else QColor("#A98222"))
-            painter.setPen(QPen(QColor("#FFE082"), 2.0 / max(self.zoom, 0.01)))
+            painter.setBrush(QColor(UNITY_PALETTE["MAP_SELECTION"]) if selected else QColor(UNITY_PALETTE["MAP_LINK"]))
+            painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_LINK_BORDER"]), 2.0 / max(self.zoom, 0.01)))
             painter.drawPolygon(polygon)
 
             label = str(link.get("label") or "").strip()
@@ -332,5 +335,5 @@ class MapCanvasWidget(QWidget):
                 font.setPointSizeF(max(8.0, 10.0 / max(self.zoom, 0.4)))
                 font.setBold(True)
                 painter.setFont(font)
-                painter.setPen(QColor("#F2F6FF"))
+                painter.setPen(QColor(UNITY_PALETTE["MAP_LABEL"]))
                 painter.drawText(QPointF(marker.x() + 18, marker.y() - 10), label)

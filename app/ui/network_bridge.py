@@ -27,6 +27,8 @@ class NetworkUiBridge(QObject):
     statusChanged = Signal(object)
     progressChanged = Signal(str)
     characterActivated = Signal(str)
+    charactersIdentified = Signal(object)
+    connectionsChanged = Signal(object)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -40,6 +42,7 @@ class NetworkUiBridge(QObject):
         self._compact_context_ready = False
         self._last_status = self.coordinator.latest_status()
         self._stopped = False
+        self._stop_result: bool | None = None
         self._pending_progress_characters: set[str] = set()
         self._progress_timer = QTimer(self)
         self._progress_timer.setSingleShot(True)
@@ -76,6 +79,9 @@ class NetworkUiBridge(QObject):
             guide_provider=guide_provider,
         )
         self._context_signature = signature
+        # The injected provider may be a rich Encyclopedia object. If later
+        # released on Home, a compact provider must replace it, not keep it.
+        self._compact_context_ready = False
         return True
 
     def configure_compact_context(self) -> bool:
@@ -84,6 +90,11 @@ class NetworkUiBridge(QObject):
         if self._stopped:
             return False
         if self._compact_context_ready:
+            return True
+        if getattr(self.coordinator, "worker_compact_context_ready", False) is True:
+            # Home already built exactly this compact network context in the
+            # existing coordinator worker: no second provider or disk scan.
+            self._compact_context_ready = True
             return True
         from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
         from app.quest_catalog_details import load_network_catalog
@@ -114,16 +125,39 @@ class NetworkUiBridge(QObject):
     def request_verified_runtime(self) -> bool:
         if self._stopped:
             return False
-        return self.coordinator.request_start_verified_runtime()
+        # Explicit retry from Home is allowed before visiting Encyclopedia.
+        # The coordinator resolves only its compact Quest context off-thread;
+        # keep all Qt widgets out of catalogue loading.
+        return self.coordinator.request_start_compact_runtime()
 
     def stop(self) -> bool:
         if self._stopped:
-            return True
+            # A failed cleanup must never become a reported success on the
+            # second call (for example via aboutToQuit after window closing).
+            return self._stop_result is True
         self._stopped = True
         self._timer.stop()
         self._progress_timer.stop()
         self._pending_progress_characters.clear()
-        return bool(self.coordinator.stop())
+        try:
+            stopped = bool(self.coordinator.stop())
+        except Exception:
+            # An unexpected coordinator cleanup error must leave the UI in a
+            # truthful failed state, not abort close before statusChanged.
+            from app.core.logger import get_runtime_logger
+
+            get_runtime_logger().exception("Network coordinator shutdown failed.")
+            stopped = False
+        self._stop_result = stopped
+        # The poll timer is stopped too: publish one final truthful state or
+        # a previously active Home badge could remain green indefinitely.
+        from app.network.application_coordinator import NetworkApplicationStatus
+
+        self._last_status = NetworkApplicationStatus(
+            False, False, "stopped" if stopped else "stop_failed",
+        )
+        self.statusChanged.emit(self._last_status)
+        return stopped
 
     def _poll(self) -> None:
         if self._stopped:
@@ -134,23 +168,68 @@ class NetworkUiBridge(QObject):
         if statuses:
             self._last_status = statuses[-1]
             self.statusChanged.emit(self._last_status)
+            # A direct Qt slot can stop the bridge during this emission.
+            # Never consume or publish an older worker event afterwards.
+            if self._stopped:
+                return
         changed_characters: set[str] = set()
-        active_character = ""
+        active_characters: set[str] = set()
+        disconnected_characters: set[str] = set()
         for result in self.coordinator.drain_results(100):
             reason = str(getattr(result, "reason", "") or "")
             if (
                 bool(getattr(result, "accepted", False))
                 and result.character_key
-                and (reason.startswith("character_") or reason.startswith("quest_journal_"))
+                and reason in {
+                    "character_identified",
+                    "character_identified_with_quest_journal",
+                }
             ):
-                active_character = str(result.character_key)
-            if result.changed and result.character_key:
+                # Journal completions change quest progress, not the selected
+                # character. Avoid reloading all client profiles each poll.
+                active_characters.add(str(result.character_key))
+            if (
+                bool(getattr(result, "accepted", False))
+                and bool(getattr(result, "changed", False))
+                and getattr(result, "character_key", "")
+                and reason == "session_closed"
+            ):
+                disconnected_characters.add(str(result.character_key))
+            if (
+                bool(getattr(result, "accepted", False))
+                and result.changed
+                and result.character_key
+                and reason not in {"character_identified", "session_closed"}
+            ):
+                # Identity routing/session closure is not a persisted quest
+                # mutation. Only progress changes need a costly tab refresh.
                 changed_characters.add(str(result.character_key))
-        if active_character or changed_characters:
+        if active_characters or changed_characters:
             record_validation("network_progress", changed=len(changed_characters),
-                              activated=bool(active_character))
-        if active_character:
-            self.characterActivated.emit(active_character)
+                              activated=bool(active_characters))
+        if active_characters:
+            # Coalesce multiple concurrent logins into one profile refresh.
+            # Never silently discard all but the last identity in a poll.
+            identities = tuple(sorted(active_characters))
+            self.charactersIdentified.emit(identities)
+            if self._stopped:
+                return
+            if len(identities) == 1:
+                # Preserve the existing single-account signal for consumers
+                # outside the shell; a multi-login batch is not a focused
+                # character and must not activate an arbitrary account.
+                self.characterActivated.emit(identities[0])
+                if self._stopped:
+                    return
+        if disconnected_characters and not active_characters:
+            # A close may be just one of several transports for a character.
+            # Publish only the changed identities: the shell recomputes the
+            # actual connected state, with no automatic selection.
+            self.connectionsChanged.emit(tuple(sorted(disconnected_characters)))
+            if self._stopped:
+                return
+        # When an identification happened in this same poll, its batch
+        # refresh already sees the final runtime state; no second scan needed.
         if changed_characters:
             self._pending_progress_characters.update(changed_characters)
             if not self._progress_timer.isActive():
@@ -163,6 +242,9 @@ class NetworkUiBridge(QObject):
         pending = tuple(sorted(self._pending_progress_characters))
         self._pending_progress_characters.clear()
         for character_key in pending:
+            # A recipient can stop the bridge synchronously on the first signal.
+            if self._stopped:
+                return
             self.progressChanged.emit(character_key)
 
     @staticmethod
@@ -209,6 +291,16 @@ def refresh_visible_encyclopedia_widgets(
             continue
         if object_name != "EncyclopediaPage":
             continue
+        # Only the displayed page needs an immediate refresh; the shell
+        # synchronizes a hidden Encyclopedia when it is opened again.
+        is_visible = getattr(widget, "isVisible", None)
+        if callable(is_visible):
+            try:
+                if not is_visible():
+                    continue
+            except RuntimeError:
+                # Qt can delete an old page while navigation is replacing it.
+                continue
         if str(getattr(widget, "current_character_key", "") or "") != target:
             continue
         tabs = getattr(widget, "tabs", None)
@@ -237,7 +329,12 @@ _BRIDGE: NetworkUiBridge | None = None
 def network_ui_bridge() -> NetworkUiBridge:
     global _BRIDGE
     app = QApplication.instance()
-    if _BRIDGE is None or bool(getattr(_BRIDGE, "_stopped", False)):
+    if _BRIDGE is None or (
+        bool(getattr(_BRIDGE, "_stopped", False))
+        and getattr(_BRIDGE, "_stop_result", None) is True
+    ):
+        # A failed stop may leave a capture helper or worker alive: fail closed
+        # rather than starting a second coordinator against the same client.
         _BRIDGE = NetworkUiBridge(app)
         if app is not None:
             app.aboutToQuit.connect(_BRIDGE.stop)

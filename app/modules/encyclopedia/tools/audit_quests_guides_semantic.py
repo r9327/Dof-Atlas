@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import time
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any, Iterable
 
 from app.constants import DATA_DIR, ROOT_DIR
@@ -18,7 +20,8 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     extract_dpln_page_v2,
     request_bytes,
 )
-from app.quest_catalog import normalize_text, read_json_file, write_json_file
+from app.quest_catalog import SENTINEL_COORD, normalize_text, read_json_file, write_json_file
+from app.quest_source_index import QuestSources
 
 
 AUDIT_VERSION = 2
@@ -26,6 +29,7 @@ QUESTS_DIR = DATA_DIR / "encyclopedia" / "quests"
 MAPPING_PATH = QUESTS_DIR / "source_mapping.json"
 ENRICHED_PATH = QUESTS_DIR / "quests_enriched.json"
 DEFAULT_JSON = ROOT_DIR / "artifacts" / "quests_guides_semantic_audit.json"
+DEFAULT_LOCAL_COVERAGE = ROOT_DIR / "artifacts" / "quests_local_coverage.json"
 DEFAULT_MARKDOWN = ROOT_DIR / "artifacts" / "quests_guides_semantic_audit_report.md"
 DEFAULT_CHANGES = ROOT_DIR / "artifacts" / "quests_guides_semantic_changes.md"
 DEFAULT_CACHE = ROOT_DIR / "artifacts" / "dpln_semantic_audit_cache.json"
@@ -387,6 +391,218 @@ def sample_coverage(
     }
 
 
+
+_LOCAL_START_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]\Z")
+
+
+def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
+    """Report written source blocks and the *actual* reader fallback separately.
+
+    The reader uses documentary blocks when any survives filtering. Only
+    when there are no displayable blocks does it render source solution_steps.
+    A heading or image alone is not a written instruction and suppresses the
+    fallback, so checking nonempty raw arrays is not sufficient.
+    """
+    if not isinstance(row, dict):
+        return False, False
+    from types import SimpleNamespace
+
+    from app.quest_catalog import QuestObjective, QuestSolutionBlock, QuestStep
+    from app.modules.encyclopedia.services.guide_quest_view_model import (
+        quest_solution_blocks, quest_solution_steps,
+    )
+
+    raw_blocks = row.get("solution_blocks")
+    raw_blocks = raw_blocks if isinstance(raw_blocks, list) else []
+    blocks = []
+    for index, raw in enumerate(raw_blocks, 1):
+        if not isinstance(raw, dict):
+            continue
+        kind = str(raw.get("type") or raw.get("block_type") or "").strip()
+        if not kind:
+            continue
+        blocks.append(QuestSolutionBlock(
+            order=index,
+            block_type=kind,
+            content=str(raw.get("content") or raw.get("text") or ""),
+            position=str(raw.get("position") or ""),
+            image_path=str(raw.get("image_path") or raw.get("path") or ""),
+        ))
+    source = SimpleNamespace(solution_blocks=blocks)
+    visible_blocks = quest_solution_blocks(source)
+    block_instruction = any(
+        (block.content or block.position) and block.block_type not in {
+            "image", "heading", "title", "subtitle", "section_heading",
+        }
+        for block in visible_blocks
+    )
+    if visible_blocks:
+        return bool(block_instruction), False
+
+    raw_steps = row.get("solution_steps")
+    raw_steps = raw_steps if isinstance(raw_steps, list) else []
+    steps = []
+    for index, raw in enumerate(raw_steps, 1):
+        if not isinstance(raw, dict):
+            continue
+        raw_objectives = raw.get("objectives")
+        raw_objectives = raw_objectives if isinstance(raw_objectives, list) else []
+        objectives = [
+            QuestObjective(
+                id=-(index * 1000 + objective_index),
+                text=str(objective.get("text") or ""),
+                type_id=6 if objective.get("combat") else 0,
+                map_label=str(objective.get("position") or ""),
+            )
+            for objective_index, objective in enumerate(raw_objectives, 1)
+            if isinstance(objective, dict)
+        ]
+        steps.append(QuestStep(
+            id=-index,
+            name=str(raw.get("title") or ""),
+            description=str(raw.get("description") or ""),
+            objectives=objectives,
+        ))
+    if not steps:
+        return False, False
+    fallback = quest_solution_steps(
+        SimpleNamespace(source_solution_steps=steps, steps=[])
+    )
+    has_fallback = any(
+        step.description or any(objective.text for objective in step.objectives)
+        for step in fallback
+    )
+    return False, bool(has_fallback)
+
+
+def local_start_position_coverage(
+    enriched: Mapping[str, Any], quest_ids: Iterable[int],
+) -> dict[str, Any]:
+    """Audit declared Quest starts without confusing them with objective maps.
+
+    This is only local source completeness, never independent source proof
+    or permission to route a Zaap / send automatic travel commands.
+    """
+    counts: Counter[str] = Counter()
+    needs_review: list[dict[str, object]] = []
+    missing_instruction_quest_ids: list[int] = []
+    fallback_instruction_quest_ids: list[int] = []
+    priority_missing_both: list[int] = []
+    declared_start_issues: list[dict[str, object]] = []
+    for quest_id in sorted(set(int(value) for value in quest_ids)):
+        row = enriched.get(str(quest_id))
+        first = ""
+        second = ""
+        if not isinstance(row, dict):
+            status = "NO_ENRICHMENT"
+        else:
+            launch = row.get("launch_position")
+            metadata = row.get("source_meta")
+            launch = launch if isinstance(launch, dict) else {}
+            metadata = metadata if isinstance(metadata, dict) else {}
+            first = str(launch.get("position") or "").strip()
+            second = str(metadata.get("startCoords") or "").strip()
+            declared = [part for part in (first, second) if part]
+            parsed: list[tuple[int, int] | None] = []
+            for part in declared:
+                match = _LOCAL_START_COORD_RE.fullmatch(part)
+                if match is None or any(
+                    len(value.lstrip("-")) > 10 for value in match.groups()
+                ):
+                    parsed.append(None)
+                    continue
+                coordinates = tuple(int(value) for value in match.groups())
+                # The audit must agree with the runtime's game-map contract:
+                # signed 32-bit coordinates excluding the unknown sentinel.
+                parsed.append(
+                    coordinates if all(
+                        SENTINEL_COORD < value < 2**31 for value in coordinates
+                    ) else None
+                )
+            if not declared:
+                status = "NO_DECLARED_START"
+            elif any(coords is None for coords in parsed):
+                status = "INVALID_START_COORDINATES"
+            elif len(set(parsed)) > 1:
+                # Different zero-padding or whitespace is the same location.
+                status = "CONFLICTING_DECLARED_START"
+            else:
+                status = "LOCAL_START_DECLARED"
+        blocks = (
+            row.get("solution_blocks")
+            if isinstance(row, dict) and isinstance(row.get("solution_blocks"), list)
+            else []
+        )
+        if any(
+            isinstance(block, dict)
+            and any(
+                str(block.get(key) or "").strip()
+                for key in ("content", "text", "position", "source_url", "image_path", "url", "src", "local_path")
+            )
+            for block in blocks
+        ):
+            counts["WITH_DOCUMENTARY_BLOCKS"] += 1
+        else:
+            # Empty skeleton blocks are not documentary coverage.
+            counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
+        # Mirror production: a readable source_solution_steps fallback is
+        # shown only when all explicit blocks were filtered out. Keep the
+        # historical block-only counters for backward-compatible reporting.
+        has_block_instruction, has_fallback_instruction = (
+            _local_rendered_instruction_presence(row)
+        )
+        if has_block_instruction:
+            counts["WITH_TEXTUAL_SOLUTION_BLOCKS"] += 1
+        else:
+            counts["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"] += 1
+        if has_block_instruction or has_fallback_instruction:
+            counts["WITH_RENDERABLE_INSTRUCTIONS"] += 1
+            if has_fallback_instruction:
+                fallback_instruction_quest_ids.append(quest_id)
+        else:
+            counts["WITHOUT_RENDERABLE_INSTRUCTIONS"] += 1
+            missing_instruction_quest_ids.append(quest_id)
+            if status != "LOCAL_START_DECLARED":
+                priority_missing_both.append(quest_id)
+        counts[status] += 1
+        if status in {
+            "INVALID_START_COORDINATES", "CONFLICTING_DECLARED_START",
+        }:
+            # Exact source fields (not guessed game positions), bounded so a
+            # malformed 5,000-digit JSON value cannot explode report size.
+            evidence_limit = 80
+            declared_start_issues.append({
+                "quest_id": quest_id,
+                "status": status,
+                "launch_position": first[:evidence_limit],
+                "source_start_coords": second[:evidence_limit],
+                "truncated": (
+                    len(first) > evidence_limit or len(second) > evidence_limit
+                ),
+            })
+        if status != "LOCAL_START_DECLARED":
+            needs_review.append({"quest_id": quest_id, "status": status})
+    return {
+        "evidence": "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED",
+        "quests_considered": sum(
+            counts[key] for key in (
+                "NO_ENRICHMENT", "NO_DECLARED_START",
+                "INVALID_START_COORDINATES",
+                "CONFLICTING_DECLARED_START", "LOCAL_START_DECLARED",
+            )
+        ),
+        "counts": dict(sorted(counts.items())),
+        "needs_review": needs_review,
+        # Actionable IDs, not just totals: importers can target the missing
+        # source rows without scanning 72 MB of enrichment again.
+        "missing_instruction_quest_ids": missing_instruction_quest_ids,
+        "fallback_instruction_quest_ids": fallback_instruction_quest_ids,
+        "priority_missing_both_quest_ids": priority_missing_both,
+        # Pointers to raw local evidence only. This never certifies map data.
+        "declared_start_issues": declared_start_issues,
+    }
+
+
 def base_result(quest: Any, mapping_row: dict[str, Any], local_row: dict[str, Any]) -> dict[str, Any]:
     candidates = mapping_row.get("dofus_pour_les_noobs", []) or []
     if mapping_row.get("status") == "ambiguous" or len(candidates) > 1:
@@ -616,6 +832,9 @@ def build_audit(online: str, sample_size: int, workers: int, refresh: bool, cach
             results[str(qid)]["guide_reference"] = "GUIDE_REFERENCE_UNKNOWN"
 
     quest_rows = sorted(results.values(), key=lambda row: int(row["quest_id"]))
+    start_coverage = local_start_position_coverage(
+        enriched, (int(quest.id) for quest in catalog.quests),
+    )
     mapping_counts = Counter(row["mapping"] for row in quest_rows)
     text_counts = Counter(row["text"] for row in quest_rows)
     image_counts = Counter(row["image"] for row in quest_rows)
@@ -730,6 +949,7 @@ def build_audit(online: str, sample_size: int, workers: int, refresh: bool, cach
         "summary": {
             "quests_analyzed": len(quest_rows),
             "guides_analyzed": len(guide_rows),
+            "local_start_positions": start_coverage["counts"],
             "mapping": dict(mapping_counts),
             "text": dict(text_counts),
             "images": dict(image_counts),
@@ -744,6 +964,7 @@ def build_audit(online: str, sample_size: int, workers: int, refresh: bool, cach
             "technical_migrations": len(technical_migrations),
         },
         "root_causes": root_causes,
+        "local_start_position_audit": start_coverage,
         "sample_quest_ids": sample_ids,
         "sample_coverage": sample_coverage(catalog, sample_ids, guide_ids_by_quest, enriched, guides),
         "sample": [results[str(qid)] for qid in sample_ids if str(qid) in results],
@@ -956,14 +1177,55 @@ def write_changes(path: Path, payload: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Audit semantique conservateur Quetes/Guides contre DPLN.")
     parser.add_argument("--online", choices=("none", "sample", "full"), default="none")
+    parser.add_argument(
+        "--local-coverage-only", action="store_true",
+        help="Rapport de couverture locale des départs et instructions, sans Guides/Succès ni requêtes web.",
+    )
     parser.add_argument("--sample-size", type=int, default=50)
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
-    parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON)
+    parser.add_argument("--json-output", type=Path, default=None)
     parser.add_argument("--markdown-output", type=Path, default=DEFAULT_MARKDOWN)
     parser.add_argument("--changes-output", type=Path, default=DEFAULT_CHANGES)
     args = parser.parse_args(argv)
+    if args.json_output is None:
+        args.json_output = (
+            DEFAULT_LOCAL_COVERAGE if args.local_coverage_only else DEFAULT_JSON
+        )
+    if args.local_coverage_only:
+        # Local gaps can be measured without creating the expensive Guide,
+        # Achievement or quest-dependency graph used by the full audit.
+        # The audit only needs IDs. Do not instantiate ~2,000 Quest
+        # summaries or deduplicate Quests sharing the same name.
+        from app.quest_catalog_details import _CACHE_ROOT, load_quest_ids
+        quest_ids = load_quest_ids()
+        # quests_enriched.json is large. Use the existing SQLite offset index
+        # and bounded decoded-row cache rather than json.load() of the entire
+        # document, retaining a constant-size resident working set.
+        sources = QuestSources(_CACHE_ROOT / "source_offsets", disk_backed=True)
+        try:
+            # The audit's job is to find genuinely missing source rows.
+            # An absent/corrupt enrichment file is NOT evidence that every
+            # Quest lacks a start or instructions; fail without a false report.
+            enriched = sources.mapping(
+                ENRICHED_PATH, "quests", required=True,
+            )
+            coverage = local_start_position_coverage(
+                enriched, quest_ids,
+            )
+        finally:
+            sources.close()
+        payload = {
+            "scope": "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS",
+            **coverage,
+        }
+        write_json_file(args.json_output, payload)
+        print(json.dumps({
+            "quests_considered": coverage["quests_considered"],
+            "counts": coverage["counts"],
+        }, ensure_ascii=False, indent=2))
+        return 0
     payload = build_audit(args.online, max(30, min(args.sample_size, 50)), args.workers, args.refresh, args.cache)
     write_json_file(args.json_output, payload)
     write_markdown(args.markdown_output, payload)

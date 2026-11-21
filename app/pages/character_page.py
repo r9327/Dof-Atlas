@@ -6,7 +6,6 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -24,10 +23,14 @@ from app.pages._character_page_impl import (
     EQUIPMENT_SLOTS,
     CharacterPage as _CharacterPage,
 )
+from app.ui.components import AtlasComboBox
+from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+
+CHARACTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character"]
 
 
-_EQUIPMENT_SLOT_SIZE = 64
-_EQUIPMENT_ICON_SIZE = 54
+_EQUIPMENT_SLOT_SIZE = CHARACTER_GEOMETRY["equipment_slot_box"]
+_EQUIPMENT_ICON_SIZE = CHARACTER_GEOMETRY["equipment_icon"]
 
 
 class CharacterPage(_CharacterPage):
@@ -46,8 +49,8 @@ class CharacterPage(_CharacterPage):
                 widget = item.widget() if item is not None else None
                 if widget is not None:
                     widget.hide()
-            root.setContentsMargins(10, 8, 10, 10)
-            root.setSpacing(6)
+            root.setContentsMargins(*CHARACTER_GEOMETRY["page_margins"])
+            root.setSpacing(UNITY_SPACING_PX["sm"])
 
         if columns is not None:
             # The old identity card must not consume a column anymore. Its
@@ -60,30 +63,35 @@ class CharacterPage(_CharacterPage):
             columns.removeWidget(self.equipment_panel)
             columns.insertWidget(0, self.equipment_panel, 70)
             columns.insertWidget(1, self.stats_panel, 30)
-            columns.setSpacing(8)
+            columns.setSpacing(UNITY_SPACING_PX["md"])
             columns.setStretch(0, 70)
             columns.setStretch(1, 30)
 
         equipment_layout = self.equipment_panel.layout()
         if equipment_layout is not None:
-            equipment_layout.setContentsMargins(8, 6, 8, 8)
-            equipment_layout.setSpacing(4)
+            equipment_layout.setContentsMargins(*CHARACTER_GEOMETRY["equipment_panel_margins"])
+            equipment_layout.setSpacing(UNITY_SPACING_PX["xs"])
 
         stats_layout = self.stats_panel.layout()
         if stats_layout is not None:
-            stats_layout.setContentsMargins(10, 8, 10, 10)
-            stats_layout.setSpacing(6)
+            stats_layout.setContentsMargins(*CHARACTER_GEOMETRY["stats_panel_margins"])
+            stats_layout.setSpacing(UNITY_SPACING_PX["sm"])
 
-        self.equipment_panel.setMinimumWidth(650)
-        self.stats_panel.setMinimumWidth(250)
-        self.stats_panel.setMaximumWidth(340)
+        # A 900px shell must fit both cards plus its 20px horizontal
+        # margins and the 8px gutter. The equipment grid already needs
+        # far less than its old 650px minimum; do not force window growth
+        # just because the Personnage page was opened.
+        self.equipment_panel.setMinimumWidth(CHARACTER_GEOMETRY["equipment_min_width"])
+        self.stats_panel.setMinimumWidth(CHARACTER_GEOMETRY["stats_min_width"])
+        self.stats_panel.setMaximumWidth(CHARACTER_GEOMETRY["stats_max_width"])
 
     @staticmethod
     def _apply_success_style(label: QLabel, *, compact: bool = False) -> None:
         """Apply score typography while leaving colors to the shared theme."""
 
         font = label.font()
-        font.setPixelSize(18 if compact else 23)
+        role = "character_score_compact" if compact else "character_score_regular"
+        font.setPixelSize(UNITY_CONTENT_TYPOGRAPHY_PX[role])
         font.setBold(True)
         label.setFont(font)
 
@@ -96,12 +104,13 @@ class CharacterPage(_CharacterPage):
         self._apply_success_style(self.achievement_points, compact=True)
         layout.addWidget(self.achievement_points)
 
-        self.character_selector = QComboBox()
+        self.character_selector = AtlasComboBox()
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
-        self.character_selector.setIconSize(QSize(38, 38))
-        self.character_selector.setMinimumWidth(260)
-        self.character_selector.setMaximumWidth(360)
-        self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        selector_icon = CHARACTER_GEOMETRY["selector_icon"]
+        self.character_selector.setIconSize(QSize(selector_icon, selector_icon))
+        # Let the shared Unity combo fit the longest character label, while
+        # retaining this panel's design cap on narrow equipment layouts.
+        self.character_selector.setMaximumWidth(CHARACTER_GEOMETRY["selector_max_width"])
         self.character_selector.setToolTip("Sélectionner un personnage")
         self.character_selector.currentIndexChanged.connect(
             self._on_character_selector_changed
@@ -242,8 +251,8 @@ class CharacterPage(_CharacterPage):
         self.portrait.setObjectName("HomeCharacterPortrait")
         self.portrait.setAlignment(Qt.AlignCenter)
         self.portrait.setWordWrap(True)
-        self.portrait.setMinimumSize(230, 300)
-        self.portrait.setMaximumSize(300, 360)
+        self.portrait.setMinimumSize(*CHARACTER_GEOMETRY["portrait_min_size"])
+        self.portrait.setMaximumSize(*CHARACTER_GEOMETRY["portrait_max_size"])
         self.portrait.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         skin_layout.addWidget(self.portrait, 1, Qt.AlignCenter)
 

@@ -62,8 +62,17 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle
+from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
+from app.ui.unity_palette import (
+    UNITY_CONTROL_SIZES_PX,
+    UNITY_GUIDE_READING_METRICS_PX,
+    UNITY_MODULE_GEOMETRY_PX,
+    UNITY_WINDOW_PRESETS_PX,
+)
+
+GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.services.guide_quest_view_model import (
@@ -153,7 +162,7 @@ def item_row(*args, **kwargs):
 
 
 Navigator = Callable[..., bool]
-TravelLauncher = Callable[[str, tuple[str, ...]], None]
+TravelLauncher = Callable[[str, tuple[str, ...]], bool | None]
 LOGGER = logging.getLogger("dofus_atlas.encyclopedia.images")
 
 GUIDE_ULTIME_LEGACY_ID = "guide_complet"
@@ -165,15 +174,15 @@ CATEGORY_LABELS = {
     "alignements": "ALIGNEMENTS",
     "dofus": "DOFUS",
 }
-TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
-DOFUS_CARD_MIN_WIDTH = 86
-DOFUS_CARD_MAX_WIDTH = 126
-DOFUS_CARD_HEIGHT = 118
-DOFUS_GRID_SPACING = 8
-DOFUS_GRID_MAX_COLUMNS = 5
-HOME_GUIDE_LEFT_MIN_WIDTH = 285
-HOME_GUIDE_LEFT_MAX_WIDTH = 360
-GUIDE_STEPS_OPEN_WIDTH = 190
+TRAVEL_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
+DOFUS_CARD_MIN_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_min_width"]
+DOFUS_CARD_MAX_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_max_width"]
+DOFUS_CARD_HEIGHT = GUIDE_CARD_GEOMETRY["dofus_card_height"]
+DOFUS_GRID_SPACING = GUIDE_CARD_GEOMETRY["dofus_grid_gap"]
+DOFUS_GRID_MAX_COLUMNS = GUIDE_CARD_GEOMETRY["dofus_grid_max_columns"]
+HOME_GUIDE_LEFT_MIN_WIDTH = GUIDE_CARD_GEOMETRY["home_left_min_width"]
+HOME_GUIDE_LEFT_MAX_WIDTH = GUIDE_CARD_GEOMETRY["home_left_max_width"]
+GUIDE_STEPS_OPEN_WIDTH = GUIDE_CARD_GEOMETRY["guide_steps_open_width"]
 GUIDE_STEPS_COLLAPSED_WIDTH = 44
 GUIDE_SERIES_INITIAL_STEP_LIMIT = 40
 GUIDE_OVERVIEW_REWARD_LIMIT = 12
@@ -338,17 +347,17 @@ class GuideHomeCard(QFrame):
         )
 
     def _build_adventure_card(self) -> None:
-        self.setMinimumWidth(245)
-        self.setMaximumWidth(275)
-        self.setMinimumHeight(172)
+        self.setMinimumWidth(GUIDE_CARD_GEOMETRY["featured_min_width"])
+        self.setMaximumWidth(GUIDE_CARD_GEOMETRY["featured_max_width"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["featured_min_height"])
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(8)
 
         image = QLabel()
         image.setObjectName("GuideAdventureImage")
-        image.setFixedHeight(86)
-        image.setMinimumWidth(210)
+        image.setFixedHeight(GUIDE_CARD_GEOMETRY["featured_image_height"])
+        image.setMinimumWidth(GUIDE_CARD_GEOMETRY["featured_image_min_width"])
         image.setAlignment(Qt.AlignCenter)
         image.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         if self._load_image(image, QSize(230, 86)):
@@ -377,9 +386,9 @@ class GuideHomeCard(QFrame):
             root.addWidget(count)
 
     def _build_alignment_card(self) -> None:
-        self.setMinimumWidth(126)
-        self.setMaximumWidth(150)
-        self.setMinimumHeight(138)
+        self.setMinimumWidth(GUIDE_CARD_GEOMETRY["small_min_width"])
+        self.setMaximumWidth(GUIDE_CARD_GEOMETRY["small_max_width"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["small_min_height"])
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(9)
@@ -893,9 +902,20 @@ class GuideCollapsedStepsRail(CollapsedColumnRail):
 class SolutionImageLabel(QLabel):
     imageLoaded = Signal(object)
 
-    def __init__(self, image_path: str, caption: str = "", parent: QWidget | None = None) -> None:
+    def __init__(
+        self, image_path: str, caption: str = "", parent: QWidget | None = None,
+        *, max_preview_size: tuple[int, int] | None = None,
+    ) -> None:
         super().__init__(parent)
         _ensure_async_image_delivery()
+        metrics = UNITY_GUIDE_READING_METRICS_PX
+        if max_preview_size is None:
+            max_preview_size = (
+                metrics["quest_image_max_width"],
+                metrics["quest_image_max_height"],
+            )
+        self._preview_max_width = max(1, int(max_preview_size[0]))
+        self._preview_max_height = max(1, int(max_preview_size[1]))
         self.source = QPixmap()
         self._image_path = str(image_path)
         self._rendered_width = 0
@@ -906,9 +926,12 @@ class SolutionImageLabel(QLabel):
         self.setObjectName("QuestSolutionImage")
         self.setAlignment(Qt.AlignCenter)
         self.setMinimumWidth(1)
-        self.setMinimumHeight(120)
+        self.setMinimumHeight(UNITY_GUIDE_READING_METRICS_PX["image_preview_min_loading_height"])
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.setMaximumWidth(540)
+        self.setMaximumWidth(
+            self._preview_max_width
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_outer_width"]
+        )
         self.setCursor(Qt.PointingHandCursor)
         self.setToolTip(caption)
         self.setText("Chargement de l'image…")
@@ -934,7 +957,9 @@ class SolutionImageLabel(QLabel):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if not self._image_load_started and not self._image_load_timer.isActive():
-            self._image_load_timer.start(250)
+            self._image_load_timer.start(
+                UNITY_GUIDE_READING_METRICS_PX["image_load_delay_ms"]
+            )
 
     def start_image_load(self) -> None:
         if self._image_load_started:
@@ -974,17 +999,33 @@ class SolutionImageLabel(QLabel):
         self._update_scheduled = False
         if self.source.isNull():
             return
-        parent_width = self.parentWidget().width() if self.parentWidget() is not None else 520
-        available_width = min(520, max(120, parent_width - 24))
+        parent_width = (
+            self.parentWidget().width()
+            if self.parentWidget() is not None else self._preview_max_width
+        )
+        available_width = min(
+            self._preview_max_width,
+            max(
+                1,
+                parent_width
+                - UNITY_GUIDE_READING_METRICS_PX["image_preview_parent_inset"],
+            ),
+        )
         target = self.source.size()
-        target.scale(available_width, 320, Qt.KeepAspectRatio)
+        target.scale(available_width, self._preview_max_height, Qt.KeepAspectRatio)
         width = max(1, target.width())
         if width == self._rendered_width and self.pixmap() is not None:
             return
         pixmap = self.source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.setPixmap(pixmap)
-        self.setFixedWidth(pixmap.width() + 12)
-        self.setFixedHeight(pixmap.height() + 6)
+        self.setFixedWidth(
+            pixmap.width()
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_frame_width"]
+        )
+        self.setFixedHeight(
+            pixmap.height()
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_frame_height"]
+        )
         self._rendered_width = width
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
@@ -999,20 +1040,45 @@ class SolutionImageLabel(QLabel):
             dialog.setObjectName("AtlasDialog")
             dialog.setWindowTitle(self.toolTip() or "Image de solution")
             root = QVBoxLayout(dialog)
-            root.setContentsMargins(8, 8, 8, 8)
+            margin = UNITY_GUIDE_READING_METRICS_PX["zoom_margin"]
+            root.setContentsMargins(margin, margin, margin, margin)
             root.setSpacing(0)
 
             image = QLabel()
+            image.setObjectName("QuestSolutionImage")
             image.setAlignment(Qt.AlignCenter)
             screen = self.screen()
-            available = screen.availableGeometry().size() if screen is not None else QSize(1280, 800)
-            max_width = max(320, min(1180, int(available.width() * 0.82)))
-            max_height = max(240, min(860, int(available.height() * 0.82)))
+            available = (
+                screen.availableGeometry().size() if screen is not None
+                else QSize(*UNITY_WINDOW_PRESETS_PX["standard"])
+            )
+            metrics = UNITY_GUIDE_READING_METRICS_PX
+            max_width = max(
+                metrics["zoom_min_width"],
+                min(
+                    metrics["zoom_dialog_width"],
+                    available.width() * metrics["zoom_screen_percent"] // 100,
+                ),
+            )
+            max_height = max(
+                metrics["zoom_min_height"],
+                min(
+                    metrics["zoom_dialog_height"],
+                    available.height() * metrics["zoom_screen_percent"] // 100,
+                ),
+            )
             target = self.source.size()
-            target.scale(max_width - 24, max_height - 24, Qt.KeepAspectRatio)
+            target.scale(
+                max_width - metrics["zoom_content_inset"],
+                max_height - metrics["zoom_content_inset"],
+                Qt.KeepAspectRatio,
+            )
             image.setPixmap(self.source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             root.addWidget(image)
-            dialog.resize(target.width() + 16, target.height() + 16)
+            dialog.resize(
+                target.width() + margin * 2,
+                target.height() + margin * 2,
+            )
 
             center = self.mapToGlobal(self.rect().center())
             dialog.move(center.x() - dialog.width() // 2, center.y() - dialog.height() // 2)
@@ -1055,7 +1121,7 @@ class CollapsibleInfoSection(QFrame):
         marker = QLabel("✓" if state == "done" else "●" if state == "partial" else "○")
         marker.setObjectName("GuideTreeState")
         marker.setProperty("state", state)
-        marker.setFixedWidth(18)
+        marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
         marker.setAlignment(Qt.AlignCenter)
         header_layout.addWidget(marker)
         title_label = QLabel(title)
@@ -1421,21 +1487,13 @@ class GuidesView(QWidget):
         self._right_panel_collapsed = False
         self._right_panel_saved_width = 230
         self._right_panel_scroll_position = 0
-        self.right_panel_toggle = QToolButton()
-        self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
-        self.right_panel_toggle.setText("›")
-        self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
-        self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
+        self.right_panel_toggle = AtlasPanelToggle()
         self.right_panel_toggle.clicked.connect(self._toggle_right_panel)
         header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
-        root.addWidget(self.detail_header)
-
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
+        self.breadcrumb = AtlasBreadcrumb()
+        self.breadcrumb_layout = self.breadcrumb.row
         root.addWidget(self.breadcrumb)
+        root.addWidget(self.detail_header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
         self.splitter.setObjectName("GuideDetailSplitter")
@@ -1796,14 +1854,42 @@ class GuidesView(QWidget):
             self.guide_progress_service,
             keys,
             available_characters=characters,
+            available_characters_provider=self.guide_participant_service.available_characters,
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
-        if self.launch_travel_callback is not None:
-            panel.travelRequested.connect(self.launch_travel_callback)
+        # Keep verified route actions usable as copy-only instructions when
+        # an Atlas runtime launcher is unavailable. The panel itself still
+        # requires an exact verified plan and live participant identities.
+        panel.travelRequested.connect(self._dispatch_continuous_route_travel)
         self.center_layout.addWidget(panel)
         self._continuous_route_panel = panel
         self.detail_header_progress.setVisible(False)
         self.detail_header_done_button.setVisible(False)
+
+    def _dispatch_continuous_route_travel(
+        self, command: str, character_keys: tuple[str, ...],
+    ) -> None:
+        # Qt signal slots discard return values. Route Guide travel through
+        # the same refusal contract as the manual/universal Guide buttons.
+        callback = self.launch_travel_callback
+        if not callable(callback):
+            QApplication.clipboard().setText(command)
+            self.status_callback(
+                "Déplacement indisponible : commande copiée dans le presse-papiers.",
+            )
+            return
+        try:
+            accepted = callback(command, character_keys)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Envoi du voyage du Guide continu impossible",
+            )
+            accepted = False
+        if accepted is False:
+            QApplication.clipboard().setText(command)
+            self.status_callback(
+                "Déplacement refusé : commande copiée dans le presse-papiers.",
+            )
 
     def apply_continuous_travel_projection(
         self, projection: Mapping[str, object],
@@ -2347,13 +2433,7 @@ class GuidesView(QWidget):
         hidden = self._right_panel_collapsed
         self.right_panel.setMinimumWidth(0 if hidden else 220)
         self.right_panel.setVisible(not hidden)
-        self.right_panel_toggle.setText("‹" if hidden else "›")
-        caption = (
-            "Réafficher la colonne d'informations"
-            if hidden else "Masquer la colonne d'informations"
-        )
-        self.right_panel_toggle.setToolTip(caption)
-        self.right_panel_toggle.setAccessibleName(caption)
+        self.right_panel_toggle.set_collapsed(hidden)
         sizes = self.splitter.sizes()
         if len(sizes) == 3:
             self._set_classic_splitter_sizes(sizes[0], self.center_panel.minimumWidth())
@@ -2573,32 +2653,19 @@ class GuidesView(QWidget):
 
     def _render_breadcrumb(self, guide: Guide, quest_name: str = "") -> None:
         clear_layout(self.breadcrumb_layout)
-        guide_home = AtlasButton("Guides")
-        guide_home.setObjectName("GuideBreadcrumbButton")
+        guide_home = AtlasButton("Guides", variant="guide_breadcrumb")
         guide_home.clicked.connect(self.show_home)
         self.breadcrumb_layout.addWidget(guide_home)
-        self._add_breadcrumb_separator()
+        self.breadcrumb.add_separator()
 
         if quest_name:
-            guide_button = AtlasButton(guide.title)
-            guide_button.setObjectName("GuideBreadcrumbButton")
+            guide_button = AtlasButton(guide.title, variant="guide_breadcrumb")
             guide_button.clicked.connect(lambda _checked=False, gid=guide.id: self.show_guide_overview(gid, preserve_scroll=True))
             self.breadcrumb_layout.addWidget(guide_button)
-            self._add_breadcrumb_separator()
-            current = QLabel(quest_name)
-            current.setObjectName("GuideBreadcrumbCurrent")
-            current.setWordWrap(False)
-            self.breadcrumb_layout.addWidget(current, 1)
+            self.breadcrumb.add_separator()
+            self.breadcrumb.add_current(quest_name)
         else:
-            current = QLabel(guide.title)
-            current.setObjectName("GuideBreadcrumbCurrentStrong")
-            current.setWordWrap(False)
-            self.breadcrumb_layout.addWidget(current, 1)
-
-    def _add_breadcrumb_separator(self) -> None:
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
+            self.breadcrumb.add_current(guide.title, emphasized=True)
 
 
     def _quest_ids_for_steps(
@@ -3317,12 +3384,14 @@ class GuidesView(QWidget):
         marker = QLabel("")
         marker.setObjectName("GuideTreeState")
         marker.setProperty("state", "neutral")
-        marker.setFixedWidth(18)
+        marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
         marker.setAlignment(Qt.AlignCenter)
         layout.addWidget(marker, 0, Qt.AlignTop)
-        button = AtlasButton(clean_text(text))
+        button = AtlasButton(
+            clean_text(text),
+            variant="guide_achievement_link" if success_id is not None else "guide_quest_link",
+        )
         if success_id is not None:
-            button.setObjectName("GuideInlineAchievementButton")
             button.setToolTip("Ouvrir ce succès")
             button.clicked.connect(
                 lambda _checked=False, sid=int(success_id):
@@ -3331,7 +3400,6 @@ class GuidesView(QWidget):
                 )
             )
         else:
-            button.setObjectName("GuideInlineQuestButton")
             button.setToolTip("Ouvrir cette quête")
             button.clicked.connect(
                 lambda _checked=False, qid=int(quest_id):
@@ -4055,7 +4123,7 @@ def prerequisite_row(text: str, done: bool | None) -> QWidget:
     marker = QLabel("✓" if done is True else "○" if done is False else "")
     marker.setObjectName("GuideTreeState")
     marker.setProperty("state", "done" if done is True else "todo" if done is False else "neutral")
-    marker.setFixedWidth(18)
+    marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
     marker.setAlignment(Qt.AlignCenter)
     layout.addWidget(marker, 0, Qt.AlignTop)
     layout.addWidget(text_label(text, "GuideInfoLine"), 1)
@@ -4128,17 +4196,25 @@ def linkify_travel_text(text: str) -> str:
     escaped = escape(str(text or ""))
 
     def replace(match: re.Match[str]) -> str:
-        x = int(match.group(1))
-        y = int(match.group(2))
-        return f'<a href="atlas-travel:{x},{y}">[{x},{y}]</a>'
+        command = _vm_call("travel_command", match.group(0))
+        if not command:
+            # A missing/out-of-range map is documentary text, not a button.
+            return match.group(0)
+        coordinates = command.removeprefix("/travel ")
+        return "<b>" + entity_link_markup(
+            f"[{coordinates}]", "position", f"atlas-travel:{coordinates}", PALETTE,
+        ) + "</b>"
 
     return TRAVEL_COORD_RE.sub(replace, escaped)
 
 
 def copy_travel_link(href: str) -> None:
-    match = re.search(r"(-?\d+)\s*,\s*(-?\d+)", str(href or ""))
-    if match:
-        QApplication.clipboard().setText(f"/travel {int(match.group(1))},{int(match.group(2))}")
+    match = re.fullmatch(r"atlas-travel:(-?\d+),(-?\d+)", str(href or ""))
+    if match is None:
+        return
+    command = _vm_call("travel_command", f"[{match.group(1)},{match.group(2)}]")
+    if command:
+        QApplication.clipboard().setText(command)
 
 
 def is_walkthrough_image_path(image_path: str) -> bool:
@@ -4155,16 +4231,29 @@ def solution_block_widget(block: DisplaySolutionBlock) -> QWidget:
         layout.setSpacing(4)
         layout.addWidget(SolutionImageLabel(block.image_path, block.caption), 0, Qt.AlignHCenter)
         return container
+    if block.block_type == "image":
+        # A path referenced by the source is not proof that the actual
+        # image ships with this build. Never silently render a blank row.
+        label = "Image locale indisponible"
+        if block.caption:
+            label += f" : {block.caption}"
+        return text_label(label, "MutedLabel")
     if block.block_type == "heading":
         return text_label(block.content.rstrip(":"), "QuestSolutionStepTitle")
     object_name = "QuestSolutionCombat" if block.block_type == "combat" else "QuestSolutionDescription"
     return text_label(block.content, object_name)
 
 
-def quest_solution_document_widgets(quest, *, omit_first_image_path: str = "") -> list[QWidget]:
+def quest_solution_document_widgets(
+    quest, *, omit_first_image_path: str = "",
+    source_blocks: tuple[DisplaySolutionBlock, ...] | None = None,
+) -> list[QWidget]:
     """Render a walkthrough as a small number of selectable document blocks."""
 
-    blocks = list(quest_solution_blocks(quest))
+    # QuestDetailView already needs this snapshot to decide whether the
+    # documentary fallback disclaimer is required. Reuse it instead of
+    # applying the source filter twice during every detail repaint.
+    blocks = list(source_blocks if source_blocks is not None else quest_solution_blocks(quest))
     if not blocks:
         for step in quest_solution_steps(quest):
             if step.title:
@@ -4214,16 +4303,32 @@ def solution_text_document(blocks: tuple[DisplaySolutionBlock, ...]) -> QLabel:
     parts: list[str] = []
     for block in blocks:
         content = clean_text(block.content)
+        if block.position and block.block_type not in {
+            "image", "heading", "title", "subtitle", "section_heading",
+        }:
+            command = _vm_call("travel_command", block.position)
+            if command and not any(
+                _vm_call("travel_command", match.group(0)) == command
+                for match in TRAVEL_COORD_RE.finditer(content)
+            ):
+                # Explicit source position is documentary metadata, not an
+                # inferred quest start. Reuse the global link style and only
+                # append it when the same map is not already present in text.
+                position = f"[{command.removeprefix('/travel ')}]"
+                content = (
+                    f"{content} — Position source : {position}"
+                    if content else f"Position source : {position}"
+                )
         if not content:
             continue
         linked = linkify_travel_text(content)
         if block.block_type == "heading":
             parts.append(
-                f'<p style="font-size:13px;font-weight:700;color:#eee7fb;margin:10px 0 4px 0;">'
+                f'<p style="font-size:@FONT_CONTENT_H3;font-weight:700;color:@TEXT_SOFT;margin:10px 0 4px 0;">'
                 f'{linked.rstrip(":")}</p>'
             )
         elif block.block_type == "combat":
-            parts.append(f'<p style="color:#e7bf63;margin:6px 0;"><b>Combat :</b> {linked}</p>')
+            parts.append(f'<p style="color:@YELLOW;margin:6px 0;"><b>Combat :</b> {linked}</p>')
         else:
             parts.append(f'<p style="margin:3px 0;line-height:1.35;">{linked}</p>')
     label = QLabel(render_theme_template("".join(parts)))
@@ -4305,17 +4410,21 @@ def icon_row(kind: str, text: str) -> QWidget:
 
 
 def travel_position_row(position: str) -> QWidget:
-    button = AtlasButton(str(position or ""))
-    button.setObjectName("GuideInlineQuestButton")
+    button = AtlasButton(str(position or ""), variant="guide_quest_link")
+    # Standalone position buttons follow the same bold-coordinate contract as
+    # inline Quest/Guide text, without duplicating a UI style or widget class.
+    font = button.font()
+    font.setBold(True)
+    button.setFont(font)
     button.setToolTip("Copier la commande /travel")
     button.clicked.connect(lambda _checked=False, value=str(position or ""): copy_travel_position(value))
     return button
 
 
 def copy_travel_position(position: str) -> None:
-    match = TRAVEL_COORD_RE.search(str(position or ""))
-    if match:
-        QApplication.clipboard().setText(f"/travel {int(match.group(1))},{int(match.group(2))}")
+    command = _vm_call("travel_command", position)
+    if command:
+        QApplication.clipboard().setText(command)
 
 
 def icon_label(icon: QIcon, object_name: str = "GuideInfoIcon", size: int = 22, icon_size: int = 18) -> QLabel:

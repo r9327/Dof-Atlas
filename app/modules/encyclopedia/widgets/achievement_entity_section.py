@@ -7,6 +7,8 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
 
 from app.modules.encyclopedia.models.entity_ref import EntityRef
+from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES, entity_text_markup
+from app.ui.theme import PALETTE
 
 
 class AchievementEntityRow(QFrame):
@@ -26,7 +28,15 @@ class AchievementEntityRow(QFrame):
         layout.setContentsMargins(8, 5, 8, 5)
         layout.setSpacing(6)
 
-        label = QLabel(entity.label)
+        # Keep the existing row-level click target and Unity QSS; only
+        # its visible entity name gains the common semantic text color.
+        kind = str(entity.entity_type)
+        label = QLabel(
+            entity_text_markup(str(entity.label), kind, PALETTE)
+            if kind in ENTITY_LINK_COLOR_ROLES else str(entity.label)
+        )
+        if kind in ENTITY_LINK_COLOR_ROLES:
+            label.setTextFormat(Qt.RichText)
         label.setObjectName("AchievementEntityRowText")
         label.setWordWrap(True)
         label.setAttribute(Qt.WA_TransparentForMouseEvents, True)

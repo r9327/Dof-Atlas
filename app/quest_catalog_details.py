@@ -474,6 +474,28 @@ def ensure_detail_source_offsets(
     return prepared
 
 
+def load_quest_ids(
+    data_dir: Path = qc.RAW_QUEST_DATA_DIR,
+    *,
+    cache_root: Path = _CACHE_ROOT,
+) -> tuple[int, ...]:
+    """Read every canonical Quest ID without instantiating Quest records.
+
+    Names cannot serve as an ID inventory: multiple Quests may have the
+    same normalized title, so the compact name lookup can drop valid rows.
+    """
+
+    ensure_lazy_catalog_cache(data_dir, cache_root=cache_root)
+    _signature_value, path = _cache_identity(data_dir, cache_root)
+    with _connect(path) as connection:
+        return tuple(
+            int(quest_id)
+            for (quest_id,) in connection.execute(
+                "SELECT id FROM quests ORDER BY id"
+            )
+        )
+
+
 def load_quest_name_index(
     data_dir: Path = qc.RAW_QUEST_DATA_DIR,
     *,

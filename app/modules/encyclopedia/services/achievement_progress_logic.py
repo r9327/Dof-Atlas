@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
+from app.core.numbers import optional_int as _safe_int
 
 
-def _safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def derive_completion_state(

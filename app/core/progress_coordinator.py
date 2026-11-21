@@ -5,7 +5,10 @@ import os
 import threading
 from pathlib import Path
 from time import monotonic, sleep
-from typing import BinaryIO
+from typing import Any, BinaryIO
+
+from app.core.character_identity import require_character_key
+from app.core.file_stamp import mtime_ctime_size_stamp
 
 
 DEFAULT_LOCK_TIMEOUT_SECONDS = 10.0
@@ -170,9 +173,75 @@ def coordinator_for(path: Path) -> ProgressFileCoordinator:
         return coordinator
 
 
+def empty_progress_payload() -> dict[str, Any]:
+    """Return a fresh, versioned Quests/Guides/Achievements progress root."""
+    return {"version": 1, "characters": {}}
+
+
+
+def validate_progress_character_keys(progress: dict[str, Any]) -> None:
+    """Shared write boundary; reject invalid character keys before persistence."""
+    characters = progress.get("characters", {})
+    if not isinstance(characters, dict):
+        raise ValueError("progress characters must be a mapping")
+    for character_key in characters:
+        require_character_key(character_key)
+
+
+class CoordinatedProgressReader:
+    """Shared lazy-refresh implementation for Quest, Guide and Achievement.
+
+    Concrete services retain their own domain loader and cache invalidation.
+    A hot read checks only the coordinator generation; explicit reload checks
+    the disk signature as well, so external changes remain observable.
+    """
+
+    def _coordinated_load(self) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def _coordinated_invalidate(self) -> None:
+        raise NotImplementedError
+
+    def _current_disk_signature(self) -> tuple[int, int, int] | None:
+        return mtime_ctime_size_stamp(self.path)
+
+    def _replace_snapshot_locked(self, generation: int) -> None:
+        self.progress = self._coordinated_load()
+        self._seen_generation = generation
+        self._disk_signature = self._current_disk_signature()
+        self._coordinated_invalidate()
+
+    def _ensure_fresh(self) -> None:
+        if self._seen_generation == self._coordinator.generation:
+            return
+        with self._coordinator.lock:
+            if self._seen_generation != self._coordinator.generation:
+                self._replace_snapshot_locked(self._coordinator.generation)
+
+    def _refresh_if_changed_locked(self) -> bool:
+        generation = self._coordinator.generation
+        disk_signature = self._current_disk_signature()
+        if generation == self._seen_generation and disk_signature == self._disk_signature:
+            return False
+        self._replace_snapshot_locked(generation)
+        return True
+
+    def refresh_if_changed(self) -> bool:
+        with self._coordinator.lock:
+            return self._refresh_if_changed_locked()
+
+    def reload(self) -> dict[str, Any]:
+        with self._coordinator.lock:
+            self._refresh_if_changed_locked()
+            return self.progress
+
+
 __all__ = [
+    "CoordinatedProgressReader",
     "InterProcessResourceLock",
     "ProgressFileCoordinator",
     "ProgressLockTimeoutError",
     "coordinator_for",
+    "empty_progress_payload",
+    "validate_progress_character_keys",
 ]

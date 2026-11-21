@@ -24,6 +24,8 @@ from app.constants import (
 )
 from app.core.character_identity import character_id_from_key
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.doduda_rows import array_rows as array_value
+from app.core.numbers import optional_int as safe_int
 from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
 
@@ -61,13 +63,6 @@ QUEST_CATALOG_SOURCE_FILES = (
 )
 
 
-
-
-def array_value(value: Any) -> list[Any]:
-    if isinstance(value, dict):
-        inner = value.get("Array", [])
-        return inner if isinstance(inner, list) else []
-    return value if isinstance(value, list) else []
 
 
 def read_json_file(path: Path, default: Any) -> Any:
@@ -702,13 +697,6 @@ def write_quest_catalog_cache(catalog: QuestCatalog, data_dir: Path = RAW_QUEST_
         return
 
 
-def safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def safe_float(value: Any) -> float:
     try:
         return float(value)
@@ -874,6 +862,17 @@ def zone_for_map(
     return subarea_name or area_name
 
 
+def _valid_game_map_coordinate(value: Any) -> int | None:
+    """Return an exact signed game coordinate, never a coerced placeholder."""
+
+    # int(True) and int(1.5) silently invent map positions. Numeric source
+    # strings remain supported for old Doduda exports.
+    if isinstance(value, bool) or (isinstance(value, float) and not value.is_integer()):
+        return None
+    coordinate = safe_int(value)
+    return coordinate if coordinate is not None and SENTINEL_COORD < coordinate < 2**31 else None
+
+
 def map_label(
     map_id: Any,
     coords: dict[str, Any] | None,
@@ -881,15 +880,17 @@ def map_label(
 ) -> str:
     x_value = coords.get("x") if isinstance(coords, dict) else SENTINEL_COORD
     y_value = coords.get("y") if isinstance(coords, dict) else SENTINEL_COORD
-    x = safe_int(x_value)
-    y = safe_int(y_value)
-    if x is not None and y is not None and x != SENTINEL_COORD and y != SENTINEL_COORD:
+    x = _valid_game_map_coordinate(x_value)
+    y = _valid_game_map_coordinate(y_value)
+    if x is not None and y is not None:
         return f"[{x},{y}]"
     ident = safe_int(map_id)
     map_row = maps.get(ident or -1)
     if map_row:
-        pos_x = map_row.get("posX")
-        pos_y = map_row.get("posY")
+        pos_x = _valid_game_map_coordinate(map_row.get("posX"))
+        pos_y = _valid_game_map_coordinate(map_row.get("posY"))
+        # Missing, fractional, overflowed or placeholder coordinates cannot
+        # become a clickable position merely by falling back to the map row.
         if pos_x is not None and pos_y is not None:
             return f"[{pos_x},{pos_y}]"
     return ""
@@ -1257,8 +1258,10 @@ def enrichment_solution_blocks(row: dict[str, Any]) -> list[QuestSolutionBlock]:
     return blocks
 
 
-def resolve_local_asset_path(value: Any) -> str:
-    """Resolve portable or legacy absolute project paths against this checkout."""
+def resolve_local_asset_path(
+    value: Any, *, roots: tuple[Path, ...] = (),
+) -> str:
+    """Resolve project images, including legacy Windows and custom data roots."""
 
     text = str(value or "").strip()
     if not text:
@@ -1267,7 +1270,10 @@ def resolve_local_asset_path(value: Any) -> str:
     # the checkout is validated on POSIX.  Normalize separators before asking
     # pathlib to identify the portable project-relative ``data`` suffix.
     path = Path(text.replace("\\", "/"))
-    candidates = [path] if path.is_absolute() else [ROOT_DIR / path, path]
+    candidates = (
+        [path] if path.is_absolute()
+        else [ROOT_DIR / path, *(root / path for root in roots), path]
+    )
 
     normalized_parts = [part.casefold() for part in path.parts]
     if "data" in normalized_parts:

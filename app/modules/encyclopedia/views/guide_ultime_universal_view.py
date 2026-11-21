@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
@@ -7,12 +8,10 @@ from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -24,11 +23,12 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     ObjectiveWalkthrough,
     QuestWalkthroughIndex,
 )
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator
 
 
+_LOGGER = logging.getLogger(__name__)
 SENTINEL_COORD = -2147483648
-TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+TRAVEL_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
 _GENERIC_GATE_TOKENS = (
     "condition réelle du jeu",
@@ -176,7 +176,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
             text += f" — {location}"
         text += "."
 
-        label = QLabel(("✓ " if done else "• ") + text)
+        label = QLabel(("✓ " if done else "") + text)
         label.setObjectName("GuideRouteAction")
         label.setProperty("state", "done" if done else "todo")
         label.setWordWrap(True)
@@ -192,7 +192,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
         if position:
             instruction = f"{instruction} — {position}"
 
-        label = QLabel(("✓ " if checked else "• ") + instruction)
+        label = QLabel(("✓ " if checked else "") + instruction)
         label.setObjectName("GuideRouteAction")
         label.setProperty("state", "done" if checked else "todo")
         label.setWordWrap(True)
@@ -220,7 +220,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
                 and self.service.achievement_progress.is_achievement_completed(self.character_key, aid)
             )
             name = str(row.get("name") or "").strip()
-            label = QLabel(f"{'✓' if done else '•'} Fais aussi : {name}.")
+            label = QLabel(f"{'✓ ' if done else ''}Fais aussi : {name}.")
             label.setObjectName("GuideRouteAction")
             label.setProperty("state", "done" if done else "todo")
             label.setWordWrap(True)
@@ -341,7 +341,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
 
     @staticmethod
     def _add_plain_line(body: QVBoxLayout, text: str, *, important: bool = False) -> None:
-        label = QLabel("• " + str(text).strip().rstrip(".") + ".")
+        label = QLabel(str(text).strip().rstrip(".") + ".")
         label.setObjectName("GuideRouteImportant" if important else "GuideRouteAction")
         label.setWordWrap(True)
         body.addWidget(label)
@@ -363,7 +363,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
     ) -> None:
         self.quest_provider = quest_provider
         self.walkthrough = QuestWalkthroughIndex(quest_provider, quest_graph)
-        self.order_combo: QComboBox | None = None
+        self.order_combo: AtlasComboBox | None = None
         self.travel_callback = travel_callback
         if participant_service is None:
             from app.services.guide_participant_service import GuideParticipantService
@@ -380,27 +380,53 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         # Only direct, structurally valid /travel commands reach the launcher.
         # Zaaps require independently verified routing; never infer one here.
         normalized = str(command or "").strip()
-        available = getattr(self.participant_service, "available_characters", None)
-        # No verified connection inventory means no eligible recipients.
-        # Fail closed without propagating an AttributeError from a Qt event.
-        characters = available() if callable(available) else ()
-        eligible = {
-            row.key
-            for row in (characters or ())
-            if bool(getattr(row, "connected", False))
-        }
-        recipients = tuple(
-            key for key in self.selected_participant_keys() if key in eligible
-        )
         callback = self.travel_callback
-        if (
-            not callable(callback)
-            or not re.fullmatch(r"/travel -?\d+,-?\d+", normalized)
-            or not recipients
+        command_match = re.fullmatch(r"/travel (-?\d+),(-?\d+)", normalized)
+        known_destination = False
+        if command_match is not None and all(
+            len(value.lstrip("-")) <= 10 for value in command_match.groups()
         ):
+            # Dofus map positions are represented as signed 32-bit values;
+            # exclude the special no-position sentinel from game input.
+            x, y = (int(value) for value in command_match.groups())
+            known_destination = all(
+                SENTINEL_COORD < coordinate < 2**31 for coordinate in (x, y)
+            )
+        if not callable(callback) or not known_destination:
             QApplication.clipboard().setText(normalized)
             return False
-        callback(normalized, recipients)
+
+        try:
+            available = getattr(self.participant_service, "available_characters", None)
+            characters = available() if callable(available) else ()
+            eligible = {
+                row.key
+                for row in (characters or ())
+                if bool(getattr(row, "connected", False))
+            }
+            recipients = tuple(
+                key for key in self.selected_participant_keys() if key in eligible
+            )
+        except Exception:
+            _LOGGER.exception("Lecture des personnages connectés impossible")
+            QApplication.clipboard().setText(normalized)
+            return False
+        if not recipients:
+            QApplication.clipboard().setText(normalized)
+            return False
+        try:
+            result = callback(normalized, recipients)
+        except Exception:
+            # Never lose a valid travel instruction if the capture/runtime
+            # vanishes between the connection check and actual dispatch.
+            _LOGGER.exception("Envoi de la commande de voyage impossible")
+            QApplication.clipboard().setText(normalized)
+            return False
+        if result is False:
+            # None is the legacy fire-and-forget callback contract; only an
+            # explicit False indicates the launcher refused the request.
+            QApplication.clipboard().setText(normalized)
+            return False
         return True
 
     def _build_ui(self) -> None:
@@ -409,22 +435,13 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
 
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
-        home = AtlasButton("Guides")
-        home.setObjectName("GuideBreadcrumbButton")
+        self.breadcrumb = AtlasBreadcrumb()
+        self.breadcrumb_layout = self.breadcrumb.row
+        home = AtlasButton("Guides", variant="guide_breadcrumb")
         home.clicked.connect(lambda _checked=False: self._return_to_guides_catalog())
         self.breadcrumb_layout.addWidget(home)
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
-        current = QLabel("Guide Ultime")
-        current.setObjectName("GuideBreadcrumbCurrent")
-        self.breadcrumb_layout.addWidget(current)
-        self.breadcrumb_layout.addStretch(1)
+        self.breadcrumb.add_separator()
+        self.breadcrumb.add_current("Guide Ultime")
         root.addWidget(self.breadcrumb)
 
         header = QFrame()
@@ -463,24 +480,23 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         nav.setObjectName("GuideRouteNav")
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 6, 8, 6)
-        self.prev_button = QPushButton("← Précédent")
-        self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
-        nav_layout.addWidget(self.prev_button)
+        self.page_navigator = AtlasPageNavigator()
+        self.prev_button = self.page_navigator.previous_button
+        self.next_button = self.page_navigator.next_button
+        self.position_label = self.page_navigator.page_label
+        self.page_navigator.pageRequested.connect(
+            lambda page: self.navigate_relative(page - self.view_index - 1)
+        )
+        nav_layout.addWidget(self.page_navigator)
         nav_layout.addStretch(1)
-        self.current_button = QPushButton("Revenir à la fiche actuelle")
+        self.current_button = AtlasButton("Revenir à la fiche actuelle")
         self.current_button.setObjectName("GuideRouteCurrent")
         self.current_button.clicked.connect(self.go_active)
         nav_layout.addWidget(self.current_button)
-        nav_layout.addStretch(1)
-        self.next_button = QPushButton("Suivant →")
-        self.next_button.clicked.connect(lambda: self.navigate_relative(1))
-        nav_layout.addWidget(self.next_button)
         root.addWidget(nav)
 
         self.progress_details = QLabel()
         self.progress_details.setVisible(False)
-        self.position_label = QLabel()
-        self.position_label.setVisible(False)
 
     def _return_to_guides_catalog(self) -> None:
         self.backToGuidesRequested.emit()
@@ -562,7 +578,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         label = QLabel("Première quête d’Ordre : choisis l’Ordre Bonta que tu garderas jusqu’au rang 100.")
         label.setWordWrap(True)
         layout.addWidget(label, 1)
-        combo = QComboBox()
+        combo = AtlasComboBox()
         combo.setObjectName("GuideRouteInlineOrderCombo")
         combo.addItem("Choisir maintenant", "")
         for row in first.get("options", []) or []:
@@ -596,6 +612,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
     def _render_window(self) -> None:
         self._clear_cards()
         if not self.service.cards:
+            self.page_navigator.set_page(0, 0)
             return
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
         card = self.service.cards[index]
@@ -615,8 +632,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 1
-        self.prev_button.setEnabled(index > 0)
-        self.next_button.setEnabled(index < len(self.service.cards) - 1)
+        self.page_navigator.set_page(index + 1, len(self.service.cards))
         self.current_button.setVisible(index != self.active_index)
         self._make_positions_copyable(widget)
 

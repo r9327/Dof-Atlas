@@ -28,7 +28,10 @@ from .launch_pack_recovery import recover_data_packs_on_launch
 from .startup_trace import record_startup_event
 from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
                           display_message, progress_style, dpi_multiplier)
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 from app.windows.single_instance import SingleInstanceGuard
+
+LAUNCHER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["launcher"]
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 
@@ -534,7 +537,9 @@ def main() -> int:
                              or not installed or not has_saved_location()))
     chosen_root = {"path": ROOT}
     ui_scale = dpi_multiplier(window)
-    base_width, base_height = (520, 425) if choosing_install else (470, 252)
+    base_width, base_height = LAUNCHER_GEOMETRY[
+        "install_window_size" if choosing_install else "normal_window_size"
+    ]
     window.geometry(f"{round(base_width * ui_scale)}x{round(base_height * ui_scale)}")
     window.resizable(False, False)
     window.configure(bg=COLORS["background"])
@@ -548,11 +553,11 @@ def main() -> int:
         selection = tk.Frame(window, bg=COLORS["background"])
         selection.pack(pady=(12, 2))
         tk.Label(selection, text="EMPLACEMENT DES DONNÉES ATLAS (~3 Go)", bg=COLORS["background"],
-                 fg=COLORS["text"], font=("Segoe UI", 9, "bold")).pack()
+                 fg=COLORS["text"], font=(FONT_FAMILY, 9, "bold")).pack()
         chosen = tk.StringVar(value=str(ROOT))
         tk.Label(selection, textvariable=chosen, bg=COLORS["background"],
-                 fg=COLORS["muted"], font=("Segoe UI", 9),
-                  wraplength=round(515 * ui_scale)).pack()
+                 fg=COLORS["muted"], font=(FONT_FAMILY, 9),
+                  wraplength=round(LAUNCHER_GEOMETRY["install_path_wrap_length"] * ui_scale)).pack()
 
         def choose_install_folder():
             from tkinter import filedialog, messagebox
@@ -574,7 +579,7 @@ def main() -> int:
     status = tk.StringVar(value="Confirmez le disque de l'installation Atlas."
                           if choosing_install else "Initialisation...")
     tk.Label(window, textvariable=status, bg=COLORS["background"], fg=COLORS["text"],
-             font=(FONT_FAMILY, 10), wraplength=round(420 * ui_scale),
+             font=(FONT_FAMILY, 10), wraplength=round(LAUNCHER_GEOMETRY["status_wrap_length"] * ui_scale),
               justify="center", anchor="center").pack(
                  fill="x", padx=24, pady=(20, 12))
     style = ttk.Style(window)
@@ -582,7 +587,7 @@ def main() -> int:
     percent = tk.IntVar(value=0)
     bar = ttk.Progressbar(window, orient="horizontal", mode="determinate", maximum=100,
                           variable=percent, style="Atlas.Horizontal.TProgressbar",
-                          length=round(408 * ui_scale))
+                          length=round(LAUNCHER_GEOMETRY["progress_width"] * ui_scale))
     bar.pack(pady=(0, 6))
     numeric = tk.StringVar(value="0 %")
     tk.Label(window, textvariable=numeric, bg=COLORS["background"], fg=COLORS["muted"],
@@ -621,7 +626,9 @@ def main() -> int:
                 if target != ROOT:
                     last_pct = [-1]
                     def moved(done, total):
-                        pct = int(100 * done / max(total, 1))
+                        # Copy completion is not a verified installation or
+                        # Home handoff: reserve 100% for launch success.
+                        pct = min(96, int(100 * done / max(total, 1)))
                         if pct != last_pct[0]:
                             last_pct[0] = pct
                             report(f"Copie vers le nouveau disque : {pct} %", pct)
