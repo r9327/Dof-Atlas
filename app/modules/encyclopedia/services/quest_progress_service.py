@@ -6,8 +6,10 @@ from typing import Any, Iterable
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated
-from app.core.file_stamp import mtime_ctime_size_stamp
-from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
+from app.core.progress_coordinator import (
+    CoordinatedProgressReader, coordinator_for,
+    empty_progress_payload as _empty_progress, validate_progress_character_keys,
+)
 from app.quest_catalog import save_quest_progress
 
 
@@ -43,7 +45,7 @@ def load_quest_progress(path: Path) -> dict[str, Any]:
     return payload
 
 
-class QuestProgressService:
+class QuestProgressService(CoordinatedProgressReader):
     """Local per-character quest, objective and quest-item progress.
 
     Multiple UI surfaces may own an instance simultaneously. Mutations always
@@ -63,56 +65,16 @@ class QuestProgressService:
             self._seen_generation = self._coordinator.generation
             self._disk_signature = self._current_disk_signature()
 
-    def _current_disk_signature(self) -> tuple[int, int, int] | None:
-        return mtime_ctime_size_stamp(self.path)
+    def _coordinated_load(self) -> dict[str, Any]:
+        return load_quest_progress(self.path)
+
+    def _coordinated_invalidate(self) -> None:
+        self._clear_read_caches()
 
     def _clear_read_caches(self) -> None:
         self._completed_quest_ids_cache.clear()
         self._completed_objective_ids_cache.clear()
         self._completed_item_ids_cache.clear()
-
-    def _ensure_fresh(self) -> None:
-        if self._seen_generation == self._coordinator.generation:
-            return
-        with self._coordinator.lock:
-            if self._seen_generation != self._coordinator.generation:
-                self.progress = load_quest_progress(self.path)
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_read_caches()
-
-    def refresh_if_changed(self) -> bool:
-        """Refresh only when coordinated or on-disk progress actually changed.
-
-        The coordinator generation catches writes from live Atlas services. The
-        file signature additionally preserves detection of an external writer
-        without reparsing the JSON merely because a tab became visible again.
-        """
-
-        with self._coordinator.lock:
-            generation = self._coordinator.generation
-            disk_signature = self._current_disk_signature()
-            if generation == self._seen_generation and disk_signature == self._disk_signature:
-                return False
-            self.progress = load_quest_progress(self.path)
-            self._seen_generation = generation
-            self._disk_signature = self._current_disk_signature()
-            self._clear_read_caches()
-            return True
-
-    def reload(self) -> dict[str, Any]:
-        """Reload progress when the coordinated generation or file changed."""
-
-        with self._coordinator.lock:
-            generation = self._coordinator.generation
-            disk_signature = self._current_disk_signature()
-            if generation == self._seen_generation and disk_signature == self._disk_signature:
-                return self.progress
-            self.progress = load_quest_progress(self.path)
-            self._seen_generation = generation
-            self._disk_signature = self._current_disk_signature()
-            self._clear_read_caches()
-        return self.progress
 
     def _completed_quest_ids_snapshot(self, character_key: str) -> frozenset[int]:
         self._ensure_fresh()
@@ -435,11 +397,7 @@ class QuestProgressService:
         return character
 
     def _validate_write_snapshot(self) -> None:
-        characters = self.progress.get("characters", {})
-        if not isinstance(characters, dict):
-            raise ValueError("progress characters must be a mapping")
-        for character_key in characters:
-            require_character_key(character_key)
+        validate_progress_character_keys(self.progress)
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:

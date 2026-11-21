@@ -5,8 +5,10 @@ from typing import Any
 
 from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.character_identity import require_character_key
-from app.core.file_stamp import mtime_ctime_size_stamp
-from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
+from app.core.progress_coordinator import (
+    CoordinatedProgressReader, coordinator_for,
+    empty_progress_payload as _empty_progress, validate_progress_character_keys,
+)
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
 from app.modules.encyclopedia.services.progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
@@ -20,7 +22,7 @@ def read_json_resilient(path: Path, default: Any) -> Any:
     return read_json_validated(path, default, _achievement_progress_schema_error)
 
 
-class AchievementProgressService(LegacyAchievementProgressService):
+class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementProgressService):
     """Concurrency-safe facade over the existing achievement progress engine.
 
     All instances for the same progress file share a lock and generation. Writes
@@ -51,8 +53,11 @@ class AchievementProgressService(LegacyAchievementProgressService):
         self._completion_cache[key] = result
         return result
 
-    def _current_disk_signature(self) -> tuple[int, int, int] | None:
-        return mtime_ctime_size_stamp(self.path)
+    def _coordinated_load(self) -> dict[str, Any]:
+        return self._load()
+
+    def _coordinated_invalidate(self) -> None:
+        self._invalidate_runtime_caches()
 
     def _load(self) -> dict[str, Any]:
         payload = read_json_resilient(self.path, _empty_progress())
@@ -63,43 +68,6 @@ class AchievementProgressService(LegacyAchievementProgressService):
     def _invalidate_runtime_caches(self) -> None:
         self._completion_cache.clear()
         self._automatic_sync_cache.clear()
-
-    def _ensure_fresh(self) -> None:
-        # Hot completion reads intentionally use the in-process generation only.
-        # External writers are detected by reload()/refresh_if_changed() without
-        # adding a filesystem stat to every objective/achievement lookup.
-        if self._seen_generation == self._coordinator.generation:
-            return
-        with self._coordinator.lock:
-            if self._seen_generation != self._coordinator.generation:
-                self.progress = self._load()
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._invalidate_runtime_caches()
-
-    def refresh_if_changed(self) -> bool:
-        with self._coordinator.lock:
-            generation = self._coordinator.generation
-            disk_signature = self._current_disk_signature()
-            if generation == self._seen_generation and disk_signature == self._disk_signature:
-                return False
-            self.progress = self._load()
-            self._seen_generation = generation
-            self._disk_signature = self._current_disk_signature()
-            self._invalidate_runtime_caches()
-            return True
-
-    def reload(self) -> dict[str, Any]:
-        with self._coordinator.lock:
-            generation = self._coordinator.generation
-            disk_signature = self._current_disk_signature()
-            if generation == self._seen_generation and disk_signature == self._disk_signature:
-                return self.progress
-            self.progress = self._load()
-            self._seen_generation = generation
-            self._disk_signature = self._current_disk_signature()
-            self._invalidate_runtime_caches()
-            return self.progress
 
     def state_for(self, character_key: str):
         self._ensure_fresh()
@@ -284,11 +252,7 @@ class AchievementProgressService(LegacyAchievementProgressService):
             )
 
     def _validate_write_snapshot(self) -> None:
-        characters = self.progress.get("characters", {})
-        if not isinstance(characters, dict):
-            raise ValueError("progress characters must be a mapping")
-        for character_key in characters:
-            require_character_key(character_key)
+        validate_progress_character_keys(self.progress)
 
 
 def _achievement_progress_schema_error(payload: Any) -> str | None:

@@ -42,5 +42,17 @@ class CoreSharedStateTests(unittest.TestCase):
             self.assertIsNone(mtime_ctime_size_stamp(path))
 
 
+    def test_write_validation_is_shared_by_three_progress_services(self) -> None:
+        from app.core.progress_coordinator import validate_progress_character_keys
+
+        validate_progress_character_keys({"characters": {"character:1": {}}})
+        validate_progress_character_keys({})
+        with self.assertRaisesRegex(ValueError, "must be a mapping"):
+            validate_progress_character_keys({"characters": []})
+        for invalid in ("slot:1", "character:0", "character:01"):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                validate_progress_character_keys({"characters": {invalid: {}}})
+
+
 if __name__ == "__main__":
     unittest.main()
