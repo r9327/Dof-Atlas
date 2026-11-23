@@ -45,6 +45,24 @@ class SharedUiComponentsTests(unittest.TestCase):
             button.deleteLater()
             badge.deleteLater()
 
+    def test_hide_completed_button_reuses_shared_style_refresh(self) -> None:
+        from app.modules.encyclopedia.widgets.dashboard import HideCompletedButton
+
+        toggle = HideCompletedButton()
+        events: list[bool] = []
+        toggle.stateChanged.connect(events.append)
+        try:
+            with patch("app.modules.encyclopedia.widgets.dashboard.refresh_unity_widget_style") as refresh:
+                toggle.setChecked(True)
+                self.assertEqual(toggle.text(), "✓ Terminées masquées")
+                refresh.assert_called_once_with(toggle)
+                toggle.setChecked(False)
+                self.assertEqual(toggle.text(), "Masquer les terminées")
+                self.assertEqual(refresh.call_count, 2)
+                self.assertEqual(events, [True, False])
+        finally:
+            toggle.deleteLater()
+
     def test_dialog_standard_and_compact_sizes_use_shared_tokens(self) -> None:
         from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
 

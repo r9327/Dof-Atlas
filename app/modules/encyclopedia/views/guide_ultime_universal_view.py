@@ -23,7 +23,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     ObjectiveWalkthrough,
     QuestWalkthroughIndex,
 )
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, refresh_unity_widget_style
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -678,8 +678,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             if not bool(label.property("travelEventFilterInstalled")):
                 label.installEventFilter(self)
                 label.setProperty("travelEventFilterInstalled", True)
-            label.style().unpolish(label)
-            label.style().polish(label)
+            refresh_unity_widget_style(label)
 
     def eventFilter(self, watched, event) -> bool:
         if (

@@ -29,7 +29,7 @@ from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUlti
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, refresh_unity_widget_style
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -463,8 +463,7 @@ class GuideUltimeManualCard(QFrame):
             return
         setter(self.character_key, int(quest_id), int(objective_id), bool(checked))
         checkbox.setProperty("state", "done" if checked else "todo")
-        checkbox.style().unpolish(checkbox)
-        checkbox.style().polish(checkbox)
+        refresh_unity_widget_style(checkbox)
         parent = self.parentWidget()
         while parent is not None:
             handler = getattr(parent, "_manual_objective_changed", None)

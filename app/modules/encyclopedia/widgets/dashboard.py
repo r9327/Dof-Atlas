@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.ui.components import AtlasButton, AtlasStatusBadge
+from app.ui.components import AtlasButton, AtlasStatusBadge, refresh_unity_widget_style
 
 
 class HideCompletedButton(AtlasButton):
@@ -32,9 +32,7 @@ class HideCompletedButton(AtlasButton):
 
     def _sync_state(self, checked: bool) -> None:
         self.setText("✓ Terminées masquées" if checked else "Masquer les terminées")
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self.update()
+        refresh_unity_widget_style(self)
         self.stateChanged.emit(checked)
 
 
