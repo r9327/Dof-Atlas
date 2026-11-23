@@ -8,22 +8,14 @@ from __future__ import annotations
 import math
 from typing import Collection, Mapping, Any
 
+from app.core.numbers import exact_native_integer
 from app.core.text import clean_auto_group_name, normalize_key
 from .common import DOFUS_CLASS_DEFINITIONS
 
 
 def _exact_native_id(value: object, maximum: int, *, allow_zero: bool = False) -> int | None:
-    """Accept only real Win32 integer IDs or persisted ASCII decimal text."""
-    if type(value) is int:
-        number = value
-    elif type(value) is str and value.isascii() and value.strip().isdecimal():
-        try:
-            number = int(value.strip())
-        except (ValueError, OverflowError):
-            return None
-    else:
-        return None
-    return number if (0 if allow_zero else 1) <= number <= maximum else None
+    """Keep the radial selection API; share exact Win32 identity validation."""
+    return exact_native_integer(value, maximum, allow_zero=allow_zero)
 
 
 def radial_roster_key(session: Mapping[str, Any]) -> str:
