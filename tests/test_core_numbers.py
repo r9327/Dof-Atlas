@@ -54,6 +54,28 @@ class ValidIntIdTests(unittest.TestCase):
         )
         self.assertEqual(valid_int_ids(()), frozenset())
 
+    def test_quest_objective_mutation_preserves_sorted_json_ids(self):
+        from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            service = QuestProgressService(Path(directory) / "quests.json")
+            self.assertTrue(
+                service.set_objective_completed("character:1", 17, 9, True)
+            )
+            self.assertTrue(
+                service.set_objective_completed("character:1", 17, 3, True)
+            )
+            self.assertFalse(
+                service.set_objective_completed("character:1", 17, 3, True)
+            )
+            self.assertEqual(
+                service.progress["characters"]["character:1"][
+                    "completed_quest_objectives"]["17"],
+                [3, 9],
+            )
+
     def test_quest_and_item_boolean_maps_keep_only_truthy_ids(self):
         from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
         from types import SimpleNamespace

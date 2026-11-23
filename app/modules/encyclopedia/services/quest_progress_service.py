@@ -228,11 +228,7 @@ class QuestProgressService(CoordinatedProgressReader):
                 rows = {}
                 character["completed_quest_objectives"] = rows
             key = str(int(quest_id))
-            values = {
-                int(value)
-                for value in rows.get(key, [])
-                if self._safe_int(value) is not None
-            }
+            values = set(valid_int_ids(rows.get(key, [])))
             previous = set(values)
             if completed:
                 values.add(int(objective_id))
