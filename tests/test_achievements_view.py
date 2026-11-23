@@ -50,6 +50,21 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_category_scroll_uses_shared_policy_without_losing_frame(self):
+        from app.modules.encyclopedia.widgets.filter_panel import AchievementFilterPanel
+        from PySide6.QtWidgets import QScrollArea
+
+        panel = AchievementFilterPanel()
+        try:
+            area = panel.category_area
+            self.assertIsInstance(area, QScrollArea)
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(area.frameShape(), QFrame.StyledPanel)
+            self.assertEqual(area.objectName(), "CategoryProgressArea")
+        finally:
+            panel.deleteLater()
+
     def test_third_column_is_visible_and_has_help_before_first_selection(self):
         view, provider = self.make_view()
         self.assertEqual(view.splitter.count(), 3)

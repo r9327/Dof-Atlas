@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.models.achievement import AchievementCategory
-from app.ui.components import AtlasComboBox, fit_unity_number_spinbox
+from app.ui.components import AtlasComboBox, configure_unity_scroll_area, fit_unity_number_spinbox
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 
@@ -61,10 +61,8 @@ class AchievementFilterPanel(QWidget):
             root.addWidget(widget)
         root.addWidget(self.hide_completed)
 
-        self.category_area = QScrollArea()
+        self.category_area = configure_unity_scroll_area(QScrollArea())
         self.category_area.setObjectName("CategoryProgressArea")
-        self.category_area.setWidgetResizable(True)
-        self.category_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.category_content = QWidget()
         self.category_layout = QVBoxLayout(self.category_content)
         self.category_layout.setContentsMargins(0, 0, 0, 0)
