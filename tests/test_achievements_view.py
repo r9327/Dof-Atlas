@@ -71,6 +71,22 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         finally:
             card.deleteLater()
 
+    def test_shared_progress_bar_supports_indeterminate_and_native_text(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import configure_unity_progress_bar
+
+        bar = configure_unity_progress_bar(
+            QProgressBar(), maximum=0, text_visible=True,
+        )
+        try:
+            self.assertEqual((bar.minimum(), bar.maximum()), (0, 0))
+            self.assertTrue(bar.isTextVisible())
+            configure_unity_progress_bar(bar, maximum=3, text_visible=True)
+            self.assertEqual((bar.minimum(), bar.maximum()), (0, 3))
+            self.assertTrue(bar.isTextVisible())
+        finally:
+            bar.deleteLater()
+
     def test_guide_header_uses_common_progress_configuration(self):
         from app.modules.encyclopedia.widgets.guide_progress_header import GuideProgressHeader
 

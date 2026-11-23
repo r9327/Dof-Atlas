@@ -159,13 +159,13 @@ def configure_unity_scroll_area(
 
 def configure_unity_progress_bar(
     bar: QProgressBar, *, object_name: str | None = None,
-    maximum: int = 100,
+    maximum: int = 100, text_visible: bool = False,
 ) -> QProgressBar:
     """Set common Qt progress styling; preserve the caller's ownership and value."""
     if object_name is not None:
         bar.setObjectName(object_name)
     bar.setRange(0, maximum)
-    bar.setTextVisible(False)
+    bar.setTextVisible(text_visible)
     return bar
 
 
