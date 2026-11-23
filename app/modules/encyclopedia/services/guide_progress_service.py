@@ -54,9 +54,8 @@ class GuideProgressService(CoordinatedProgressReader):
         guide_steps = self._read_manual_steps_map(key[0])
         values = guide_steps.get(key[1], [])
         snapshot = frozenset(
-            str(value)
-            for value in values
-            if isinstance(values, list) and str(value)
+            str(value) for value in (values if isinstance(values, list) else ())
+            if str(value)
         )
         self._manual_steps_cache[key] = snapshot
         return snapshot

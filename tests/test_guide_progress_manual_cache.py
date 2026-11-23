@@ -10,6 +10,19 @@ from app.modules.encyclopedia.services.guide_progress_service import GuideProgre
 
 
 class GuideProgressManualCacheTests(unittest.TestCase):
+    def test_malformed_in_memory_manual_rows_return_no_phantom_steps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            service = GuideProgressService(Path(directory) / "guides.json")
+            service.progress["characters"]["character:1"] = {
+                "manual_steps": {"g": "a-text-instead-of-list"},
+            }
+            self.assertEqual(service.manual_steps("character:1", "g"), set())
+            service._manual_steps_cache.clear()
+            service.progress["characters"]["character:1"]["manual_steps"]["g"] = [
+                "page:a", "", "page:a",
+            ]
+            self.assertEqual(service.manual_steps("character:1", "g"), {"page:a"})
+
     def test_repeated_membership_reuses_one_manual_step_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "guide_progress.json"
