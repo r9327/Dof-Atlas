@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 
 from app import local_data_cache
 from app.core.item_artwork import item_with_artwork
+from app.core.craft_selection import selection_item_id
 from app.constants import (
     CRAFT_SELECTION_FILE,
     HARVEST_ASSET_REPORT,
@@ -1021,9 +1022,10 @@ class CraftPage(QWidget):
         if not isinstance(rows, list):
             return
         for row in rows:
-            try:
-                ident = int(row.get("ankama_id") or row.get("item_id"))
-            except (TypeError, ValueError):
+            if not isinstance(row, dict):
+                continue
+            ident = selection_item_id(row)
+            if ident is None:
                 continue
             try:
                 item = local_data_cache.get_item(ident)

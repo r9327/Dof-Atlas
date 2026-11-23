@@ -4,9 +4,15 @@ from __future__ import annotations
 import unittest
 
 from app.pages._quests_page_impl import normalize_owned_items, owned_item_identifier
+from app.core.craft_selection import selection_item_id
 
 
 class OwnedItemsNormalizationTests(unittest.TestCase):
+    def test_quest_and_craft_reuse_one_identifier_codec(self):
+        self.assertIs(owned_item_identifier, selection_item_id)
+        self.assertIsNone(selection_item_id({"ankama_id": "invalid", "item_id": 42}))
+        self.assertEqual(selection_item_id({"ankama_id": "", "item_id": 42}), 42)
+
     def test_row_ids_keep_ankama_priority_and_legacy_boolean_conversion(self):
         self.assertEqual(owned_item_identifier({"ankama_id": "42", "item_id": 51}), 42)
         self.assertEqual(owned_item_identifier({"ankama_id": 0, "item_id": "51"}), 51)

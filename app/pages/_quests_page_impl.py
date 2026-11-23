@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
+from app.core.craft_selection import selection_item_id as owned_item_identifier
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     QuestGraphService,
@@ -1278,11 +1279,6 @@ def guides_section(guides: list[Any]) -> str:
 
 def local_image_url(path: str) -> str:
     return escape(QUrl.fromLocalFile(str(path)).toString())
-
-
-def owned_item_identifier(row: dict[str, Any]) -> int | None:
-    """Preserve saved Craft ID precedence in the Quests preparation rail."""
-    return optional_int(row.get("ankama_id") or row.get("item_id"))
 
 
 def normalize_owned_items(payload: Any) -> dict[int, int]:
