@@ -178,6 +178,24 @@ def empty_progress_payload() -> dict[str, Any]:
     return {"version": 1, "characters": {}}
 
 
+def progress_characters_for_validation(payload: Any) -> tuple[dict[str, Any], str | None]:
+    """Validate the shared progress envelope once; callers validate domain fields.
+
+    Preserve the precise legacy error messages for Quest, Guide and Achievement
+    readers. No identities, quantities or completion state are inferred.
+    """
+    if not isinstance(payload, dict):
+        return {}, "la racine doit être un objet"
+    if payload.get("version", 1) != 1:
+        return {}, f"version inconnue: {payload.get('version')!r}"
+    characters = payload.get("characters", {})
+    if not isinstance(characters, dict):
+        return {}, "characters doit être un objet"
+    for character_key, character in characters.items():
+        if not isinstance(character, dict):
+            return {}, f"characters[{character_key!r}] doit être un objet"
+    return characters, None
+
 
 def validate_progress_character_keys(progress: dict[str, Any]) -> None:
     """Shared write boundary; reject invalid character keys before persistence."""
@@ -243,5 +261,6 @@ __all__ = [
     "ProgressLockTimeoutError",
     "coordinator_for",
     "empty_progress_payload",
+    "progress_characters_for_validation",
     "validate_progress_character_keys",
 ]
