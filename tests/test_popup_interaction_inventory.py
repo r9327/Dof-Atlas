@@ -240,7 +240,7 @@ class PopupInteractionInventoryTests(unittest.TestCase):
             QTest.mouseClick(label, Qt.LeftButton)
             self.pump()
             self.assertIsNone(label._image_popup)
-            self.assertFalse(popup.isVisible())
+            self.assertTrue(not isValid(popup) or not popup.isVisible())
             self.dispose(popup, host)
 
     def test_dev_menu_and_combobox_popup_accept_real_mouse_clicks(self) -> None:

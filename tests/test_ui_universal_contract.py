@@ -477,7 +477,8 @@ class UiUniversalContractTests(unittest.TestCase):
         from app.pages.organizer.organizer_ui import OrganizerUiMixin
         source = inspect.getsource(OrganizerUiMixin.build_organizer_ui)
         self.assertNotIn("setStyleSheet(", source)
-        self.assertIn('action.setProperty("atlasShortcutInset", True)', source)
+        self.assertIn('set_unity_widget_property(action, "atlasShortcutInset", True)', source)
+        self.assertNotIn('action.setProperty("atlasShortcutInset", True)', source)
         self.assertIn("#organizerPage QFrame#card", ORGANIZER_STYLE_TEMPLATE)
         self.assertIn(
             '#organizerPage QPushButton[atlasShortcutInset="true"]',
