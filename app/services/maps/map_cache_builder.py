@@ -54,7 +54,8 @@ def get_local_image_files() -> list[Path]:
 
 
 def get_local_image_stats() -> LocalImageStats:
-    ensure_cache_layout()
+    # get_local_image_files owns the cache layout setup. Avoid a second
+    # scan/update of manifest and worlds metadata in the same request.
     files = get_local_image_files()
     empty_dirs: list[Path] = []
     for root in LOCAL_IMAGE_DIRS:

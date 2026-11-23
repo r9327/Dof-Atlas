@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
@@ -61,6 +63,21 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
         panel.close()
         panel.deleteLater()
         QCoreApplication.sendPostedEvents(panel, QEvent.DeferredDelete)
+
+    def test_local_image_stats_initializes_cache_layout_once(self) -> None:
+        import app.services.maps.map_cache_builder as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            image_directory = Path(directory) / "images"
+            with (
+                patch.object(builder, "LOCAL_IMAGE_DIRS", (image_directory,)),
+                patch.object(builder, "ensure_cache_layout") as initialize,
+            ):
+                stats = builder.get_local_image_stats()
+            initialize.assert_called_once_with()
+            self.assertEqual(stats.image_count, 0)
+            self.assertEqual(stats.total_bytes, 0)
+            self.assertEqual(stats.empty_dirs, (image_directory,))
 
     def test_world_service_can_skip_constructor_init_without_changing_default(self) -> None:
         with patch.object(world_service_module.world_db, "init_db") as init_db:
