@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
+from app.core.file_stamp import mtime_size_stamp
 from app.core.numbers import clamped_percent, format_grouped_int
 from app.core.text import strip_accents
 from app.network.application_coordinator import NetworkApplicationStatus
@@ -855,11 +856,7 @@ class HomePage(QWidget):
 
     @staticmethod
     def _progress_file_stamp(path: Path) -> tuple[int, int]:
-        try:
-            stat = Path(path).stat()
-        except OSError:
-            return (0, 0)
-        return (int(stat.st_mtime_ns), int(stat.st_size))
+        return mtime_size_stamp(path)
 
     def _progress_input_signature(self) -> tuple[object, ...]:
         from app.modules.encyclopedia.services import (

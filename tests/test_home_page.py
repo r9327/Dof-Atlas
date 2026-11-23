@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -9,12 +11,23 @@ from PySide6.QtWidgets import QApplication
 
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.pages.home_page import HomePage, HomeTrackingRow
+from app.core.file_stamp import mtime_size_stamp
 
 
 class HomeNetworkIndicatorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_home_progress_file_stamp_is_shared_and_handles_missing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quest_progress.json"
+            self.assertEqual(HomePage._progress_file_stamp(path), (0, 0))
+            path.write_text('{"characters":{}}', encoding="utf-8")
+            self.assertEqual(HomePage._progress_file_stamp(path), mtime_size_stamp(path))
+            self.assertEqual(HomePage._progress_file_stamp(path)[1], path.stat().st_size)
+            path.unlink()
+            self.assertEqual(HomePage._progress_file_stamp(path), (0, 0))
 
     def test_home_tracking_key_preserves_accent_and_hyphen_matching(self) -> None:
         self.assertEqual(HomePage._plain_key("  ÉPÉE – Cawotte  "), "epee – cawotte")
