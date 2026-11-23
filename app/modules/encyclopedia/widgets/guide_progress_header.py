@@ -10,7 +10,7 @@ from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON
 from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, configure_unity_progress_bar
 
 
 class GuideProgressHeader(QFrame):
@@ -69,10 +69,9 @@ class GuideProgressHeader(QFrame):
         progress_row.addWidget(self.progress_percent)
         content.addLayout(progress_row)
 
-        self.progress = QProgressBar()
-        self.progress.setObjectName("EncyclopediaProgressBar")
-        self.progress.setTextVisible(False)
-        self.progress.setRange(0, 100)
+        self.progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="EncyclopediaProgressBar",
+        )
         content.addWidget(self.progress)
 
         reward = QHBoxLayout()
