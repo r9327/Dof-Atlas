@@ -743,13 +743,10 @@ class CloseActionDialog(AtlasDialog):
         self.setMinimumWidth(470)
         self._selected_action = "cancel"
 
-        self.content_layout.addWidget(
-            AtlasDialogHeader(
-                "Fermer Dofus Atlas ?",
-                "Choisis si l'application doit rester disponible en arrière-plan.",
-                icon=atlas_application_icon(),
-                parent=self,
-            )
+        self.add_header(
+            "Fermer Dofus Atlas ?",
+            "Choisis si l'application doit rester disponible en arrière-plan.",
+            icon=atlas_application_icon(),
         )
 
         body = QLabel(

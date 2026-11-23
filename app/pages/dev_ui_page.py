@@ -2866,12 +2866,10 @@ class DevUiPage(QWidget):
             raise ValueError(mode)
         dialog = AtlasDialog(self)
         dialog.setWindowTitle("Prévisualisation du dialogue Unity")
-        dialog.content_layout.addWidget(
-            AtlasDialogHeader(
-                f"Dialogue commun · {titles[mode]}",
-                "Même palette, même police, mêmes contrôles.",
-                icon=atlas_application_icon(),
-            )
+        dialog.add_header(
+            f"Dialogue commun · {titles[mode]}",
+            "Même palette, même police, mêmes contrôles.",
+            icon=atlas_application_icon(),
         )
         if mode in {"info", "warning", "danger"}:
             dialog.content_layout.addWidget(

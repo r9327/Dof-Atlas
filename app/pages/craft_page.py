@@ -55,7 +55,7 @@ from app.storage import (
     write_json,
 )
 from app.ui.components import (
-    AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
+    AtlasButton, AtlasDialog, AtlasPageTitle,
     fit_unity_number_spinbox,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
@@ -97,11 +97,7 @@ class CraftResourceDialog(AtlasDialog):
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
         root = self.content_layout
 
-        root.addWidget(AtlasDialogHeader(
-            "Ressources craft",
-            f"{len(resources)} ressource(s)",
-            parent=self,
-        ))
+        self.add_header("Ressources craft", f"{len(resources)} ressource(s)")
 
         toolbar = QHBoxLayout()
         toolbar.setContentsMargins(0, 0, 0, 0)
@@ -214,12 +210,11 @@ class ItemSetDialog(AtlasDialog):
             self.item_set.get("name_fr") or self.item_set.get("name_en")
             or f"Panoplie {self.item_set.get('ankama_id', '')}".strip()
         )
-        root.addWidget(AtlasDialogHeader(
+        self.add_header(
             str(name),
             f"{len(self.item_set.get('items', []))} objet(s) connu(s)"
             if self.item_set else "",
-            parent=self,
-        ))
+        )
         if not item_set:
             empty = QLabel("Aucune panoplie connue pour cet équipement.")
             empty.setAlignment(Qt.AlignCenter)
@@ -276,10 +271,7 @@ class LevelingDialog(AtlasDialog):
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
         root = self.content_layout
-        root.addWidget(AtlasDialogHeader(
-            f"{job_name} — Repères locaux" if local else f"{job_name} 0-200",
-            parent=self,
-        ))
+        self.add_header(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
         if local:
             note = QLabel(
                 "Ressources classées par progression, sans palier XP ni quantité garantie."
@@ -380,10 +372,7 @@ class RouteDialog(AtlasDialog):
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
         root = self.content_layout
-        root.addWidget(AtlasDialogHeader(
-            f"{job_name} - {item.get('name', 'Ressource')}",
-            parent=self,
-        ))
+        self.add_header(f"{job_name} - {item.get('name', 'Ressource')}")
         controls = QHBoxLayout()
         self.step_label = QLabel("Etape 1")
         controls.addWidget(self.step_label)

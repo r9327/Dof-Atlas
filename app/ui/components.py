@@ -565,6 +565,14 @@ class AtlasDialog(QDialog):
         self.content_layout.setContentsMargins(x, y, x, y)
         self.content_layout.setSpacing(UNITY_LAYOUT_SIZES_PX[f"{prefix}gap"])
 
+    def add_header(
+        self, title: str, subtitle: str = "", *, icon: QIcon | None = None,
+    ) -> AtlasDialogHeader:
+        """Attach one canonical indexed header to the dialog's content."""
+        header = AtlasDialogHeader(title, subtitle, icon=icon, parent=self)
+        self.content_layout.addWidget(header)
+        return header
+
 
 class AtlasDialogHeader(QWidget):
     """Reusable application-dialog header with optional product icon."""

@@ -32,6 +32,22 @@ class SharedUiComponentsTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_shared_dialog_add_header_preserves_single_indexed_widget(self) -> None:
+        from app.ui.components import AtlasDialogHeader
+
+        dialog = AtlasDialog()
+        try:
+            title = dialog.add_header("Titre", "Sous-titre")
+            self.assertIsInstance(title, AtlasDialogHeader)
+            self.assertIs(title.parentWidget(), dialog)
+            self.assertIs(dialog.content_layout.itemAt(0).widget(), title)
+            self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
+            self.assertEqual(title.title_label.text(), "Titre")
+            self.assertEqual(title.subtitle_label.text(), "Sous-titre")
+            self.assertEqual(title.styleSheet(), "")
+        finally:
+            dialog.deleteLater()
+
     def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
         button = AtlasButton("Contrôle")
         badge = AtlasStatusBadge("Statut", "neutral")
