@@ -27,6 +27,24 @@ class CraftFixesTests(unittest.TestCase):
         self.addCleanup(page.deleteLater)
         return page
 
+    def test_craft_cleanup_recurses_without_prematurely_detaching_children(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
+
+        page = self.make_page()
+        host = QWidget()
+        outer = QVBoxLayout(host)
+        inner = QHBoxLayout()
+        label = QLabel("old craft")
+        inner.addWidget(label)
+        outer.addLayout(inner)
+        try:
+            page.clear_layout(outer)
+            self.assertEqual(outer.count(), 0)
+            self.assertEqual(inner.count(), 0)
+            self.assertIs(label.parent(), host)
+        finally:
+            host.deleteLater()
+
     def test_craft_quantity_width_reuses_shared_unity_rule(self):
         from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 

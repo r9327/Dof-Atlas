@@ -60,7 +60,7 @@ from app.storage import (
 from app.ui.components import (
     AtlasButton, AtlasDialog, AtlasPageTitle,
     fit_unity_number_spinbox, release_transient_dialog,
-    clear_current_dialog_reference,
+    clear_current_dialog_reference, clear_unity_widget_layout,
     configure_unity_scroll_area,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
@@ -699,14 +699,8 @@ class CraftPage(QWidget):
             release()
 
     def clear_layout(self, layout) -> None:
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget()
-            child_layout = item.layout()
-            if widget is not None:
-                widget.deleteLater()
-            elif child_layout is not None:
-                self.clear_layout(child_layout)
+        # Craft used to keep widget parents until Qt processes DeferredDelete.
+        clear_unity_widget_layout(layout, recursive=True, detach_widgets=False)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
