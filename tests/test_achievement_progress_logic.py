@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
+from app.modules.encyclopedia.services.achievement_progress_logic import achievement_progress_percent, derive_completion_state
 
 
 class AchievementProgressLogicTests(unittest.TestCase):
@@ -37,6 +37,13 @@ class AchievementProgressLogicTests(unittest.TestCase):
         )
         self.assertEqual(character["completed_achievements"], [3, 4, 9])
         self.assertEqual(saves, [True])
+
+    def test_completed_success_with_zero_objectives_keeps_explicit_progress(self):
+        self.assertEqual(achievement_progress_percent(True, 0, 0), 100)
+        self.assertEqual(achievement_progress_percent(False, 0, 0), 0)
+        self.assertEqual(achievement_progress_percent(False, 2, 3), 67)
+        self.assertEqual(achievement_progress_percent(False, 5, 2), 100)
+        self.assertEqual(achievement_progress_percent(False, -1, 2), 0)
 
     def test_coordinated_and_legacy_success_readers_share_exact_method(self):
         from app.modules.encyclopedia.services.progress_service import (

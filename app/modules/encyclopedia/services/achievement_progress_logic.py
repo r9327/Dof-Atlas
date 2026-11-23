@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
-from app.core.numbers import optional_int as _safe_int, valid_int_ids
+from app.core.numbers import clamped_percent, optional_int as _safe_int, valid_int_ids
 
 
+
+
+def achievement_progress_percent(completed: bool, done: int, total: int) -> int:
+    """Explicitly checked successes show 100% even with no visible objectives."""
+    return 100 if completed else clamped_percent(done, total)
 
 
 def derive_completion_state(
@@ -31,4 +36,4 @@ def derive_completion_state(
     )
 
 
-__all__ = ["derive_completion_state"]
+__all__ = ["achievement_progress_percent", "derive_completion_state"]
