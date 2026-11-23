@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.numbers import clamped_percent, coerce_positive_int, exact_native_integer, format_grouped_int, optional_int, positive_int
+from app.core.numbers import clamped_percent, coerce_positive_int, exact_native_integer, format_grouped_int, optional_int, positive_int, valid_int_ids
 from app.core.item_identity import item_id
 
 
@@ -44,6 +44,26 @@ class ExactNativeIntegerTests(unittest.TestCase):
         self.assertEqual(exact_native_integer("0", 100, allow_zero=True), 0)
         self.assertIsNone(exact_native_integer(-1, 100, allow_zero=True))
         self.assertIsNone(exact_native_integer(101, 100, allow_zero=True))
+
+
+class ValidIntIdTests(unittest.TestCase):
+    def test_invalid_ids_are_skipped_and_legacy_coercion_is_preserved(self):
+        self.assertEqual(
+            valid_int_ids(["42", 42, True, "bad", None, -3, 1.9, ""]),
+            frozenset({42, 1, -3}),
+        )
+        self.assertEqual(valid_int_ids(()), frozenset())
+
+    def test_decode_only_once_per_candidate(self):
+        calls = []
+
+        class Counted:
+            def __int__(self):
+                calls.append(1)
+                return 19
+
+        self.assertEqual(valid_int_ids([Counted(), Counted()]), frozenset({19}))
+        self.assertEqual(len(calls), 2)
 
 
 class OptionalIntTests(unittest.TestCase):

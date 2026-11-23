@@ -6,6 +6,8 @@ contracts deliberately differ for booleans and non-positive integers.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 
 def positive_int(value: object) -> int | None:
     if isinstance(value, bool):
@@ -35,6 +37,13 @@ def optional_int(value: object, default: int | None = None) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def valid_int_ids(values: Iterable[object]) -> frozenset[int]:
+    """Decode legacy completion IDs once, omitting invalid values."""
+    return frozenset(
+        parsed for raw in values if (parsed := optional_int(raw)) is not None
+    )
 
 
 def exact_native_integer(
