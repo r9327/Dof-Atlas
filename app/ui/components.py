@@ -541,6 +541,11 @@ class AtlasPageTitle(QLabel):
         self.setObjectName("PageTitle")
 
 
+def release_transient_dialog(dialog: QDialog) -> None:
+    """Dispose temporary Qt dialogs after they finish, never on show()."""
+    dialog.finished.connect(dialog.deleteLater)
+
+
 class AtlasDialog(QDialog):
     """Single themed dialog with indexed standard or compact spacing."""
 

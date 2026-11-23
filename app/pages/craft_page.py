@@ -56,7 +56,7 @@ from app.storage import (
 )
 from app.ui.components import (
     AtlasButton, AtlasDialog, AtlasPageTitle,
-    fit_unity_number_spinbox,
+    fit_unity_number_spinbox, release_transient_dialog,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -1395,6 +1395,7 @@ class CraftPage(QWidget):
             )
         )
         self.resource_dialog = dialog
+        release_transient_dialog(dialog)
         dialog.show()
         dialog.raise_()
         message = f"{len(resources)} ressource(s) agregee(s)."

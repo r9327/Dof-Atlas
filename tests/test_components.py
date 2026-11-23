@@ -23,6 +23,7 @@ from app.ui.components import (
     refresh_unity_widget_style,
     set_unity_widget_property,
     set_unity_widget_object_name,
+    release_transient_dialog,
 )
 from app.ui.theme import atlas_stylesheet
 
@@ -80,6 +81,19 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertEqual(dialog.result(), dialog.Accepted)
         finally:
             dialog.deleteLater()
+
+    def test_transient_dialog_cleanup_is_deferred_until_close(self) -> None:
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+
+        dialog = QDialog()
+        release_transient_dialog(dialog)
+        self.assertTrue(isValid(dialog))
+        dialog.show()
+        dialog.reject()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(dialog))
 
     def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
         button = AtlasButton("Contrôle")
