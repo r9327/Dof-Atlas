@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.components import AtlasButton
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
@@ -116,7 +117,7 @@ class FeaturedGuideCard(QFrame):
         # No total means no percentage is known; keep the bar hidden.
         self.progress.setVisible(usable and total > 0)
         if total > 0:
-            self.progress.setValue(max(0, min(100, round(done * 100 / total))))
+            self.progress.setValue(clamped_percent(done, total))
         self.artwork.clear()
         local_icon = sprite_icon_path("guide" if self.guide_id == "guide_complet" else "dofus")
         # Only two featured QIcons, backed by local assets when explicitly enabled.

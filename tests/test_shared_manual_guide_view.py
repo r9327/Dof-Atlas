@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
+from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard, SharedGuideManualView
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
 from app.modules.encyclopedia.views.guides_view import linkify_travel_text
 from app.modules.encyclopedia.services.guide_quest_view_model import (
@@ -21,6 +21,14 @@ from app.ui.theme import atlas_stylesheet
 
 
 class SharedGuideManualViewThemeTests(unittest.TestCase):
+    def test_participant_progress_uses_shared_clamped_calculation(self):
+        probe = SimpleNamespace(service=SimpleNamespace(route_sheet_progress=lambda key: (3, 4)))
+        self.assertEqual(SharedGuideManualView._participant_progress(probe, "character:1"), 75)
+        probe.service.route_sheet_progress = lambda key: (7, 4)
+        self.assertEqual(SharedGuideManualView._participant_progress(probe, "character:1"), 100)
+        probe.service.route_sheet_progress = lambda key: (0, 0)
+        self.assertIsNone(SharedGuideManualView._participant_progress(probe, "character:1"))
+
     def test_roadbook_uses_only_global_theme_for_combat_and_line_widgets(self):
         """No local QSS may hide canonical Unity tokens after a palette change."""
         for method in (

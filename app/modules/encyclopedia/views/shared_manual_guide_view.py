@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.item_artwork import item_icon_path
+from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
 from app.modules.encyclopedia.services.guide_preparation_model import (
     PREPARATION_CATEGORIES, TeamPreparationNeed, aggregate_remaining,
@@ -1411,7 +1412,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             completed, total = self.service.route_sheet_progress(character_key)
         except (AttributeError, KeyError, TypeError, ValueError):
             return None
-        return min(100, round(completed * 100 / total)) if total > 0 else None
+        return clamped_percent(completed, total) if total > 0 else None
 
     def _global_details_toggled(self, opened: bool) -> None:
         self.global_details_panel.setVisible(bool(opened))
@@ -1910,7 +1911,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_bar.setRange(0, max(1, total))
         self.preparation_bar.setValue(ready)
         self.preparation_progress_label.setText(
-            f"{max(0, min(100, round(ready * 100 / total)))} %" if total else "—"
+            f"{clamped_percent(ready, total)} %" if total else "—"
         )
 
     def _participant_toggled(self, character_key: str, checked: bool) -> None:
@@ -2032,7 +2033,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 )
             else:
                 completed = min(done for done, _total in progress_rows)
-            percent = min(100, round(completed * 100 / total)) if total > 0 else None
+            percent = clamped_percent(completed, total)
             self.progress_donut.set_percent(percent)
             self.global_progress_bar.setRange(0, max(1, total))
             self.global_progress_bar.setValue(completed)

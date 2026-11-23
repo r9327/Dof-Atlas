@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import DATA_DIR
 from app.core.character_identity import is_character_key
+from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
 )
@@ -511,7 +512,7 @@ class ContinuousGuideRoutePanel(QWidget):
         position = self.navigation.position()
         total_checks = position.total_steps * len(position.selected_character_keys)
         completed_checks = sum(position.completed_by_character.values())
-        percent = round(100 * completed_checks / total_checks) if total_checks else 0
+        percent = clamped_percent(completed_checks, total_checks)
         self.global_progress_bar.setValue(percent)
         self.global_progress_value.setText(
             f"{percent} %" if total_checks else "—"
