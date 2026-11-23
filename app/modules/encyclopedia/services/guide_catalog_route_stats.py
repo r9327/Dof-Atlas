@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.core.map_coordinates import extract_bracketed_position
+from app.core.numbers import optional_int
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
@@ -34,9 +35,8 @@ def catalog_route_map_count(guide, quest_provider) -> int:
     ):
         if str(getattr(step, "step_type", "")) != "quest":
             continue
-        try:
-            quest_id = int(getattr(step, "entity_id", None))
-        except (TypeError, ValueError):
+        quest_id = optional_int(getattr(step, "entity_id", None))
+        if quest_id is None:
             continue
         if quest_id in seen_quests:
             continue
