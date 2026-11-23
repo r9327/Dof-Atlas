@@ -15,7 +15,7 @@ from app.constants import LOGGER
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
-from app.ui.components import AtlasButton, AtlasPageTitle
+from app.ui.components import AtlasButton, AtlasPageTitle, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
 
 WORLD_SCAN_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["world_scan"]
@@ -141,10 +141,10 @@ class WorldScanPanel(QWidget):
         menu_layout.setSpacing(0)
         self.world_menu_scroll = WorldMenuScrollArea(self.world_menu)
         self.world_menu_scroll.setObjectName("WorldMenuScroll")
-        self.world_menu_scroll.setWidgetResizable(True)
-        self.world_menu_scroll.setFrameShape(QFrame.NoFrame)
-        self.world_menu_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.world_menu_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        configure_unity_scroll_area(
+            self.world_menu_scroll, borderless=True,
+            vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.world_menu_contents = QWidget()
         self.world_menu_contents.setObjectName("WorldMenuContents")
         self.world_menu_list = QVBoxLayout(self.world_menu_contents)
