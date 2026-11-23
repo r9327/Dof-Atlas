@@ -1324,11 +1324,7 @@ def save_owned_item_quantity(item: dict[str, Any], quantity: int, path: Path = C
 
 
 def clear_layout(layout: QVBoxLayout) -> None:
-    while layout.count():
-        item = layout.takeAt(0)
-        widget = item.widget()
-        if widget is not None:
-            widget.deleteLater()
+    clear_unity_widget_layout(layout, detach_widgets=False)
 
 
 def quest_required_items(quest: QuestRecord) -> list[dict[str, Any]]:

@@ -50,6 +50,21 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             achievement_context_section([achievement], progress, []),
         )
 
+    def test_quest_list_cleanup_preserves_parent_until_deferred_delete(self) -> None:
+        from PySide6.QtWidgets import QWidget, QVBoxLayout
+        from app.pages._quests_page_impl import clear_layout
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        label = QLabel("Ancienne quête")
+        layout.addWidget(label)
+        try:
+            clear_layout(layout)
+            self.assertEqual(layout.count(), 0)
+            self.assertIs(label.parent(), host)
+        finally:
+            host.deleteLater()
+
     def test_shared_quest_detail_cleanup_removes_nested_rows(self) -> None:
         from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 
