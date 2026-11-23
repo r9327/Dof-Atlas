@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.ui.components import AtlasButton, AtlasStatusBadge, refresh_unity_widget_style
+from app.ui.components import AtlasButton, AtlasStatusBadge, configure_unity_scroll_area, refresh_unity_widget_style
 
 
 class HideCompletedButton(AtlasButton):
@@ -132,8 +132,9 @@ class CompactScroll(QScrollArea):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("CompactScroll")
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.NoFrame)
+        configure_unity_scroll_area(
+            self, borderless=True, horizontal_policy=Qt.ScrollBarAsNeeded,
+        )
         self.content = QWidget()
         self.content.setObjectName("CompactScrollContent")
         self.layout = QVBoxLayout(self.content)

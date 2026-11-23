@@ -50,6 +50,18 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_compact_dashboard_scroller_keeps_legacy_frame_and_overflow(self):
+        from app.modules.encyclopedia.widgets.dashboard import CompactScroll
+
+        area = CompactScroll()
+        try:
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.frameShape(), QFrame.NoFrame)
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            self.assertEqual(area.objectName(), "CompactScroll")
+        finally:
+            area.deleteLater()
+
     def test_shared_scroll_policy_supports_existing_horizontal_modes(self):
         from PySide6.QtWidgets import QScrollArea
         from app.ui.components import configure_unity_scroll_area
