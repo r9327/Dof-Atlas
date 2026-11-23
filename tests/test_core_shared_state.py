@@ -26,6 +26,50 @@ class CoreSharedStateTests(unittest.TestCase):
         self.assertEqual(second, {"version": 1, "characters": {}})
         self.assertIsNot(first["characters"], second["characters"])
 
+    def test_three_progress_schemas_share_envelope_without_losing_domain_rules(self) -> None:
+        from app.core.progress_coordinator import progress_characters_for_validation
+        from app.modules.encyclopedia.services.guide_progress_service import _guide_progress_schema_error
+        from app.modules.encyclopedia.services.quest_progress_service import _quest_progress_schema_error
+        from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
+            _achievement_progress_schema_error,
+        )
+
+        validators = (
+            _guide_progress_schema_error,
+            _quest_progress_schema_error,
+            _achievement_progress_schema_error,
+        )
+        invalid_roots = (
+            (None, "la racine doit être un objet"),
+            ({"version": 2}, "version inconnue: 2"),
+            ({"characters": []}, "characters doit être un objet"),
+            ({"characters": {"character:1": []}},
+             "characters['character:1'] doit être un objet"),
+        )
+        for payload, message in invalid_roots:
+            with self.subTest(payload=payload):
+                self.assertEqual(progress_characters_for_validation(payload), ({}, message))
+                for validator in validators:
+                    self.assertEqual(validator(payload), message)
+        valid = {"characters": {"character:1": {}}}
+        self.assertIs(progress_characters_for_validation(valid)[0], valid["characters"])
+        for validator in validators:
+            self.assertIsNone(validator(valid))
+        self.assertEqual(
+            _quest_progress_schema_error({"characters": {"character:1": {"done": []}}}),
+            "characters['character:1'].done doit être un objet",
+        )
+        self.assertEqual(
+            _guide_progress_schema_error({"characters": {"character:1": {"manual_steps": []}}}),
+            "characters['character:1'].manual_steps doit être un objet",
+        )
+        self.assertEqual(
+            _achievement_progress_schema_error(
+                {"characters": {"character:1": {"completed_achievements": {}}}}
+            ),
+            "characters['character:1'].completed_achievements doit être une liste",
+        )
+
     def test_file_stamps_match_existing_cache_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index.json"
