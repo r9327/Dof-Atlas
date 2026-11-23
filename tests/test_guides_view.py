@@ -10,10 +10,10 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel
 
 from app.modules.encyclopedia.views.guides_view import (
-    GuidesView, linkify_travel_text, text_label,
+    GuidesView, clear_layout, linkify_travel_text, text_label,
 )
 from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
 from app.ui.theme import PALETTE
@@ -34,6 +34,22 @@ class GuidesViewLayoutTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_guide_layout_cleanup_handles_nested_rows_and_spacers(self):
+        host = QWidget()
+        outer = QVBoxLayout(host)
+        nested = QHBoxLayout()
+        label = QLabel("old Guide")
+        nested.addWidget(label)
+        outer.addLayout(nested)
+        outer.addStretch(1)
+        try:
+            clear_layout(outer)
+            self.assertEqual(outer.count(), 0)
+            self.assertEqual(nested.count(), 0)
+            self.assertIsNone(label.parent())
+        finally:
+            host.deleteLater()
 
     def test_shared_quest_and_guide_coordinates_are_bold_unity_links(self):
         markup = linkify_travel_text("Parler à [ -1,2] puis [-12, 34] & <npc>")

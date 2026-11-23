@@ -66,7 +66,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasPanelToggle,
-    clear_current_dialog_reference, configure_unity_scroll_area,
+    clear_current_dialog_reference, clear_unity_widget_layout, configure_unity_scroll_area,
     refresh_unity_widget_style, release_transient_dialog,
     set_unity_widget_property,
 )
@@ -4121,15 +4121,7 @@ def activity_chip_grid(labels: Iterable[str]) -> QWidget:
 
 
 def clear_layout(layout) -> None:
-    while layout.count():
-        item = layout.takeAt(0)
-        widget = item.widget()
-        child_layout = item.layout()
-        if widget is not None:
-            widget.setParent(None)
-            widget.deleteLater()
-        elif child_layout is not None:
-            clear_layout(child_layout)
+    clear_unity_widget_layout(layout, recursive=True)
 
 
 def panel_title(text: str, object_name: str = "PanelTitle") -> QLabel:
