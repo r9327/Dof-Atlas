@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import AbstractSet
 
+from app.network.contracts import is_current_ankama_alias
 from app.network.protobuf_fields import ProtobufDecodeError, parse_protobuf_fields
 from app.network.transport import CapturedProtocolMessage
 from app.network.wire import IncompleteVarint, InvalidVarint, decode_varint
@@ -198,9 +199,7 @@ def _unique_positive(values: list[int]) -> tuple[int, ...]:
 
 
 def _is_current_type_url(value: str) -> bool:
-    prefix = "type.ankama.com/"
-    alias = value[len(prefix) :] if value.startswith(prefix) else ""
-    return len(alias) == 3 and alias.isascii() and alias.isalpha() and alias.islower()
+    return is_current_ankama_alias(value)
 
 
 __all__ = ["QuestSnapshotDiscoveryCandidate", "discover_current_quest_snapshot"]

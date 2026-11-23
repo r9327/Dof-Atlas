@@ -68,6 +68,16 @@ class QuestSnapshotDiscoveryTests(unittest.TestCase):
             known_quest_ids=self.known,
         )
 
+    def test_diagnostic_alias_is_only_exact_current_lowercase_three_letter_name(self) -> None:
+        from app.network.contracts import is_current_ankama_alias
+        from app.network.quest_snapshot_discovery import _is_current_type_url
+
+        for alias in ("type.ankama.com/qzx", "type.ankama.com/id",
+                      "type.ankama.com/QZX", "type.ankama.com/qzx1",
+                      "ankama.com/qzx", "type.ankama.com/ézx"):
+            with self.subTest(alias=alias):
+                self.assertEqual(_is_current_type_url(alias), is_current_ankama_alias(alias))
+
     def test_accepts_exact_historical_quests_event_shape_for_diagnostics_only(self) -> None:
         candidate = self.discover(_snapshot(reinitialized=(404,)))
         self.assertIsNotNone(candidate)
