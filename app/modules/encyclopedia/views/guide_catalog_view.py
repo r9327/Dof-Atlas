@@ -4,6 +4,7 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+from app.ui.components import configure_unity_scroll_area
 
 GUIDE_CATALOG_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_catalog"]
 from PySide6.QtWidgets import (
@@ -81,10 +82,9 @@ class GuideCatalogView(QWidget):
         shell = QVBoxLayout(self)
         shell.setContentsMargins(0, 0, 0, 0)
         shell.setSpacing(0)
-        self.home_scroll = QScrollArea(self)
-        self.home_scroll.setWidgetResizable(True)
-        self.home_scroll.setFrameShape(QFrame.NoFrame)
-        self.home_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.home_scroll = configure_unity_scroll_area(
+            QScrollArea(self), borderless=True,
+        )
         content = QWidget(self.home_scroll)
         content.setObjectName("GuidesHomeContent")
         root = QVBoxLayout(content)
