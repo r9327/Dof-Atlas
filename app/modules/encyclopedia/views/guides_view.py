@@ -37,6 +37,7 @@ from shiboken6 import isValid
 from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
+from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE
 from app.modules.encyclopedia.models import Guide, GuideChapter, GuidePart, GuideSeries, GuideStep
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -175,7 +176,6 @@ CATEGORY_LABELS = {
     "alignements": "ALIGNEMENTS",
     "dofus": "DOFUS",
 }
-TRAVEL_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 DOFUS_CARD_MIN_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_min_width"]
 DOFUS_CARD_MAX_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_max_width"]
 DOFUS_CARD_HEIGHT = GUIDE_CARD_GEOMETRY["dofus_card_height"]

@@ -27,6 +27,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 )
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView, SENTINEL_COORD
 from app.core.numbers import coerce_positive_int
+from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
@@ -34,7 +35,6 @@ from app.ui.components import AtlasButton, set_unity_widget_property
 
 
 _LOGGER = logging.getLogger(__name__)
-_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 _COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
 _NPC_NAME = rf"{_NAME_WORD}(?:\s+(?:(?:de|des|du|d['’]|of|le|la|l['’])\s+)?{_NAME_WORD}){{0,3}}"

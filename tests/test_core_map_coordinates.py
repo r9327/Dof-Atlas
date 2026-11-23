@@ -7,6 +7,24 @@ from app.core.map_coordinates import extract_bracketed_position, normalize_coord
 
 
 class NormalizeCoordinatePairTests(unittest.TestCase):
+    def test_all_guide_coordinate_consumers_import_one_compiled_source_pattern(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        consumers = {
+            "app/modules/encyclopedia/views/guides_view.py":
+                "BRACKETED_POSITION_RE as TRAVEL_COORD_RE",
+            "app/modules/encyclopedia/views/guide_ultime_manual_view.py":
+                "BRACKETED_POSITION_RE as _COORD_RE",
+            "app/modules/encyclopedia/services/guide_quest_view_model.py":
+                "BRACKETED_POSITION_RE as COORD_RE",
+        }
+        for relative_path, source_alias in consumers.items():
+            with self.subTest(path=relative_path):
+                source = (root / relative_path).read_text(encoding="utf-8")
+                self.assertIn(source_alias, source)
+                self.assertNotIn('re.compile(r"\\[\\s*(-?\\d+)', source)
+
     def test_source_bracketed_coordinate_keeps_original_search_contract(self):
         for raw, expected in (("[ -3, 004 ]", "-3,4"),
                               ("Étape en [2, -10] zone", "2,-10"),

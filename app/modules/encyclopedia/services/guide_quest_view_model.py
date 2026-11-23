@@ -10,7 +10,7 @@ from typing import Iterable
 from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
-from app.core.map_coordinates import normalize_coordinate_pair
+from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, normalize_coordinate_pair
 from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
@@ -41,7 +41,6 @@ TECHNICAL_CRITERION_RE = re.compile(
     r"\b(?:Qf|Qa|Qo|Ps|Pa|Pz|Po|EM|PL|BT|Sc|SC|ST|OA|HA|AN)\s*[=<>!]",
     re.IGNORECASE,
 )
-COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 KAMAS_REWARD_RE = re.compile(r"^(\d[\d\s]*)\s*(?:k|kamas)\b", re.IGNORECASE)
 SOURCE_QUANTITY_REWARD_RE = re.compile(r"^(?:x\s*)?\d+\s*x?\s+.+", re.IGNORECASE)
 SOURCE_REWARD_SENTENCE_RE = re.compile(
