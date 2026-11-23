@@ -21,6 +21,7 @@ from app.ui.components import (
     BUTTON_OBJECT_NAMES,
     fit_unity_number_spinbox,
     refresh_unity_widget_style,
+    set_unity_widget_property,
 )
 from app.ui.theme import atlas_stylesheet
 
@@ -62,6 +63,19 @@ class SharedUiComponentsTests(unittest.TestCase):
                 self.assertEqual(events, [True, False])
         finally:
             toggle.deleteLater()
+
+    def test_shared_dynamic_property_updates_once_without_local_qss(self) -> None:
+        label = QWidget()
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                self.assertTrue(set_unity_widget_property(label, "atlasTestRole", "ready"))
+                self.assertEqual(label.property("atlasTestRole"), "ready")
+                self.assertFalse(set_unity_widget_property(label, "atlasTestRole", "ready"))
+                self.assertTrue(set_unity_widget_property(label, "atlasTestRole", "error"))
+                self.assertEqual(refresh.call_count, 2)
+            self.assertEqual(label.styleSheet(), "")
+        finally:
+            label.deleteLater()
 
     def test_dialog_standard_and_compact_sizes_use_shared_tokens(self) -> None:
         from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX

@@ -117,6 +117,15 @@ def refresh_unity_widget_style(widget: QWidget) -> None:
     widget.update()
 
 
+def set_unity_widget_property(widget: QWidget, name: str, value: object) -> bool:
+    """Update a dynamic Qt style property only when its value changed."""
+    if widget.property(name) == value:
+        return False
+    widget.setProperty(name, value)
+    refresh_unity_widget_style(widget)
+    return True
+
+
 class AtlasButton(QPushButton):
     """Shared push button whose visual variants are owned by the global theme."""
 
@@ -336,10 +345,7 @@ class AtlasStatusBadge(QLabel):
         self.set_state(state)
 
     def set_state(self, state: str) -> None:
-        if self.property("state") == state:
-            return
-        self.setProperty("state", state)
-        refresh_unity_widget_style(self)
+        set_unity_widget_property(self, "state", state)
 
 
 class AtlasGuideCover(QLabel):
@@ -517,10 +523,7 @@ class AtlasPanelToggle(QToolButton):
         )
         self.setToolTip(label)
         self.setAccessibleName(label)
-        if self.property("collapsed") == collapsed:
-            return
-        self.setProperty("collapsed", collapsed)
-        refresh_unity_widget_style(self)
+        set_unity_widget_property(self, "collapsed", collapsed)
 
 
 class AtlasPageTitle(QLabel):

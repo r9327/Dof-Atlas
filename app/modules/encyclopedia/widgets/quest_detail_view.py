@@ -35,7 +35,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton, AtlasPanelToggle, refresh_unity_widget_style
+from app.ui.components import AtlasButton, AtlasPanelToggle, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
@@ -314,8 +314,7 @@ class QuestDetailView(QWidget):
         self.meta_label.setVisible(bool(level))
         self.done_button.setVisible(True)
         self.done_button.setText("✓ Quête terminée" if completed else "○ Marquer terminée")
-        self.done_button.setProperty("state", "done" if completed else "todo")
-        refresh_unity_widget_style(self.done_button)
+        set_unity_widget_property(self.done_button, "state", "done" if completed else "todo")
 
     @staticmethod
     def _start_position_heading(quest: QuestRecord, position: str) -> str:

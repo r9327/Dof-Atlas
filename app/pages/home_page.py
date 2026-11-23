@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.core.numbers import format_grouped_int
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, refresh_unity_widget_style
+from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
 
 HOME_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["home"]
@@ -699,9 +699,7 @@ class HomePage(QWidget):
                 }
             )
         )
-        if self.network_indicator.property("state") != state:
-            self.network_indicator.setProperty("state", state)
-            refresh_unity_widget_style(self.network_indicator)
+        set_unity_widget_property(self.network_indicator, "state", state)
 
     def _retry_network_tracking(self) -> None:
         """User-initiated retry; no expensive catalogue reload in the UI."""

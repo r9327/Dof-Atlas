@@ -32,7 +32,7 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
     def test_guide_tab_accent_uses_the_shared_style_refresh(self):
         page = self.make_page()
         tab_bar = page.tabs.tabBar()
-        with patch("app.modules.encyclopedia.views.encyclopedia_page.refresh_unity_widget_style") as refresh:
+        with patch("app.ui.components.refresh_unity_widget_style") as refresh:
             EncyclopediaPage.sync_tab_accent(page, "GUIDES")
             self.assertTrue(tab_bar.property("guideActive"))
             refresh.assert_called_once_with(tab_bar)
