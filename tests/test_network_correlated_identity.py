@@ -226,6 +226,16 @@ class CorrelatedCharacterIdentityDecoderTests(unittest.TestCase):
             )
         )
 
+    def test_unreadable_active_build_disables_identity_without_guessing(self) -> None:
+        decoder, _delegate = self.build_decoder()
+        decoder.active_fingerprint_provider = lambda: (_ for _ in ()).throw(OSError("locked"))
+        self.assertFalse(decoder._build_matches())
+        self.assertIsNone(decoder.decode(CapturedProtocolMessage(
+            session_id="s1", type_url="type.ankama.com/kvi",
+            payload=roster_payload(roster_entry(101, "Alpha")),
+        )))
+        self.assertEqual(decoder._rosters, {})
+
     def test_build_mismatch_disables_observation_and_selection(self) -> None:
         decoder, _delegate = self.build_decoder(active_build="b" * 64)
         decoder.decode(

@@ -228,11 +228,9 @@ class CorrelatedCharacterIdentityDecoder:
         return str(value or "").strip()
 
     def _build_matches(self) -> bool:
-        try:
-            active = str(self.active_fingerprint_provider() or "").strip().casefold()
-        except Exception:
-            return False
-        return active == self.mapping_fingerprint
+        return active_build_matches(
+            self.active_fingerprint_provider, self.mapping_fingerprint,
+        )
 
 
 
