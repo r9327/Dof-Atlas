@@ -10,6 +10,7 @@ from typing import Any, Iterable
 from app.constants import DATA_DIR
 from local_dofus_data.utils import now_iso, save_json_atomic
 from app.modules.encyclopedia.models.progress_state import ProgressState
+from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,36 +40,7 @@ class AchievementProgressService:
         if cached is not None:
             return cached
 
-        character = self._character(key)
-        completed = {
-            int(value)
-            for value in character.get("completed_achievements", [])
-            if self._safe_int(value) is not None
-        }
-        completed.update(
-            int(value)
-            for value in character.get("auto_completed_achievements", [])
-            if self._safe_int(value) is not None
-        )
-        objectives: dict[int, set[int]] = {}
-        for field in ("completed_objectives", "auto_completed_objectives"):
-            objective_rows = character.get(field, {})
-            if not isinstance(objective_rows, dict):
-                continue
-            for achievement_id, values in objective_rows.items():
-                aid = self._safe_int(achievement_id)
-                if aid is None:
-                    continue
-                rows = values if isinstance(values, list) else []
-                objectives.setdefault(aid, set()).update(
-                    int(value)
-                    for value in rows
-                    if self._safe_int(value) is not None
-                )
-        result = (
-            frozenset(completed),
-            {aid: frozenset(values) for aid, values in objectives.items()},
-        )
+        result = derive_completion_state(self._character(key))
         self._completion_cache[key] = result
         return result
 

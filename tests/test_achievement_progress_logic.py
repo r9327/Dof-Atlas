@@ -6,6 +6,24 @@ from app.modules.encyclopedia.services.achievement_progress_logic import derive_
 
 
 class AchievementProgressLogicTests(unittest.TestCase):
+    def test_legacy_reader_shares_canonical_achievement_state(self) -> None:
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.services.progress_service import AchievementProgressService
+
+        character = {
+            "completed_achievements": ["1", 2],
+            "auto_completed_achievements": [3],
+            "completed_objectives": {"5": ["11", 12]},
+            "auto_completed_objectives": {5: [12, 13]},
+        }
+        owner = SimpleNamespace(
+            _completion_cache={},
+            _character=lambda _key: character,
+        )
+        result = AchievementProgressService._completion_state(owner, "character:1")
+        self.assertEqual(result, derive_completion_state(character))
+        self.assertIs(result, AchievementProgressService._completion_state(owner, "character:1"))
+
     def test_merges_manual_and_automatic_completion(self) -> None:
         completed, objectives = derive_completion_state(
             {
