@@ -820,6 +820,7 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.startup_status.objectName(), "PreloadPopupCurrent")
             self.assertEqual(page.startup_progress.objectName(), "PreloadPopupProgress")
             self.assertEqual(page.startup_progress.value(), 2)
+            self.assertEqual(page.startup_progress.format(), "%p %")
             self.assertEqual(page.guide_sample_summary.objectName(), "GuidePreparationSummary")
             self.assertEqual(page.guide_sample_row.objectName(), "GuidePreparationRow")
             self.assertEqual(page.guide_manual_nav.objectName(), "GuideManualNav")
@@ -1562,6 +1563,8 @@ class DevUiPageTests(unittest.TestCase):
                 for animation in page.motion_animations.values()
             ))
             self.assertEqual(page.motion_duration.value(), 180)
+            self.assertEqual(page.motion_duration.minimumWidth(),
+                             page.motion_duration.maximumWidth())
             self.assertTrue(all(button.styleSheet() == ""
                                 for button in page.motion_buttons.values()))
 
