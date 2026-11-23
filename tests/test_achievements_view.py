@@ -50,6 +50,14 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_success_detail_refresh_releases_previous_widget(self):
+        view, _provider = self.make_view()
+        marker = QLabel("previous detail")
+        view.detail_layout.addWidget(marker)
+        view.clear_detail()
+        self.assertEqual(view.detail_layout.count(), 0)
+        self.assertIsNone(marker.parent())
+
     def test_compact_and_detail_scrollers_share_widget_cleanup(self):
         from app.modules.encyclopedia.widgets.dashboard import CompactScroll
         from app.modules.encyclopedia.widgets.detail_panel import DetailPanel

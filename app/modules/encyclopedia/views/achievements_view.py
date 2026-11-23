@@ -34,7 +34,7 @@ from app.modules.encyclopedia.providers import AchievementProvider, QuestProvide
 from app.modules.encyclopedia.services import AchievementProgressService, QuestGraphService, QuestProgressService
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, configure_unity_scroll_area
+from app.ui.components import AtlasButton, AtlasComboBox, clear_unity_widget_layout, configure_unity_scroll_area
 from app.ui.theme import PALETTE
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -952,12 +952,7 @@ class AchievementsView(QWidget):
         super().closeEvent(event)
 
     def clear_detail(self) -> None:
-        while self.detail_layout.count():
-            item = self.detail_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(self.detail_layout)
 
     def __init__(self, *args, **kwargs) -> None:
         self._detail_generation = 0
