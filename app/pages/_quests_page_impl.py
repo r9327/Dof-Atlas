@@ -33,6 +33,7 @@ from app.modules.encyclopedia.services import (
     QuestHierarchyService,
     QuestProgressService,
 )
+from app.modules.encyclopedia.services.quest_search_text import quest_search_fields
 from app.modules.encyclopedia.services.lazy_progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
     lazy_achievement_progress_service,
@@ -846,14 +847,8 @@ class QuestsPage(QWidget):
 
     def quest_search_text(self, quest: QuestRecord) -> str:
         guides = self.guide_provider.get_guides_for_entity("quest", quest.id) if self.guide_provider is not None else []
-        values = [
-            quest.search_text,
-            " ".join(step.name for step in quest.steps),
-            " ".join(objective.text for step in quest.steps for objective in step.objectives),
-            " ".join(reward.name for reward in quest.rewards),
-            " ".join(guide.title for guide in guides),
-            " ".join(self.graph.achievement_names(quest.id)),
-        ]
+        fields = quest_search_fields(quest, self.graph.achievement_names(quest.id))
+        values = [*fields[:4], " ".join(guide.title for guide in guides), fields[4]]
         return normalize_text(" ".join(values))
 
     def refresh_quests(self) -> None:

@@ -8,6 +8,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTreeWidgetItem
 
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
+from app.modules.encyclopedia.services.quest_search_text import quest_search_fields
 from app.pages.quest_character_cache import quest_character_source_signature
 from app.pages.quests_page import (
     HIERARCHY_ID_ROLE,
@@ -420,14 +421,9 @@ class LazyQuestsPage(QuestsPage):
         prebuilt = getattr(self.catalog, "_prebuilt_quest_search_text", None)
         base = str(prebuilt.get(quest_id) or "") if isinstance(prebuilt, dict) else ""
         if not base:
-            values = [
-                quest.search_text,
-                " ".join(step.name for step in quest.steps),
-                " ".join(objective.text for step in quest.steps for objective in step.objectives),
-                " ".join(reward.name for reward in quest.rewards),
-                " ".join(self.graph.achievement_names(quest.id)),
-            ]
-            base = normalize_text(" ".join(values))
+            base = normalize_text(" ".join(
+                quest_search_fields(quest, self.graph.achievement_names(quest.id))
+            ))
 
         guides = (
             self.guide_provider.get_guides_for_entity("quest", quest.id)
