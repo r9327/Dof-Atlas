@@ -23,7 +23,7 @@ from app.core.file_stamp import mtime_size_stamp
 from app.core.numbers import clamped_percent, format_grouped_int
 from app.core.text import strip_accents
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, configure_unity_progress_bar, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
 
 HOME_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["home"]
@@ -187,11 +187,10 @@ class HomeTrackingRow(QWidget):
         name.setMinimumWidth(HOME_GEOMETRY["tracking_name_min_width"])
         layout.addWidget(name)
 
-        self.bar = QProgressBar()
-        self.bar.setObjectName("HomeTrackingBar")
-        self.bar.setRange(0, 100)
+        self.bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="HomeTrackingBar",
+        )
         self.bar.setValue(0)
-        self.bar.setTextVisible(False)
         self.bar.setMinimumWidth(HOME_GEOMETRY["tracking_bar_min_width"])
         layout.addWidget(self.bar, 1)
 

@@ -38,6 +38,9 @@ class HomeNetworkIndicatorTests(unittest.TestCase):
     def test_tracking_row_shares_clamped_percent_and_grouped_counts(self) -> None:
         row = HomeTrackingRow("•", "Test")
         try:
+            self.assertEqual((row.bar.minimum(), row.bar.maximum()), (0, 100))
+            self.assertEqual(row.bar.objectName(), "HomeTrackingBar")
+            self.assertFalse(row.bar.isTextVisible())
             row.set_progress(2, 3)
             self.assertEqual(row.bar.value(), 67)
             self.assertEqual(row.value.text(), "67 %")
