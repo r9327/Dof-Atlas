@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QPushBu
 from app.cartography.map_asset_loader import resolve_asset_path
 from app.cartography.world_service import WorldService
 from app.constants import LOGGER
-from app.core.text import strip_accents
+from app.core.text import normalize_world_label
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
@@ -442,8 +442,7 @@ class WorldScanPanel(QWidget):
     @staticmethod
     def _world_name_from_view_data(view: dict[str, Any]) -> str:
         name = str(view.get("name") or "").strip()
-        ascii_text = strip_accents(name)
-        if ascii_text.replace("’", "'").strip().casefold().startswith("monde des douze"):
+        if normalize_world_label(name).startswith("monde des douze"):
             return DEFAULT_WORLD_NAME
         return name or DEFAULT_WORLD_NAME
 
@@ -877,8 +876,7 @@ class WorldScanPanel(QWidget):
         self.world_menu_list.addStretch(1)
 
     def normalize_world_name(self, text: str) -> str:
-        ascii_text = strip_accents(text)
-        return ascii_text.replace("’", "'").strip().lower()
+        return normalize_world_label(text, casefold=False)
 
     def planet_icon(self) -> QIcon:
         pixmap = QPixmap(40, 40)

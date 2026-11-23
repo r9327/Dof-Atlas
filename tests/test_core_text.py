@@ -4,7 +4,7 @@ import ast
 import unittest
 from pathlib import Path
 
-from app.core.text import clean_auto_group_name, normalize_key, normalize_words, strip_accents
+from app.core.text import clean_auto_group_name, normalize_key, normalize_words, normalize_world_label, strip_accents
 from app.services.character_order_logic import normalize_character_order
 
 
@@ -27,6 +27,12 @@ class CoreTextTests(unittest.TestCase):
         self.assertEqual(normalize_key("Routes Rocailleuses"), "routes_rocailleuses")
         self.assertEqual(normalize_key("Cité d'Astrub"), "cite_d_astrub")
         self.assertEqual(normalize_key(None), "")
+
+    def test_world_names_keep_both_legacy_case_policies(self):
+        self.assertEqual(normalize_world_label("  Île d’Otomaï "), "ile d'otomai")
+        self.assertEqual(normalize_world_label("  StraßE  "), "strasse")
+        self.assertEqual(normalize_world_label("  StraßE  ", casefold=False), "straße")
+        self.assertEqual(normalize_world_label(None), "")
 
     def test_strip_accents_preserves_text_shape(self):
         self.assertEqual(strip_accents("Été à Brâkmar"), "Ete a Brakmar")

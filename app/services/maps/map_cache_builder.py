@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from app.core.text import strip_accents
+from app.core.text import normalize_world_label
 from app.services.maps.map_manifest import (
     DEFAULT_WORLD_NAME,
     MAP_IMAGES_DIR,
@@ -125,7 +125,7 @@ def is_default_world_entry(entry: MapEntry) -> bool:
 
 
 def normalize_world(value: str | None) -> str:
-    return strip_accents(value).replace("’", "'").strip().casefold()
+    return normalize_world_label(value)
 
 
 def build_cache_from_providers(providers: Iterable[BaseMapProvider]) -> MapCacheSummary:
