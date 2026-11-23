@@ -37,7 +37,7 @@ from app.constants import (
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.components import AtlasButton, refresh_unity_widget_style
+from app.ui.components import AtlasButton, refresh_unity_widget_style, set_unity_widget_object_name
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
 from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
@@ -432,11 +432,11 @@ class OrganizerSpeedSelector(QFrame):
         previous = self._selected
         self._selected = self.PRESETS.index(preset) if preset in self.PRESETS else None
         for index, button in enumerate(self._choices):
-            button.setObjectName(
+            set_unity_widget_object_name(
+                button,
                 "OrganizerSpeedChoiceSelected" if self._selected == index
-                else "OrganizerSpeedChoice"
+                else "OrganizerSpeedChoice",
             )
-            refresh_unity_widget_style(button)
         self._position_highlight(animated=previous is not None and previous != self._selected)
 
     def _position_highlight(self, *, animated: bool = False) -> None:
@@ -498,11 +498,11 @@ class OrganizerModeSwitch(QFrame):
         new = 1 if mirror else 0
         changed = self._selected >= 0 and self._selected != new
         self._selected = new
-        self.highlight.setObjectName(
+        set_unity_widget_object_name(
+            self.highlight,
             "OrganizerModeHighlightArmed" if mirror and armed
-            else "OrganizerModeHighlight"
+            else "OrganizerModeHighlight",
         )
-        refresh_unity_widget_style(self.highlight)
         self._sync_highlight(animate=changed)
 
     def _sync_highlight(self, *, animate: bool = False) -> None:
@@ -1078,8 +1078,7 @@ class OrganizerUiMixin:
         status_dot = getattr(self, "runtime_status_dot", None)
         if status_dot is None or not isValid(status_dot):
             return
-        status_dot.setObjectName("runtimeStatusActive" if connected else "runtimeStatusInactive")
-        self.restyle_button(status_dot)
+        set_unity_widget_object_name(status_dot, "runtimeStatusActive" if connected else "runtimeStatusInactive")
 
     def restyle_button(self, button: QPushButton) -> None:
         refresh_unity_widget_style(button)
@@ -1087,8 +1086,7 @@ class OrganizerUiMixin:
     def set_toggle_button(self, button: QPushButton, label: str, enabled: bool) -> None:
         button.setText(label)
         button.setToolTip(f"{label} actif" if enabled else f"{label} inactif")
-        button.setObjectName("primaryButton" if enabled else "secondaryButton")
-        self.restyle_button(button)
+        set_unity_widget_object_name(button, "primaryButton" if enabled else "secondaryButton")
 
     def update_macro_mode_buttons(self) -> None:
         mirror = self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"

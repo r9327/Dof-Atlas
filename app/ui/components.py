@@ -126,6 +126,15 @@ def set_unity_widget_property(widget: QWidget, name: str, value: object) -> bool
     return True
 
 
+def set_unity_widget_object_name(widget: QWidget, object_name: str) -> bool:
+    """Repolish only when a widget's indexed QSS object-name role changes."""
+    if widget.objectName() == object_name:
+        return False
+    widget.setObjectName(object_name)
+    refresh_unity_widget_style(widget)
+    return True
+
+
 class AtlasButton(QPushButton):
     """Shared push button whose visual variants are owned by the global theme."""
 
@@ -154,10 +163,7 @@ class AtlasButton(QPushButton):
 
     def set_style_name(self, object_name: str) -> None:
         """Refresh a changed shared Qt style role without recreating the button."""
-        if self.objectName() == object_name:
-            return
-        self.setObjectName(object_name)
-        refresh_unity_widget_style(self)
+        set_unity_widget_object_name(self, object_name)
 
 
 class UnityPopupSeparatorDelegate(QStyledItemDelegate):

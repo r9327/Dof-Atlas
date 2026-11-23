@@ -22,6 +22,7 @@ from app.ui.components import (
     fit_unity_number_spinbox,
     refresh_unity_widget_style,
     set_unity_widget_property,
+    set_unity_widget_object_name,
 )
 from app.ui.theme import atlas_stylesheet
 
@@ -76,6 +77,17 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertEqual(label.styleSheet(), "")
         finally:
             label.deleteLater()
+
+    def test_shared_object_name_change_repolishes_once(self) -> None:
+        widget = AtlasButton("Style")
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                self.assertTrue(set_unity_widget_object_name(widget, "AtlasCustomRole"))
+                self.assertFalse(set_unity_widget_object_name(widget, "AtlasCustomRole"))
+                self.assertEqual(widget.objectName(), "AtlasCustomRole")
+                self.assertEqual(refresh.call_count, 1)
+        finally:
+            widget.deleteLater()
 
     def test_dialog_standard_and_compact_sizes_use_shared_tokens(self) -> None:
         from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -18,6 +19,18 @@ class OrganizerUiSharedStyleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_mode_switch_repolishes_only_on_real_role_change(self):
+        switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                switch.set_selected(mirror=True, armed=True)
+                switch.set_selected(mirror=True, armed=True)
+                self.assertEqual(refresh.call_count, 1)
+                switch.set_selected(mirror=False)
+                self.assertEqual(refresh.call_count, 2)
+        finally:
+            switch.deleteLater()
 
     def test_mode_switch_reuses_style_when_the_role_changes(self):
         switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))
