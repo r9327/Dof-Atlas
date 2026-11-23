@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QFrame, QLabel, QProgressBar, QVBoxLayout
 
 from app.core.numbers import clamped_percent
+from app.ui.components import configure_unity_progress_bar
 
 
 class ProgressCard(QFrame):
@@ -16,10 +17,9 @@ class ProgressCard(QFrame):
         self.title.setObjectName("PanelTitle")
         self.value_label = QLabel("")
         self.value_label.setObjectName("MutedLabel")
-        self.bar = QProgressBar()
-        self.bar.setObjectName("EncyclopediaProgressBar")
-        self.bar.setTextVisible(False)
-        self.bar.setRange(0, 100)
+        self.bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="EncyclopediaProgressBar",
+        )
         layout.addWidget(self.title)
         layout.addWidget(self.value_label)
         layout.addWidget(self.bar)
