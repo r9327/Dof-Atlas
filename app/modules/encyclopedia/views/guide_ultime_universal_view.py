@@ -24,7 +24,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     QuestWalkthroughIndex,
 )
 from app.core.numbers import optional_int
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, refresh_unity_widget_style
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, set_unity_widget_property
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -668,7 +668,6 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             if x is None or y is None or x == SENTINEL_COORD or y == SENTINEL_COORD:
                 continue
             command = f"/travel {x},{y}"
-            label.setProperty("travelCopyEnabled", True)
             label.setProperty("travelCommand", command)
             label.setCursor(Qt.PointingHandCursor)
             label.setToolTip(
@@ -679,7 +678,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             if not bool(label.property("travelEventFilterInstalled")):
                 label.installEventFilter(self)
                 label.setProperty("travelEventFilterInstalled", True)
-            refresh_unity_widget_style(label)
+            set_unity_widget_property(label, "travelCopyEnabled", True)
 
     def eventFilter(self, watched, event) -> bool:
         if (

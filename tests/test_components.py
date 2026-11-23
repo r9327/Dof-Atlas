@@ -65,6 +65,17 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             toggle.deleteLater()
 
+    def test_shared_dynamic_property_avoids_repolish_for_same_state(self) -> None:
+        control = QWidget()
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                self.assertTrue(set_unity_widget_property(control, "state", "done"))
+                self.assertFalse(set_unity_widget_property(control, "state", "done"))
+                self.assertTrue(set_unity_widget_property(control, "state", "todo"))
+                self.assertEqual(refresh.call_count, 2)
+        finally:
+            control.deleteLater()
+
     def test_shared_dynamic_property_updates_once_without_local_qss(self) -> None:
         label = QWidget()
         try:

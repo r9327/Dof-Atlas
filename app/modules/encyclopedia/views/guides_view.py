@@ -2100,10 +2100,7 @@ class GuidesView(QWidget):
                 else "todo"
             )
 
-            line.setProperty(
-                "state",
-                state,
-            )
+            set_unity_widget_property(line, "state", state)
 
             title = line.findChild(
                 QLabel,
@@ -2111,11 +2108,7 @@ class GuidesView(QWidget):
             )
 
             if title is not None:
-                title.setProperty(
-                    "state",
-                    state,
-                )
-                refresh_unity_widget_style(title)
+                set_unity_widget_property(title, "state", state)
 
             marker = line.findChild(
                 QToolButton,
@@ -2129,14 +2122,7 @@ class GuidesView(QWidget):
                     else "\u25cb"
                 )
 
-                marker.setProperty(
-                    "state",
-                    state,
-                )
-
-                refresh_unity_widget_style(marker)
-
-            refresh_unity_widget_style(line)
+                set_unity_widget_property(marker, "state", state)
 
     def _series_progress_title(
         self,
