@@ -38,7 +38,7 @@ from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_nam
 from app.quest_catalog import QuestCharacter, load_quest_characters
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, read_json
-from app.ui.components import AtlasComboBox
+from app.ui.components import AtlasComboBox, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 CHARACTER_COMPAT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character_compat"]
@@ -298,11 +298,9 @@ class CharacterPage(QWidget):
         layout.addStretch(1)
 
     def _build_stats_panel(self, layout: QVBoxLayout) -> None:
-        self.stats_scroll = QScrollArea()
-        self.stats_scroll.setWidgetResizable(True)
-        self.stats_scroll.setFrameShape(QFrame.NoFrame)
-        self.stats_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.stats_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.stats_scroll = configure_unity_scroll_area(
+            QScrollArea(), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
 
         content = QWidget()
         content_layout = QVBoxLayout(content)

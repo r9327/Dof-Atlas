@@ -89,6 +89,21 @@ class CharacterPageTests(unittest.TestCase):
             for row in range(page.character_order_list.count())
         ]
 
+    def test_legacy_stats_scroll_uses_shared_ui_policy(self):
+        from PySide6.QtWidgets import QFrame
+
+        with tempfile.TemporaryDirectory() as temporary:
+            page = self.build_page(self.build_files(Path(temporary)))
+            try:
+                scroll = page.stats_scroll
+                self.assertTrue(scroll.widgetResizable())
+                self.assertEqual(scroll.frameShape(), QFrame.NoFrame)
+                self.assertEqual(scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+                self.assertEqual(scroll.verticalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            finally:
+                page.close()
+                page.deleteLater()
+
     def test_known_characters_are_kept_without_fake_stats_or_offline_status(self):
         with tempfile.TemporaryDirectory() as temporary:
             page = self.build_page(self.build_files(Path(temporary)))
