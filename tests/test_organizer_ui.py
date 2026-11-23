@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication, QPushButton, QWidget
 from app.pages.organizer.organizer_ui import (
     CharacterSlotsPanel, OrganizerModeSwitch, OrganizerSpeedSelector, OrganizerUiMixin,
 )
+from app.pages.organizer.organizer_drag_drop import OrganizerDragDropMixin
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
 
@@ -56,6 +57,19 @@ class OrganizerUiSharedStyleTests(unittest.TestCase):
             mode.close()
             speed.deleteLater()
             mode.deleteLater()
+
+    def test_drag_row_repolishes_only_when_visual_role_changes(self):
+        row = QWidget()
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                OrganizerDragDropMixin.set_session_row_state(None, row, "characterSlot")
+                OrganizerDragDropMixin.set_session_row_state(None, row, "characterSlot")
+                self.assertEqual(refresh.call_count, 1)
+                OrganizerDragDropMixin.set_session_row_state(None, row, "characterSlotDragging")
+                self.assertEqual(refresh.call_count, 2)
+                self.assertEqual(row.objectName(), "characterSlotDragging")
+        finally:
+            row.deleteLater()
 
     def test_mode_switch_repolishes_only_on_real_role_change(self):
         switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))
