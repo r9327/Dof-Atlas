@@ -37,7 +37,7 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadState,
 )
 from app.pages.quest_character_cache import quest_character_source_signature
-from app.ui.components import AtlasComboBox, AtlasPageTitle
+from app.ui.components import AtlasComboBox, AtlasPageTitle, refresh_unity_widget_style
 from app.quest_catalog import QuestCharacter, load_quest_characters
 
 if TYPE_CHECKING:
@@ -552,9 +552,7 @@ class EncyclopediaPage(QWidget):
         if tab_bar.property("guideActive") == active:
             return
         tab_bar.setProperty("guideActive", active)
-        tab_bar.style().unpolish(tab_bar)
-        tab_bar.style().polish(tab_bar)
-        tab_bar.update()
+        refresh_unity_widget_style(tab_bar)
 
     def _sync_search_visibility_base(self) -> None:
         """Compatibility hook: the Encyclopedia no longer has global search."""

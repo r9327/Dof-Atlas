@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -27,6 +28,16 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         self.addCleanup(tabs.close)
         self.addCleanup(tabs.deleteLater)
         return page
+
+    def test_guide_tab_accent_uses_the_shared_style_refresh(self):
+        page = self.make_page()
+        tab_bar = page.tabs.tabBar()
+        with patch("app.modules.encyclopedia.views.encyclopedia_page.refresh_unity_widget_style") as refresh:
+            EncyclopediaPage.sync_tab_accent(page, "GUIDES")
+            self.assertTrue(tab_bar.property("guideActive"))
+            refresh.assert_called_once_with(tab_bar)
+            EncyclopediaPage.sync_tab_accent(page, "GUIDES")
+            refresh.assert_called_once_with(tab_bar)
 
     def test_bestiary_unavailable_title_uses_shared_page_component(self):
         from app.ui.components import AtlasPageTitle

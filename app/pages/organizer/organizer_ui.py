@@ -37,7 +37,7 @@ from app.constants import (
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, refresh_unity_widget_style
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
 from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
@@ -436,8 +436,7 @@ class OrganizerSpeedSelector(QFrame):
                 "OrganizerSpeedChoiceSelected" if self._selected == index
                 else "OrganizerSpeedChoice"
             )
-            button.style().unpolish(button)
-            button.style().polish(button)
+            refresh_unity_widget_style(button)
         self._position_highlight(animated=previous is not None and previous != self._selected)
 
     def _position_highlight(self, *, animated: bool = False) -> None:
@@ -503,8 +502,7 @@ class OrganizerModeSwitch(QFrame):
             "OrganizerModeHighlightArmed" if mirror and armed
             else "OrganizerModeHighlight"
         )
-        self.highlight.style().unpolish(self.highlight)
-        self.highlight.style().polish(self.highlight)
+        refresh_unity_widget_style(self.highlight)
         self._sync_highlight(animate=changed)
 
     def _sync_highlight(self, *, animate: bool = False) -> None:
@@ -755,9 +753,7 @@ class OrganizerUiMixin:
             if shortcut is not None:
                 # The badge is embedded, but inset from the right border.
                 action.setProperty("atlasShortcutInset", True)
-                style = action.style()
-                style.unpolish(action)
-                style.polish(action)
+                refresh_unity_widget_style(action)
                 badge_host = QWidget(wrapper)
                 badge_host.setObjectName("OrganizerTransparentHost")
                 badge_host.setFixedSize(shortcut.width() + 8, BUTTON_HEIGHT)
@@ -1086,9 +1082,7 @@ class OrganizerUiMixin:
         self.restyle_button(status_dot)
 
     def restyle_button(self, button: QPushButton) -> None:
-        button.style().unpolish(button)
-        button.style().polish(button)
-        button.update()
+        refresh_unity_widget_style(button)
 
     def set_toggle_button(self, button: QPushButton, label: str, enabled: bool) -> None:
         button.setText(label)

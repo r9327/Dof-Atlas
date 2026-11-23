@@ -21,6 +21,12 @@ class ModernCharacterPageTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_success_point_format_preserves_grouping_and_fallback(self) -> None:
+        self.assertEqual(CharacterPage._success_text(12345), "12 345")
+        self.assertEqual(CharacterPage._success_text("1234567"), "1 234 567")
+        self.assertEqual(CharacterPage._success_text(None), "—")
+        self.assertEqual(CharacterPage._success_text("indisponible"), "indisponible")
+
     def test_legacy_character_page_shim_stays_retired(self) -> None:
         self.assertFalse(Path("app/pages/character_page_modern.py").exists())
         self.assertEqual(CharacterPage.__module__, "app.pages.character_page")

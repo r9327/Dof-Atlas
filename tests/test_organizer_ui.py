@@ -19,6 +19,16 @@ class OrganizerUiSharedStyleTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_mode_switch_reuses_style_when_the_role_changes(self):
+        switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))
+        try:
+            switch.set_selected(mirror=True, armed=True)
+            self.assertEqual(switch.highlight.objectName(), "OrganizerModeHighlightArmed")
+            switch.set_selected(mirror=False)
+            self.assertEqual(switch.highlight.objectName(), "OrganizerModeHighlight")
+        finally:
+            switch.deleteLater()
+
     def test_mode_switch_and_slot_grid_use_shared_dev_ui_dimensions(self):
         metrics = UNITY_ORGANIZER_METRICS_PX
         switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))

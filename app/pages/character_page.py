@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.numbers import format_grouped_int
 from app.pages._character_page_impl import (
     CHARACTER_STAT_ROWS,
     EQUIPMENT_SLOTS,
@@ -309,7 +310,7 @@ class CharacterPage(_CharacterPage):
         if points is None:
             return "—"
         try:
-            return f"{int(points):,}".replace(",", " ")
+            return format_grouped_int(points)
         except (TypeError, ValueError, OverflowError):
             return str(points)
 

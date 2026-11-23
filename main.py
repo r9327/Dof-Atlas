@@ -67,6 +67,7 @@ from app.storage import default_profiles, item_id, normalize_key, read_json, wri
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
     AtlasStatusBadge, apply_unity_calendar_weekdays, atlas_application_icon,
+    refresh_unity_widget_style,
 )
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
@@ -682,9 +683,7 @@ class HoverMenuButton(AtlasButton):
         self.clearFocus()
         if HoverMenuButton._active_button is self:
             HoverMenuButton._active_button = None
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self.update()
+        refresh_unity_widget_style(self)
 
     def _menu_hidden(self) -> None:
         self._cursor_at_menu_close = QCursor.pos()
@@ -694,9 +693,7 @@ class HoverMenuButton(AtlasButton):
         self.clearFocus()
         if HoverMenuButton._active_button is self:
             HoverMenuButton._active_button = None
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self.update()
+        refresh_unity_widget_style(self)
 
     @staticmethod
     def _contains_global(widget: QWidget, pos) -> bool:
