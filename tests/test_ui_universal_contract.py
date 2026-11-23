@@ -36,7 +36,11 @@ class UiUniversalContractTests(unittest.TestCase):
             self.assertIn("configure_unity_progress_bar(", source)
             self.assertIn('object_name="GuideGlobalProgress"', source)
             self.assertIn('object_name="GuideCompactPreparationProgress"', source)
-        self.assertEqual(dev.count("configure_unity_progress_bar("), 3)
+        self.assertEqual(dev.count("configure_unity_progress_bar("), 8)
+        self.assertEqual(dev.count("QProgressBar()"), 8)
+        self.assertIn("maximum=0, text_visible=True", dev)
+        self.assertIn("maximum=3,", dev)
+        self.assertIn('object_name="DevUiMotionProgress", text_visible=True', dev)
         self.assertEqual(manual.count("configure_unity_progress_bar("), 2)
         self.assertNotIn("self.global_progress_bar.setTextVisible(False)", manual)
 
