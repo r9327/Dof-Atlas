@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import json
 import re
-import unicodedata
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from functools import lru_cache
@@ -16,7 +15,7 @@ from app.modules.encyclopedia.achievement_catalog_policy import (
     ALIGNMENT_ORDER_QUEST_IDS as ORDER_QUEST_IDS,
 )
 from app.modules.encyclopedia.providers.achievement_provider import safe_int
-from app.core.text import normalize_key as normalize_text
+from app.core.text import normalize_key as normalize_text, strip_accents
 
 
 # The profiles below are deliberately conservative: they enumerate the route/success
@@ -328,8 +327,7 @@ QUEST_ALIASES: dict[str, tuple[str, ...]] = {
 
 
 def _loose_name(value: Any) -> str:
-    text = unicodedata.normalize("NFKD", str(value or ""))
-    text = "".join(char for char in text if not unicodedata.combining(char))
+    text = strip_accents(value)
     text = text.replace("’", "'").replace("œ", "oe").replace("Œ", "OE").casefold()
     return " ".join(re.findall(r"[a-z0-9]+", text))
 
