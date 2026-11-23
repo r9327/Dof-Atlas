@@ -66,7 +66,7 @@ from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
 from app.ui.components import (
-    AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
+    AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasDialog, AtlasPageTitle,
     AtlasStatusBadge, apply_unity_calendar_weekdays, atlas_application_icon,
     refresh_unity_widget_style,
 )

@@ -10,6 +10,8 @@ import ctypes
 import logging
 import math
 import os
+from functools import lru_cache
+from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import QWidget
 from shiboken6 import isValid
 
 from app.constants import LOGO_PATH
+from app.core.file_stamp import mtime_size_stamp
 from app.ui.unity_skin import UNITY_PALETTE
 
 from .common import class_icon_path_for_window_name
@@ -29,6 +32,23 @@ LOG = logging.getLogger(__name__)
 RADIUS = 145
 INNER_RADIUS = 48
 DIAMETER = 2 * (RADIUS + 14)
+RADIAL_ICON_SIZE = 34
+
+
+@lru_cache(maxsize=16)
+def _cached_radial_thumbnail(path: str, _stamp: tuple[int, int]) -> QPixmap:
+    """Cache only 34px thumbnails, never the full source artwork."""
+    source = QPixmap(path)
+    if source.isNull():
+        return source
+    return source.scaled(
+        RADIAL_ICON_SIZE, RADIAL_ICON_SIZE,
+        Qt.IgnoreAspectRatio, Qt.SmoothTransformation,
+    )
+
+
+def _radial_thumbnail(path: str) -> QPixmap:
+    return _cached_radial_thumbnail(path, mtime_size_stamp(Path(path)))
 
 
 def physical_key_held(keys: frozenset[int]) -> bool:
@@ -135,9 +155,9 @@ class OrganizerRadialOverlay(QWidget):
         for row in self._characters:
             portrait = str(row.get("portrait_path") or "").strip()
             icon = class_icon_path_for_window_name(str(row.get("nom", "")))
-            image = QPixmap(portrait) if portrait else QPixmap()
+            image = _radial_thumbnail(portrait) if portrait else QPixmap()
             if image.isNull() and icon is not None:
-                image = QPixmap(str(icon))
+                image = _radial_thumbnail(str(icon))
             self._icons.append(image)
         self.show()
         self.update()
