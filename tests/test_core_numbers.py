@@ -35,6 +35,21 @@ class PositiveIntTests(unittest.TestCase):
 
 
 class OptionalIntTests(unittest.TestCase):
+    def test_map_manifest_reexports_shared_optional_integer_codec(self):
+        from app.services.maps import map_manifest
+
+        self.assertIs(map_manifest.optional_int, optional_int)
+        for value, expected in (
+            (None, None), ("", None), ("-12", -12), (0, 0),
+            (True, 1), ("invalid", None),
+        ):
+            with self.subTest(value=repr(value)):
+                self.assertEqual(map_manifest.optional_int(value), expected)
+        row = map_manifest.MapEntry.from_dict(
+            {"id": "map", "x": "-12", "y": "", "world": "Amakna"},
+        )
+        self.assertEqual((row.x, row.y), (-12, None))
+
     def test_accepts_existing_guide_coercion_semantics(self):
         for raw, expected in ((True, 1), (False, 0), ("-8", -8), (4.9, 4), (0, 0)):
             with self.subTest(raw=repr(raw)):

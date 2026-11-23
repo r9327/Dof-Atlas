@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from app.constants import DATA_DIR, ROOT_DIR
+from app.core.numbers import optional_int
 
 MAP_CACHE_DIR = DATA_DIR / "cache" / "dofus_maps"
 MAP_MANIFEST_PATH = MAP_CACHE_DIR / "manifest.json"
@@ -100,15 +101,6 @@ class MapEntry:
             "source": self.source,
             "status": self.status,
         }
-
-
-def optional_int(value: Any) -> int | None:
-    if value in (None, ""):
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def optional_str(value: Any) -> str | None:
