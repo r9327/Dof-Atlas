@@ -34,6 +34,12 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(area.frameShape(), QFrame.NoFrame)
             self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
             self.assertEqual(area.objectName(), "DevUiGalleryScroll")
+            guide_scroll = page.guide_manual_scroll_sample
+            self.assertTrue(guide_scroll.widgetResizable())
+            self.assertEqual(
+                guide_scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff,
+            )
+            self.assertEqual(guide_scroll.objectName(), "GuideManualScroll")
         finally:
             page.close()
             page.deleteLater()

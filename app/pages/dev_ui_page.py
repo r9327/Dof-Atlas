@@ -2077,9 +2077,8 @@ class DevUiPage(QWidget):
         section.addWidget(self.guide_manual_nav)
 
         # Preview the real guide reading surface, without a local stylesheet.
-        self.guide_manual_scroll_sample = QScrollArea()
+        self.guide_manual_scroll_sample = configure_unity_scroll_area(QScrollArea())
         self.guide_manual_scroll_sample.setObjectName("GuideManualScroll")
-        self.guide_manual_scroll_sample.setWidgetResizable(True)
         self.guide_manual_scroll_sample.setFixedHeight(88)
         content = QWidget()
         content.setObjectName("GuideManualContent")
