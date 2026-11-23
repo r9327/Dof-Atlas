@@ -16,7 +16,11 @@ def extract_bracketed_position(value: object) -> str | None:
     match = BRACKETED_POSITION_RE.search(str(value or ""))
     if match is None:
         return None
-    return f"{int(match.group(1))},{int(match.group(2))}"
+    try:
+        return f"{int(match.group(1))},{int(match.group(2))}"
+    except ValueError:
+        # Python limits decimal conversion for pathological source strings.
+        return None
 
 
 
