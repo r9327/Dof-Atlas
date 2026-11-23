@@ -15,7 +15,7 @@ from app.core.text import strip_accents
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
-from app.ui.components import AtlasButton, AtlasPageTitle, configure_unity_scroll_area
+from app.ui.components import AtlasButton, AtlasPageTitle, clear_unity_widget_layout, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
 
 WORLD_SCAN_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["world_scan"]
@@ -854,11 +854,7 @@ class WorldScanPanel(QWidget):
     def _evict_world_menu_items(self) -> None:
         """Remove inactive menu buttons without losing the loaded view data."""
 
-        while self.world_menu_list.count():
-            item = self.world_menu_list.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.world_menu_list, detach_widgets=False)
         self.world_buttons = {}
         self._world_menu_suspended = True
 

@@ -149,6 +149,23 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
             finally:
                 self._dispose_panel(panel)
 
+    def test_world_menu_rebuild_cleans_widgets_with_shared_qt_layout(self) -> None:
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                panel.rebuild_world_menu([world_scan_module.DEFAULT_WORLD_NAME, "Pandala"])
+                self.assertEqual(len(panel.world_buttons), 2)
+                self.assertGreater(panel.world_menu_list.count(), 2)
+                panel._evict_world_menu_items()
+                self.assertEqual(panel.world_menu_list.count(), 0)
+                self.assertEqual(panel.world_buttons, {})
+                self.assertTrue(panel._world_menu_suspended)
+                panel.rebuild_world_menu(["Otomaï"])
+                self.assertEqual(tuple(panel.world_buttons), ("Otomaï",))
+                self.assertFalse(panel._world_menu_suspended)
+            finally:
+                self._dispose_panel(panel)
+
     def test_map_buttons_reuse_the_shared_unity_button(self) -> None:
         """Map actions use AtlasButton, preserving their existing selectors."""
         from app.ui.components import AtlasButton, AtlasPageTitle
