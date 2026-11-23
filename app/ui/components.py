@@ -137,6 +137,23 @@ def set_unity_widget_object_name(widget: QWidget, object_name: str) -> bool:
     return True
 
 
+def configure_unity_scroll_area(
+    area: QScrollArea, *, borderless: bool = False,
+    vertical_policy: Qt.ScrollBarPolicy | None = None,
+) -> QScrollArea:
+    """One native scroll policy for Craft, Guides, Organizer and Dev UI.
+
+    Layouts, contents, object names and scroll ownership remain with callers.
+    """
+    area.setWidgetResizable(True)
+    area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    if borderless:
+        area.setFrameShape(QFrame.NoFrame)
+    if vertical_policy is not None:
+        area.setVerticalScrollBarPolicy(vertical_policy)
+    return area
+
+
 def fill_unity_navigation_menu(
     menu: QMenu, choices: tuple[tuple[str, str], ...], activate: Callable[[str], None],
 ) -> QMenu:
@@ -602,9 +619,7 @@ class AtlasDialog(QDialog):
 
     def add_scroll_rows(self) -> QVBoxLayout:
         """Create the shared scrollable content slot for item-heavy dialogs."""
-        area = QScrollArea(self)
-        area.setWidgetResizable(True)
-        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        area = configure_unity_scroll_area(QScrollArea(self))
         container = QWidget(area)
         rows = QVBoxLayout(container)
         area.setWidget(container)

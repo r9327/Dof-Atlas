@@ -58,6 +58,7 @@ from app.ui.components import (
     AtlasButton, AtlasDialog, AtlasPageTitle,
     fit_unity_number_spinbox, release_transient_dialog,
     clear_current_dialog_reference,
+    configure_unity_scroll_area,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -471,10 +472,9 @@ class CraftPage(QWidget):
         self.retry_preload_button.clicked.connect(self.retry_preload)
         root.addWidget(self.retry_preload_button, 0, Qt.AlignLeft)
 
-        self.global_scroll = QScrollArea()
-        self.global_scroll.setWidgetResizable(True)
-        self.global_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.global_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.global_scroll = configure_unity_scroll_area(
+            QScrollArea(), vertical_policy=Qt.ScrollBarAlwaysOn,
+        )
         scroll_content = QWidget()
         content_root = QVBoxLayout(scroll_content)
         compact_inset = UNITY_SPACING_PX["xs"]

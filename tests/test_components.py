@@ -26,6 +26,7 @@ from app.ui.components import (
     release_transient_dialog,
     clear_current_dialog_reference,
     fill_unity_navigation_menu,
+    configure_unity_scroll_area,
 )
 from app.ui.theme import atlas_stylesheet
 
@@ -50,6 +51,25 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertEqual(title.styleSheet(), "")
         finally:
             dialog.deleteLater()
+
+    def test_shared_scroll_defaults_preserve_native_frame_and_optional_vertical_policy(self) -> None:
+        from PySide6.QtWidgets import QFrame, QScrollArea
+
+        area = QScrollArea()
+        original_frame = area.frameShape()
+        try:
+            self.assertIs(configure_unity_scroll_area(area), area)
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(area.frameShape(), original_frame)
+            configure_unity_scroll_area(
+                area, borderless=True, vertical_policy=Qt.ScrollBarAlwaysOn,
+            )
+            self.assertEqual(area.frameShape(), QFrame.NoFrame)
+            self.assertEqual(area.verticalScrollBarPolicy(), Qt.ScrollBarAlwaysOn)
+            self.assertEqual(area.styleSheet(), "")
+        finally:
+            area.deleteLater()
 
     def test_shared_dialog_scroll_slot_keeps_native_scrolling(self) -> None:
         from PySide6.QtWidgets import QLabel, QScrollArea
