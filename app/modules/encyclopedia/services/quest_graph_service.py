@@ -9,6 +9,7 @@ from itertools import product
 from typing import Any, Iterable, Mapping
 
 from app.core.numbers import optional_int as safe_int
+from app.modules.encyclopedia.services.quest_search_text import quest_repeatability_text
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.quest_catalog import QuestRecord, normalize_text
 
@@ -251,7 +252,7 @@ class QuestGraphService:
         return sorted((str(name) for name in quest.achievements), key=normalize_text)
 
     def is_repeatable(self, quest: QuestRecord) -> bool:
-        text = normalize_text(" ".join([quest.category, quest.start_criterion, *quest.info]))
+        text = normalize_text(quest_repeatability_text(quest))
         return any(token in text for token in ("journaliere", "hebdomadaire", "repetable", "repeatable"))
 
     @classmethod

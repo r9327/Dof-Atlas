@@ -10,6 +10,11 @@ if TYPE_CHECKING:
     from app.quest_catalog import QuestRecord
 
 
+def quest_repeatability_text(quest: QuestRecord) -> str:
+    """Source text shared by repeatability classification and graph lookup."""
+    return " ".join([quest.category, quest.start_criterion, *quest.info])
+
+
 def quest_search_fields(quest: QuestRecord, achievement_names: Iterable[str]) -> tuple[str, str, str, str, str]:
     """Return raw search fields in the original order; callers own normalization."""
     return (

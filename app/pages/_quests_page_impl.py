@@ -33,7 +33,7 @@ from app.modules.encyclopedia.services import (
     QuestHierarchyService,
     QuestProgressService,
 )
-from app.modules.encyclopedia.services.quest_search_text import quest_search_fields
+from app.modules.encyclopedia.services.quest_search_text import quest_repeatability_text, quest_search_fields
 from app.modules.encyclopedia.services.lazy_progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
     lazy_achievement_progress_service,
@@ -773,7 +773,7 @@ class QuestsPage(QWidget):
         return "Disponible"
 
     def repeatability_kind(self, quest: QuestRecord) -> str:
-        text = normalize_text(" ".join([quest.category, quest.start_criterion, *quest.info]))
+        text = normalize_text(quest_repeatability_text(quest))
         if any(token in text for token in ("hebdomadaire", "weekly", "chaque semaine")):
             return "Hebdomadaire"
         if any(token in text for token in ("journaliere", "journalier", "daily", "chaque jour")):
