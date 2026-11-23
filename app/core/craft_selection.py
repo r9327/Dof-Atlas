@@ -1,7 +1,7 @@
 """Qt-free saved Craft selection primitives shared with Quest preparation."""
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any
 
 from app.core.numbers import optional_int
@@ -20,3 +20,23 @@ def selection_item_row(item_id: int, name: str, quantity: int) -> dict[str, Any]
         "name": name,
         "quantity": quantity,
     }
+
+
+def iter_selection_item_rows(
+    payload: object, *, allow_legacy: bool = False,
+) -> Iterator[dict[str, Any]]:
+    """Read valid saved rows; Quest-only legacy mappings stay opt-in."""
+    if not isinstance(payload, dict):
+        return
+    rows = payload.get("items")
+    if isinstance(rows, list):
+        for row in rows:
+            if isinstance(row, dict):
+                yield row
+        return
+    if allow_legacy:
+        for ident, row in payload.items():
+            yield {
+                "item_id": ident,
+                "quantity": row.get("quantity") if isinstance(row, dict) else 0,
+            }

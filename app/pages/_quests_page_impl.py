@@ -28,6 +28,7 @@ from app.core.character_identity import is_character_key
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
 from app.core.craft_selection import (
     selection_item_id as owned_item_identifier, selection_item_row,
+    iter_selection_item_rows,
 )
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -1284,20 +1285,8 @@ def local_image_url(path: str) -> str:
 
 
 def normalize_owned_items(payload: Any) -> dict[int, int]:
-    if not isinstance(payload, dict):
-        return {}
-    rows: Any
-    if isinstance(payload.get("items"), list):
-        rows = payload.get("items")
-    else:
-        rows = [
-            {"item_id": ident, "quantity": row.get("quantity") if isinstance(row, dict) else 0}
-            for ident, row in payload.items()
-        ]
     owned: dict[int, int] = {}
-    for row in rows if isinstance(rows, list) else []:
-        if not isinstance(row, dict):
-            continue
+    for row in iter_selection_item_rows(payload, allow_legacy=True):
         ident = owned_item_identifier(row)
         quantity = optional_int(row.get("quantity") or 0)
         if ident is not None and quantity is not None and ident > 0 and quantity > 0:

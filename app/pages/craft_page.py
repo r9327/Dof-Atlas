@@ -32,7 +32,9 @@ from PySide6.QtWidgets import (
 
 from app import local_data_cache
 from app.core.item_artwork import item_with_artwork
-from app.core.craft_selection import selection_item_id, selection_item_row
+from app.core.craft_selection import (
+    selection_item_id, selection_item_row, iter_selection_item_rows,
+)
 from app.constants import (
     CRAFT_SELECTION_FILE,
     HARVEST_ASSET_REPORT,
@@ -1015,12 +1017,7 @@ class CraftPage(QWidget):
                     }
             return
         payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
-        rows = payload.get("items") if isinstance(payload, dict) else []
-        if not isinstance(rows, list):
-            return
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
+        for row in iter_selection_item_rows(payload):
             ident = selection_item_id(row)
             if ident is None:
                 continue

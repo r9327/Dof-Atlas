@@ -4,10 +4,25 @@ from __future__ import annotations
 import unittest
 
 from app.pages._quests_page_impl import normalize_owned_items, owned_item_identifier
-from app.core.craft_selection import selection_item_id, selection_item_row
+from app.core.craft_selection import (
+    selection_item_id, selection_item_row, iter_selection_item_rows,
+)
 
 
 class OwnedItemsNormalizationTests(unittest.TestCase):
+    def test_common_selection_reader_keeps_legacy_mapping_quest_only(self):
+        payload = {"8": {"quantity": 3}, "9": "invalid"}
+        self.assertEqual(list(iter_selection_item_rows(payload)), [])
+        self.assertEqual(list(iter_selection_item_rows(payload, allow_legacy=True)), [
+            {"item_id": "8", "quantity": 3},
+            {"item_id": "9", "quantity": 0},
+        ])
+        self.assertEqual(
+            list(iter_selection_item_rows({"items": [None, {"item_id": 8}, 11]})),
+            [{"item_id": 8}],
+        )
+        self.assertEqual(list(iter_selection_item_rows(None, allow_legacy=True)), [])
+
     def test_shared_craft_saved_row_preserves_order_and_alias(self):
         self.assertEqual(
             selection_item_row(42, "Cawotte", 7),
