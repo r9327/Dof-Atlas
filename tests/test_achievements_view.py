@@ -50,6 +50,27 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_achievement_summary_shares_progress_percentage_with_detail(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.modules.encyclopedia.widgets.achievement_summary_widget import (
+            AchievementSummaryWidget,
+        )
+
+        achievement = SimpleNamespace(
+            id=9, name="Test succès", points=15,
+            objectives=[SimpleNamespace(id=101), SimpleNamespace(id=102)],
+        )
+        progress = SimpleNamespace(
+            is_objective_completed=lambda _aid, oid: oid == 101,
+            is_achievement_completed=lambda _aid: False,
+        )
+        card = AchievementSummaryWidget(achievement, progress)
+        try:
+            self.assertEqual(card.findChild(QProgressBar).value(), 50)
+            self.assertTrue(any("50 %" in label.text() for label in card.findChildren(QLabel)))
+        finally:
+            card.deleteLater()
+
     def test_reusable_progress_card_matches_shared_percentage_bounds(self):
         from app.modules.encyclopedia.widgets.progress_card import ProgressCard
 

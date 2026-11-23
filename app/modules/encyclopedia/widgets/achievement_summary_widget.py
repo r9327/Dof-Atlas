@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QFrame, QLabel, QProgressBar, QVBoxLayout
 
 from app.modules.encyclopedia.models.achievement import Achievement
+from app.modules.encyclopedia.services.achievement_progress_logic import achievement_progress_percent
 from app.modules.encyclopedia.models.progress_state import ProgressState
 
 
@@ -20,7 +21,7 @@ class AchievementSummaryWidget(QFrame):
         done = sum(1 for objective in achievement.objectives if progress.is_objective_completed(achievement.id, objective.id))
         total = len(achievement.objectives)
         completed = progress.is_achievement_completed(achievement.id)
-        percent = 100 if completed else int(round((done / total) * 100)) if total else 0
+        percent = achievement_progress_percent(completed, done, total)
         meta = QLabel(f"{achievement.points} point(s) • {done} / {total} objectif(s) • {percent} %")
         meta.setObjectName("MutedLabel")
         layout.addWidget(meta)
