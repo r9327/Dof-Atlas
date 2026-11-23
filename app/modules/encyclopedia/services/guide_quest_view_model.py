@@ -859,7 +859,8 @@ def _is_artificial_step_title(text: str) -> bool:
     return bool(re.fullmatch(r"e?tape_\d+", key))
 
 
-def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
+def trackable_quest_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
+    """Collect real documentary objectives once for view and progress services."""
     ids: list[int] = []
     seen: set[int] = set()
     for quest_step in quest.steps:
@@ -872,6 +873,11 @@ def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
                 seen.add(objective_id)
                 ids.append(objective_id)
     return tuple(ids)
+
+
+def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
+    """Compatibility alias for established source-objective matching."""
+    return trackable_quest_objective_ids(quest)
 
 
 def _verified_source_objective_ids(quest: QuestRecord) -> dict[int, int]:

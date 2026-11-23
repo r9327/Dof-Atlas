@@ -3,6 +3,9 @@ from __future__ import annotations
 import unittest
 
 from app.modules.encyclopedia.services.guide_progress_calculator import GuideProgressCalculator
+from app.modules.encyclopedia.services.guide_quest_view_model import (
+    _local_trackable_objective_ids, trackable_quest_objective_ids,
+)
 from app.quest_catalog import QuestObjective, QuestRecord, QuestStep
 
 
@@ -24,6 +27,26 @@ class _QuestProgressProbe:
 
 
 class GuideProgressBatchingTests(unittest.TestCase):
+    def test_trackable_quest_objective_ids_are_stable_unique_and_shared(self):
+        quest = QuestRecord(
+            id=202, name="Dédoublonnage", category="Tests",
+            level_min=1, level_max=1, start_criterion="",
+            steps=[
+                QuestStep(id=1, name="A", description="", objectives=[
+                    QuestObjective(id=10, text="Parlez au PNJ", type_id=0),
+                    QuestObjective(id=10, text="Parlez au PNJ", type_id=0),
+                    QuestObjective(id=11, text="Lisez la carte", type_id=0),
+                ]),
+                QuestStep(id=2, name="B", description="", objectives=[
+                    QuestObjective(id=10, text="Parlez au PNJ", type_id=0),
+                    QuestObjective(id=12, text="", type_id=0),
+                ]),
+            ],
+        )
+        expected = (10, 11)
+        self.assertEqual(trackable_quest_objective_ids(quest), expected)
+        self.assertEqual(_local_trackable_objective_ids(quest), expected)
+
     def test_quest_progress_reads_completed_objectives_once(self) -> None:
         quest = QuestRecord(
             id=101,
