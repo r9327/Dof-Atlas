@@ -65,6 +65,22 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
+    def test_shared_dialog_footer_retains_order_and_click_behaviour(self) -> None:
+        dialog = AtlasDialog()
+        dismiss = AtlasButton("Annuler", variant="secondary")
+        confirm = AtlasButton("Valider", variant="primary")
+        dismiss.clicked.connect(dialog.reject)
+        confirm.clicked.connect(dialog.accept)
+        try:
+            row = dialog.add_action_row(dismiss, confirm)
+            self.assertEqual(row.count(), 3)
+            self.assertIs(row.itemAt(1).widget(), dismiss)
+            self.assertIs(row.itemAt(2).widget(), confirm)
+            confirm.click()
+            self.assertEqual(dialog.result(), dialog.Accepted)
+        finally:
+            dialog.deleteLater()
+
     def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
         button = AtlasButton("Contrôle")
         badge = AtlasStatusBadge("Statut", "neutral")

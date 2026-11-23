@@ -585,6 +585,15 @@ class AtlasDialog(QDialog):
         self.content_layout.addWidget(area, 1)
         return rows
 
+    def add_action_row(self, *actions: QWidget) -> QHBoxLayout:
+        """Place themed dialog actions in one right-aligned shared footer."""
+        footer = QHBoxLayout()
+        footer.addStretch(1)
+        for action in actions:
+            footer.addWidget(action)
+        self.content_layout.addLayout(footer)
+        return footer
+
 
 class AtlasDialogHeader(QWidget):
     """Reusable application-dialog header with optional product icon."""

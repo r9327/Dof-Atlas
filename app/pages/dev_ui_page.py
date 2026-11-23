@@ -2894,20 +2894,19 @@ class DevUiPage(QWidget):
             fit_unity_number_spinbox(count)
             fields.addWidget(count)
             dialog.content_layout.addLayout(fields)
-        footer = QHBoxLayout()
-        footer.addStretch(1)
+        footer_actions: list[AtlasButton] = []
         if mode in {"confirmation", "form"}:
             cancel = AtlasButton("Annuler", variant="secondary")
             cancel.clicked.connect(dialog.reject)
-            footer.addWidget(cancel)
+            footer_actions.append(cancel)
             confirm = AtlasButton("Valider", variant="primary")
             confirm.clicked.connect(dialog.accept)
-            footer.addWidget(confirm)
+            footer_actions.append(confirm)
         else:
             close_button = AtlasButton("Fermer", variant="primary")
             close_button.clicked.connect(dialog.accept)
-            footer.addWidget(close_button)
-        dialog.content_layout.addLayout(footer)
+            footer_actions.append(close_button)
+        dialog.add_action_row(*footer_actions)
         dialog.finished.connect(
             lambda _result: self._report("Dialogue refermé")
         )

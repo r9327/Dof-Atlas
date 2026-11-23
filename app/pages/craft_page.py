@@ -157,12 +157,9 @@ class CraftResourceDialog(AtlasDialog):
             label.setObjectName("WarningLabel")
             label.setWordWrap(True)
             root.addWidget(label)
-        footer = QHBoxLayout()
-        footer.addStretch(1)
         close = AtlasButton("Fermer", variant="primary")
         close.clicked.connect(self.accept)
-        footer.addWidget(close)
-        root.addLayout(footer)
+        self.add_action_row(close)
 
     def set_resource_quantity(self, name: str, value: int) -> None:
         if name in self.resources:
@@ -324,12 +321,9 @@ class LevelingDialog(AtlasDialog):
             rows.addWidget(row)
         rows.addStretch(1)
 
-        footer = QHBoxLayout()
-        footer.addStretch(1)
         close = AtlasButton("Fermer", variant="secondary")
         close.clicked.connect(self.accept)
-        footer.addWidget(close)
-        root.addLayout(footer)
+        self.add_action_row(close)
 
 
 class RouteImageLabel(QLabel):
