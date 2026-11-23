@@ -10,7 +10,7 @@ from app.core.numbers import optional_int, valid_int_ids
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
-    progress_characters_for_validation,
+    progress_characters_for_validation, read_progress_character,
     validate_progress_character_keys,
 )
 from app.quest_catalog import save_quest_progress
@@ -361,14 +361,7 @@ class QuestProgressService(CoordinatedProgressReader):
         self._clear_read_caches()
 
     def _read_character(self, character_key: str) -> dict[str, Any]:
-        characters = self.progress.get("characters", {})
-        if not isinstance(characters, dict):
-            return {}
-        key = str(character_key or "").strip()
-        if not key:
-            return {}
-        character = characters.get(key, {})
-        return character if isinstance(character, dict) else {}
+        return read_progress_character(self.progress, character_key)
 
     def _mutable_character(self, character_key: str) -> dict[str, Any]:
         characters = self.progress.setdefault("characters", {})
