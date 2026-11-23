@@ -25,7 +25,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
 )
 from app.core.numbers import optional_int
 from app.core.map_coordinates import BRACKETED_POSITION_RE
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_scroll_area, set_unity_widget_property
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_progress_bar, configure_unity_scroll_area, set_unity_widget_property
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -462,9 +462,9 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         header_layout.addWidget(self.route_progress_label)
         root.addWidget(header)
 
-        self.route_bar = QProgressBar()
-        self.route_bar.setObjectName("GuideRouteProgress")
-        self.route_bar.setTextVisible(False)
+        self.route_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideRouteProgress",
+        )
         self.route_bar.setFixedHeight(6)
         root.addWidget(self.route_bar)
 
