@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.numbers import clamped_percent, coerce_positive_int, format_grouped_int, optional_int, positive_int
+from app.core.numbers import clamped_percent, coerce_positive_int, exact_native_integer, format_grouped_int, optional_int, positive_int
 from app.core.item_identity import item_id
 
 
@@ -32,6 +32,18 @@ class PositiveIntTests(unittest.TestCase):
             def __int__(self):
                 raise OverflowError("out of range")
         self.assertIsNone(positive_int(OverflowInt()))
+
+
+class ExactNativeIntegerTests(unittest.TestCase):
+    def test_exact_native_bounds_and_optional_zero(self):
+        for value, expected in ((42, 42), (" 42 ", 42), (0, None), ("0", None),
+                                (True, None), (42.0, None), ("４２", None),
+                                ("-3", None), (2**64, None), ("9" * 5000, None)):
+            with self.subTest(value=repr(value)[:35]):
+                self.assertEqual(exact_native_integer(value, 2**64 - 1), expected)
+        self.assertEqual(exact_native_integer("0", 100, allow_zero=True), 0)
+        self.assertIsNone(exact_native_integer(-1, 100, allow_zero=True))
+        self.assertIsNone(exact_native_integer(101, 100, allow_zero=True))
 
 
 class OptionalIntTests(unittest.TestCase):

@@ -37,6 +37,22 @@ def optional_int(value: object, default: int | None = None) -> int | None:
         return default
 
 
+def exact_native_integer(
+    value: object, maximum: int, *, allow_zero: bool = False,
+) -> int | None:
+    """Accept exact bounded native IDs, never float, bool or Unicode digits."""
+    if type(value) is int:
+        parsed = value
+    elif type(value) is str and value.isascii() and value.strip().isdecimal():
+        try:
+            parsed = int(value.strip())
+        except (ValueError, OverflowError):
+            return None
+    else:
+        return None
+    return parsed if (0 if allow_zero else 1) <= parsed <= maximum else None
+
+
 def clamped_percent(completed: int, total: int) -> int:
     """Apply Atlas' rounded whole-percent rule for bounded progress bars."""
     if not total:

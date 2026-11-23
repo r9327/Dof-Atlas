@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from app.constants import CLIENT_INDEX_JSON, DATA_DIR
+from app.core.numbers import exact_native_integer
 from app.storage import normalize_key, read_json
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
@@ -67,19 +68,8 @@ def session_name(session: dict[str, Any] | None) -> str:
 
 
 def _validated_session_number(raw: Any, maximum: int) -> int:
-    # Win32 session IDs are exact unsigned integers, not booleans/floats.
-    # Keep persisted JSON decimal strings but never truncate a fractional
-    # HWND into an unrelated genuine window.
-    if type(raw) is int:
-        number = raw
-    elif type(raw) is str and raw.isascii() and raw.strip().isdecimal():
-        try:
-            number = int(raw.strip())
-        except (ValueError, OverflowError):
-            return 0
-    else:
-        return 0
-    return number if 0 < number <= maximum else 0
+    # The Organizer's public missing-window sentinel remains zero.
+    return exact_native_integer(raw, maximum) or 0
 
 
 def session_hwnd(session: dict[str, Any] | None) -> int:
