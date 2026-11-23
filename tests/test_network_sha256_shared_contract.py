@@ -49,6 +49,35 @@ def validators_in_module(short_name: str):
 
 
 class SharedNetworkShaContractTests(unittest.TestCase):
+    def test_shared_active_build_and_decoder_lifecycle_are_fail_closed(self):
+        from unittest.mock import Mock
+        from app.network.contracts import (
+            active_build_matches, forward_decoder_session_closed,
+            forward_decoder_reset, is_current_ankama_alias,
+        )
+
+        fingerprint = "aB" * 32
+        self.assertTrue(active_build_matches(lambda: " AB" * 32, fingerprint.casefold()) is False)
+        self.assertTrue(active_build_matches(lambda: fingerprint.upper(), fingerprint.casefold()))
+        self.assertFalse(active_build_matches(lambda: None, fingerprint.casefold()))
+        self.assertFalse(active_build_matches(
+            Mock(side_effect=RuntimeError("build not available")), fingerprint.casefold(),
+        ))
+        delegate = Mock()
+        forward_decoder_session_closed(delegate, "session:1")
+        forward_decoder_reset(delegate)
+        delegate.session_closed.assert_called_once_with("session:1")
+        delegate.reset.assert_called_once_with()
+        forward_decoder_session_closed(object(), "session:2")
+        forward_decoder_reset(object())
+        for value, expected in (
+            ("type.ankama.com/idr", True), ("type.ankama.com/IDR", False),
+            ("type.ankama.com/abcd", False), ("ankama.com/idr", False),
+            ("type.ankama.com/idé", False), ("type.ankama.com/idz", True),
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(is_current_ankama_alias(value), expected)
+
     def test_canonical_validator_rejects_legacy_whitespace_bypass(self):
         wrong = "aa" + " " * 60 + "bb"
         self.assertEqual(len(wrong), 64)

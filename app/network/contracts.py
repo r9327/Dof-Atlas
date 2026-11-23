@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 from types import MappingProxyType
-from typing import Iterable, Mapping
+from typing import Callable, Iterable, Mapping
 
 from app.constants import DATA_DIR
 
@@ -16,6 +16,36 @@ def _is_sha256(value: object) -> bool:
     Preserve uppercase hexadecimal without trimming or coercing the input.
     """
     return isinstance(value, str) and re.fullmatch(r"[0-9a-fA-F]{64}", value) is not None
+
+
+def active_build_matches(
+    provider: Callable[[], str | None], expected_fingerprint: str,
+) -> bool:
+    """Fail closed if the live build cannot be read or does not match."""
+    try:
+        active = str(provider() or "").strip().casefold()
+    except Exception:
+        return False
+    return active == expected_fingerprint
+
+
+def forward_decoder_session_closed(delegate: object, session_id: str) -> None:
+    hook = getattr(delegate, "session_closed", None)
+    if callable(hook):
+        hook(session_id)
+
+
+def forward_decoder_reset(delegate: object) -> None:
+    hook = getattr(delegate, "reset", None)
+    if callable(hook):
+        hook()
+
+
+def is_current_ankama_alias(value: str) -> bool:
+    """Match only the reviewed three-letter lower-case current aliases."""
+    prefix = "type.ankama.com/"
+    alias = value[len(prefix) :] if value.startswith(prefix) else ""
+    return len(alias) == 3 and alias.isascii() and alias.isalpha() and alias.islower()
 
 
 DEFAULT_PROTOCOL_MAPPING_DIR = DATA_DIR / "network" / "protocol_mappings"
@@ -99,6 +129,10 @@ def full_calibration_capabilities_ready(provided_events: Iterable[str]) -> bool:
 
 __all__ = [
     "DEFAULT_PROTOCOL_MAPPING_DIR",
+    "active_build_matches",
+    "forward_decoder_session_closed",
+    "forward_decoder_reset",
+    "is_current_ankama_alias",
     "DIRECT_MAPPING_EVIDENCE_EVENTS",
     "REQUIRED_FULL_CALIBRATION_EVENTS",
     "REQUIRED_RUNTIME_EVENTS",
