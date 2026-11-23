@@ -184,6 +184,26 @@ class DevUiPageTests(unittest.TestCase):
             css,
         )
 
+    def test_dev_ui_reuses_one_active_preview_and_releases_previous(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.preview_dialog_variants["info"].click()
+            first = page._preview_dialog
+            self.assertIsNotNone(first)
+            self.assertTrue(first.isVisible())
+            page.preview_dialog_variants["warning"].click()
+            second = page._preview_dialog
+            self.assertIsNot(first, second)
+            self.assertFalse(first.isVisible())
+            self.assertTrue(second.isVisible())
+            second.reject()
+            self.assertIsNone(page._preview_dialog)
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_shared_dialog_keeps_real_icon_only_and_compact_actions(self) -> None:
         from PySide6.QtGui import QIcon
         from app.pages.dev_ui_page import DevUiPage

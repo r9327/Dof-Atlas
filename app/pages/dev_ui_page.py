@@ -2807,6 +2807,23 @@ class DevUiPage(QWidget):
         self._report("Palette technique affichée" if visible
                      else "Palette technique masquée")
 
+    def _present_preview_dialog(self, dialog: AtlasDialog, *, opened: str, closed: str) -> None:
+        """Own one Dev UI preview at a time; release the old Qt window."""
+        current = self._preview_dialog
+        if current is not None and current is not dialog:
+            current.close()
+        self._preview_dialog = dialog
+
+        def finished(_result: int) -> None:
+            if self._preview_dialog is dialog:
+                self._preview_dialog = None
+            self._report(closed)
+            dialog.deleteLater()
+
+        dialog.finished.connect(finished)
+        dialog.open()
+        self._report(opened)
+
     def _open_craft_dialog_preview(self) -> None:
         """Open an existing Craft dialog with harmless, local demonstration data."""
         # Lazy import: the developer gallery must not preload Craft or game
@@ -2845,16 +2862,10 @@ class DevUiPage(QWidget):
         else:
             raise ValueError(f"Unknown Craft dialog preview index: {choice}")
 
-        current = getattr(self, "_preview_dialog", None)
-        if current is not None and current.isVisible():
-            current.close()
-        self._preview_dialog = dialog
-        dialog.finished.connect(
-            lambda _result: self._report("Fenêtre Craft refermée")
-        )
-        dialog.open()
-        self._report(
-            f"Fenêtre Craft réelle : {self.preview_craft_dialog_choice.currentText()}"
+        self._present_preview_dialog(
+            dialog,
+            opened=f"Fenêtre Craft réelle : {self.preview_craft_dialog_choice.currentText()}",
+            closed="Fenêtre Craft refermée",
         )
 
     def _open_preview_dialog(self) -> None:
@@ -2907,9 +2918,6 @@ class DevUiPage(QWidget):
             close_button.clicked.connect(dialog.accept)
             footer_actions.append(close_button)
         dialog.add_action_row(*footer_actions)
-        dialog.finished.connect(
-            lambda _result: self._report("Dialogue refermé")
+        self._present_preview_dialog(
+            dialog, opened="Dialogue ouvert", closed="Dialogue refermé",
         )
-        self._preview_dialog = dialog
-        dialog.open()
-        self._report("Dialogue ouvert")
