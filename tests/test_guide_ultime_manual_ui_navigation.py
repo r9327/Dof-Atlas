@@ -192,6 +192,14 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         QApplication.processEvents()
         return service, view
 
+    def test_participant_rows_use_shared_deferred_cleanup(self) -> None:
+        import inspect
+        source = inspect.getsource(SharedGuideManualView._refresh_participants_panel)
+        self.assertIn(
+            "clear_unity_widget_layout(self.participants_layout, detach_widgets=False)",
+            source,
+        )
+
     def test_manual_renderers_hide_old_rows_via_shared_cleanup(self) -> None:
         import inspect
 

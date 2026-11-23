@@ -1319,11 +1319,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _refresh_participants_panel(self) -> None:
         self._last_participant_source_signature = self._participant_source_signature()
-        while self.participants_layout.count():
-            item = self.participants_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.participants_layout, detach_widgets=False)
         self._participant_buttons.clear()
         selected = set(self.selected_participant_keys())
         characters = tuple(self.participant_service.available_characters())
