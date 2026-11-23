@@ -9,7 +9,8 @@ from app.core.json_store import read_json_validated
 from app.core.numbers import optional_int
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
-    empty_progress_payload as _empty_progress, progress_characters_for_validation,
+    complete_progress_root, empty_progress_payload as _empty_progress,
+    progress_characters_for_validation,
     validate_progress_character_keys,
 )
 from app.quest_catalog import save_quest_progress
@@ -35,10 +36,9 @@ def _quest_progress_schema_error(payload: Any) -> str | None:
 
 
 def load_quest_progress(path: Path) -> dict[str, Any]:
-    payload = read_json_validated(path, _empty_progress(), _quest_progress_schema_error)
-    payload.setdefault("version", 1)
-    payload.setdefault("characters", {})
-    return payload
+    return complete_progress_root(
+        read_json_validated(path, _empty_progress(), _quest_progress_schema_error)
+    )
 
 
 class QuestProgressService(CoordinatedProgressReader):
