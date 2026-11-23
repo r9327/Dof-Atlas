@@ -204,6 +204,22 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_shared_menu_retains_checkable_and_nested_actions(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            actions = page.menu_button.menu().actions()
+            self.assertEqual([a.text() for a in actions[:3]],
+                             ["Première action", "Deuxième action", "Troisième action"])
+            actions[1].trigger()
+            self.assertIn("Menu : Deuxième action", page.feedback.text())
+            self.assertTrue(any(a.isCheckable() for a in actions))
+            self.assertTrue(any(a.menu() is not None for a in actions))
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_shared_dialog_keeps_real_icon_only_and_compact_actions(self) -> None:
         from PySide6.QtGui import QIcon
         from app.pages.dev_ui_page import DevUiPage

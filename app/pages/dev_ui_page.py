@@ -72,6 +72,7 @@ from app.ui.components import (
     AtlasStatusBadge,
     atlas_application_icon,
     apply_unity_calendar_weekdays,
+    fill_unity_navigation_menu,
     release_transient_dialog, clear_current_dialog_reference,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
@@ -472,13 +473,13 @@ class DevUiPage(QWidget):
         menu_row = QHBoxLayout()
         self.menu_button = AtlasButton("Ouvrir un menu", variant="secondary")
         menu = QMenu(self.menu_button)
-        for text in ("Première action", "Deuxième action", "Troisième action"):
-            action = menu.addAction(text)
-            action.triggered.connect(
-                lambda _checked=False, label=text: self._report(
-                    f"Menu : {label}"
-                )
-            )
+        fill_unity_navigation_menu(
+            menu,
+            tuple((label, label) for label in (
+                "Première action", "Deuxième action", "Troisième action",
+            )),
+            lambda label: self._report(f"Menu : {label}"),
+        )
         menu.addSeparator()
         checked_action = menu.addAction("Action cochable")
         checked_action.setCheckable(True)
