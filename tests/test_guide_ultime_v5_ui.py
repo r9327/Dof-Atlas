@@ -9,7 +9,8 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QFrame
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.services.guide_ultime_generated_service import GuideUltimeGeneratedService
@@ -239,6 +240,17 @@ class GuideUltimeV5UITests(unittest.TestCase):
         self.a.set_achievement_completed("character:1", 501, True)
         self.make_services()
         self.assertGreaterEqual(self.v5.first_incomplete_index("character:1"), 1)
+
+    def test_generated_guide_uses_shared_scroll_without_changing_navigation(self):
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            self.assertTrue(view.scroll.widgetResizable())
+            self.assertEqual(view.scroll.frameShape(), QFrame.NoFrame)
+            self.assertEqual(view.scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(view.scroll.objectName(), "GuideUltimeScroll")
+        finally:
+            view.close()
+            view.deleteLater()
 
     # 15. virtualisation : jamais une instance QWidget par carte GPS
     def test_15_view_instantiates_only_small_window(self):

@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.numbers import optional_int
-from app.ui.components import AtlasButton, AtlasComboBox, AtlasPageNavigator
+from app.ui.components import AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_scroll_area
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
 )
@@ -377,11 +377,8 @@ class GuideUltimeGeneratedView(QWidget):
         nav_layout.addWidget(self.filter_combo)
         root.addWidget(nav)
 
-        self.scroll = QScrollArea()
+        self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
         self.scroll.setObjectName("GuideUltimeScroll")
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content = QWidget()
         self.content.setObjectName("GuideUltimeContent")
         self.cards_layout = QVBoxLayout(self.content)

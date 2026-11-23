@@ -190,6 +190,12 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
         self.assertIn("self.rendered_card_count = 1", source)
         self.assertNotIn("_visible_indices", source)
 
+    def test_route_sheet_uses_shared_scroll_setup(self):
+        source = inspect.getsource(GuideUltimeUniversalView._build_ui)
+        self.assertIn("configure_unity_scroll_area(QScrollArea(), borderless=True)", source)
+        self.assertIn('self.scroll.setObjectName("GuideRouteScroll")', source)
+        self.assertNotIn("self.scroll.setStyleSheet(", source)
+
     def test_navigation_reuses_shared_x_x_counter(self):
         build = inspect.getsource(GuideUltimeUniversalView._build_ui)
         render = inspect.getsource(GuideUltimeUniversalView._render_window)

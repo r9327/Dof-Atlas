@@ -25,7 +25,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
 )
 from app.core.numbers import optional_int
 from app.core.map_coordinates import BRACKETED_POSITION_RE
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, set_unity_widget_property
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_scroll_area, set_unity_widget_property
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -468,11 +468,8 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.route_bar.setFixedHeight(6)
         root.addWidget(self.route_bar)
 
-        self.scroll = QScrollArea()
+        self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
         self.scroll.setObjectName("GuideRouteScroll")
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content = QWidget()
         self.cards_layout = QVBoxLayout(self.content)
         self.cards_layout.setContentsMargins(8, 4, 8, 8)
