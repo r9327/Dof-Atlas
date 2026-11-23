@@ -9,7 +9,7 @@ from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
-    progress_characters_for_validation, read_progress_character,
+    mutable_progress_character, progress_characters_for_validation, read_progress_character,
     validate_progress_character_keys,
 )
 
@@ -189,15 +189,7 @@ class GuideProgressService(CoordinatedProgressReader):
         return complete_progress_root(read_json_resilient(self.path, _empty_progress()))
 
     def _manual_steps_map(self, character_key: str) -> dict[str, list[str]]:
-        characters = self.progress.setdefault("characters", {})
-        if not isinstance(characters, dict):
-            characters = {}
-            self.progress["characters"] = characters
-        key = require_character_key(character_key)
-        character = characters.setdefault(key, {})
-        if not isinstance(character, dict):
-            character = {}
-            characters[key] = character
+        character = mutable_progress_character(self.progress, character_key)
         manual_steps = character.setdefault("manual_steps", {})
         if not isinstance(manual_steps, dict):
             manual_steps = {}
