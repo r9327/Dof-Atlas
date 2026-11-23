@@ -49,6 +49,32 @@ def validators_in_module(short_name: str):
 
 
 class SharedNetworkShaContractTests(unittest.TestCase):
+    def test_three_quest_decoders_share_safe_active_build_check(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.network.quest_journal_decoder import QuestJournalDecoder
+        from app.network.quest_completion_info_decoder import QuestCompletionInfoDecoder
+        from app.network.quest_snapshot_decoder import FinishedQuestsSnapshotDecoder
+        from app.network.transport import CapturedProtocolMessage
+
+        broken = Mock(side_effect=OSError("fingerprint inaccessible"))
+        fake = SimpleNamespace(
+            active_fingerprint_provider=broken, mapping_fingerprint="a" * 64,
+        )
+        self.assertFalse(QuestJournalDecoder._build_matches(fake))
+        self.assertFalse(QuestCompletionInfoDecoder._build_matches(fake))
+
+        # Snapshot previously inlined this same fail-closed check in decode().
+        # Its route must still reject the exact mapped message when unavailable.
+        fake.rule = SimpleNamespace(type_url="type.ankama.com/qzx")
+        fake.delegate = Mock()
+        message = CapturedProtocolMessage(
+            session_id="test", type_url="type.ankama.com/qzx",
+            direction="server_to_client", payload=b"",
+        )
+        self.assertIsNone(FinishedQuestsSnapshotDecoder.decode(fake, message))
+        fake.delegate.decode.assert_not_called()
+
     def test_shared_active_build_and_decoder_lifecycle_are_fail_closed(self):
         from unittest.mock import Mock
         from app.network.contracts import (
