@@ -96,6 +96,31 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 self._dispose_panel(panel)
 
 
+    def test_world_name_normalization_preserves_real_display_labels(self) -> None:
+        self.assertEqual(
+            WorldScanPanel._world_name_from_view_data(
+                {"name": " Móndé des Douze – région "}
+            ),
+            world_scan_module.DEFAULT_WORLD_NAME,
+        )
+        self.assertEqual(
+            WorldScanPanel._world_name_from_view_data({"name": "  Pandala  "}),
+            "Pandala",
+        )
+        self.assertEqual(
+            WorldScanPanel._world_name_from_view_data({"name": ""}),
+            world_scan_module.DEFAULT_WORLD_NAME,
+        )
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                self.assertEqual(
+                    panel.normalize_world_name("  Écaflip’s World  "),
+                    "ecaflip's world",
+                )
+            finally:
+                self._dispose_panel(panel)
+
     def test_map_buttons_reuse_the_shared_unity_button(self) -> None:
         """Map actions use AtlasButton, preserving their existing selectors."""
         from app.ui.components import AtlasButton, AtlasPageTitle
