@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QLabel, QListWidgetItem, QTreeWidgetItem
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QListWidgetItem, QTreeWidgetItem
 
 from app.modules.encyclopedia.views.achievements_view import AchievementsView
 
@@ -67,6 +67,9 @@ class AchievementsThirdColumnTests(unittest.TestCase):
                 (UNITY_SPACING_PX["lg"],) * 4,
             )
         self.assertIs(view.detail_stack.currentWidget(), view.detail_scroll)
+        self.assertTrue(view.detail_scroll.widgetResizable())
+        self.assertEqual(view.detail_scroll.frameShape(), QFrame.NoFrame)
+        self.assertEqual(view.detail_scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
         self.assertIn(
             "Sélectionnez un succès",
             " ".join(label.text() for label in view.detail_content.findChildren(QLabel)),
