@@ -8,7 +8,7 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QProgressBar, QVBoxLayout, QWidget
 
 from app.background_work import install_preload_priority_bridge
-from app.ui.components import atlas_application_icon
+from app.ui.components import atlas_application_icon, configure_unity_progress_bar
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 
@@ -69,11 +69,11 @@ class PreloadProgressPopup(QDialog):
         self.current_label.setWordWrap(True)
         layout.addWidget(self.current_label)
 
-        self.progress = QProgressBar()
-        self.progress.setObjectName("PreloadPopupProgress")
-        self.progress.setRange(0, len(PRELOAD_TASK_ORDER))
+        self.progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="PreloadPopupProgress",
+            maximum=len(PRELOAD_TASK_ORDER), text_visible=True,
+        )
         self.progress.setValue(0)
-        self.progress.setTextVisible(True)
         self.progress.setFormat("%p %")
         layout.addWidget(self.progress)
 
