@@ -7,7 +7,7 @@ from app.modules.encyclopedia.models import Guide, GuideStep
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
-from app.modules.encyclopedia.services.guide_quest_view_model import solution_objective
+from app.modules.encyclopedia.services.guide_quest_view_model import trackable_quest_objective_ids
 from app.quest_catalog import QuestRecord
 
 
@@ -206,15 +206,4 @@ class GuideProgressCalculator:
 
     @staticmethod
     def trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
-        ids: list[int] = []
-        seen: set[int] = set()
-        for quest_step in quest.steps:
-            for raw_objective in quest_step.objectives:
-                objective = solution_objective(raw_objective)
-                if objective is None or objective.objective_id is None:
-                    continue
-                objective_id = int(objective.objective_id)
-                if objective_id not in seen:
-                    seen.add(objective_id)
-                    ids.append(objective_id)
-        return tuple(ids)
+        return trackable_quest_objective_ids(quest)

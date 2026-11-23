@@ -46,6 +46,7 @@ class GuideProgressBatchingTests(unittest.TestCase):
         expected = (10, 11)
         self.assertEqual(trackable_quest_objective_ids(quest), expected)
         self.assertEqual(_local_trackable_objective_ids(quest), expected)
+        self.assertEqual(GuideProgressCalculator.trackable_objective_ids(quest), expected)
 
     def test_quest_progress_reads_completed_objectives_once(self) -> None:
         quest = QuestRecord(
