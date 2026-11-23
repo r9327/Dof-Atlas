@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLayout,
     QMenu,
+    QProgressBar,
     QScrollArea,
     QLabel,
     QPushButton,
@@ -154,6 +155,18 @@ def configure_unity_scroll_area(
     if vertical_policy is not None:
         area.setVerticalScrollBarPolicy(vertical_policy)
     return area
+
+
+def configure_unity_progress_bar(
+    bar: QProgressBar, *, object_name: str | None = None,
+    maximum: int = 100,
+) -> QProgressBar:
+    """Set common Qt progress styling; preserve the caller's ownership and value."""
+    if object_name is not None:
+        bar.setObjectName(object_name)
+    bar.setRange(0, maximum)
+    bar.setTextVisible(False)
+    return bar
 
 
 def clear_unity_widget_layout(

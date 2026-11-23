@@ -71,6 +71,25 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         finally:
             card.deleteLater()
 
+    def test_shared_progress_bar_preserves_role_range_and_initial_value(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import configure_unity_progress_bar
+
+        for maximum in (1, 100):
+            with self.subTest(maximum=maximum):
+                bar = QProgressBar()
+                bar.setValue(0)
+                self.assertIs(
+                    configure_unity_progress_bar(
+                        bar, object_name="EncyclopediaProgressBar", maximum=maximum,
+                    ), bar,
+                )
+                self.assertEqual(bar.objectName(), "EncyclopediaProgressBar")
+                self.assertEqual((bar.minimum(), bar.maximum()), (0, maximum))
+                self.assertFalse(bar.isTextVisible())
+                self.assertEqual(bar.value(), 0)
+                bar.deleteLater()
+
     def test_reusable_progress_card_matches_shared_percentage_bounds(self):
         from app.modules.encyclopedia.widgets.progress_card import ProgressCard
 
