@@ -27,6 +27,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class UiUniversalContractTests(unittest.TestCase):
+    def test_quests_breadcrumb_rebuild_shares_layout_cleanup_without_new_widget(self):
+        source = (REPO_ROOT / "app/pages/_quests_page_impl.py").read_text(encoding="utf-8")
+        self.assertIn("clear_unity_widget_layout(self.breadcrumb_layout)", source)
+        self.assertIn('AtlasButton("Quêtes", variant="guide_breadcrumb")', source)
+
     def test_shell_capture_exercises_real_almanax_and_no_fake_tributes(self):
         from tests.capture_app_shell_ui import SCENARIOS
         almanax = [row for row in SCENARIOS if row[0] == "Almanax"]

@@ -58,7 +58,7 @@ from app.quest_catalog import (
     normalize_text,
 )
 from app.storage import IconCache, read_json, write_json
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, fit_unity_number_spinbox
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout, fit_unity_number_spinbox
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -649,12 +649,7 @@ class QuestsPage(QWidget):
         return path
 
     def render_breadcrumb(self) -> None:
-        while self.breadcrumb_layout.count():
-            item = self.breadcrumb_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(self.breadcrumb_layout)
         home = AtlasButton("Quêtes", variant="guide_breadcrumb")
         home.clicked.connect(lambda _checked=False: self.hierarchy_tree.setFocus())
         self.breadcrumb_layout.addWidget(home)
