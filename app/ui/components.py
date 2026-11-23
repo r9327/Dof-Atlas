@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFrame,
     QHBoxLayout,
+    QScrollArea,
     QLabel,
     QPushButton,
     QStyledItemDelegate,
@@ -572,6 +573,17 @@ class AtlasDialog(QDialog):
         header = AtlasDialogHeader(title, subtitle, icon=icon, parent=self)
         self.content_layout.addWidget(header)
         return header
+
+    def add_scroll_rows(self) -> QVBoxLayout:
+        """Create the shared scrollable content slot for item-heavy dialogs."""
+        area = QScrollArea(self)
+        area.setWidgetResizable(True)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        container = QWidget(area)
+        rows = QVBoxLayout(container)
+        area.setWidget(container)
+        self.content_layout.addWidget(area, 1)
+        return rows
 
 
 class AtlasDialogHeader(QWidget):

@@ -111,11 +111,7 @@ class CraftResourceDialog(AtlasDialog):
         toolbar.addStretch(1)
         root.addLayout(toolbar)
 
-        area = QScrollArea()
-        area.setWidgetResizable(True)
-        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        content = QWidget()
-        list_layout = QVBoxLayout(content)
+        list_layout = self.add_scroll_rows()
         list_layout.setContentsMargins(0, 0, 0, 0)
         list_layout.setSpacing(5)
         if not resources:
@@ -155,8 +151,7 @@ class CraftResourceDialog(AtlasDialog):
             layout.addWidget(label, 1)
             list_layout.addWidget(row)
         list_layout.addStretch(1)
-        area.setWidget(content)
-        root.addWidget(area, 1)
+
         if missing:
             label = QLabel("Sans recette : " + ", ".join(missing[:8]))
             label.setObjectName("WarningLabel")
@@ -225,11 +220,7 @@ class ItemSetDialog(AtlasDialog):
             root.addWidget(close)
             return
 
-        area = QScrollArea()
-        area.setWidgetResizable(True)
-        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        content = QWidget()
-        rows = QVBoxLayout(content)
+        rows = self.add_scroll_rows()
         for item in item_set.get("items", [])[:24]:
             row = QFrame()
             row.setObjectName("ListRow")
@@ -244,8 +235,7 @@ class ItemSetDialog(AtlasDialog):
             layout.addWidget(add)
             rows.addWidget(row)
         rows.addStretch(1)
-        area.setWidget(content)
-        root.addWidget(area, 1)
+
 
         add_set = AtlasButton("Ajouter la panoplie")
         add_set.clicked.connect(self.add_whole_set)
@@ -282,11 +272,7 @@ class LevelingDialog(AtlasDialog):
             note.setObjectName("MutedLabel")
             note.setWordWrap(True)
             root.addWidget(note)
-        area = QScrollArea()
-        area.setWidgetResizable(True)
-        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        content = QWidget()
-        rows = QVBoxLayout(content)
+        rows = self.add_scroll_rows()
         rows.setContentsMargins(0, 0, 0, 0)
         rows.setSpacing(5)
         entries = guide.get("entries") or []
@@ -337,8 +323,7 @@ class LevelingDialog(AtlasDialog):
             layout.addWidget(add)
             rows.addWidget(row)
         rows.addStretch(1)
-        area.setWidget(content)
-        root.addWidget(area, 1)
+
         footer = QHBoxLayout()
         footer.addStretch(1)
         close = AtlasButton("Fermer", variant="secondary")

@@ -48,6 +48,23 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
+    def test_shared_dialog_scroll_slot_keeps_native_scrolling(self) -> None:
+        from PySide6.QtWidgets import QLabel, QScrollArea
+
+        dialog = AtlasDialog(density="compact")
+        try:
+            rows = dialog.add_scroll_rows()
+            rows.addWidget(QLabel("Ligne de test"))
+            area = dialog.findChild(QScrollArea)
+            self.assertIsNotNone(area)
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertIs(rows.parentWidget(), area.widget())
+            self.assertEqual(area.widget().layout().count(), 1)
+            self.assertEqual(area.styleSheet(), "")
+        finally:
+            dialog.deleteLater()
+
     def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
         button = AtlasButton("Contrôle")
         badge = AtlasStatusBadge("Statut", "neutral")

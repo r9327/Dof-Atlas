@@ -90,6 +90,27 @@ class CraftFixesTests(unittest.TestCase):
                 dialog.close()
                 dialog.deleteLater()
 
+    def test_three_craft_catalog_dialogs_share_the_scrolled_slot(self):
+        from PySide6.QtWidgets import QScrollArea
+        from app.pages.craft_page import ItemSetDialog, LevelingDialog
+
+        dialogs = (
+            CraftResourceDialog({}, []),
+            ItemSetDialog({"name_fr": "Panoplie test", "items": []}, lambda *_: None),
+            LevelingDialog("Alchimiste", {"entries": []}, lambda _: None, lambda _: None),
+        )
+        try:
+            for dialog in dialogs:
+                with self.subTest(dialog=type(dialog).__name__):
+                    areas = dialog.findChildren(QScrollArea)
+                    self.assertEqual(len(areas), 1)
+                    self.assertTrue(areas[0].widgetResizable())
+                    self.assertIsNotNone(areas[0].widget().layout())
+        finally:
+            for dialog in dialogs:
+                dialog.close()
+                dialog.deleteLater()
+
     def test_craft_title_is_the_indexed_unity_component(self):
         from app.ui.components import AtlasPageTitle
 
