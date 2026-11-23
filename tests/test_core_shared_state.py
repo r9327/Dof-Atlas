@@ -26,6 +26,20 @@ class CoreSharedStateTests(unittest.TestCase):
         self.assertEqual(second, {"version": 1, "characters": {}})
         self.assertIsNot(first["characters"], second["characters"])
 
+    def test_progress_root_defaults_reuse_same_payload_and_preserve_data(self) -> None:
+        from app.core.progress_coordinator import complete_progress_root
+
+        for payload, expected in (
+            ({}, {"version": 1, "characters": {}}),
+            ({"characters": {"character:7": {"done": {}}}},
+             {"version": 1, "characters": {"character:7": {"done": {}}}}),
+            ({"version": 1, "characters": {}, "custom": [1, 2]},
+             {"version": 1, "characters": {}, "custom": [1, 2]}),
+        ):
+            with self.subTest(payload=payload):
+                self.assertIs(complete_progress_root(payload), payload)
+                self.assertEqual(payload, expected)
+
     def test_three_progress_schemas_share_envelope_without_losing_domain_rules(self) -> None:
         from app.core.progress_coordinator import progress_characters_for_validation
         from app.modules.encyclopedia.services.guide_progress_service import _guide_progress_schema_error
