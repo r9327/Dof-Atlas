@@ -35,7 +35,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton, AtlasPanelToggle, configure_unity_scroll_area, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasPanelToggle, clear_unity_widget_layout, configure_unity_scroll_area, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
@@ -209,15 +209,7 @@ class QuestDetailView(QWidget):
 
     @classmethod
     def _clear_layout(cls, layout) -> None:
-        while layout.count():
-            item = layout.takeAt(0)
-            child_layout = item.layout()
-            if child_layout is not None:
-                cls._clear_layout(child_layout)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(layout, recursive=True)
 
     @staticmethod
     def _muted_label(text: str) -> QLabel:

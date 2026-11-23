@@ -50,6 +50,23 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             achievement_context_section([achievement], progress, []),
         )
 
+    def test_shared_quest_detail_cleanup_removes_nested_rows(self) -> None:
+        from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        inner = QHBoxLayout()
+        label = QLabel("previous quest")
+        inner.addWidget(label)
+        layout.addLayout(inner)
+        try:
+            QuestDetailView._clear_layout(layout)
+            self.assertEqual(layout.count(), 0)
+            self.assertEqual(inner.count(), 0)
+            self.assertIsNone(label.parent())
+        finally:
+            host.deleteLater()
+
     def test_encyclopedia_detail_panel_keeps_horizontal_scroll_policy(self) -> None:
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QFrame
