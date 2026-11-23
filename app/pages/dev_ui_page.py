@@ -679,11 +679,10 @@ class DevUiPage(QWidget):
         prep_toggle.setAccessibleName("Afficher Préparation")
         prep_caption.insertWidget(2, prep_toggle, 0, Qt.AlignVCenter)
         prep_metric.addLayout(prep_caption)
-        prep_bar = QProgressBar()
-        prep_bar.setObjectName("GuideCompactPreparationProgress")
-        prep_bar.setRange(0, 100)
+        prep_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideCompactPreparationProgress",
+        )
         prep_bar.setValue(60)
-        prep_bar.setTextVisible(False)
         prep_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
         prep_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         prep_metric.addWidget(prep_bar)
