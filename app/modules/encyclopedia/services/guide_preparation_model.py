@@ -9,10 +9,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import unicodedata
 
 from app.core.numbers import positive_int as _positive_int
-from app.core.text import normalize_key
+from app.core.text import normalize_key, strip_accents
 import zlib
 from dataclasses import dataclass
 from typing import Any, Iterable
@@ -54,10 +53,9 @@ _EXPLICIT_QUANTITY = re.compile(
 
 
 def normalized_name(text: str) -> str:
-    decomposed = "".join(
-        ch for ch in unicodedata.normalize("NFKD", str(text or "").casefold())
-        if not unicodedata.combining(ch)
-    )
+    # Preserve the Guide's Unicode-aware item names; only accent removal is
+    # delegated to the same Qt-free helper as the rest of the application.
+    decomposed = strip_accents(str(text or "").casefold())
     return " ".join("".join(ch if ch.isalnum() else " " for ch in decomposed).split())
 
 

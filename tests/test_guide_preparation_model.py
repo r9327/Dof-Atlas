@@ -8,11 +8,18 @@ import zlib
 from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_preparation_model import (
-    aggregate_remaining, card_claims, category_for,
+    aggregate_remaining, card_claims, category_for, normalized_name, item_identity,
 )
 
 
 class GuidePreparationModelTests(unittest.TestCase):
+    def test_normalized_item_names_share_accents_but_keep_unicode_identity(self):
+        self.assertEqual(normalized_name("  PÔTION d’ÂME — Épée  "), "potion d ame epee")
+        self.assertEqual(normalized_name("  Vœu  +  FÉCA  "), "vœu feca")
+        self.assertEqual(normalized_name(None), "")
+        self.assertEqual(item_identity(None, "Épée  d’Âme"), "name:epee d ame")
+        self.assertEqual(item_identity(42, "Épée  d’Âme"), "item:42")
+
     def test_structured_and_textual_complement_without_mirror_double_count(self):
         card = {
             "manual_stage_id": "stage:1",

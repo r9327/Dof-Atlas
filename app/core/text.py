@@ -6,9 +6,7 @@ from typing import Any
 
 
 def normalize_key(value: Any) -> str:
-    text = unicodedata.normalize("NFKD", str(value or ""))
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    return re.sub(r"[^a-zA-Z0-9]+", "_", text.casefold()).strip("_")
+    return re.sub(r"[^a-zA-Z0-9]+", "_", strip_accents(value).casefold()).strip("_")
 
 
 def strip_accents(value: Any) -> str:
