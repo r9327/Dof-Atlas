@@ -8,7 +8,8 @@ from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
-    empty_progress_payload as _empty_progress, validate_progress_character_keys,
+    empty_progress_payload as _empty_progress, progress_characters_for_validation,
+    validate_progress_character_keys,
 )
 
 
@@ -219,16 +220,9 @@ class GuideProgressService(CoordinatedProgressReader):
         validate_progress_character_keys(self.progress)
 
 def _guide_progress_schema_error(payload: Any) -> str | None:
-    if not isinstance(payload, dict):
-        return "la racine doit être un objet"
-    if payload.get("version", 1) != 1:
-        return f"version inconnue: {payload.get('version')!r}"
-    characters = payload.get("characters", {})
-    if not isinstance(characters, dict):
-        return "characters doit être un objet"
-    for character_key, character in characters.items():
-        if not isinstance(character, dict):
-            return f"characters[{character_key!r}] doit être un objet"
+    characters, error = progress_characters_for_validation(payload)
+    if error is not None:
+        return error
         manual_steps = character.get("manual_steps", {})
         if not isinstance(manual_steps, dict):
             return f"characters[{character_key!r}].manual_steps doit être un objet"
