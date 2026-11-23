@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
-from app.core.numbers import format_grouped_int
+from app.core.numbers import format_grouped_int, optional_int
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     QuestGraphService,
@@ -1280,6 +1280,11 @@ def local_image_url(path: str) -> str:
     return escape(QUrl.fromLocalFile(str(path)).toString())
 
 
+def owned_item_identifier(row: dict[str, Any]) -> int | None:
+    """Preserve saved Craft ID precedence in the Quests preparation rail."""
+    return optional_int(row.get("ankama_id") or row.get("item_id"))
+
+
 def normalize_owned_items(payload: Any) -> dict[int, int]:
     if not isinstance(payload, dict):
         return {}
@@ -1295,12 +1300,9 @@ def normalize_owned_items(payload: Any) -> dict[int, int]:
     for row in rows if isinstance(rows, list) else []:
         if not isinstance(row, dict):
             continue
-        try:
-            ident = int(row.get("ankama_id") or row.get("item_id"))
-            quantity = int(row.get("quantity") or 0)
-        except (TypeError, ValueError):
-            continue
-        if ident > 0 and quantity > 0:
+        ident = owned_item_identifier(row)
+        quantity = optional_int(row.get("quantity") or 0)
+        if ident is not None and quantity is not None and ident > 0 and quantity > 0:
             owned[ident] = owned.get(ident, 0) + quantity
     return owned
 
@@ -1320,9 +1322,8 @@ def save_owned_item_quantity(item: dict[str, Any], quantity: int, path: Path = C
     for row in rows:
         if not isinstance(row, dict):
             continue
-        try:
-            ident = int(row.get("ankama_id") or row.get("item_id"))
-        except (TypeError, ValueError):
+        ident = owned_item_identifier(row)
+        if ident is None:
             next_rows.append(row)
             continue
         if ident != item_id_value:
