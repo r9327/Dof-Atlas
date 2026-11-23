@@ -66,7 +66,8 @@ from app.modules.encyclopedia.widgets.guide_card import (
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasPanelToggle,
-    clear_current_dialog_reference, clear_unity_widget_layout, configure_unity_scroll_area,
+    clear_current_dialog_reference, clear_unity_widget_layout,
+    configure_unity_progress_bar, configure_unity_scroll_area,
     refresh_unity_widget_style, release_transient_dialog,
     set_unity_widget_property,
 )
@@ -459,12 +460,12 @@ class GuideHomeCard(QFrame):
         count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(count)
 
-        bar = QProgressBar()
-        bar.setObjectName("GuideDofusHomeBar")
+        bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideDofusHomeBar",
+            maximum=total if total else 1,
+        )
         bar.setProperty("state", _tuple_progress_state(progress))
-        bar.setRange(0, total if total else 1)
         bar.setValue(min(completed, total) if total else 0)
-        bar.setTextVisible(False)
         bar.setFixedHeight(5)
         bar.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(bar)
