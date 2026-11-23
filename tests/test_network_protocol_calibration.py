@@ -247,6 +247,15 @@ class ProtocolCalibrationTests(unittest.TestCase):
         self.assertEqual(status.quest_journal_observation_count, 0)
         self.assertEqual(status.snapshot_candidate_count, 0)
 
+    def test_inaccessible_build_fails_closed_before_calibration(self) -> None:
+        from types import SimpleNamespace
+
+        fake = SimpleNamespace(
+            active_build_sha256_provider=lambda: (_ for _ in ()).throw(OSError("unreadable")),
+            build_sha256=BUILD,
+        )
+        self.assertFalse(CurrentProtocolCalibration._build_matches(fake))
+
     def test_build_change_invalidates_all_evidence_until_reset(self) -> None:
         self.calibration.observe(_idr())
         self.identify()
