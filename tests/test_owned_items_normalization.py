@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import unittest
+import json
+import tempfile
+from pathlib import Path
 
 from app.pages._quests_page_impl import normalize_owned_items, owned_item_identifier
 from app.core.craft_selection import (
@@ -22,6 +25,23 @@ class OwnedItemsNormalizationTests(unittest.TestCase):
             [{"item_id": 8}],
         )
         self.assertEqual(list(iter_selection_item_rows(None, allow_legacy=True)), [])
+
+    def test_quest_quantity_save_uses_shared_filtered_rows_without_losing_metadata(self):
+        from app.pages._quests_page_impl import save_owned_item_quantity
+
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "craft-selection.json"
+            path.write_text(json.dumps({"items": [
+                None, {"item_id": 8, "quantity": 2, "custom": "keep"},
+                17, {"item_id": 12, "quantity": 9},
+            ]}), encoding="utf-8")
+            save_owned_item_quantity({"item_id": 8, "name": "Cawotte"}, 5, path)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(saved, {"items": [
+                {"item_id": 8, "ankama_id": 8, "name": "Cawotte",
+                 "quantity": 5, "custom": "keep"},
+                {"item_id": 12, "quantity": 9},
+            ]})
 
     def test_shared_craft_saved_row_preserves_order_and_alias(self):
         self.assertEqual(
