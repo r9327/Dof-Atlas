@@ -37,7 +37,7 @@ from app.constants import (
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.components import AtlasButton, refresh_unity_widget_style, set_unity_widget_object_name, set_unity_widget_property, configure_unity_scroll_area
+from app.ui.components import AtlasButton, clear_unity_widget_layout, refresh_unity_widget_style, set_unity_widget_object_name, set_unity_widget_property, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
 from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
@@ -388,11 +388,7 @@ class CharacterSlotsPanel(OrganizerGlassCard):
         self.grid.addWidget(widget, row, column)
 
     def clear_slots(self) -> None:
-        while self.grid.count():
-            item = self.grid.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.grid, detach_widgets=False)
 
 
 def _position_organizer_highlight(

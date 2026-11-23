@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import inspect
-import inspect
 import os
 import unittest
 from unittest.mock import patch
@@ -11,7 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QPushButton, QWidget
 
 from app.pages.organizer.organizer_ui import (
     CharacterSlotsPanel, OrganizerModeSwitch, OrganizerSpeedSelector, OrganizerUiMixin,
@@ -96,6 +95,21 @@ class OrganizerUiSharedStyleTests(unittest.TestCase):
         finally:
             switch.deleteLater()
             slots.deleteLater()
+
+    def test_character_slot_cleanup_preserves_qt_parent_and_grid_geometry(self):
+        panel = CharacterSlotsPanel(QPushButton("Actualiser"))
+        slot = QWidget()
+        try:
+            panel.add_slot(slot, 0)
+            self.assertEqual(panel.grid.count(), 1)
+            self.assertIs(slot.parent(), panel.content)
+            panel.clear_slots()
+            self.assertEqual(panel.grid.count(), 0)
+            self.assertIs(slot.parent(), panel.content)
+            self.assertEqual(panel.slot_count, 8)
+            self.assertEqual(panel.grid.horizontalSpacing(), UNITY_ORGANIZER_METRICS_PX["slot_horizontal_spacing"])
+        finally:
+            panel.deleteLater()
 
     def test_character_panel_inherits_transparent_host_without_local_qss(self):
         events = []
