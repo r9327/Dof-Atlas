@@ -1300,9 +1300,7 @@ def load_owned_items(path: Path = CRAFT_SELECTION_FILE) -> dict[int, int]:
 
 def save_owned_item_quantity(item: dict[str, Any], quantity: int, path: Path = CRAFT_SELECTION_FILE) -> None:
     payload = read_json(path, {"items": []})
-    rows = payload.get("items") if isinstance(payload, dict) else []
-    if not isinstance(rows, list):
-        rows = []
+    rows = iter_selection_item_rows(payload)
     item_id_value = int(item["item_id"])
     next_rows = []
     replaced = False
