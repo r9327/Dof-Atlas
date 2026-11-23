@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app.core import zaap_shortcuts
+from app.core.profile_settings import read_zaap_button_ratios as read_profile_ratios
 from app.storage import parse_unit_ratio, read_zaap_button_ratios as legacy_read
 
 
@@ -31,6 +32,33 @@ class ZaapShortcutImportBoundaryTests(unittest.TestCase):
         for payload in payloads:
             with self.subTest(payload=payload):
                 self.assertEqual(legacy_read(payload), zaap_shortcuts.read_zaap_button_ratios(payload))
+
+    def test_profile_and_macro_use_one_ratio_codec_with_independent_file_paths(self) -> None:
+        cases = (
+            ({}, None),
+            ({"zaap_button": {"x_ratio": "0.25", "y_ratio": 1}}, (0.25, 1.0)),
+            ({"zaap_button": {"x_ratio": 0, "y_ratio": 0}}, (0.0, 0.0)),
+            ({"zaap_button": {"x_ratio": -0.1, "y_ratio": 0.3}}, None),
+            ({"zaap_button": {"x_ratio": "nan", "y_ratio": 0.2}}, None),
+            ({"zaap_button": []}, None),
+        )
+        for payload, expected in cases:
+            with self.subTest(payload=payload):
+                self.assertEqual(read_profile_ratios(payload), expected)
+                self.assertEqual(zaap_shortcuts.read_zaap_button_ratios(payload), expected)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "profile-zaap-shortcuts.json"
+            path.write_text(
+                json.dumps({"zaap_button": {"x_ratio": 0.2, "y_ratio": 0.8}}),
+                encoding="utf-8",
+            )
+            self.assertEqual(read_profile_ratios(path=path), (0.2, 0.8))
+            # An explicit caller payload wins over a potentially stale disk copy.
+            self.assertEqual(
+                read_profile_ratios({"zaap_button": {"x_ratio": 0.4, "y_ratio": 0.6}},
+                                    path=path),
+                (0.4, 0.6),
+            )
 
     def test_file_based_macro_reader_uses_non_ui_json_loader(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
