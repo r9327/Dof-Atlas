@@ -5,6 +5,20 @@ source coordinates or DOFUS chat commands). Never import Qt or Windows here.
 """
 from __future__ import annotations
 
+import re
+
+
+BRACKETED_POSITION_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
+
+
+def extract_bracketed_position(value: object) -> str | None:
+    """Extract a source bracket coordinate without imposing map boundary rules."""
+    match = BRACKETED_POSITION_RE.search(str(value or ""))
+    if match is None:
+        return None
+    return f"{int(match.group(1))},{int(match.group(2))}"
+
+
 
 def normalize_coordinate_pair(
     x: str, y: str, *, lower_exclusive: int = -(2**31),

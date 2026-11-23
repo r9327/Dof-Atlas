@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import re
+from app.core.map_coordinates import extract_bracketed_position
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
@@ -12,13 +12,8 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 )
 
 
-_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
-
 def _position_key(value) -> str:
-    match = _COORD_RE.search(str(value or ""))
-    if match is None:
-        return ""
-    return f"{int(match.group(1))},{int(match.group(2))}"
+    return extract_bracketed_position(value) or ""
 
 
 def catalog_route_map_count(guide, quest_provider) -> int:

@@ -3,10 +3,18 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.map_coordinates import normalize_coordinate_pair
+from app.core.map_coordinates import extract_bracketed_position, normalize_coordinate_pair
 
 
 class NormalizeCoordinatePairTests(unittest.TestCase):
+    def test_source_bracketed_coordinate_keeps_original_search_contract(self):
+        for raw, expected in (("[ -3, 004 ]", "-3,4"),
+                              ("Étape en [2, -10] zone", "2,-10"),
+                              ("sans coordonnées", None), (None, None),
+                              ("[1;2]", None)):
+            with self.subTest(raw=raw):
+                self.assertEqual(extract_bracketed_position(raw), expected)
+
     def test_normalization_and_negative_values(self):
         self.assertEqual(normalize_coordinate_pair("003", "-06"), "3,-6")
         self.assertEqual(normalize_coordinate_pair("0", "2147483647"), "0,2147483647")

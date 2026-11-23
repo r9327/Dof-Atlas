@@ -12,11 +12,11 @@ from collections import OrderedDict
 from functools import lru_cache
 from pathlib import Path
 from time import perf_counter
-import re
 from typing import Any
 from uuid import uuid4
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
+from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE, extract_bracketed_position
 from app.quest_catalog import quest_catalog_cache_signature
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
@@ -46,8 +46,6 @@ from app.modules.encyclopedia.services.guide_ultime_player_policy import (
 from app.core.text import normalize_key as normalize_text
 
 
-_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
-
 
 @lru_cache(maxsize=4096)
 def _position_key_short(text: str) -> str:
@@ -56,10 +54,7 @@ def _position_key_short(text: str) -> str:
 
 
 def _position_key_uncached(text: str) -> str:
-    match = _COORD_RE.search(text)
-    if match is not None:
-        return f"{int(match.group(1))},{int(match.group(2))}"
-    return normalize_text(text)
+    return extract_bracketed_position(text) or normalize_text(text)
 
 
 
