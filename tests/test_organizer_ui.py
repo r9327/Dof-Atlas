@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import inspect
+import inspect
 import os
 import unittest
 from unittest.mock import patch
@@ -12,7 +13,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from app.pages.organizer.organizer_ui import CharacterSlotsPanel, OrganizerModeSwitch, OrganizerUiMixin
+from app.pages.organizer.organizer_ui import (
+    CharacterSlotsPanel, OrganizerModeSwitch, OrganizerSpeedSelector, OrganizerUiMixin,
+)
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
 
@@ -27,6 +30,33 @@ class OrganizerUiSharedStyleTests(unittest.TestCase):
         self.assertNotIn("setHorizontalScrollBarPolicy(", source)
         self.assertNotIn("setWidgetResizable(", source)
         self.assertIn('setObjectName("OrganizerZaapViewport")', source)
+
+    def test_speed_and_mode_share_the_same_slider_geometry(self):
+        speed = OrganizerSpeedSelector(
+            QPushButton("Normal"), QPushButton("Rapide"), QPushButton("Instant"),
+        )
+        mode = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))
+        try:
+            self.assertIn("_position_organizer_highlight(",
+                          inspect.getsource(OrganizerSpeedSelector._position_highlight))
+            self.assertIn("_position_organizer_highlight(",
+                          inspect.getsource(OrganizerModeSwitch._sync_highlight))
+            speed.resize(480, speed.height())
+            speed.show()
+            mode.show()
+            self.app.processEvents()
+            speed.set_selected("rapide")
+            mode.set_selected(True, armed=False)
+            self.app.processEvents()
+            self.assertEqual(speed.highlight.pos(), speed._choices[1].pos())
+            self.assertEqual(mode.highlight.pos(), mode._choices[1].pos())
+            self.assertEqual(speed._motion.duration(), 145)
+            self.assertEqual(mode._animation.duration(), 155)
+        finally:
+            speed.close()
+            mode.close()
+            speed.deleteLater()
+            mode.deleteLater()
 
     def test_mode_switch_repolishes_only_on_real_role_change(self):
         switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))

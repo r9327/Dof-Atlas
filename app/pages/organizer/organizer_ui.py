@@ -395,6 +395,26 @@ class CharacterSlotsPanel(OrganizerGlassCard):
                 widget.deleteLater()
 
 
+def _position_organizer_highlight(
+    track: QFrame, target_widget: QWidget, highlight: QFrame,
+    animation: QPropertyAnimation, *, animate: bool,
+) -> None:
+    """Keep the Speed and Macro/Mirror sliders on the same geometry code."""
+    track.layout().activate()
+    target = target_widget.geometry()
+    if target.width() <= 0:
+        return
+    highlight.setFixedSize(target.size())
+    if animate and track.isVisible() and highlight.isVisible():
+        animation.setStartValue(highlight.pos())
+        animation.setEndValue(target.topLeft())
+        animation.start()
+    else:
+        highlight.move(target.topLeft())
+    highlight.lower()
+    highlight.show()
+
+
 class OrganizerSpeedSelector(QFrame):
     """One flat 3-stop track with a sliding highlight, not three separate cards.
 
@@ -444,19 +464,10 @@ class OrganizerSpeedSelector(QFrame):
         if self._selected is None:
             self.highlight.hide()
             return
-        self.layout().activate()
-        target = self._choices[self._selected].geometry()
-        if target.width() <= 0:
-            return
-        self.highlight.setFixedSize(target.size())
-        if animated and self.isVisible() and self.highlight.isVisible():
-            self._motion.setStartValue(self.highlight.pos())
-            self._motion.setEndValue(target.topLeft())
-            self._motion.start()
-        else:
-            self.highlight.move(target.topLeft())
-        self.highlight.lower()
-        self.highlight.show()
+        _position_organizer_highlight(
+            self, self._choices[self._selected], self.highlight, self._motion,
+            animate=animated,
+        )
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -509,19 +520,10 @@ class OrganizerModeSwitch(QFrame):
         self._animation.stop()
         if self._selected < 0:
             return
-        self.layout().activate()
-        target = self._choices[self._selected].geometry()
-        if target.width() <= 0:
-            return
-        self.highlight.setFixedSize(target.size())
-        if animate and self.isVisible() and self.highlight.isVisible():
-            self._animation.setStartValue(self.highlight.pos())
-            self._animation.setEndValue(target.topLeft())
-            self._animation.start()
-        else:
-            self.highlight.move(target.topLeft())
-        self.highlight.lower()
-        self.highlight.show()
+        _position_organizer_highlight(
+            self, self._choices[self._selected], self.highlight, self._animation,
+            animate=animate,
+        )
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
