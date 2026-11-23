@@ -40,6 +40,17 @@ class CoreSharedStateTests(unittest.TestCase):
                 self.assertIs(complete_progress_root(payload), payload)
                 self.assertEqual(payload, expected)
 
+    def test_progress_character_reader_never_mutates_root_or_corrupt_rows(self) -> None:
+        from app.core.progress_coordinator import read_progress_character
+
+        row = {"done": {"8": True}}
+        payload = {"characters": {"character:1": row, "character:2": "bad"}}
+        self.assertIs(read_progress_character(payload, " character:1 "), row)
+        self.assertEqual(read_progress_character(payload, "character:2"), {})
+        self.assertEqual(read_progress_character(payload, ""), {})
+        self.assertEqual(read_progress_character({"characters": None}, "character:1"), {})
+        self.assertEqual(payload["characters"]["character:2"], "bad")
+
     def test_three_progress_schemas_share_envelope_without_losing_domain_rules(self) -> None:
         from app.core.progress_coordinator import progress_characters_for_validation
         from app.modules.encyclopedia.services.guide_progress_service import _guide_progress_schema_error

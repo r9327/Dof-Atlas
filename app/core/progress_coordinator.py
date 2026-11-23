@@ -207,6 +207,20 @@ def progress_characters_for_validation(payload: Any) -> tuple[dict[str, Any], st
     return characters, None
 
 
+def read_progress_character(
+    payload: dict[str, Any], character_key: object,
+) -> dict[str, Any]:
+    """Return a safe read-only character view without mutating progress."""
+    characters = payload.get("characters", {})
+    if not isinstance(characters, dict):
+        return {}
+    key = str(character_key or "").strip()
+    if not key:
+        return {}
+    value = characters.get(key, {})
+    return value if isinstance(value, dict) else {}
+
+
 def validate_progress_character_keys(progress: dict[str, Any]) -> None:
     """Shared write boundary; reject invalid character keys before persistence."""
     characters = progress.get("characters", {})
