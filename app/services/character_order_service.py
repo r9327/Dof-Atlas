@@ -2,15 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import TypeVar
 
 from app.constants import KEY_SESSION_ORDER, PROFILE_FILE
 from app.core.text import normalize_key
-from app.services.character_order_logic import normalize_character_order
+from app.services.character_order_logic import normalize_character_order, sort_character_rows
 from app.services.profile_settings_service import ProfileSettingsService
-
-
-_T = TypeVar("_T")
 
 
 class CharacterOrderService:
@@ -33,21 +29,9 @@ class CharacterOrderService:
             return ()
         return normalize_character_order(raw_order)
 
-    def sort_rows(self, rows: Sequence[_T], *, label_getter) -> tuple[_T, ...]:
-        order = {key: index for index, key in enumerate(self.load_order())}
-        fallback_index = len(order)
-        indexed = tuple(enumerate(rows))
-        return tuple(
-            row
-            for _original_index, row in sorted(
-                indexed,
-                key=lambda pair: (
-                    order.get(normalize_key(label_getter(pair[1])), fallback_index),
-                    0 if normalize_key(label_getter(pair[1])) in order else 1,
-                    pair[0],
-                ),
-            )
-        )
+    def sort_rows(self, rows: Sequence, *, label_getter) -> tuple:
+        """Use the same stable order policy as all non-persistent character views."""
+        return sort_character_rows(rows, self.load_order(), label_getter=label_getter)
 
     @staticmethod
     def _normalized_labels(labels: Iterable[object]) -> list[str]:

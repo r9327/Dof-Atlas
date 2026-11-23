@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from app.constants import KEY_SESSION_ORDER
 from app.services.character_order_service import CharacterOrderService
+from app.services.character_order_logic import sort_character_rows
 import app.services.profile_settings_service as profile_settings_module
 
 
@@ -69,6 +70,28 @@ class CharacterOrderServiceTests(unittest.TestCase):
             self.assertEqual(
                 [row.label for row in ordered],
                 ["Beta", "Alpha", "Gamma", "Delta"],
+            )
+
+    def test_sorter_matches_canonical_logic_for_accents_and_unknown_characters(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            profile = Path(temporary) / "profiles.json"
+            profile.write_text(
+                json.dumps({KEY_SESSION_ORDER: ["Éliotrope", "Panda"]}),
+                encoding="utf-8",
+            )
+            rows = [
+                Row("Zobal"), Row("Panda"), Row("Eliotrope"),
+                Row("Enu"), Row("Panda"), Row("Hupper"),
+            ]
+            service = CharacterOrderService(profile)
+            expected = sort_character_rows(
+                rows, service.load_order(), label_getter=lambda row: row.label,
+            )
+            result = service.sort_rows(rows, label_getter=lambda row: row.label)
+            self.assertEqual(result, expected)
+            self.assertEqual(
+                [row.label for row in result],
+                ["Eliotrope", "Panda", "Panda", "Zobal", "Enu", "Hupper"],
             )
 
     def test_duplicate_empty_and_mixed_case_labels_are_normalized(self):
