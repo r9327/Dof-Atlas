@@ -342,7 +342,7 @@ UI_MUTUALIZATION_TARGETS = (
     ("Badges et statuts", "statuses", "AtlasStatusBadge",
      r"\bAtlasStatusBadge\s*\("),
     ("Scrollbars et resize", "scroll_resize", "Qt scroll / splitter + règles Unity",
-     r"\b(?:QScrollArea|QScrollBar|QSplitter)\s*\(|\.add_scroll_rows\s*\("),
+     r"\b(?:QScrollArea|QScrollBar|QSplitter|configure_unity_scroll_area)\s*\(|\.add_scroll_rows\s*\("),
 )
 
 _AUDIT_AGGREGATE_ZONES = frozenset({

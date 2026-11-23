@@ -481,9 +481,22 @@ class UiUniversalContractTests(unittest.TestCase):
             ("Titres et sous-titres", "dialog.add_header('Titre')"),
             ("Onglets et sous-menus", "fill_unity_navigation_menu(menu, entries, open_tab)"),
             ("Scrollbars et resize", "self.add_scroll_rows()"),
+            ("Scrollbars et resize", "configure_unity_scroll_area(QScrollArea())"),
         ):
             with self.subTest(name=name, sample=sample):
                 self.assertRegex(sample, patterns[name])
+        for module, source_snippet in (
+            ("app/pages/craft_page.py", "configure_unity_scroll_area("),
+            ("app/pages/organizer/organizer_ui.py", "configure_unity_scroll_area("),
+            ("app/pages/dev_ui_page.py", "configure_unity_scroll_area("),
+            ("app/modules/encyclopedia/views/shared_manual_guide_view.py",
+             "configure_unity_scroll_area("),
+        ):
+            with self.subTest(consumer=module):
+                content = (Path(__file__).resolve().parents[1] / module).read_text(
+                    encoding="utf-8"
+                )
+                self.assertIn(source_snippet, content)
         self.assertIn("app/pages/craft_page.py", UI_CONSUMER_INDEX["Craft"]["paths"])
         self.assertIn("main.py", UI_CONSUMER_INDEX["Paramètres"]["paths"])
 
