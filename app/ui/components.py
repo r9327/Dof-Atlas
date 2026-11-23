@@ -554,6 +554,14 @@ class AtlasPageTitle(QLabel):
         self.setObjectName("PageTitle")
 
 
+def clear_current_dialog_reference(owner: object, attribute: str, dialog: QDialog) -> bool:
+    """Never let a closed older popup clear its newer replacement."""
+    if getattr(owner, attribute, None) is not dialog:
+        return False
+    setattr(owner, attribute, None)
+    return True
+
+
 def release_transient_dialog(dialog: QDialog) -> None:
     """Dispose temporary Qt dialogs after they finish, never on show()."""
     dialog.finished.connect(dialog.deleteLater)

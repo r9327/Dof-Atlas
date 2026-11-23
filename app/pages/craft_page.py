@@ -57,6 +57,7 @@ from app.storage import (
 from app.ui.components import (
     AtlasButton, AtlasDialog, AtlasPageTitle,
     fit_unity_number_spinbox, release_transient_dialog,
+    clear_current_dialog_reference,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -1389,9 +1390,8 @@ class CraftPage(QWidget):
         dialog = CraftResourceDialog(resources, missing)
         dialog.setModal(False)
         dialog.finished.connect(
-            lambda _result, current=dialog: (
-                setattr(self, "resource_dialog", None)
-                if self.resource_dialog is current else None
+            lambda _result, current=dialog: clear_current_dialog_reference(
+                self, "resource_dialog", current,
             )
         )
         self.resource_dialog = dialog

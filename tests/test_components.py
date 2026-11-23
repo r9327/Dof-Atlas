@@ -24,6 +24,7 @@ from app.ui.components import (
     set_unity_widget_property,
     set_unity_widget_object_name,
     release_transient_dialog,
+    clear_current_dialog_reference,
     fill_unity_navigation_menu,
 )
 from app.ui.theme import atlas_stylesheet
@@ -114,6 +115,22 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertEqual(menu.styleSheet(), "")
         finally:
             menu.deleteLater()
+
+    def test_stale_dialog_never_clears_its_newer_replacement(self) -> None:
+        from types import SimpleNamespace
+        from PySide6.QtWidgets import QDialog
+
+        first, second = QDialog(), QDialog()
+        owner = SimpleNamespace(active=second)
+        try:
+            self.assertFalse(clear_current_dialog_reference(owner, "active", first))
+            self.assertIs(owner.active, second)
+            self.assertTrue(clear_current_dialog_reference(owner, "active", second))
+            self.assertIsNone(owner.active)
+            self.assertFalse(clear_current_dialog_reference(owner, "active", first))
+        finally:
+            first.deleteLater()
+            second.deleteLater()
 
     def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
         button = AtlasButton("Contrôle")

@@ -72,7 +72,7 @@ from app.ui.components import (
     AtlasStatusBadge,
     atlas_application_icon,
     apply_unity_calendar_weekdays,
-    release_transient_dialog,
+    release_transient_dialog, clear_current_dialog_reference,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
 from app.ui.entity_link_roles import entity_link_markup
@@ -2816,8 +2816,7 @@ class DevUiPage(QWidget):
         self._preview_dialog = dialog
 
         def finished(_result: int) -> None:
-            if self._preview_dialog is dialog:
-                self._preview_dialog = None
+            clear_current_dialog_reference(self, "_preview_dialog", dialog)
             self._report(closed)
 
         dialog.finished.connect(finished)

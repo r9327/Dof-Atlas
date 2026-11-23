@@ -63,7 +63,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, refresh_unity_widget_style, set_unity_widget_property, release_transient_dialog
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, refresh_unity_widget_style, set_unity_widget_property, release_transient_dialog, clear_current_dialog_reference
 from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import (
@@ -1083,7 +1083,11 @@ class SolutionImageLabel(QLabel):
 
             center = self.mapToGlobal(self.rect().center())
             dialog.move(center.x() - dialog.width() // 2, center.y() - dialog.height() // 2)
-            dialog.finished.connect(lambda _result: setattr(self, "_image_popup", None))
+            dialog.finished.connect(
+                lambda _result, current=dialog: clear_current_dialog_reference(
+                    self, "_image_popup", current,
+                )
+            )
             release_transient_dialog(dialog)
             self._image_popup = dialog
             dialog.show()
