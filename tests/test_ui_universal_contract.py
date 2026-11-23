@@ -27,6 +27,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class UiUniversalContractTests(unittest.TestCase):
+    def test_dev_ui_and_manual_guide_share_progress_bar_configuration(self):
+        dev = (REPO_ROOT / "app/pages/dev_ui_page.py").read_text(encoding="utf-8")
+        manual = (
+            REPO_ROOT / "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        ).read_text(encoding="utf-8")
+        for source in (dev, manual):
+            self.assertIn("configure_unity_progress_bar(", source)
+            self.assertIn('object_name="GuideGlobalProgress"', source)
+            self.assertIn('object_name="GuideCompactPreparationProgress"', source)
+        self.assertEqual(dev.count("configure_unity_progress_bar("), 3)
+        self.assertEqual(manual.count("configure_unity_progress_bar("), 2)
+        self.assertNotIn("self.global_progress_bar.setTextVisible(False)", manual)
+
     def test_quests_breadcrumb_rebuild_shares_layout_cleanup_without_new_widget(self):
         source = (REPO_ROOT / "app/pages/_quests_page_impl.py").read_text(encoding="utf-8")
         self.assertIn("clear_unity_widget_layout(self.breadcrumb_layout)", source)

@@ -1823,11 +1823,10 @@ class DevUiPage(QWidget):
             description.setWordWrap(True)
             content.addWidget(description)
             if index == 0:
-                progress = QProgressBar()
-                progress.setObjectName("GuideGlobalProgress")
-                progress.setRange(0, 100)
+                progress = configure_unity_progress_bar(
+                    QProgressBar(), object_name="GuideGlobalProgress",
+                )
                 progress.setValue(45)
-                progress.setTextVisible(False)
                 progress.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
                 content.addWidget(progress)
             elif index == 1:
