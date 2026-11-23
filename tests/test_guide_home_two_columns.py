@@ -68,6 +68,23 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
             if model.index(i, 0).data(GUIDE_GROUP_ROLE)
         ]
 
+    def test_adventure_and_alignment_cards_share_one_title_role(self) -> None:
+        for variant in ("standard", "alignment"):
+            card = GuideHomeCard(
+                _guide("guide_title_test", "aventure", "Titre commun"),
+                variant=variant,
+            )
+            try:
+                with self.subTest(variant=variant):
+                    labels = card.findChildren(QLabel, "GuideHomeCardTitle")
+                    self.assertEqual(len(labels), 1)
+                    self.assertEqual(labels[0].text(), "Titre commun")
+                    self.assertTrue(labels[0].wordWrap())
+                    self.assertTrue(labels[0].testAttribute(Qt.WA_TransparentForMouseEvents))
+                    self.assertEqual(labels[0].styleSheet(), "")
+            finally:
+                card.deleteLater()
+
     def test_adventure_and_alignment_cards_share_one_progress_label(self) -> None:
         for variant in ("standard", "alignment"):
             card = GuideHomeCard(

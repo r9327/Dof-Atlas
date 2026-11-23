@@ -347,6 +347,16 @@ class GuideHomeCard(QFrame):
             lambda _obj=None, pending=future: _cancel_pending_future(pending)
         )
 
+    def _append_home_title(self, root: QVBoxLayout) -> QLabel:
+        """Same centered Guide title for adventure and alignment cards."""
+        title = QLabel(_catalog_guide_title(self.guide))
+        title.setObjectName("GuideHomeCardTitle")
+        title.setAlignment(Qt.AlignCenter)
+        title.setWordWrap(True)
+        title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        root.addWidget(title)
+        return title
+
     def _append_progress_label(self, root: QVBoxLayout) -> QLabel | None:
         """One GuideHomeProgress role for adventure and alignment cards."""
         progress = _progress_label(self.progress)
@@ -377,12 +387,7 @@ class GuideHomeCard(QFrame):
         if self._load_image(image, QSize(230, 86)):
             root.addWidget(image)
 
-        title = QLabel(_catalog_guide_title(self.guide))
-        title.setObjectName("GuideHomeCardTitle")
-        title.setAlignment(Qt.AlignCenter)
-        title.setWordWrap(True)
-        title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        root.addWidget(title)
+        self._append_home_title(root)
 
         subtitle = QLabel(_catalog_subtitle(self.guide))
         subtitle.setObjectName("GuideHomeCardMeta")
@@ -410,12 +415,7 @@ class GuideHomeCard(QFrame):
             image.setPixmap(atlas_icon("quest").pixmap(32, 32))
         root.addWidget(image, 0, Qt.AlignCenter)
 
-        title = QLabel(_catalog_guide_title(self.guide))
-        title.setObjectName("GuideHomeCardTitle")
-        title.setAlignment(Qt.AlignCenter)
-        title.setWordWrap(True)
-        title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        root.addWidget(title)
+        self._append_home_title(root)
         self._append_progress_label(root)
         root.addStretch(1)
 
