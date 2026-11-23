@@ -260,6 +260,7 @@ def _achievement_progress_schema_error(payload: Any) -> str | None:
     characters, error = progress_characters_for_validation(payload)
     if error is not None:
         return error
+    for character_key, character in characters.items():
         for field in ("completed_achievements", "auto_completed_achievements"):
             if field in character and not isinstance(character[field], list):
                 return f"characters[{character_key!r}].{field} doit être une liste"
