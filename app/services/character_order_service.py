@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import TypeVar
 
 from app.constants import KEY_SESSION_ORDER, PROFILE_FILE
 from app.core.text import normalize_key
 from app.services.character_order_logic import normalize_character_order, sort_character_rows
 from app.services.profile_settings_service import ProfileSettingsService
+
+
+_T = TypeVar("_T")
 
 
 class CharacterOrderService:
@@ -29,7 +33,7 @@ class CharacterOrderService:
             return ()
         return normalize_character_order(raw_order)
 
-    def sort_rows(self, rows: Sequence, *, label_getter) -> tuple:
+    def sort_rows(self, rows: Sequence[_T], *, label_getter) -> tuple[_T, ...]:
         """Use the same stable order policy as all non-persistent character views."""
         return sort_character_rows(rows, self.load_order(), label_getter=label_getter)
 
