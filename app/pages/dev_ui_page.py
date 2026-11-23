@@ -1996,6 +1996,7 @@ class DevUiPage(QWidget):
             QProgressBar(), object_name="PreloadPopupProgress", maximum=3,
             text_visible=True,
         )
+        self.startup_progress.setFormat("%p %")
         self.startup_progress.setValue(2)
         section.addWidget(self.startup_progress)
 
@@ -2542,6 +2543,7 @@ class DevUiPage(QWidget):
         self.motion_duration.setSingleStep(20)
         self.motion_duration.setSuffix(" ms")
         self.motion_duration.setValue(180)
+        fit_unity_number_spinbox(self.motion_duration)
         timing.addWidget(self.motion_duration)
         timing.addStretch(1)
         section.addLayout(timing)
