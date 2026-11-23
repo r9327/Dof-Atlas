@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from app.core.numbers import optional_int
 from app.ui.components import (
     AtlasButton, AtlasComboBox, AtlasPageNavigator,
-    clear_unity_widget_layout, configure_unity_scroll_area,
+    clear_unity_widget_layout, configure_unity_progress_bar, configure_unity_scroll_area,
 )
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
@@ -329,9 +329,9 @@ class GuideUltimeGeneratedView(QWidget):
         top.addWidget(self.route_progress_label)
         progress_layout.addLayout(top)
 
-        self.route_bar = QProgressBar()
-        self.route_bar.setObjectName("GuideUltimeProgressBar")
-        self.route_bar.setTextVisible(False)
+        self.route_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideUltimeProgressBar",
+        )
         self.route_bar.setFixedHeight(8)
         progress_layout.addWidget(self.route_bar)
 
