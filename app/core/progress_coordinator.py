@@ -178,6 +178,16 @@ def empty_progress_payload() -> dict[str, Any]:
     return {"version": 1, "characters": {}}
 
 
+def complete_progress_root(payload: dict[str, Any]) -> dict[str, Any]:
+    """Restore absent legacy defaults in-place after domain validation.
+
+    Keep existing version, identity and all domain-specific keys untouched.
+    """
+    payload.setdefault("version", 1)
+    payload.setdefault("characters", {})
+    return payload
+
+
 def progress_characters_for_validation(payload: Any) -> tuple[dict[str, Any], str | None]:
     """Validate the shared progress envelope once; callers validate domain fields.
 
@@ -261,6 +271,7 @@ __all__ = [
     "ProgressLockTimeoutError",
     "coordinator_for",
     "empty_progress_payload",
+    "complete_progress_root",
     "progress_characters_for_validation",
     "validate_progress_character_keys",
 ]
