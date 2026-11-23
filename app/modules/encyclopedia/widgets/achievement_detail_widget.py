@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QProgressBar, QSizePoli
 
 from app.modules.encyclopedia.models.achievement import Achievement, AchievementObjective
 from app.modules.encyclopedia.models.entity_ref import EntityRef
+from app.modules.encyclopedia.services.achievement_progress_logic import achievement_progress_percent
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
 from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntitySection
 from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
@@ -88,7 +89,7 @@ class AchievementDetailWidget(QFrame):
         done = sum(1 for objective in progress_objectives if objective_completed(objective.id))
         total = len(progress_objectives)
         completed = state.is_achievement_completed(achievement.id)
-        percent = 100 if completed else int(round((done / total) * 100)) if total else 0
+        percent = achievement_progress_percent(completed, done, total)
 
         check = QCheckBox("Succès terminé")
         check.setObjectName("AchievementDoneCheck")
@@ -230,7 +231,9 @@ class AchievementDetailWidget(QFrame):
             self.achievement.id,
             bool(completed),
         )
-        percent = 100 if completed else int(round((self._progress_done / self._progress_total) * 100)) if self._progress_total else 0
+        percent = achievement_progress_percent(
+            completed, self._progress_done, self._progress_total,
+        )
         self.progress_text.setText(
             f"Progression • {self._progress_done} / {self._progress_total} objectif(s) • {percent} %"
         )
