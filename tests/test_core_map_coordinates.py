@@ -33,6 +33,10 @@ class NormalizeCoordinatePairTests(unittest.TestCase):
             with self.subTest(raw=raw):
                 self.assertEqual(extract_bracketed_position(raw), expected)
 
+    def test_oversized_bracketed_source_does_not_crash(self):
+        self.assertIsNone(extract_bracketed_position("[" + "9" * 5000 + ",1]"))
+        self.assertIsNone(extract_bracketed_position("[1," + "9" * 5000 + "]"))
+
     def test_normalization_and_negative_values(self):
         self.assertEqual(normalize_coordinate_pair("003", "-06"), "3,-6")
         self.assertEqual(normalize_coordinate_pair("0", "2147483647"), "0,2147483647")
