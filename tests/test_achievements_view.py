@@ -50,6 +50,23 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_shared_widget_cleanup_hides_guides_before_detaching(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout
+        from app.ui.components import clear_unity_widget_layout
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        label = QLabel("ancienne fiche")
+        layout.addWidget(label)
+        try:
+            self.assertFalse(label.isHidden())
+            clear_unity_widget_layout(layout, hide_widgets=True)
+            self.assertTrue(label.isHidden())
+            self.assertIsNone(label.parent())
+            self.assertEqual(layout.count(), 0)
+        finally:
+            host.deleteLater()
+
     def test_success_detail_refresh_releases_previous_widget(self):
         view, _provider = self.make_view()
         marker = QLabel("previous detail")

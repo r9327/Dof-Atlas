@@ -155,12 +155,19 @@ def configure_unity_scroll_area(
     return area
 
 
-def clear_unity_widget_layout(layout: QVBoxLayout) -> None:
-    """Remove layout items and release widgets through Qt's deferred deletion."""
+def clear_unity_widget_layout(
+    layout: QVBoxLayout, *, hide_widgets: bool = False,
+) -> None:
+    """Remove layout items and release widgets through Qt's deferred deletion.
+
+    Hide first only where a Guide reuses the viewport before DeferredDelete.
+    """
     while layout.count():
         item = layout.takeAt(0)
         widget = item.widget()
         if widget is not None:
+            if hide_widgets:
+                widget.hide()
             widget.setParent(None)
             widget.deleteLater()
 

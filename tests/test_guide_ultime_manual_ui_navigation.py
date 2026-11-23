@@ -192,6 +192,22 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         QApplication.processEvents()
         return service, view
 
+    def test_manual_renderers_hide_old_rows_via_shared_cleanup(self) -> None:
+        import inspect
+
+        self.assertIn(
+            "clear_unity_widget_layout(self.cards_layout, hide_widgets=True)",
+            inspect.getsource(SharedGuideManualView._clear_cards),
+        )
+        self.assertIn(
+            "clear_unity_widget_layout(self.global_details_layout, hide_widgets=True)",
+            inspect.getsource(SharedGuideManualView._refresh_global_details),
+        )
+        self.assertIn(
+            "clear_unity_widget_layout(self.preparation_rows_layout, hide_widgets=True)",
+            inspect.getsource(SharedGuideManualView._clear_preparation_rows),
+        )
+
     def test_manual_validation_reuses_shared_cleanup_before_attaching_next_widget(self) -> None:
         import inspect
 

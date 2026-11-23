@@ -43,7 +43,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, fit_unity_number_spinbox, configure_unity_scroll_area
+from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, fit_unity_number_spinbox, configure_unity_scroll_area, clear_unity_widget_layout
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
 from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
@@ -940,13 +940,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         until DeferredDelete is processed. Rapid page changes then temporarily
         paint both old and new guide pages.
         """
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.hide()
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(self.cards_layout, hide_widgets=True)
         self.rendered_card_count = 0
 
     def _build_ui(self) -> None:
@@ -1426,13 +1420,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 self._render_preparation(self.preparation_filter.currentText())
 
     def _refresh_global_details(self) -> None:
-        while self.global_details_layout.count():
-            item = self.global_details_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.hide()
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(self.global_details_layout, hide_widgets=True)
         keys = self._progress_participant_keys()
         if not keys:
             label = QLabel("Sélectionne un personnage pour afficher sa progression.")
@@ -1576,13 +1564,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._update_preparation_progress()
 
     def _clear_preparation_rows(self) -> None:
-        while self.preparation_rows_layout.count():
-            item = self.preparation_rows_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.hide()
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(self.preparation_rows_layout, hide_widgets=True)
 
     def _show_more_preparation(self) -> None:
         self._preparation_visible_limit += 80
