@@ -31,12 +31,14 @@ def source_image_values(row: Mapping[str, Any]) -> tuple[str, ...]:
         candidates.append(row["path"])
 
     paths: list[str] = []
+    seen: set[str] = set()
     for raw in candidates:
         if isinstance(raw, Mapping):
             raw = raw.get("image_path") or raw.get("local_image_path") or raw.get("path")
         if isinstance(raw, str):
             value = raw.strip()
-            if value and value not in paths:
+            if value and value not in seen:
+                seen.add(value)
                 paths.append(value)
     return tuple(paths)
 
@@ -50,9 +52,11 @@ def resolved_source_images(
     from app.quest_catalog import resolve_local_asset_path
 
     images: list[str] = []
+    seen: set[str] = set()
     for raw in source_image_values(row):
         resolved = resolve_local_asset_path(raw, roots=roots)
-        if resolved and Path(resolved).is_file() and resolved not in images:
+        if resolved and resolved not in seen and Path(resolved).is_file():
+            seen.add(resolved)
             images.append(resolved)
     return tuple(images)
 

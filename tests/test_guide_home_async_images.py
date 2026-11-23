@@ -15,6 +15,9 @@ from PySide6.QtWidgets import QApplication, QLabel, QWidget
 
 import app.modules.encyclopedia.views.guides_view as guides_module
 from app.modules.encyclopedia.models import DofusItem, Guide
+from app.modules.encyclopedia.services.guide_source_media import (
+    resolved_source_images, source_image_values,
+)
 from app.modules.encyclopedia.views.guide_home_image_cache import (
     clear_guide_home_image_cache,
     get_cached_scaled_pixmap,
@@ -68,6 +71,38 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
             type_name="Test",
             image_path=str(path),
         )
+
+    def test_shared_guide_media_reader_preserves_order_and_resolved_uniqueness(self) -> None:
+        authored = {
+            "image_paths": [" first.png ", "second.png", "first.png"],
+            "images": [{"path": " second.png "}, {"local_image_path": "third.png"}],
+            "kind": "image", "path": "first.png",
+        }
+        self.assertEqual(
+            source_image_values(authored),
+            ("first.png", "second.png", "third.png"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first.png"
+            second = root / "second.png"
+            first.write_bytes(b"first")
+            second.write_bytes(b"second")
+            paths = {
+                "first.png": str(first),
+                "alias.png": str(first),
+                "second.png": str(second),
+                "missing.png": str(root / "not-present.png"),
+            }
+            with patch("app.quest_catalog.resolve_local_asset_path",
+                       side_effect=lambda value, *, roots: paths.get(value)):
+                self.assertEqual(
+                    resolved_source_images(
+                        {"images": list(paths)},
+                        roots=(root,),
+                    ),
+                    (str(first), str(second)),
+                )
 
     def test_card_owns_its_async_loader_canonically(self) -> None:
         self.assertTrue(GuideHomeCard._atlas_async_image_loader)
