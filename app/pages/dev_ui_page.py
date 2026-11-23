@@ -74,7 +74,7 @@ from app.ui.components import (
     apply_unity_calendar_weekdays,
     fill_unity_navigation_menu,
     release_transient_dialog, clear_current_dialog_reference,
-    configure_unity_scroll_area,
+    configure_unity_progress_bar, configure_unity_scroll_area,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
 from app.ui.entity_link_roles import entity_link_markup
@@ -617,11 +617,10 @@ class DevUiPage(QWidget):
         metric = QVBoxLayout()
         metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
         metric.addLayout(overall_caption)
-        self.preview_header_global_progress = QProgressBar()
-        self.preview_header_global_progress.setObjectName("GuideGlobalProgress")
-        self.preview_header_global_progress.setRange(0, 100)
+        self.preview_header_global_progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideGlobalProgress",
+        )
         self.preview_header_global_progress.setValue(35)
-        self.preview_header_global_progress.setTextVisible(False)
         self.preview_header_global_progress.setFixedHeight(
             UNITY_CONTROL_SIZES_PX["progress_primary"]
         )
