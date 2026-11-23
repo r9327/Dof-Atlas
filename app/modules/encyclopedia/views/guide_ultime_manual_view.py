@@ -31,7 +31,7 @@ from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
-from app.ui.components import AtlasButton, set_unity_widget_property
+from app.ui.components import AtlasButton, clear_unity_widget_layout, set_unity_widget_property
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -771,12 +771,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self._return_to_guides_catalog()
 
     def _set_validation_widget(self, widget: QWidget) -> None:
-        while self.validation_layout.count():
-            item = self.validation_layout.takeAt(0)
-            previous = item.widget()
-            if previous is not None:
-                previous.setParent(None)
-                previous.deleteLater()
+        clear_unity_widget_layout(self.validation_layout)
         self.validation_layout.addWidget(widget)
 
     def _add_manual_order_choice(

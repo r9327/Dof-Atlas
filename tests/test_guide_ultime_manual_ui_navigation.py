@@ -192,6 +192,13 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         QApplication.processEvents()
         return service, view
 
+    def test_manual_validation_reuses_shared_cleanup_before_attaching_next_widget(self) -> None:
+        import inspect
+
+        source = inspect.getsource(GuideUltimeManualView._set_validation_widget)
+        self.assertIn("clear_unity_widget_layout(self.validation_layout)", source)
+        self.assertIn("self.validation_layout.addWidget(widget)", source)
+
     def test_progress_header_uses_canonical_layout_metrics(self) -> None:
         from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
 
