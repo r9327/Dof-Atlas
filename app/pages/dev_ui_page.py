@@ -1233,8 +1233,9 @@ class DevUiPage(QWidget):
         states.addStretch(1)
         section.addLayout(states)
 
-        self.preview_progress = QProgressBar()
-        self.preview_progress.setRange(0, 100)
+        self.preview_progress = configure_unity_progress_bar(
+            QProgressBar(), text_visible=True,
+        )
         self.preview_progress.setValue(40)
         self.preview_slider = QSlider(Qt.Horizontal)
         self.preview_slider.setObjectName("DevUiProgressSlider")
