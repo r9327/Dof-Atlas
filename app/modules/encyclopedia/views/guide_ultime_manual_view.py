@@ -26,6 +26,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_items_from_objectives,
 )
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView, SENTINEL_COORD
+from app.core.numbers import coerce_positive_int
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
@@ -450,11 +451,7 @@ class GuideUltimeManualCard(QFrame):
 
     @staticmethod
     def _safe_positive_int(value: Any) -> int | None:
-        try:
-            number = int(value)
-        except (TypeError, ValueError):
-            return None
-        return number if number > 0 else None
+        return coerce_positive_int(value)
 
     def _combat_toggled(self, quest_id: int, objective_id: int, checkbox: QCheckBox, checked: bool) -> None:
         progress = getattr(self.service, "quest_progress", None)

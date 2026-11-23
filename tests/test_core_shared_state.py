@@ -12,6 +12,12 @@ from app.core.progress_coordinator import empty_progress_payload
 
 
 class CoreSharedStateTests(unittest.TestCase):
+    def test_quest_progress_int_adapter_keeps_legacy_coercion(self) -> None:
+        from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+        for value, expected in (("12", 12), (True, 1), (-2, -2), (None, None), ("bad", None)):
+            with self.subTest(value=value):
+                self.assertEqual(QuestProgressService._safe_int(value), expected)
+
     def test_progress_payload_is_fresh_and_versioned(self) -> None:
         first = empty_progress_payload()
         self.assertEqual(first, {"version": 1, "characters": {}})

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.numbers import optional_int
 from app.ui.components import AtlasButton, AtlasComboBox, AtlasPageNavigator
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
@@ -277,10 +278,7 @@ class GuideUltimeCard(QFrame):
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        return optional_int(value)
 
 
 class GuideUltimeGeneratedView(QWidget):

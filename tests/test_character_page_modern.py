@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from app.constants import KEY_SELECTED_CHARACTER
+from app.core.file_stamp import resolved_mtime_size_stamp
 from app.network.character_runtime_state import CharacterRuntimeStateStore
 from app.pages.character_page import CharacterPage
 
@@ -20,6 +21,13 @@ class ModernCharacterPageTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_character_cache_stamps_use_canonical_file_signature(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "profile.json"
+            self.assertEqual(CharacterPage._file_stamp(path), resolved_mtime_size_stamp(path))
+            path.write_text('{"characters": []}', encoding="utf-8")
+            self.assertEqual(CharacterPage._file_stamp(path), resolved_mtime_size_stamp(path))
 
     def test_success_point_format_preserves_grouping_and_fallback(self) -> None:
         self.assertEqual(CharacterPage._success_text(12345), "12 345")

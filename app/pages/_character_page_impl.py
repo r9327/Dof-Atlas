@@ -32,6 +32,7 @@ from app.network.character_runtime_state import (
     CharacterRuntimeStateStore,
     character_runtime_state,
 )
+from app.core.file_stamp import resolved_mtime_size_stamp
 from app.core.numbers import format_grouped_int
 from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
 from app.quest_catalog import QuestCharacter, load_quest_characters
@@ -374,12 +375,7 @@ class CharacterPage(QWidget):
 
     @staticmethod
     def _file_stamp(path: Path) -> tuple[str, int, int]:
-        resolved = str(path.resolve())
-        try:
-            stat = path.stat()
-        except OSError:
-            return (resolved, 0, 0)
-        return (resolved, int(stat.st_mtime_ns), int(stat.st_size))
+        return resolved_mtime_size_stamp(path)
 
     def _selected_key_from_profile(self) -> str:
         payload = read_json(self.profile_path, default_profiles())

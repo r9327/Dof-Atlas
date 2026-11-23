@@ -6,6 +6,7 @@ from typing import Any, Iterable
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated
+from app.core.numbers import optional_int
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     empty_progress_payload as _empty_progress, validate_progress_character_keys,
@@ -401,7 +402,4 @@ class QuestProgressService(CoordinatedProgressReader):
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        return optional_int(value)

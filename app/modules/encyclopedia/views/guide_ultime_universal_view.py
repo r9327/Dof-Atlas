@@ -23,6 +23,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     ObjectiveWalkthrough,
     QuestWalkthroughIndex,
 )
+from app.core.numbers import optional_int
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, refresh_unity_widget_style
 
 
@@ -701,7 +702,4 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        return optional_int(value)
