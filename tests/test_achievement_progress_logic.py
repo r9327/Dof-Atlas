@@ -19,6 +19,16 @@ class AchievementProgressLogicTests(unittest.TestCase):
         self.assertEqual(completed, frozenset({1, 2, 3}))
         self.assertEqual(objectives, {10: frozenset({100, 101, 102})})
 
+    def test_duplicate_numeric_formats_share_single_completion_identity(self) -> None:
+        completed, objectives = derive_completion_state({
+            "completed_achievements": ["010", 10, True, "bad"],
+            "auto_completed_achievements": ["10", 20],
+            "completed_objectives": {"9": [1.9, "2", "bad"]},
+            "auto_completed_objectives": {"9": [1, 2, 2]},
+        })
+        self.assertEqual(completed, frozenset({1, 10, 20}))
+        self.assertEqual(objectives, {9: frozenset({1, 2})})
+
     def test_ignores_malformed_objective_containers_without_mutating_input(self) -> None:
         character = {
             "completed_achievements": [],
