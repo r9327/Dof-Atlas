@@ -31,6 +31,20 @@ class GuideProgressPresentationTests(unittest.TestCase):
             with self.subTest(completed=completed, total=total):
                 self.assertEqual(guide_progress_style_state(completed, total), expected)
 
+    def test_display_and_style_state_share_same_completion_boundary(self):
+        pairs = ((0, 0), (0, 1), (1, 1), (2, 8), (9, 8), (2, 0))
+        expected = {
+            "todo": "Non commencé",
+            "partial": "En cours",
+            "done": "Terminé",
+        }
+        for completed, total in pairs:
+            with self.subTest(completed=completed, total=total):
+                self.assertEqual(
+                    guide_progress_state(completed, total),
+                    expected[guide_progress_style_state(completed, total)],
+                )
+
     def test_progress_state_matches_legacy_boundaries(self) -> None:
         self.assertEqual(guide_progress_state(0, 0), "Non commencé")
         self.assertEqual(guide_progress_state(0, 4), "Non commencé")
