@@ -32,6 +32,24 @@ class GuideProgressPresentationTests(unittest.TestCase):
             with self.subTest(completed=completed, total=total):
                 self.assertEqual(guide_progress_style_state(completed, total), expected)
 
+    def test_guide_step_counter_reuses_shared_quest_and_step_wording(self):
+        from app.modules.encyclopedia.services.guide_quest_view_model import guide_step_count_text
+
+        def step(kind, tracked=True):
+            return SimpleNamespace(step_type=kind, counts_for_completion=tracked)
+
+        for steps, expected in (
+            ((), ""),
+            ((step("quest"),), "1 quête"),
+            ((step("quest"), step("quest")), "2 quêtes"),
+            ((step("quest"), step("info", False)), "1 étape"),
+            ((step("info"), step("quest")), "2 étapes"),
+        ):
+            with self.subTest(expected=expected):
+                self.assertEqual(
+                    guide_step_count_text(SimpleNamespace(required_steps=steps)), expected,
+                )
+
     def test_display_and_style_state_share_same_completion_boundary(self):
         pairs = ((0, 0), (0, 1), (1, 1), (2, 8), (9, 8), (2, 0))
         expected = {

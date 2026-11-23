@@ -22,6 +22,7 @@ from app.modules.encyclopedia.models import (
 )
 from app.modules.encyclopedia.providers import AchievementProvider
 from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
+from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
 from app.quest_catalog import (
     SENTINEL_COORD,
     QuestObjective,
@@ -150,14 +151,8 @@ def quest_level_text(quest: QuestRecord) -> str:
 
 
 def guide_step_count_text(guide: Guide) -> str:
-    total = len([step for step in guide.required_steps if step.counts_for_completion])
-    if not total:
-        return ""
-    required = list(guide.required_steps)
-    word = "quête" if total == 1 and all(step.step_type == "quest" for step in required) else "quêtes"
-    if not all(step.step_type == "quest" for step in required):
-        word = "étape" if total == 1 else "étapes"
-    return f"{total} {word}"
+    total = sum(1 for step in guide.required_steps if step.counts_for_completion)
+    return f"{total} {guide_progress_noun(guide, total)}" if total else ""
 
 
 def guide_prerequisites(
