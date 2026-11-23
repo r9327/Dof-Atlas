@@ -473,6 +473,20 @@ class UiUniversalContractTests(unittest.TestCase):
                 for selector in selectors:
                     self.assertIn(selector, qss)
 
+    def test_dialog_menu_and_scroll_composition_is_visible_in_dev_ui_index(self):
+        patterns = {row[0]: re.compile(row[3]) for row in UI_MUTUALIZATION_TARGETS}
+        for name, sample in (
+            ("Fenêtres et popups classiques", "dialog.add_action_row(close)"),
+            ("Fenêtres et popups classiques", "dialog.add_scroll_rows()"),
+            ("Titres et sous-titres", "dialog.add_header('Titre')"),
+            ("Onglets et sous-menus", "fill_unity_navigation_menu(menu, entries, open_tab)"),
+            ("Scrollbars et resize", "self.add_scroll_rows()"),
+        ):
+            with self.subTest(name=name, sample=sample):
+                self.assertRegex(sample, patterns[name])
+        self.assertIn("app/pages/craft_page.py", UI_CONSUMER_INDEX["Craft"]["paths"])
+        self.assertIn("main.py", UI_CONSUMER_INDEX["Paramètres"]["paths"])
+
     def test_organizer_reuses_same_css_instead_of_widget_stylesheet(self):
         from app.pages.organizer.organizer_ui import OrganizerUiMixin
         source = inspect.getsource(OrganizerUiMixin.build_organizer_ui)
