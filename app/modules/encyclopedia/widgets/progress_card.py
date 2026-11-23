@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QFrame, QLabel, QProgressBar, QVBoxLayout
 
+from app.core.numbers import clamped_percent
+
 
 class ProgressCard(QFrame):
     def __init__(self, title: str = "Progression", parent=None) -> None:
@@ -25,6 +27,6 @@ class ProgressCard(QFrame):
     def set_progress(self, completed: int, total: int) -> None:
         total = max(0, int(total))
         completed = max(0, min(int(completed), total)) if total else 0
-        percent = int(round((completed / total) * 100)) if total else 0
+        percent = clamped_percent(completed, total)
         self.value_label.setText(f"{completed} / {total} · {percent}%")
         self.bar.setValue(percent)

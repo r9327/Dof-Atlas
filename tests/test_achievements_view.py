@@ -50,6 +50,24 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_reusable_progress_card_matches_shared_percentage_bounds(self):
+        from app.modules.encyclopedia.widgets.progress_card import ProgressCard
+
+        card = ProgressCard()
+        try:
+            for completed, total, label, percent in (
+                (2, 3, "2 / 3 · 67%", 67),
+                (7, 4, "4 / 4 · 100%", 100),
+                (-1, 4, "0 / 4 · 0%", 0),
+                (9, 0, "0 / 0 · 0%", 0),
+            ):
+                with self.subTest(completed=completed, total=total):
+                    card.set_progress(completed, total)
+                    self.assertEqual(card.value_label.text(), label)
+                    self.assertEqual(card.bar.value(), percent)
+        finally:
+            card.deleteLater()
+
     def test_shared_widget_cleanup_recurses_only_when_requested(self):
         from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
         from app.ui.components import clear_unity_widget_layout
