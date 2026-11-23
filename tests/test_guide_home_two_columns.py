@@ -12,10 +12,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtTest import QSignalSpy
-from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
+from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLabel
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+from app.modules.encyclopedia.views.guides_view import GuideHomeCard
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_GROUP_ROLE,
     GUIDE_ID_ROLE,
@@ -66,6 +67,23 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
             for i in range(model.rowCount())
             if model.index(i, 0).data(GUIDE_GROUP_ROLE)
         ]
+
+    def test_adventure_and_alignment_cards_share_one_progress_label(self) -> None:
+        for variant in ("standard", "alignment"):
+            card = GuideHomeCard(
+                _guide("guide_progress_test", "aventure", "Guide test"),
+                variant=variant, progress=(2, 5, "En cours"),
+            )
+            try:
+                with self.subTest(variant=variant):
+                    labels = card.findChildren(QLabel, "GuideHomeProgress")
+                    self.assertEqual(len(labels), 1)
+                    self.assertEqual(labels[0].property("state"), "partial")
+                    self.assertEqual(labels[0].alignment(), Qt.AlignCenter)
+                    self.assertTrue(labels[0].testAttribute(Qt.WA_TransparentForMouseEvents))
+                    self.assertEqual(labels[0].styleSheet(), "")
+            finally:
+                card.deleteLater()
 
     def test_model_keeps_left_guide_order_and_dofus_in_right_column(self) -> None:
         provider = _CatalogProvider()

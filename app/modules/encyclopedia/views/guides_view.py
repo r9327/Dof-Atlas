@@ -347,6 +347,19 @@ class GuideHomeCard(QFrame):
             lambda _obj=None, pending=future: _cancel_pending_future(pending)
         )
 
+    def _append_progress_label(self, root: QVBoxLayout) -> QLabel | None:
+        """One GuideHomeProgress role for adventure and alignment cards."""
+        progress = _progress_label(self.progress)
+        if not progress:
+            return None
+        count = QLabel(progress)
+        count.setObjectName("GuideHomeProgress")
+        count.setAlignment(Qt.AlignCenter)
+        count.setProperty("state", _tuple_progress_state(self.progress))
+        count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        root.addWidget(count)
+        return count
+
     def _build_adventure_card(self) -> None:
         self.setMinimumWidth(GUIDE_CARD_GEOMETRY["featured_min_width"])
         self.setMaximumWidth(GUIDE_CARD_GEOMETRY["featured_max_width"])
@@ -377,14 +390,7 @@ class GuideHomeCard(QFrame):
         subtitle.setWordWrap(True)
         subtitle.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(subtitle)
-        progress = _progress_label(self.progress)
-        if progress:
-            count = QLabel(progress)
-            count.setObjectName("GuideHomeProgress")
-            count.setAlignment(Qt.AlignCenter)
-            count.setProperty("state", _tuple_progress_state(self.progress))
-            count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-            root.addWidget(count)
+        self._append_progress_label(root)
 
     def _build_alignment_card(self) -> None:
         self.setMinimumWidth(GUIDE_CARD_GEOMETRY["small_min_width"])
@@ -410,14 +416,7 @@ class GuideHomeCard(QFrame):
         title.setWordWrap(True)
         title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(title)
-        progress = _progress_label(self.progress)
-        if progress:
-            count = QLabel(progress)
-            count.setObjectName("GuideHomeProgress")
-            count.setAlignment(Qt.AlignCenter)
-            count.setProperty("state", _tuple_progress_state(self.progress))
-            count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-            root.addWidget(count)
+        self._append_progress_label(root)
         root.addStretch(1)
 
     def _build_dofus_card(self, progress: tuple[int, int, str] | None) -> None:
