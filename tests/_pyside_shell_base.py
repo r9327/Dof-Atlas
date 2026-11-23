@@ -1743,7 +1743,7 @@ class PySideShellTests(unittest.TestCase):
                 window.deleteLater()
                 app.processEvents()
 
-    def test_shell_follows_only_connected_character_without_organizer_favorite(self):
+    def test_shell_preserves_manual_character_on_network_login_without_favorite(self):
         app = QApplication.instance() or QApplication([])
         import main as main_module
 
@@ -1777,6 +1777,13 @@ class PySideShellTests(unittest.TestCase):
                 )
                 window.on_network_character_activated("character:9")
 
+                # Login is not foreground focus, even if Alice is now offline.
+                self.assertEqual(window.current_character_key, "character:1")
+                bob_index = next(
+                    index for index in range(window.character_combo.count())
+                    if window.character_combo.itemData(index).key == "character:9"
+                )
+                window.character_combo.setCurrentIndex(bob_index)
                 self.assertEqual(window.current_character_key, "character:9")
                 self.assertEqual(window.character_combo.currentText(), "Bob")
                 self.assertEqual(window.home_page.character_name.text(), "Bob")
@@ -1786,7 +1793,7 @@ class PySideShellTests(unittest.TestCase):
                 window.deleteLater()
                 app.processEvents()
 
-    def test_shell_follows_organizer_favorite_character_after_network_identity(self):
+    def test_shell_favorite_does_not_infer_foreground_on_network_login(self):
         app = QApplication.instance() or QApplication([])
         import main as main_module
 
@@ -1826,6 +1833,13 @@ class PySideShellTests(unittest.TestCase):
 
                 window.on_network_character_activated("character:9")
 
+                # Organizer primary flag is not a verified foreground event.
+                self.assertEqual(window.current_character_key, "character:1")
+                bob_index = next(
+                    index for index in range(window.character_combo.count())
+                    if window.character_combo.itemData(index).key == "character:9"
+                )
+                window.character_combo.setCurrentIndex(bob_index)
                 self.assertEqual(window.current_character_key, "character:9")
                 self.assertEqual(window.character_combo.currentText(), "Bob")
                 self.assertEqual(window.home_page.character_name.text(), "Bob")
