@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QToolBu
 
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON
-from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_noun
+from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
 from app.ui.components import AtlasButton
 
 

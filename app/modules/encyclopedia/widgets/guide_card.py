@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QBoxLayout, QListView, QStyle, QStyledItemDelegate
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_noun
+from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
 from app.ui.theme import PALETTE
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 

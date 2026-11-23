@@ -3,8 +3,9 @@ from __future__ import annotations
 import unittest
 from types import SimpleNamespace
 
+from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
 from app.modules.encyclopedia.views.guide_progress_presentation import (
-    guide_progress_noun, guide_progress_state, guide_progress_style_state,
+    guide_progress_state, guide_progress_style_state,
 )
 
 
