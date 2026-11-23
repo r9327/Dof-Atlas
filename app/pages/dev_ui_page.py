@@ -1435,8 +1435,9 @@ class DevUiPage(QWidget):
         section.addLayout(state_row)
 
         progress_row = QHBoxLayout()
-        self.preview_busy = QProgressBar()
-        self.preview_busy.setRange(0, 0)
+        self.preview_busy = configure_unity_progress_bar(
+            QProgressBar(), maximum=0, text_visible=True,
+        )
         self.preview_busy.setAccessibleName("Progression indéterminée")
         progress_row.addWidget(self.preview_busy, 1)
         self.preview_complete = QProgressBar()
