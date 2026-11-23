@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 
 from app.background_work import background_io_priority
 from app.core.character_identity import is_character_key
+from app.core.numbers import format_grouped_int
 from app.constants import (
     APP_NAME,
     CLIENT_INDEX_JSON,
@@ -1968,14 +1969,14 @@ class AtlasWindow(QMainWindow):
         category = str(getattr(day, "bonus_type", "") or "")
         reward = int(getattr(day, "reward_kamas", 0) or 0)
         rows = [
-            f"Offrande : {quantity} × {offering}" if offering
+            f"Offrande : {format_grouped_int(quantity)} × {offering}" if offering
             else "Offrande non renseignée par la source",
             f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
         ]
         if category:
             rows.append(f"Catégorie : {category}")
         if reward > 0:
-            rows.append(f"Récompense : {reward:,} kamas".replace(",", " "))
+            rows.append(f"Récompense : {format_grouped_int(reward)} kamas")
         self.almanax_day_detail.setText("\n".join(rows))
         self.almanax_status_badge.setText(
             "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"

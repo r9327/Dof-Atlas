@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.numbers import coerce_positive_int, format_grouped_int, optional_int, positive_int
+from app.core.numbers import clamped_percent, coerce_positive_int, format_grouped_int, optional_int, positive_int
 
 
 class PositiveIntTests(unittest.TestCase):
@@ -69,6 +69,15 @@ class FormatGroupedIntTests(unittest.TestCase):
     def test_invalid_input_keeps_int_conversion_errors(self):
         with self.assertRaises(ValueError):
             format_grouped_int("not a number")
+
+
+class ClampedPercentTests(unittest.TestCase):
+    def test_rounding_zero_total_and_out_of_bounds(self):
+        for completed, total, expected in ((0, 0, 0), (2, 3, 67), (1, 3, 33),
+                                           (1, 8, 12), (3, 2, 100), (-3, 10, 0),
+                                           (50, 100, 50), (1, -10, 0)):
+            with self.subTest(completed=completed, total=total):
+                self.assertEqual(clamped_percent(completed, total), expected)
 
 
 if __name__ == "__main__":

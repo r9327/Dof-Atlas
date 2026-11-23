@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
-from app.core.numbers import format_grouped_int
+from app.core.numbers import clamped_percent, format_grouped_int
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
@@ -99,9 +99,9 @@ def _persisted_manual_summary(character_key: str) -> dict[str, Any]:
         steps = set()
     completed = sum(1 for value in steps if str(value).startswith("page:"))
     completed = min(completed, total) if total else completed
-    percent = int(round((completed / total) * 100)) if total else 0
+    percent = clamped_percent(completed, total)
     return {
-        "percent": max(0, min(100, percent)),
+        "percent": percent,
         "chapter": "Progression sauvegardée",
         "step": (
             f"{completed} / {total} fiches validées localement"
@@ -203,8 +203,7 @@ class HomeTrackingRow(QWidget):
     def set_progress(self, completed: int, total: int, *, show_count: bool = False) -> None:
         completed = max(0, int(completed))
         total = max(0, int(total))
-        percent = int(round((completed / total) * 100)) if total else 0
-        percent = max(0, min(100, percent))
+        percent = clamped_percent(completed, total)
         self.bar.setValue(percent)
         if show_count and total:
             self.value.setText(f"{format_grouped_int(completed)} / {format_grouped_int(total)}")
@@ -548,12 +547,12 @@ class HomePage(QWidget):
         bonus = str(getattr(day, "bonus", "") or "")
         reward = int(getattr(day, "reward_kamas", 0) or 0)
         lines = [
-            f"Offrande : {quantity} × {offering}" if offering
+            f"Offrande : {format_grouped_int(quantity)} × {offering}" if offering
             else "Offrande non renseignée par la source",
             f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
         ]
         if reward > 0:
-            lines.append(f"Récompense : {reward:,} kamas".replace(",", " "))
+            lines.append(f"Récompense : {format_grouped_int(reward)} kamas")
         self.almanax_item_icon.clear()
         self.almanax_item_icon.hide()
         self.almanax_day_key = str(getattr(day, "date", "") or "")
@@ -955,8 +954,7 @@ class HomePage(QWidget):
         # canonical route; this block remains so the Home screen stays usable if
         # a malformed manual bundle prevents the runtime service from loading.
         progress = calculator.guide_progress(guide, self.character_key)
-        percent = int(round((progress.completed / progress.total) * 100)) if progress.total else 0
-        percent = max(0, min(100, percent))
+        percent = clamped_percent(progress.completed, progress.total)
 
         self.current_guide_id = guide.id
         self.progress_bar.setValue(percent)
@@ -989,8 +987,7 @@ class HomePage(QWidget):
 
     def _refresh_manual_guide_progress(self, service: GuideUltimeManualRuntimeService) -> None:
         completed, total = service.route_sheet_progress(self.character_key)
-        percent = int(round((completed / total) * 100)) if total else 0
-        percent = max(0, min(100, percent))
+        percent = clamped_percent(completed, total)
 
         self.current_guide_id = GUIDE_ULTIME_LEGACY_ID
         # The legacy id remains a navigation alias only. Progress and the active

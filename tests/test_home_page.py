@@ -8,13 +8,28 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.pages.home_page import HomePage
+from app.pages.home_page import HomePage, HomeTrackingRow
 
 
 class HomeNetworkIndicatorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_tracking_row_shares_clamped_percent_and_grouped_counts(self) -> None:
+        row = HomeTrackingRow("•", "Test")
+        try:
+            row.set_progress(2, 3)
+            self.assertEqual(row.bar.value(), 67)
+            self.assertEqual(row.value.text(), "67 %")
+            row.set_progress(1234, 2000, show_count=True)
+            self.assertEqual(row.bar.value(), 62)
+            self.assertEqual(row.value.text(), "1 234 / 2 000")
+            row.set_progress(2, 0)
+            self.assertEqual(row.bar.value(), 0)
+            self.assertEqual(row.value.text(), "0 %")
+        finally:
+            row.deleteLater()
 
     def test_waiting_client_then_live_network_updates_same_indicator(self) -> None:
         page = HomePage()

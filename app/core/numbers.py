@@ -37,6 +37,13 @@ def optional_int(value: object, default: int | None = None) -> int | None:
         return default
 
 
+def clamped_percent(completed: int, total: int) -> int:
+    """Apply Atlas' rounded whole-percent rule for bounded progress bars."""
+    if not total:
+        return 0
+    return max(0, min(100, int(round((completed / total) * 100))))
+
+
 def format_grouped_int(value: int) -> str:
     """Format UI counts with stable space grouping, independently of system locale."""
     return f"{int(value):,}".replace(",", " ")
