@@ -223,6 +223,7 @@ def _guide_progress_schema_error(payload: Any) -> str | None:
     characters, error = progress_characters_for_validation(payload)
     if error is not None:
         return error
+    for character_key, character in characters.items():
         manual_steps = character.get("manual_steps", {})
         if not isinstance(manual_steps, dict):
             return f"characters[{character_key!r}].manual_steps doit être un objet"
