@@ -4,6 +4,16 @@ from __future__ import annotations
 import unittest
 
 from app.core.numbers import clamped_percent, coerce_positive_int, format_grouped_int, optional_int, positive_int
+from app.core.item_identity import item_id
+
+
+class ItemIdCompatibilityTests(unittest.TestCase):
+    def test_priority_and_optional_conversion_remain_unchanged(self):
+        self.assertEqual(item_id({"id_dofus": "42", "ankama_id": 99}), 42)
+        self.assertEqual(item_id({"id_dofus": 0, "ankama_id": "17"}), 17)
+        self.assertEqual(item_id({"id": True}), 1)
+        self.assertIsNone(item_id({"id": "invalide"}))
+        self.assertIsNone(item_id({}))
 
 
 class PositiveIntTests(unittest.TestCase):

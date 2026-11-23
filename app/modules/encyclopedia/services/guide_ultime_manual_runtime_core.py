@@ -20,6 +20,7 @@ from app.modules.encyclopedia.services.guide_ultime_manual_route import (
     load_manual_chapter,
 )
 from app.modules.encyclopedia.services.guide_ultime_runtime_service import GuideUltimeRuntimeService
+from app.core.numbers import optional_int
 from app.core.text import normalize_key as normalize_text
 
 
@@ -1984,10 +1985,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
 
     @staticmethod
     def _as_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        return optional_int(value)
 
     @staticmethod
     def _location_text(x: int | None, y: int | None, zone: str) -> str:

@@ -20,6 +20,11 @@ class GuideManualStructuredRuntimeTests(unittest.TestCase):
         }
         return service
 
+    def test_manual_runtime_integer_adapter_keeps_existing_conversion(self) -> None:
+        for source, expected in (("12", 12), (True, 1), (-8, -8), (None, None), ("bad", None)):
+            with self.subTest(source=source):
+                self.assertEqual(GuideUltimeManualRuntimeService._as_int(source), expected)
+
     def test_waypoints_emit_only_canonical_travel_semantics(self) -> None:
         service = self._service()
         stage = {

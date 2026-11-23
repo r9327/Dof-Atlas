@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.core.numbers import optional_int
+
 
 def item_id(item: dict[str, Any]) -> int | None:
     value = item.get("id_dofus") or item.get("ankama_id") or item.get("id")
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
+    return optional_int(value)
