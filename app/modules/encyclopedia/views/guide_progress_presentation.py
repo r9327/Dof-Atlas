@@ -10,4 +10,11 @@ def guide_progress_state(completed: int, total: int) -> str:
     return "Non commencé"
 
 
-__all__ = ["guide_progress_state"]
+def guide_progress_style_state(completed: int, total: int) -> str:
+    """Canonical Qt style role for Guide progress, separate from display text."""
+    if total and completed >= total:
+        return "done"
+    return "partial" if completed else "todo"
+
+
+__all__ = ["guide_progress_state", "guide_progress_style_state"]

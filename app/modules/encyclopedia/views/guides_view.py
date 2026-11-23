@@ -54,7 +54,7 @@ from app.modules.encyclopedia.views.guide_home_image_cache import (
     get_cached_scaled_pixmap,
     store_scaled_pixmap,
 )
-from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state
+from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state, guide_progress_style_state
 from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, FixedColumnSplitter
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_ID_ROLE,
@@ -3961,11 +3961,7 @@ def _progress_label(progress: tuple[int, int, str] | None) -> str:
 
 def _tuple_progress_state(progress: tuple[int, int, str] | None) -> str:
     completed, total, _state = progress or (0, 0, "")
-    if total and completed >= total:
-        return "done"
-    if completed:
-        return "partial"
-    return "todo"
+    return guide_progress_style_state(completed, total)
 
 
 def _is_complete(completed: int, total: int) -> bool:
@@ -3981,11 +3977,7 @@ def _progress_marker(progress: ProgressCount) -> str:
 
 
 def _progress_state(progress: ProgressCount) -> str:
-    if progress.is_complete:
-        return "done"
-    if progress.completed:
-        return "partial"
-    return "todo"
+    return guide_progress_style_state(progress.completed, progress.total)
 
 
 def _unique_texts(lines: Iterable[str]) -> tuple[str, ...]:
