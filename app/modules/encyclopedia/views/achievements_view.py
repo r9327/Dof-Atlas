@@ -34,7 +34,7 @@ from app.modules.encyclopedia.providers import AchievementProvider, QuestProvide
 from app.modules.encyclopedia.services import AchievementProgressService, QuestGraphService, QuestProgressService
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox
+from app.ui.components import AtlasButton, AtlasComboBox, configure_unity_scroll_area
 from app.ui.theme import PALETTE
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -238,9 +238,7 @@ class AchievementsView(QWidget):
 
         self.detail_scroll = QScrollArea()
         self.detail_scroll.setObjectName("GuideRightPanelScroll")
-        self.detail_scroll.setWidgetResizable(True)
-        self.detail_scroll.setFrameShape(QFrame.NoFrame)
-        self.detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        configure_unity_scroll_area(self.detail_scroll, borderless=True)
         self.detail_stack.addWidget(self.detail_scroll)
 
         self.detail_content = QWidget()
