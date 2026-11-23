@@ -50,6 +50,25 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_shared_widget_cleanup_recurses_only_when_requested(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+        from app.ui.components import clear_unity_widget_layout
+
+        host = QWidget()
+        outer = QVBoxLayout(host)
+        inner = QHBoxLayout()
+        label = QLabel("nested")
+        inner.addWidget(label)
+        outer.addLayout(inner)
+        outer.addStretch(1)
+        try:
+            clear_unity_widget_layout(outer, recursive=True)
+            self.assertEqual(outer.count(), 0)
+            self.assertEqual(inner.count(), 0)
+            self.assertIsNone(label.parent())
+        finally:
+            host.deleteLater()
+
     def test_shared_widget_cleanup_hides_guides_before_detaching(self):
         from PySide6.QtWidgets import QWidget, QVBoxLayout
         from app.ui.components import clear_unity_widget_layout

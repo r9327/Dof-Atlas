@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFrame,
     QHBoxLayout,
+    QLayout,
     QMenu,
     QScrollArea,
     QLabel,
@@ -156,11 +157,13 @@ def configure_unity_scroll_area(
 
 
 def clear_unity_widget_layout(
-    layout: QVBoxLayout, *, hide_widgets: bool = False,
+    layout: QLayout, *, hide_widgets: bool = False,
+    recursive: bool = False, detach_widgets: bool = True,
 ) -> None:
-    """Remove layout items and release widgets through Qt's deferred deletion.
+    """Clear Qt layouts without replacing their ownership or rendering policy.
 
-    Hide first only where a Guide reuses the viewport before DeferredDelete.
+    Default detaching matches Quêtes/Succès/Guides. Craft retains the parent
+    until DeferredDelete; nested item layouts are walked only when requested.
     """
     while layout.count():
         item = layout.takeAt(0)
@@ -168,8 +171,16 @@ def clear_unity_widget_layout(
         if widget is not None:
             if hide_widgets:
                 widget.hide()
-            widget.setParent(None)
+            if detach_widgets:
+                widget.setParent(None)
             widget.deleteLater()
+        elif recursive:
+            child_layout = item.layout()
+            if child_layout is not None:
+                clear_unity_widget_layout(
+                    child_layout, hide_widgets=hide_widgets,
+                    recursive=True, detach_widgets=detach_widgets,
+                )
 
 
 def fill_unity_navigation_menu(
