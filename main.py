@@ -68,7 +68,7 @@ from app.storage import default_profiles, item_id, normalize_key, read_json, wri
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasDialog, AtlasPageTitle,
     AtlasStatusBadge, apply_unity_calendar_weekdays, atlas_application_icon,
-    refresh_unity_widget_style,
+    refresh_unity_widget_style, fill_unity_navigation_menu,
 )
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
@@ -1086,11 +1086,13 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(encyclopedia)
         self.nav_buttons.append((encyclopedia, "Encyclopédie"))
 
-        bestiary_menu = QMenu(nav)
-        bestiary_menu.addAction("Donjons", lambda: self.open_encyclopedia_tab("DONJONS"))
-        bestiary_menu.addAction("Monstres", lambda: self.open_encyclopedia_tab("MONSTRES"))
-        bestiary_menu.addAction("Archimonstres", lambda: self.open_encyclopedia_tab("ARCHIMONSTRES"))
-        bestiary_menu.addAction("Avis de recherche", lambda: self.open_encyclopedia_tab("AVIS DE RECHERCHE"))
+        bestiary_menu = fill_unity_navigation_menu(
+            QMenu(nav),
+            (("Donjons", "DONJONS"), ("Monstres", "MONSTRES"),
+             ("Archimonstres", "ARCHIMONSTRES"),
+             ("Avis de recherche", "AVIS DE RECHERCHE")),
+            self.open_encyclopedia_tab,
+        )
 
         bestiary = HoverMenuButton("Bestiaire")
         bestiary.set_hover_menu(bestiary_menu)
@@ -1098,11 +1100,12 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(bestiary)
         self.nav_buttons.append((bestiary, "Bestiaire"))
 
-        tools_menu = QMenu(nav)
-        tools_menu.addAction("Crafts", lambda: self.open_tools_tab("Crafts"))
-        tools_menu.addAction("Map monde", lambda: self.open_tools_tab("Map monde"))
-        tools_menu.addAction("Chasse au trésor", lambda: self.open_tools_tab("Chasse au trésor"))
-        tools_menu.addAction("Ocre", lambda: self.open_tools_tab("Ocre"))
+        tools_menu = fill_unity_navigation_menu(
+            QMenu(nav),
+            (("Crafts", "Crafts"), ("Map monde", "Map monde"),
+             ("Chasse au trésor", "Chasse au trésor"), ("Ocre", "Ocre")),
+            self.open_tools_tab,
+        )
 
         tools = HoverMenuButton("Outils")
         tools.set_hover_menu(tools_menu)
@@ -1110,10 +1113,11 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(tools)
         self.nav_buttons.append((tools, "Outils"))
 
-        stuffs_menu = QMenu(nav)
-        stuffs_menu.addAction("PvM", lambda: self.open_stuffs_tab("PvM"))
-        stuffs_menu.addAction("PvP", lambda: self.open_stuffs_tab("PvP"))
-        stuffs_menu.addAction("Builders", lambda: self.open_stuffs_tab("Builders"))
+        stuffs_menu = fill_unity_navigation_menu(
+            QMenu(nav),
+            (("PvM", "PvM"), ("PvP", "PvP"), ("Builders", "Builders")),
+            self.open_stuffs_tab,
+        )
 
         stuffs = HoverMenuButton("Stuffs")
         stuffs.set_hover_menu(stuffs_menu)

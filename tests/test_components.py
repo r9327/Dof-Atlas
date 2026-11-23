@@ -24,6 +24,7 @@ from app.ui.components import (
     set_unity_widget_property,
     set_unity_widget_object_name,
     release_transient_dialog,
+    fill_unity_navigation_menu,
 )
 from app.ui.theme import atlas_stylesheet
 
@@ -94,6 +95,25 @@ class SharedUiComponentsTests(unittest.TestCase):
         dialog.reject()
         QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
         self.assertFalse(isValid(dialog))
+
+    def test_shared_navigation_menu_preserves_action_order_and_dispatch(self) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        visited: list[str] = []
+        menu = QMenu()
+        try:
+            self.assertIs(
+                fill_unity_navigation_menu(
+                    menu, (("Premier", "one"), ("Deuxième", "two")), visited.append,
+                ), menu,
+            )
+            self.assertEqual([a.text() for a in menu.actions()], ["Premier", "Deuxième"])
+            menu.actions()[1].trigger()
+            menu.actions()[0].trigger()
+            self.assertEqual(visited, ["two", "one"])
+            self.assertEqual(menu.styleSheet(), "")
+        finally:
+            menu.deleteLater()
 
     def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
         button = AtlasButton("Contrôle")

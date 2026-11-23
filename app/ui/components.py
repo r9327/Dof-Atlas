@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal
 
 from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, QTransform
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFrame,
     QHBoxLayout,
+    QMenu,
     QScrollArea,
     QLabel,
     QPushButton,
@@ -134,6 +135,18 @@ def set_unity_widget_object_name(widget: QWidget, object_name: str) -> bool:
     widget.setObjectName(object_name)
     refresh_unity_widget_style(widget)
     return True
+
+
+def fill_unity_navigation_menu(
+    menu: QMenu, choices: tuple[tuple[str, str], ...], activate: Callable[[str], None],
+) -> QMenu:
+    """Populate shared QMenu actions without a second navigation widget."""
+    for label, target in choices:
+        action = menu.addAction(label)
+        action.triggered.connect(
+            lambda _checked=False, selected=target: activate(selected)
+        )
+    return menu
 
 
 class AtlasButton(QPushButton):
