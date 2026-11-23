@@ -36,18 +36,12 @@ def sort_character_rows(
         for index, key in enumerate(normalize_character_order(order))
     }
     fallback_index = len(positions)
-    indexed = tuple(enumerate(rows))
-    return tuple(
-        row
-        for _original_index, row in sorted(
-            indexed,
-            key=lambda pair: (
-                positions.get(normalize_key(label_getter(pair[1])), fallback_index),
-                0 if normalize_key(label_getter(pair[1])) in positions else 1,
-                pair[0],
-            ),
-        )
-    )
+    # sorted() is stable: unknown characters preserve their input order,
+    # without invoking the potentially costly label getter twice per row.
+    return tuple(sorted(
+        rows,
+        key=lambda row: positions.get(normalize_key(label_getter(row)), fallback_index),
+    ))
 
 
 __all__ = ["normalize_character_order", "sort_character_rows"]

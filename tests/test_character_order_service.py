@@ -72,6 +72,23 @@ class CharacterOrderServiceTests(unittest.TestCase):
                 ["Beta", "Alpha", "Gamma", "Delta"],
             )
 
+    def test_shared_sort_normalizes_each_row_only_once_and_keeps_input_stable(self):
+        rows = [Row("Unknown"), Row("Alpha"), Row("Other"), Row("alpha")]
+        counts = []
+
+        def label(row):
+            counts.append(row.label)
+            return row.label
+
+        result = sort_character_rows(rows, ["ALPHA"], label_getter=label)
+        self.assertEqual(counts, [row.label for row in rows])
+        self.assertEqual(
+            [row.label for row in result],
+            ["Alpha", "alpha", "Unknown", "Other"],
+        )
+        self.assertIs(result[0], rows[1])
+        self.assertIs(result[1], rows[3])
+
     def test_sorter_matches_canonical_logic_for_accents_and_unknown_characters(self):
         with tempfile.TemporaryDirectory() as temporary:
             profile = Path(temporary) / "profiles.json"
