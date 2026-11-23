@@ -24,7 +24,7 @@ from app.pages._character_page_impl import (
     EQUIPMENT_SLOTS,
     CharacterPage as _CharacterPage,
 )
-from app.ui.components import AtlasComboBox
+from app.ui.components import AtlasComboBox, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 CHARACTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character"]
@@ -171,11 +171,9 @@ class CharacterPage(_CharacterPage):
         self.stats_empty_label.setWordWrap(True)
         layout.addWidget(self.stats_empty_label, 1)
 
-        self.stats_scroll = QScrollArea()
-        self.stats_scroll.setWidgetResizable(True)
-        self.stats_scroll.setFrameShape(QFrame.NoFrame)
-        self.stats_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.stats_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.stats_scroll = configure_unity_scroll_area(
+            QScrollArea(), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
 
         content = QWidget()
         content_layout = QVBoxLayout(content)

@@ -9,7 +9,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame
 
 from app.constants import KEY_SELECTED_CHARACTER
 from app.core.file_stamp import resolved_mtime_size_stamp
@@ -106,6 +106,11 @@ class ModernCharacterPageTests(unittest.TestCase):
                 skin_resolver=lambda _label: "",
             )
             self.app.processEvents()
+
+            self.assertTrue(page.stats_scroll.widgetResizable())
+            self.assertEqual(page.stats_scroll.frameShape(), QFrame.NoFrame)
+            self.assertEqual(page.stats_scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(page.stats_scroll.verticalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
 
             columns = page.layout().itemAt(2).layout()
             self.assertEqual(columns.count(), 2)
