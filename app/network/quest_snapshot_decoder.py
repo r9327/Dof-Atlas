@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256 as _strict_sha256
+from app.network.contracts import (
+    _is_sha256 as _strict_sha256, active_build_matches,
+    forward_decoder_reset, forward_decoder_session_closed,
+)
 
 import hashlib
 from dataclasses import dataclass
@@ -90,11 +93,7 @@ class FinishedQuestsSnapshotDecoder:
             return self.delegate.decode(message)
         if str(message.direction or "").strip().casefold() != "server_to_client":
             return None
-        try:
-            active_fingerprint = str(self.active_fingerprint_provider() or "").strip().casefold()
-        except Exception:
-            return None
-        if active_fingerprint != self.mapping_fingerprint:
+        if not active_build_matches(self.active_fingerprint_provider, self.mapping_fingerprint):
             return None
 
         try:
@@ -249,14 +248,10 @@ class FinishedQuestsSnapshotDecoder:
         return True
 
     def session_closed(self, session_id: str) -> None:
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session_id)
+        forward_decoder_session_closed(self.delegate, session_id)
 
     def reset(self) -> None:
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.delegate)
 
     @staticmethod
     def _is_sha256(value: str) -> bool:
