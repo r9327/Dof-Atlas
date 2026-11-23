@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
@@ -80,6 +80,18 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 self.assertEqual(service.map_calls, 0)
                 self.assertEqual(service.link_calls, 0)
                 self.assertTrue(panel._initial_load_pending)
+                self.assertTrue(panel.world_menu_scroll.widgetResizable())
+                self.assertEqual(
+                    panel.world_menu_scroll.frameShape(), world_scan_module.QFrame.NoFrame,
+                )
+                self.assertEqual(
+                    panel.world_menu_scroll.horizontalScrollBarPolicy(),
+                    Qt.ScrollBarAlwaysOff,
+                )
+                self.assertEqual(
+                    panel.world_menu_scroll.verticalScrollBarPolicy(),
+                    Qt.ScrollBarAsNeeded,
+                )
             finally:
                 self._dispose_panel(panel)
 
