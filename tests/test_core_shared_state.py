@@ -40,6 +40,23 @@ class CoreSharedStateTests(unittest.TestCase):
                 self.assertIs(complete_progress_root(payload), payload)
                 self.assertEqual(payload, expected)
 
+    def test_progress_character_writer_repairs_only_selected_row(self) -> None:
+        from app.core.progress_coordinator import mutable_progress_character
+
+        payload = {"characters": {"character:1": "invalid", "character:2": {"ok": True}}}
+        row = mutable_progress_character(
+            payload, "character:1", defaults={"done": {}},
+        )
+        row["done"]["42"] = True
+        self.assertEqual(payload["characters"]["character:1"], {"done": {"42": True}})
+        self.assertEqual(payload["characters"]["character:2"], {"ok": True})
+        self.assertIs(mutable_progress_character(payload, "character:1"), row)
+        broken_root = {"characters": "bad"}
+        self.assertEqual(
+            mutable_progress_character(broken_root, "character:3"), {},
+        )
+        self.assertEqual(broken_root, {"characters": {"character:3": {}}})
+
     def test_progress_character_reader_never_mutates_root_or_corrupt_rows(self) -> None:
         from app.core.progress_coordinator import read_progress_character
 

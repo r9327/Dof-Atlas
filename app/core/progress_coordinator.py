@@ -221,6 +221,23 @@ def read_progress_character(
     return value if isinstance(value, dict) else {}
 
 
+def mutable_progress_character(
+    payload: dict[str, Any], character_key: str, *,
+    defaults: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Get or repair a character row while retaining domain-specific defaults."""
+    characters = payload.setdefault("characters", {})
+    if not isinstance(characters, dict):
+        characters = {}
+        payload["characters"] = characters
+    key = require_character_key(character_key)
+    row = characters.setdefault(key, dict(defaults or {}))
+    if not isinstance(row, dict):
+        row = dict(defaults or {})
+        characters[key] = row
+    return row
+
+
 def validate_progress_character_keys(progress: dict[str, Any]) -> None:
     """Shared write boundary; reject invalid character keys before persistence."""
     characters = progress.get("characters", {})
