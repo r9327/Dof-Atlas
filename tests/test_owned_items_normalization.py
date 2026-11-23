@@ -4,10 +4,20 @@ from __future__ import annotations
 import unittest
 
 from app.pages._quests_page_impl import normalize_owned_items, owned_item_identifier
-from app.core.craft_selection import selection_item_id
+from app.core.craft_selection import selection_item_id, selection_item_row
 
 
 class OwnedItemsNormalizationTests(unittest.TestCase):
+    def test_shared_craft_saved_row_preserves_order_and_alias(self):
+        self.assertEqual(
+            selection_item_row(42, "Cawotte", 7),
+            {"item_id": 42, "ankama_id": 42, "name": "Cawotte", "quantity": 7},
+        )
+        self.assertEqual(
+            list(selection_item_row(42, "Cawotte", 7)),
+            ["item_id", "ankama_id", "name", "quantity"],
+        )
+
     def test_quest_and_craft_reuse_one_identifier_codec(self):
         self.assertIs(owned_item_identifier, selection_item_id)
         self.assertIsNone(selection_item_id({"ankama_id": "invalid", "item_id": 42}))

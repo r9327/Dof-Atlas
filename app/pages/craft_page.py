@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 
 from app import local_data_cache
 from app.core.item_artwork import item_with_artwork
-from app.core.craft_selection import selection_item_id
+from app.core.craft_selection import selection_item_id, selection_item_row
 from app.constants import (
     CRAFT_SELECTION_FILE,
     HARVEST_ASSET_REPORT,
@@ -991,12 +991,9 @@ class CraftPage(QWidget):
     def save_selection(self) -> None:
         payload = {
             "items": [
-                {
-                    "item_id": ident,
-                    "ankama_id": ident,
-                    "name": row["item"].get("name", ""),
-                    "quantity": row["quantity"],
-                }
+                selection_item_row(
+                    ident, row["item"].get("name", ""), row["quantity"],
+                )
                 for ident, row in self.selection.items()
             ]
         }

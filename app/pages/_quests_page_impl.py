@@ -26,7 +26,9 @@ from PySide6.QtWidgets import (
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
-from app.core.craft_selection import selection_item_id as owned_item_identifier
+from app.core.craft_selection import (
+    selection_item_id as owned_item_identifier, selection_item_row,
+)
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     QuestGraphService,
@@ -1328,24 +1330,14 @@ def save_owned_item_quantity(item: dict[str, Any], quantity: int, path: Path = C
         replaced = True
         if quantity > 0:
             updated = dict(row)
-            updated.update(
-                {
-                    "item_id": item_id_value,
-                    "ankama_id": item_id_value,
-                    "name": str(item.get("name") or row.get("name") or ""),
-                    "quantity": int(quantity),
-                }
-            )
+            updated.update(selection_item_row(
+                item_id_value, str(item.get("name") or row.get("name") or ""), int(quantity),
+            ))
             next_rows.append(updated)
     if quantity > 0 and not replaced:
-        next_rows.append(
-            {
-                "item_id": item_id_value,
-                "ankama_id": item_id_value,
-                "name": str(item.get("name") or ""),
-                "quantity": int(quantity),
-            }
-        )
+        next_rows.append(selection_item_row(
+            item_id_value, str(item.get("name") or ""), int(quantity),
+        ))
     write_json(path, {"items": next_rows})
 
 
