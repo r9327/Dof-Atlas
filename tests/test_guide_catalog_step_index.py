@@ -5,7 +5,7 @@ import unittest
 from types import SimpleNamespace
 
 from app.modules.encyclopedia.services.guide_catalog_step_index import (
-    ordered_route_quest_steps,
+    ordered_route_quest_steps, resolved_route_quests,
 )
 
 
@@ -26,6 +26,28 @@ class OrderedRouteQuestStepsTests(unittest.TestCase):
             [(row.order, ident) for row, ident in ordered_route_quest_steps(guide)],
             [(10, 4), (30, 4), (40, 1), (50, -2)],
         )
+
+    def test_provider_missing_quest_is_retryable_then_duplicate_skipped(self):
+        def step(order, ident):
+            return SimpleNamespace(order=order, step_type="quest", entity_id=ident)
+
+        guide = SimpleNamespace(required_steps=[
+            step(1, 7), step(2, 7), step(3, 7), step(4, 9), step(5, 9),
+        ])
+
+        class Provider:
+            def __init__(self):
+                self.calls = []
+            def get_quest(self, ident):
+                self.calls.append(ident)
+                if ident == 7 and self.calls.count(7) == 1:
+                    return None
+                return SimpleNamespace(id=ident)
+
+        provider = Provider()
+        resolved = list(resolved_route_quests(guide, provider))
+        self.assertEqual([(row.order, quest.id) for row, quest in resolved], [(2, 7), (4, 9)])
+        self.assertEqual(provider.calls, [7, 7, 9])
 
     def test_empty_guide_and_missing_ids_are_not_artificial_quests(self):
         self.assertEqual(list(ordered_route_quest_steps(SimpleNamespace())), [])

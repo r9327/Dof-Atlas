@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.core.map_coordinates import extract_bracketed_position
-from app.modules.encyclopedia.services.guide_catalog_step_index import ordered_route_quest_steps
+from app.modules.encyclopedia.services.guide_catalog_step_index import resolved_route_quests
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
@@ -27,16 +27,8 @@ def catalog_route_map_count(guide, quest_provider) -> int:
     detail-heavy and must not be called by the Guide catalogue/home renderer.
     """
     raw_keys: list[str] = []
-    seen_quests: set[int] = set()
 
-    for step, quest_id in ordered_route_quest_steps(guide):
-        if quest_id in seen_quests:
-            continue
-        quest = quest_provider.get_quest(quest_id)
-        if quest is None:
-            continue
-        seen_quests.add(quest_id)
-
+    for _step, quest in resolved_route_quests(guide, quest_provider):
         start = quest_start_info(quest)
         start_position = str(
             start.position

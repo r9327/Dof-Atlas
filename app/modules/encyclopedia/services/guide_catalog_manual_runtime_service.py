@@ -18,7 +18,7 @@ from uuid import uuid4
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
 from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE, extract_bracketed_position
 from app.quest_catalog import quest_catalog_cache_signature
-from app.modules.encyclopedia.services.guide_catalog_step_index import ordered_route_quest_steps
+from app.modules.encyclopedia.services.guide_catalog_step_index import resolved_route_quests
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
 from app.modules.encyclopedia.services.guide_catalog_route_store import (
@@ -380,15 +380,8 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         projection_started = perf_counter()
         quest_count = 0
         raw_segments: list[dict[str, Any]] = []
-        seen_quests: set[int] = set()
 
-        for step, quest_id in ordered_route_quest_steps(self.catalog_guide):
-            if quest_id in seen_quests:
-                continue
-            quest = self.quest_provider.get_quest(quest_id)
-            if quest is None:
-                continue
-            seen_quests.add(quest_id)
+        for step, quest in resolved_route_quests(self.catalog_guide, self.quest_provider):
             quest_count += 1
             raw_segments.extend(self._quest_segments(step, quest, finalize=False))
 
