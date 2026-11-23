@@ -1440,8 +1440,9 @@ class DevUiPage(QWidget):
         )
         self.preview_busy.setAccessibleName("Progression indéterminée")
         progress_row.addWidget(self.preview_busy, 1)
-        self.preview_complete = QProgressBar()
-        self.preview_complete.setRange(0, 100)
+        self.preview_complete = configure_unity_progress_bar(
+            QProgressBar(), text_visible=True,
+        )
         self.preview_complete.setValue(100)
         self.preview_complete.setAccessibleName("Progression terminée")
         progress_row.addWidget(self.preview_complete, 1)
