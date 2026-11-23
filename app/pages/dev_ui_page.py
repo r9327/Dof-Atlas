@@ -2579,9 +2579,9 @@ class DevUiPage(QWidget):
         self.motion_panel.setMaximumHeight(self._motion_panel_height)
         section.addWidget(self.motion_panel)
 
-        self.motion_progress = QProgressBar()
-        self.motion_progress.setObjectName("DevUiMotionProgress")
-        self.motion_progress.setRange(0, 100)
+        self.motion_progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="DevUiMotionProgress", text_visible=True,
+        )
         self.motion_progress.setValue(100)
         section.addWidget(self.motion_progress)
 
