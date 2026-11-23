@@ -4057,10 +4057,9 @@ def progress_summary(completed: int, total: int) -> QWidget:
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(8)
 
-    bar = QProgressBar()
-    bar.setObjectName("GuideTinyProgress")
-    bar.setTextVisible(False)
-    bar.setRange(0, max(1, total))
+    bar = configure_unity_progress_bar(
+        QProgressBar(), object_name="GuideTinyProgress", maximum=max(1, total),
+    )
     bar.setValue(min(completed, total) if total else 0)
     bar.setFixedHeight(7)
     layout.addWidget(bar, 1)

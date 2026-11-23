@@ -10,10 +10,10 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar
 
 from app.modules.encyclopedia.views.guides_view import (
-    GuidesView, clear_layout, linkify_travel_text, text_label,
+    GuidesView, clear_layout, linkify_travel_text, progress_summary, text_label,
 )
 from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
 from app.ui.theme import PALETTE
@@ -34,6 +34,19 @@ class GuidesViewLayoutTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_compact_guide_progress_uses_shared_bar_with_real_route_count(self):
+        for completed, total, maximum in ((2, 3, 3), (0, 0, 1), (5, 4, 4)):
+            with self.subTest(completed=completed, total=total):
+                row = progress_summary(completed, total)
+                try:
+                    bar = row.findChild(QProgressBar)
+                    self.assertEqual(bar.objectName(), "GuideTinyProgress")
+                    self.assertEqual((bar.minimum(), bar.maximum()), (0, maximum))
+                    self.assertEqual(bar.value(), min(completed, total) if total else 0)
+                    self.assertFalse(bar.isTextVisible())
+                finally:
+                    row.deleteLater()
 
     def test_guide_layout_cleanup_handles_nested_rows_and_spacers(self):
         host = QWidget()
