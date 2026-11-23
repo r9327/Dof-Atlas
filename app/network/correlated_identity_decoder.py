@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.network.contracts import (
+    _is_sha256, active_build_matches,
+    forward_decoder_reset, forward_decoder_session_closed,
+)
 
 import hashlib
 import threading
@@ -146,16 +149,12 @@ class CorrelatedCharacterIdentityDecoder:
             return
         with self._lock:
             self._rosters.pop(session, None)
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session)
+        forward_decoder_session_closed(self.delegate, session)
 
     def reset(self) -> None:
         with self._lock:
             self._rosters.clear()
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.delegate)
 
     def _observe_roster(self, message: CapturedProtocolMessage) -> None:
         session = str(message.session_id or "")
