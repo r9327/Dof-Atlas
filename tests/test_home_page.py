@@ -53,6 +53,16 @@ class HomeNetworkIndicatorTests(unittest.TestCase):
         finally:
             row.deleteLater()
 
+    def test_main_guide_progress_keeps_home_style_and_starting_value(self) -> None:
+        page = HomePage()
+        try:
+            self.assertEqual(page.progress_bar.objectName(), "HomeProgressBar")
+            self.assertEqual((page.progress_bar.minimum(), page.progress_bar.maximum()), (0, 100))
+            self.assertFalse(page.progress_bar.isTextVisible())
+            self.assertEqual(page.progress_bar.value(), 0)
+        finally:
+            page.deleteLater()
+
     def test_waiting_client_then_live_network_updates_same_indicator(self) -> None:
         page = HomePage()
         self.addCleanup(page.deleteLater)

@@ -366,11 +366,10 @@ class HomePage(QWidget):
         progress_row.addWidget(self.progress_percent)
         guide_layout.addLayout(progress_row)
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setObjectName("HomeProgressBar")
-        self.progress_bar.setRange(0, 100)
+        self.progress_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="HomeProgressBar",
+        )
         self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(False)
         guide_layout.addWidget(self.progress_bar)
         guide_layout.addSpacing(10)
 
