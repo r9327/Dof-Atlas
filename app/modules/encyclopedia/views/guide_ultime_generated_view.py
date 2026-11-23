@@ -16,7 +16,10 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.numbers import optional_int
-from app.ui.components import AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_scroll_area
+from app.ui.components import (
+    AtlasButton, AtlasComboBox, AtlasPageNavigator,
+    clear_unity_widget_layout, configure_unity_scroll_area,
+)
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
 )
@@ -576,11 +579,7 @@ class GuideUltimeGeneratedView(QWidget):
         self._render_window()
 
     def _clear_cards(self) -> None:
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.cards_layout, detach_widgets=False)
 
 
 

@@ -241,6 +241,21 @@ class GuideUltimeV5UITests(unittest.TestCase):
         self.make_services()
         self.assertGreaterEqual(self.v5.first_incomplete_index("character:1"), 1)
 
+    def test_generated_card_cleanup_retains_parent_until_deferred_deletion(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout
+        from types import SimpleNamespace
+
+        host = QWidget()
+        cards = QVBoxLayout(host)
+        card = QWidget()
+        cards.addWidget(card)
+        try:
+            GuideUltimeGeneratedView._clear_cards(SimpleNamespace(cards_layout=cards))
+            self.assertEqual(cards.count(), 0)
+            self.assertIs(card.parent(), host)
+        finally:
+            host.deleteLater()
+
     def test_generated_guide_uses_shared_scroll_without_changing_navigation(self):
         view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
         try:
