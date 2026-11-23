@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QToolButton, QVBoxLayout
 
+from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON
 from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
@@ -108,7 +109,7 @@ class GuideProgressHeader(QFrame):
         self.title.setText(guide.title)
         self.meta.setText(self._meta_text(guide))
         self.description.setText(guide.description)
-        percent = int(round((completed / total) * 100)) if total else 0
+        percent = clamped_percent(completed, total)
         self.progress_text.setText(f"{completed} / {total} {self._progress_word(guide, total)}")
         self.progress_percent.setText(f"{percent} %")
         self.progress.setValue(percent)
