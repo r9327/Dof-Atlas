@@ -84,6 +84,25 @@ class SharedSuccessCacheLockTests(unittest.TestCase):
             with _achievement_compact_write_lock(cache, timeout_seconds=1):
                 self.assertTrue(cache.with_suffix(".jsonl.lock").is_file())
 
+    def test_cache_and_progress_paths_share_exclusive_os_lock(self) -> None:
+        from app.core.progress_coordinator import (
+            InterProcessResourceLock, ProgressLockTimeoutError,
+        )
+
+        with tempfile.TemporaryDirectory(prefix="atlas-unified-lock-") as directory:
+            cache = Path(directory) / "catalog.jsonl"
+            with InterProcessResourceLock(cache):
+                with self.assertRaisesRegex(TimeoutError, "Cache write lock timed out"):
+                    with _achievement_compact_write_lock(cache, timeout_seconds=0.1):
+                        self.fail("Cache lock bypassed the shared progress lock")
+            with _achievement_compact_write_lock(cache, timeout_seconds=1):
+                with self.assertRaises(ProgressLockTimeoutError):
+                    with InterProcessResourceLock(cache, timeout=0.1):
+                        self.fail("Progress lock bypassed the cache lock")
+            # Both entry points are usable after a failed contender.
+            with _achievement_compact_write_lock(cache, timeout_seconds=1):
+                self.assertTrue(cache.with_suffix(".jsonl.lock").is_file())
+
     def test_three_independent_workers_never_overlap(self) -> None:
         with tempfile.TemporaryDirectory(prefix="atlas-success-lock-") as directory:
             root = Path(directory)
