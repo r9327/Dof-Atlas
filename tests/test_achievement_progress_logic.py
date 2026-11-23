@@ -69,6 +69,14 @@ class AchievementProgressLogicTests(unittest.TestCase):
         self.assertEqual(completed, frozenset({1, 2, 3}))
         self.assertEqual(objectives, {10: frozenset({100, 101, 102})})
 
+    def test_shared_integer_decoder_rejects_invalid_without_discarding_valid(self) -> None:
+        from app.core.numbers import valid_int_ids
+
+        self.assertEqual(
+            valid_int_ids(["-1", "9", 9, "", None, "bad"]),
+            frozenset({-1, 9}),
+        )
+
     def test_duplicate_numeric_formats_share_single_completion_identity(self) -> None:
         completed, objectives = derive_completion_state({
             "completed_achievements": ["010", 10, True, "bad"],

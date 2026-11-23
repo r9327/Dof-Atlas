@@ -187,11 +187,9 @@ class AchievementProgressService:
             return False
         completed_quests = frozenset(quest_progress_service.completed_quest_ids(key))
         character = self._character(key)
-        manual_achievements = {
-            int(value)
-            for value in character.get("completed_achievements", [])
-            if self._safe_int(value) is not None
-        }
+        manual_achievements = set(
+            valid_int_ids(character.get("completed_achievements", []))
+        )
         sync_signature: tuple[object, ...] = (
             id(achievement_provider),
             id(guide_provider),
@@ -288,11 +286,7 @@ class AchievementProgressService:
                 aid = self._safe_int(raw_aid)
                 if aid is None or not isinstance(values, list):
                     continue
-                manual_objectives[aid] = {
-                    int(value)
-                    for value in values
-                    if self._safe_int(value) is not None
-                }
+                manual_objectives[aid] = set(valid_int_ids(values))
 
         auto_objectives: dict[int, set[int]] = {}
         memo: dict[int, bool] = {}
@@ -458,9 +452,7 @@ class AchievementProgressService:
             if values
         }
         previous_achievements = sorted(
-            int(value)
-            for value in character.get("auto_completed_achievements", [])
-            if self._safe_int(value) is not None
+            valid_int_ids(character.get("auto_completed_achievements", []))
         )
         previous_objectives = character.get("auto_completed_objectives", {})
         next_achievements = sorted(auto_achievements)
