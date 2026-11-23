@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -21,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.core.numbers import clamped_percent, format_grouped_int
+from app.core.text import strip_accents
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
@@ -1162,13 +1162,8 @@ class HomePage(QWidget):
 
     @staticmethod
     def _plain_key(value: str) -> str:
-        normalized = unicodedata.normalize("NFKD", str(value or ""))
         return " ".join(
-            "".join(character for character in normalized if not unicodedata.combining(character))
-            .casefold()
-            .replace("’", "'")
-            .replace("-", " ")
-            .split()
+            strip_accents(value).casefold().replace("’", "'").replace("-", " ").split()
         )
 
     def _emit_continue(self) -> None:

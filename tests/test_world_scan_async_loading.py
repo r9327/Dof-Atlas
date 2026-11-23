@@ -96,6 +96,17 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 self._dispose_panel(panel)
 
 
+    def test_cache_builder_and_map_ui_share_unicode_world_normalization(self):
+        from app.services.maps.map_cache_builder import normalize_world
+
+        self.assertEqual(normalize_world("  MÓNDE des Douze  "), "monde des douze")
+        self.assertEqual(normalize_world("Île d’Otomaï"), "ile d'otomai")
+        self.assertEqual(normalize_world(None), "")
+        self.assertEqual(
+            normalize_world(" PANDALA "),
+            WorldScanPanel.normalize_world_name(None, " PANDALA "),
+        )
+
     def test_world_name_normalization_preserves_real_display_labels(self) -> None:
         self.assertEqual(
             WorldScanPanel._world_name_from_view_data(

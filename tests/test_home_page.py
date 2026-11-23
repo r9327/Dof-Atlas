@@ -16,6 +16,12 @@ class HomeNetworkIndicatorTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_home_tracking_key_preserves_accent_and_hyphen_matching(self) -> None:
+        self.assertEqual(HomePage._plain_key("  ÉPÉE – Cawotte  "), "epee – cawotte")
+        self.assertEqual(HomePage._plain_key(" Cité d’Astrub - Nord "), "cite d'astrub nord")
+        self.assertEqual(HomePage._plain_key(None), "")
+        self.assertEqual(HomePage._plain_key("a--b"), "a  b".replace("  ", " "))
+
     def test_tracking_row_shares_clamped_percent_and_grouped_counts(self) -> None:
         row = HomeTrackingRow("•", "Test")
         try:
