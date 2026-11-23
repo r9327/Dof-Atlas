@@ -13,6 +13,7 @@ from typing import Any, Iterable
 from PIL import Image, UnidentifiedImageError
 
 from app.constants import DATA_DIR, LOGGER, ROOT_DIR
+from app.core.text import strip_accents
 from app.services.maps.map_manifest import MAP_RAW_DIR, ensure_cache_layout, write_json
 
 SOURCES_PATH = DATA_DIR / "cartography" / "sources.json"
@@ -974,23 +975,7 @@ def resolve_project_path(path_text: str) -> Path:
 
 
 def normalize_text(text: str) -> str:
-    return (
-        text.replace("\\", "/")
-        .replace("é", "e")
-        .replace("è", "e")
-        .replace("ê", "e")
-        .replace("ë", "e")
-        .replace("É", "e")
-        .replace("ï", "i")
-        .replace("î", "i")
-        .replace("ô", "o")
-        .replace("ö", "o")
-        .replace("û", "u")
-        .replace("ù", "u")
-        .replace("à", "a")
-        .replace("â", "a")
-        .casefold()
-    )
+    return strip_accents(text.replace("\\", "/")).casefold()
 
 
 def normalize_path_part(text: str) -> str:
