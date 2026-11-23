@@ -29,7 +29,7 @@ from app.modules.encyclopedia.services.guide_progress_service import GuideProgre
 from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
 from app.ui.components import (
     AtlasGuideDisclosure, AtlasGuideParticipantButton, atlas_guide_character_icon,
-    configure_unity_scroll_area,
+    configure_unity_progress_bar, configure_unity_scroll_area,
 )
 from app.ui.unity_palette import (
     UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
@@ -256,17 +256,15 @@ class ContinuousGuideRoutePanel(QWidget):
         overall.addWidget(heading)
         overall.addStretch(1)
         overall.addWidget(self.global_progress_value)
-        self.global_progress_bar = QProgressBar()
-        self.global_progress_bar.setObjectName("GuideGlobalProgress")
-        self.global_progress_bar.setRange(0, 100)
-        self.global_progress_bar.setTextVisible(False)
+        self.global_progress_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideGlobalProgress",
+        )
         self.global_progress_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
         self.global_progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.preparation_bar = QProgressBar()
-        self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
-        self.preparation_bar.setRange(0, 1)
+        self.preparation_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideCompactPreparationProgress", maximum=1,
+        )
         self.preparation_bar.setValue(0)
-        self.preparation_bar.setTextVisible(False)
         self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
         self.preparation_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.preparation_bar.setToolTip(

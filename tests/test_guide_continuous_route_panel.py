@@ -41,6 +41,17 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
+    def test_shared_progress_bars_keep_distinct_guide_ranges(self):
+        primary = self.panel.global_progress_bar
+        preparation = self.panel.preparation_bar
+        self.assertEqual(primary.objectName(), "GuideGlobalProgress")
+        self.assertEqual((primary.minimum(), primary.maximum()), (0, 100))
+        self.assertEqual(preparation.objectName(), "GuideCompactPreparationProgress")
+        self.assertEqual((preparation.minimum(), preparation.maximum()), (0, 1))
+        self.assertEqual(preparation.value(), 0)
+        self.assertFalse(primary.isTextVisible())
+        self.assertFalse(preparation.isTextVisible())
+
     def test_continuous_travel_falls_back_to_clipboard_on_explicit_refusal(self):
         from unittest.mock import Mock
 
