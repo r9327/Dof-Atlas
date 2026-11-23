@@ -60,6 +60,12 @@ class CoreSharedStateTests(unittest.TestCase):
             "characters['character:1'].done doit être un objet",
         )
         self.assertEqual(
+            _quest_progress_schema_error({"characters": {
+                "character:1": {"done": {}}, "character:2": {"quest_items": {"9": []}},
+            }}),
+            "quest_items['9'] doit être un objet",
+        )
+        self.assertEqual(
             _guide_progress_schema_error({"characters": {"character:1": {"manual_steps": []}}}),
             "characters['character:1'].manual_steps doit être un objet",
         )
