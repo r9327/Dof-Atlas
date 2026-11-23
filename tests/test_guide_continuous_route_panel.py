@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QProgressBar
 from app.ui.components import AtlasGuideDisclosure, AtlasGuideParticipantButton
 
@@ -104,6 +105,17 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             QApplication.clipboard().text(), "/zaap 1,2 ; /travel 5,-18",
         )
         self.assertIn("copiée", messages[-1])
+
+    def test_preparation_scroll_reuses_global_policy_and_retains_height_cap(self):
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        scroll = self.panel.preparation_scroll
+        self.assertTrue(scroll.widgetResizable())
+        self.assertEqual(scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+        self.assertEqual(scroll.objectName(), "GuideContinuousPreparationScroll")
+        self.assertEqual(
+            scroll.maximumHeight(), UNITY_MODULE_GEOMETRY_PX["guide_route"]["detail_max_height"],
+        )
 
     def test_route_header_geometry_uses_dev_ui_tokens_at_four_sizes(self):
         from app.ui.unity_palette import (

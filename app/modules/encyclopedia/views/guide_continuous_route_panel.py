@@ -29,6 +29,7 @@ from app.modules.encyclopedia.services.guide_progress_service import GuideProgre
 from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
 from app.ui.components import (
     AtlasGuideDisclosure, AtlasGuideParticipantButton, atlas_guide_character_icon,
+    configure_unity_scroll_area,
 )
 from app.ui.unity_palette import (
     UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
@@ -196,9 +197,8 @@ class ContinuousGuideRoutePanel(QWidget):
             "Références d'objets à vérifier — quantités et achats non certifiés"
         )
         self.preparation_toggle.toggled.connect(self._on_preparation_toggled)
-        self.preparation_scroll = QScrollArea()
+        self.preparation_scroll = configure_unity_scroll_area(QScrollArea())
         self.preparation_scroll.setObjectName("GuideContinuousPreparationScroll")
-        self.preparation_scroll.setWidgetResizable(True)
         self.preparation_scroll.setMaximumHeight(ROUTE_GEOMETRY["detail_max_height"])
         self.preparation_label = QLabel()
         self.preparation_label.setObjectName("GuideContinuousPreparationItems")
