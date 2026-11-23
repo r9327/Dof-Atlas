@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -19,6 +20,35 @@ class QuestDetailViewColumnTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_related_achievement_uses_shared_progress_and_manual_complete(self) -> None:
+        from app.pages._quests_page_impl import achievement_context_section
+
+        def objective(ident):
+            return SimpleNamespace(
+                id=ident, text=f"Objectif {ident}", objective_type="",
+            )
+
+        achievement = SimpleNamespace(
+            id=17, name="Succès test", description="",
+            objectives=[objective(1), objective(2), objective(3)], rewards=[],
+        )
+        progress = SimpleNamespace(
+            is_achievement_completed=lambda ident: False,
+            is_objective_completed=lambda aid, oid: oid in {1, 2},
+        )
+        html = achievement_context_section([achievement], progress, [])
+        self.assertIn("2 / 3 objectif(s) • 67 %", html)
+        progress.is_achievement_completed = lambda ident: True
+        self.assertIn(
+            "2 / 3 objectif(s) • 100 %",
+            achievement_context_section([achievement], progress, []),
+        )
+        achievement.objectives = []
+        self.assertIn(
+            "0 / 0 objectif(s) • 100 %",
+            achievement_context_section([achievement], progress, []),
+        )
 
     def test_detail_geometry_is_shared_with_dev_ui(self) -> None:
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX

@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
-from app.core.numbers import format_grouped_int, optional_int
+from app.core.numbers import clamped_percent, format_grouped_int, optional_int
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     QuestGraphService,
@@ -1220,7 +1220,7 @@ def achievement_context_section(achievements: list[Any], achievement_state: Any,
             else 0
         )
         total_objectives = len(objectives)
-        percent = 100 if completed else int(round((done_objectives / total_objectives) * 100)) if total_objectives else 0
+        percent = 100 if completed else clamped_percent(done_objectives, total_objectives)
         objective_rows = []
         for objective in objectives[:12]:
             oid = int(getattr(objective, "id", 0) or 0)
