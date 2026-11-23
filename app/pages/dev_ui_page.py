@@ -1992,9 +1992,10 @@ class DevUiPage(QWidget):
         self.startup_status.setAlignment(Qt.AlignCenter)
         section.addWidget(self.startup_status)
 
-        self.startup_progress = QProgressBar()
-        self.startup_progress.setObjectName("PreloadPopupProgress")
-        self.startup_progress.setRange(0, 3)
+        self.startup_progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="PreloadPopupProgress", maximum=3,
+            text_visible=True,
+        )
         self.startup_progress.setValue(2)
         section.addWidget(self.startup_progress)
 
