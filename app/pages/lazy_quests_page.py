@@ -7,6 +7,7 @@ from threading import Thread
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTreeWidgetItem
 
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
 from app.pages.quest_character_cache import quest_character_source_signature
 from app.pages.quests_page import (
     HIERARCHY_ID_ROLE,
@@ -59,11 +60,7 @@ class LazyQuestsPage(QuestsPage):
 
     @staticmethod
     def _file_stamp(path: Path) -> tuple[int, int, int]:
-        try:
-            stat = Path(path).stat()
-        except OSError:
-            return (0, 0, 0)
-        return (int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size))
+        return mtime_ctime_size_stamp_or_zero(path)
 
     def _current_character_sources_signature(self) -> tuple[object, ...]:
         return quest_character_source_signature(

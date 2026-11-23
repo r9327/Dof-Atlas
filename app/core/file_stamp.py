@@ -32,6 +32,11 @@ def mtime_ctime_size_stamp(path: Path) -> tuple[int, int, int] | None:
 
 
 
+def mtime_ctime_size_stamp_or_zero(path: Path) -> tuple[int, int, int]:
+    """Return the canonical three-field UI cache stamp with missing-file zero."""
+    return mtime_ctime_size_stamp(path) or (0, 0, 0)
+
+
 def source_file_sizes(
     root: Path,
     files: Iterable[tuple[str, str]],

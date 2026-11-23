@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from app.core.file_stamp import (
-    mtime_ctime_size_stamp, mtime_size_stamp, resolved_mtime_size_stamp,
+    mtime_ctime_size_stamp, mtime_ctime_size_stamp_or_zero, mtime_size_stamp, resolved_mtime_size_stamp,
 )
 from app.core.progress_coordinator import empty_progress_payload
 
@@ -43,9 +43,11 @@ class CoreSharedStateTests(unittest.TestCase):
                 mtime_ctime_size_stamp(path),
                 (int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size)),
             )
+            self.assertEqual(mtime_ctime_size_stamp_or_zero(path), mtime_ctime_size_stamp(path))
             path.unlink()
             self.assertEqual(mtime_size_stamp(path), (0, 0))
             self.assertIsNone(mtime_ctime_size_stamp(path))
+            self.assertEqual(mtime_ctime_size_stamp_or_zero(path), (0, 0, 0))
 
 
     def test_write_validation_is_shared_by_three_progress_services(self) -> None:

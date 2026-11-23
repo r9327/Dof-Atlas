@@ -36,6 +36,7 @@ from shiboken6 import isValid
 
 from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
 from app.modules.encyclopedia.models import Guide, GuideChapter, GuidePart, GuideSeries, GuideStep
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -3465,11 +3466,7 @@ class GuidesView(QWidget):
 
     @staticmethod
     def _progress_file_stamp(path: Path) -> tuple[int, int, int]:
-        try:
-            stat = Path(path).stat()
-        except OSError:
-            return (0, 0, 0)
-        return (int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size))
+        return mtime_ctime_size_stamp_or_zero(path)
 
     def _current_external_progress_signature(self) -> tuple[object, ...]:
         return (

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
+from tempfile import TemporaryDirectory
 
 from app.modules.encyclopedia.views.guides_view import GUIDE_ULTIME_LEGACY_ID, GuidesView
 
@@ -21,6 +23,15 @@ class _ViewProbe:
 
     def refresh_external_progress(self) -> None:
         self.refresh_external_count += 1
+
+
+def test_guides_and_lazy_quests_share_the_same_cache_stamp() -> None:
+    from app.pages.lazy_quests_page import LazyQuestsPage
+    with TemporaryDirectory() as directory:
+        path = Path(directory) / "progress.json"
+        assert GuidesView._progress_file_stamp(path) == LazyQuestsPage._file_stamp(path) == (0, 0, 0)
+        path.write_text('{"characters": {}}', encoding="utf-8")
+        assert GuidesView._progress_file_stamp(path) == LazyQuestsPage._file_stamp(path)
 
 
 def test_unchanged_guides_external_progress_returns_before_any_work() -> None:
