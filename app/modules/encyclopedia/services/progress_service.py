@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from app.constants import DATA_DIR
+from app.core.numbers import valid_int_ids
 from local_dofus_data.utils import now_iso, save_json_atomic
 from app.modules.encyclopedia.models.progress_state import ProgressState
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
@@ -59,11 +60,7 @@ class AchievementProgressService:
         if not str(character_key or "").strip():
             return
         character = self._character(character_key)
-        values = {
-            int(value)
-            for value in character.get("completed_achievements", [])
-            if self._safe_int(value) is not None
-        }
+        values = set(valid_int_ids(character.get("completed_achievements", [])))
         if completed:
             values.add(int(achievement_id))
         else:

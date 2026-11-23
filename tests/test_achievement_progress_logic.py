@@ -6,6 +6,22 @@ from app.modules.encyclopedia.services.achievement_progress_logic import derive_
 
 
 class AchievementProgressLogicTests(unittest.TestCase):
+    def test_legacy_manual_achievement_write_keeps_sorted_json_ids(self) -> None:
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.services.progress_service import AchievementProgressService
+
+        character = {"completed_achievements": ["9", 9, "bad", 3]}
+        saves = []
+        owner = SimpleNamespace(
+            _character=lambda _key: character,
+            save=lambda: saves.append(True),
+        )
+        AchievementProgressService.set_achievement_completed(
+            owner, "character:1", 4, True,
+        )
+        self.assertEqual(character["completed_achievements"], [3, 4, 9])
+        self.assertEqual(saves, [True])
+
     def test_legacy_reader_shares_canonical_achievement_state(self) -> None:
         from types import SimpleNamespace
         from app.modules.encyclopedia.services.progress_service import AchievementProgressService
