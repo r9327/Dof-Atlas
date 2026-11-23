@@ -9,7 +9,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QObject
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from app.modules.encyclopedia.services.guide_ultime_generated_service import GuideUltimeGeneratedService
 from app.modules.encyclopedia.views.guide_ultime_universal_view import (
@@ -20,6 +20,25 @@ from app.ui.styles.guide import guide_universal_stylesheet
 
 
 class GuideUltimeRouteSheetUITests(unittest.TestCase):
+    def test_start_and_objective_share_one_indexed_action_label(self):
+        QApplication.instance() or QApplication([])
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        try:
+            first = GuideUltimeRouteCard._append_action_label(layout, "Prends la quête", True)
+            second = GuideUltimeRouteCard._append_action_label(layout, "Parle au PNJ", False)
+            self.assertEqual(first.objectName(), second.objectName())
+            self.assertEqual(first.objectName(), "GuideRouteAction")
+            self.assertEqual(first.property("state"), "done")
+            self.assertEqual(second.property("state"), "todo")
+            self.assertEqual(first.text(), "✓ Prends la quête")
+            self.assertEqual(second.text(), "Parle au PNJ")
+            self.assertTrue(first.wordWrap())
+            self.assertEqual(layout.itemAt(0).widget(), first)
+            self.assertEqual(layout.itemAt(1).widget(), second)
+        finally:
+            host.deleteLater()
+
     def test_spaced_coordinate_is_copyable_without_inventing_a_zaap(self):
         app = QApplication.instance() or QApplication([])
 

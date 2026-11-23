@@ -156,6 +156,16 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
             else:
                 self._add_action_row(body, row, start_rows=False)
 
+    @staticmethod
+    def _append_action_label(body: QVBoxLayout, text: str, done: bool) -> QLabel:
+        """One shared indexed Qt action role for start and objective rows."""
+        label = QLabel(("✓ " if done else "") + text)
+        label.setObjectName("GuideRouteAction")
+        label.setProperty("state", "done" if done else "todo")
+        label.setWordWrap(True)
+        body.addWidget(label)
+        return label
+
     def _add_start_instruction(self, body: QVBoxLayout, row: dict[str, Any]) -> None:
         qid = self._safe_int(row.get("quest_id"))
         name = str(row.get("quest_name") or row.get("title") or "").strip()
@@ -177,11 +187,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
             text += f" — {location}"
         text += "."
 
-        label = QLabel(("✓ " if done else "") + text)
-        label.setObjectName("GuideRouteAction")
-        label.setProperty("state", "done" if done else "todo")
-        label.setWordWrap(True)
-        body.addWidget(label)
+        self._append_action_label(body, text, done)
 
     def _add_action_row(self, body: QVBoxLayout, row: dict[str, Any], *, start_rows: bool) -> None:
         qid = self._safe_int(row.get("quest_id"))
@@ -193,11 +199,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
         if position:
             instruction = f"{instruction} — {position}"
 
-        label = QLabel(("✓ " if checked else "") + instruction)
-        label.setObjectName("GuideRouteAction")
-        label.setProperty("state", "done" if checked else "todo")
-        label.setWordWrap(True)
-        body.addWidget(label)
+        self._append_action_label(body, instruction, checked)
 
     def _add_combat_requirements(self, root: QVBoxLayout) -> None:
         monster = [
