@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from app.constants import DATA_DIR
-from app.core.numbers import valid_int_ids
+from app.core.numbers import optional_int, valid_int_ids
 from local_dofus_data.utils import now_iso, save_json_atomic
 from app.modules.encyclopedia.models.progress_state import ProgressState
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
@@ -563,7 +563,4 @@ class AchievementProgressService:
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        return optional_int(value)

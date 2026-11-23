@@ -78,6 +78,14 @@ class AchievementProgressLogicTests(unittest.TestCase):
         self.assertEqual(completed, frozenset({1, 2, 3}))
         self.assertEqual(objectives, {10: frozenset({100, 101, 102})})
 
+    def test_legacy_achievement_int_adapter_shares_core_coercion(self):
+        from app.core.numbers import optional_int
+        from app.modules.encyclopedia.services.progress_service import AchievementProgressService
+
+        for value in ("17", 1.8, True, "bad", None, ""):
+            with self.subTest(value=value):
+                self.assertEqual(AchievementProgressService._safe_int(value), optional_int(value))
+
     def test_shared_integer_decoder_rejects_invalid_without_discarding_valid(self) -> None:
         from app.core.numbers import valid_int_ids
 
