@@ -1148,9 +1148,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_button.setAccessibleName("Afficher Préparation")
         caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
         preparation_metric.addLayout(caption)
-        self.preparation_bar = QProgressBar()
-        self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
-        self.preparation_bar.setTextVisible(False)
+        self.preparation_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideCompactPreparationProgress",
+        )
         self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
         self.preparation_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         preparation_metric.addWidget(self.preparation_bar)
