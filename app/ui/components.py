@@ -140,13 +140,14 @@ def set_unity_widget_object_name(widget: QWidget, object_name: str) -> bool:
 def configure_unity_scroll_area(
     area: QScrollArea, *, borderless: bool = False,
     vertical_policy: Qt.ScrollBarPolicy | None = None,
+    horizontal_policy: Qt.ScrollBarPolicy = Qt.ScrollBarAlwaysOff,
 ) -> QScrollArea:
     """One native scroll policy for Craft, Guides, Organizer and Dev UI.
 
     Layouts, contents, object names and scroll ownership remain with callers.
     """
     area.setWidgetResizable(True)
-    area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    area.setHorizontalScrollBarPolicy(horizontal_policy)
     if borderless:
         area.setFrameShape(QFrame.NoFrame)
     if vertical_policy is not None:

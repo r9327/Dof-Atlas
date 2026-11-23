@@ -50,6 +50,24 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_shared_scroll_policy_supports_existing_horizontal_modes(self):
+        from PySide6.QtWidgets import QScrollArea
+        from app.ui.components import configure_unity_scroll_area
+
+        area = configure_unity_scroll_area(
+            QScrollArea(),
+            borderless=True,
+            horizontal_policy=Qt.ScrollBarAsNeeded,
+            vertical_policy=Qt.ScrollBarAlwaysOn,
+        )
+        try:
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            self.assertEqual(area.verticalScrollBarPolicy(), Qt.ScrollBarAlwaysOn)
+            self.assertEqual(area.frameShape(), QFrame.NoFrame)
+        finally:
+            area.deleteLater()
+
     def test_category_scroll_uses_shared_policy_without_losing_frame(self):
         from app.modules.encyclopedia.widgets.filter_panel import AchievementFilterPanel
         from PySide6.QtWidgets import QScrollArea
