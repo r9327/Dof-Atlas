@@ -13,7 +13,7 @@ from app.modules.encyclopedia.services.serialized_achievement_progress_service i
 from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntitySection
 from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
 from app.modules.encyclopedia.widgets.achievement_reward_widget import AchievementRewardWidget
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, configure_unity_progress_bar
 
 
 _HIDDEN_OBJECTIVE_TYPES = {"critère pl", "critère ea", "critère qq"}
@@ -102,10 +102,9 @@ class AchievementDetailWidget(QFrame):
         self.progress_text = QLabel(f"Progression • {done} / {total} objectif(s) • {percent} %")
         self.progress_text.setObjectName("AchievementProgressText")
         layout.addWidget(self.progress_text)
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setObjectName("EncyclopediaProgressBar")
-        self.progress_bar.setTextVisible(False)
-        self.progress_bar.setRange(0, 100)
+        self.progress_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="EncyclopediaProgressBar",
+        )
         self.progress_bar.setValue(percent)
         layout.addWidget(self.progress_bar)
 
