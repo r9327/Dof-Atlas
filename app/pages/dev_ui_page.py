@@ -74,6 +74,7 @@ from app.ui.components import (
     apply_unity_calendar_weekdays,
     fill_unity_navigation_menu,
     release_transient_dialog, clear_current_dialog_reference,
+    configure_unity_scroll_area,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
 from app.ui.entity_link_roles import entity_link_markup
@@ -192,10 +193,8 @@ class DevUiPage(QWidget):
         navigator.addStretch(1)
         outer.addLayout(navigator)
 
-        scroll = QScrollArea(self)
+        scroll = configure_unity_scroll_area(QScrollArea(self), borderless=True)
         scroll.setObjectName("DevUiGalleryScroll")
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
         self.gallery_scroll = scroll
         body = QWidget()
         body.setProperty("atlasUnityPage", True)

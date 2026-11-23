@@ -1,6 +1,7 @@
 """Exact-name Qt tests for Organizer visual host, not the macro/Zaap engine."""
 from __future__ import annotations
 
+import inspect
 import os
 import unittest
 from unittest.mock import patch
@@ -11,7 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from app.pages.organizer.organizer_ui import CharacterSlotsPanel, OrganizerModeSwitch
+from app.pages.organizer.organizer_ui import CharacterSlotsPanel, OrganizerModeSwitch, OrganizerUiMixin
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
 
@@ -19,6 +20,13 @@ class OrganizerUiSharedStyleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_organizer_two_scroll_areas_share_native_qt_defaults(self):
+        source = inspect.getsource(OrganizerUiMixin.build_organizer_ui)
+        self.assertEqual(source.count("configure_unity_scroll_area("), 2)
+        self.assertNotIn("setHorizontalScrollBarPolicy(", source)
+        self.assertNotIn("setWidgetResizable(", source)
+        self.assertIn('setObjectName("OrganizerZaapViewport")', source)
 
     def test_mode_switch_repolishes_only_on_real_role_change(self):
         switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))

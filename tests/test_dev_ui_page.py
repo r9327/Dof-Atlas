@@ -22,6 +22,22 @@ class DevUiPageTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_dev_ui_gallery_scroll_uses_shared_native_qt_defaults(self) -> None:
+        from PySide6.QtWidgets import QFrame, QScrollArea
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            area = page.gallery_scroll
+            self.assertIsInstance(area, QScrollArea)
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.frameShape(), QFrame.NoFrame)
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(area.objectName(), "DevUiGalleryScroll")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_ui_gallery_final_coverage_of_navigation_grid_and_variants(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.components import AtlasStatusBadge

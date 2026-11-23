@@ -37,7 +37,7 @@ from app.constants import (
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.components import AtlasButton, refresh_unity_widget_style, set_unity_widget_object_name, set_unity_widget_property
+from app.ui.components import AtlasButton, refresh_unity_widget_style, set_unity_widget_object_name, set_unity_widget_property, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
 from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
@@ -544,12 +544,10 @@ class OrganizerUiMixin:
         self.zaap.setObjectName("OrganizerZaapContent")
 
         # Organizer scrolls its own content; Atlas navigation stays fixed.
-        self.organizer_scroll = QScrollArea(self)
+        self.organizer_scroll = configure_unity_scroll_area(
+            QScrollArea(self), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.organizer_scroll.setObjectName("OrganizerContentScroll")
-        self.organizer_scroll.setFrameShape(QFrame.NoFrame)
-        self.organizer_scroll.setWidgetResizable(True)
-        self.organizer_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.organizer_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(self.organizer_scroll)
@@ -1020,12 +1018,11 @@ class OrganizerUiMixin:
         self.zaap.search_input.setMinimumWidth(90)
         self.zaap.setMinimumWidth(0)
         self.zaap.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-        self.zaap_scroll = QScrollArea(self.zaap_panel)
+        self.zaap_scroll = configure_unity_scroll_area(
+            QScrollArea(self.zaap_panel), borderless=True,
+            vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.zaap_scroll.setObjectName("OrganizerZaapScroll")
-        self.zaap_scroll.setFrameShape(QFrame.NoFrame)
-        self.zaap_scroll.setWidgetResizable(True)
-        self.zaap_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.zaap_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.zaap_scroll.setMinimumWidth(0)
         self.zaap_scroll.viewport().setObjectName("OrganizerZaapViewport")
         self.zaap_scroll.setWidget(self.zaap)
