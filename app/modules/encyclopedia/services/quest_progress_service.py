@@ -9,22 +9,16 @@ from app.core.json_store import read_json_validated
 from app.core.numbers import optional_int
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
-    empty_progress_payload as _empty_progress, validate_progress_character_keys,
+    empty_progress_payload as _empty_progress, progress_characters_for_validation,
+    validate_progress_character_keys,
 )
 from app.quest_catalog import save_quest_progress
 
 
 def _quest_progress_schema_error(payload: Any) -> str | None:
-    if not isinstance(payload, dict):
-        return "la racine doit être un objet"
-    if payload.get("version", 1) != 1:
-        return f"version inconnue: {payload.get('version')!r}"
-    characters = payload.get("characters", {})
-    if not isinstance(characters, dict):
-        return "characters doit être un objet"
-    for character_key, character in characters.items():
-        if not isinstance(character, dict):
-            return f"characters[{character_key!r}] doit être un objet"
+    characters, error = progress_characters_for_validation(payload)
+    if error is not None:
+        return error
         for field in ("done", "completed_quest_objectives", "quest_items"):
             if field in character and not isinstance(character[field], dict):
                 return f"characters[{character_key!r}].{field} doit être un objet"
