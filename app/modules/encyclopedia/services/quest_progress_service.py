@@ -19,6 +19,7 @@ def _quest_progress_schema_error(payload: Any) -> str | None:
     characters, error = progress_characters_for_validation(payload)
     if error is not None:
         return error
+    for character_key, character in characters.items():
         for field in ("done", "completed_quest_objectives", "quest_items"):
             if field in character and not isinstance(character[field], dict):
                 return f"characters[{character_key!r}].{field} doit être un objet"
