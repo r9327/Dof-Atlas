@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QLabel, QScrollArea, QVBoxLayout, QWidget
+from app.ui.components import configure_unity_scroll_area
 
 
 class DetailPanel(QScrollArea):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("EncyclopediaDetailPanel")
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.NoFrame)
+        configure_unity_scroll_area(
+            self, borderless=True, horizontal_policy=Qt.ScrollBarAsNeeded,
+        )
         self.content = QWidget()
         self.content.setObjectName("EncyclopediaDetailContent")
         self.layout = QVBoxLayout(self.content)

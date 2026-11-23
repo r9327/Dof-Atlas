@@ -50,6 +50,20 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             achievement_context_section([achievement], progress, []),
         )
 
+    def test_encyclopedia_detail_panel_keeps_horizontal_scroll_policy(self) -> None:
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QFrame
+        from app.modules.encyclopedia.widgets.detail_panel import DetailPanel
+
+        panel = DetailPanel()
+        try:
+            self.assertTrue(panel.widgetResizable())
+            self.assertEqual(panel.frameShape(), QFrame.NoFrame)
+            self.assertEqual(panel.horizontalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            self.assertEqual(panel.objectName(), "EncyclopediaDetailPanel")
+        finally:
+            panel.deleteLater()
+
     def test_quest_columns_share_unity_scroll_policy(self) -> None:
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QFrame
