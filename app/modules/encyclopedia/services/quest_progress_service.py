@@ -6,7 +6,7 @@ from typing import Any, Iterable
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated
-from app.core.numbers import optional_int
+from app.core.numbers import optional_int, valid_int_ids
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
@@ -85,10 +85,8 @@ class QuestProgressService(CoordinatedProgressReader):
         if not isinstance(done, dict):
             snapshot = frozenset()
         else:
-            snapshot = frozenset(
-                int(quest_id)
-                for quest_id, completed in done.items()
-                if completed and self._safe_int(quest_id) is not None
+            snapshot = valid_int_ids(
+                quest_id for quest_id, completed in done.items() if completed
             )
         self._completed_quest_ids_cache[key] = snapshot
         return snapshot
@@ -198,11 +196,7 @@ class QuestProgressService(CoordinatedProgressReader):
         if not isinstance(values, list):
             snapshot = frozenset()
         else:
-            snapshot = frozenset(
-                int(value)
-                for value in values
-                if self._safe_int(value) is not None
-            )
+            snapshot = valid_int_ids(values)
         self._completed_objective_ids_cache[key] = snapshot
         return snapshot
 
@@ -273,10 +267,8 @@ class QuestProgressService(CoordinatedProgressReader):
         if not isinstance(quest_items, dict):
             snapshot = frozenset()
         else:
-            snapshot = frozenset(
-                int(item_id)
-                for item_id, completed in quest_items.items()
-                if completed and self._safe_int(item_id) is not None
+            snapshot = valid_int_ids(
+                item_id for item_id, completed in quest_items.items() if completed
             )
         self._completed_item_ids_cache[key] = snapshot
         return snapshot

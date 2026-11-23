@@ -54,6 +54,34 @@ class ValidIntIdTests(unittest.TestCase):
         )
         self.assertEqual(valid_int_ids(()), frozenset())
 
+    def test_quest_and_item_boolean_maps_keep_only_truthy_ids(self):
+        from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+        from types import SimpleNamespace
+
+        owner = SimpleNamespace(
+            _ensure_fresh=lambda: None,
+            _completed_quest_ids_cache={},
+            _completed_item_ids_cache={},
+            _completed_objective_ids_cache={},
+            _read_character=lambda _key: {
+                "done": {"101": True, "oops": True, "102": False},
+                "quest_items": {"101": {"5": True, "6": False, "invalid": True}},
+                "completed_quest_objectives": {"101": ["7", 7, "bad"]},
+            },
+        )
+        self.assertEqual(
+            QuestProgressService._completed_quest_ids_snapshot(owner, "character:1"),
+            frozenset({101}),
+        )
+        self.assertEqual(
+            QuestProgressService._completed_item_ids_snapshot(owner, "character:1", 101),
+            frozenset({5}),
+        )
+        self.assertEqual(
+            QuestProgressService._completed_objective_ids_snapshot(owner, "character:1", 101),
+            frozenset({7}),
+        )
+
     def test_decode_only_once_per_candidate(self):
         calls = []
 
