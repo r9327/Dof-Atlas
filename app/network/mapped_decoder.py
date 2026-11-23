@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256 as _strict_sha256
+from app.network.contracts import _is_sha256 as _strict_sha256, active_build_matches
 
 import hashlib
 from dataclasses import dataclass
@@ -95,13 +95,10 @@ class StrictMappedProtocolDecoder:
             if not active_version or active_version != self.mapping_version:
                 return None
 
-        if self.mapping_fingerprint:
-            try:
-                active_fingerprint = str(self.active_fingerprint_provider() or "").strip().casefold()
-            except Exception:
-                return None
-            if active_fingerprint != self.mapping_fingerprint:
-                return None
+        if self.mapping_fingerprint and not active_build_matches(
+            self.active_fingerprint_provider, self.mapping_fingerprint,
+        ):
+            return None
 
         fields: dict[str, object] = {}
         try:
