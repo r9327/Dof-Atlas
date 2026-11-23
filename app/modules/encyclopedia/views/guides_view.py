@@ -64,7 +64,12 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, refresh_unity_widget_style, set_unity_widget_property, release_transient_dialog, clear_current_dialog_reference
+from app.ui.components import (
+    AtlasBreadcrumb, AtlasButton, AtlasPanelToggle,
+    clear_current_dialog_reference, configure_unity_scroll_area,
+    refresh_unity_widget_style, release_transient_dialog,
+    set_unity_widget_property,
+)
 from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import (
@@ -526,10 +531,9 @@ class DofusGuideGrid(QScrollArea):
         self.current_columns = 0
         self.current_card_width = 0
         self.setObjectName("GuideDofusGridScroll")
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.NoFrame)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        configure_unity_scroll_area(
+            self, borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.content = QWidget()
@@ -1564,11 +1568,9 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(6)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll = configure_unity_scroll_area(
+            QScrollArea(), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         scroll.setObjectName(f"{object_name}Scroll")
 
         content = QWidget()
