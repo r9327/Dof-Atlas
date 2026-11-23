@@ -78,6 +78,8 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         label = QLabel("ancienne fiche")
         layout.addWidget(label)
         try:
+            host.show()
+            self.app.processEvents()
             self.assertFalse(label.isHidden())
             clear_unity_widget_layout(layout, hide_widgets=True)
             self.assertTrue(label.isHidden())
