@@ -17,9 +17,18 @@ from app.modules.encyclopedia.views.guide_ultime_universal_view import (
     GuideUltimeUniversalView,
 )
 from app.ui.styles.guide import guide_universal_stylesheet
+from app.core.map_coordinates import BRACKETED_POSITION_RE
+from app.modules.encyclopedia.views.guide_ultime_universal_view import TRAVEL_COORD_RE
 
 
 class GuideUltimeRouteSheetUITests(unittest.TestCase):
+    def test_guide_travel_label_uses_canonical_source_coordinate_regex(self):
+        self.assertIs(TRAVEL_COORD_RE, BRACKETED_POSITION_RE)
+        self.assertEqual(
+            TRAVEL_COORD_RE.search("Aller en [ -12, 003 ]").groups(),
+            ("-12", "003"),
+        )
+
     def test_start_and_objective_share_one_indexed_action_label(self):
         QApplication.instance() or QApplication([])
         host = QWidget()

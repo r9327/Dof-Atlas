@@ -24,12 +24,13 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     QuestWalkthroughIndex,
 )
 from app.core.numbers import optional_int
+from app.core.map_coordinates import BRACKETED_POSITION_RE
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, set_unity_widget_property
 
 
 _LOGGER = logging.getLogger(__name__)
 SENTINEL_COORD = -2147483648
-TRAVEL_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
+TRAVEL_COORD_RE = BRACKETED_POSITION_RE
 
 _GENERIC_GATE_TOKENS = (
     "condition réelle du jeu",
