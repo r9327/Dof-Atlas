@@ -62,7 +62,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, refresh_unity_widget_style
 from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import (
@@ -2114,9 +2114,7 @@ class GuidesView(QWidget):
                     "state",
                     state,
                 )
-                title.style().unpolish(title)
-                title.style().polish(title)
-                title.update()
+                refresh_unity_widget_style(title)
 
             marker = line.findChild(
                 QToolButton,
@@ -2135,19 +2133,9 @@ class GuidesView(QWidget):
                     state,
                 )
 
-                marker.style().unpolish(
-                    marker
-                )
+                refresh_unity_widget_style(marker)
 
-                marker.style().polish(
-                    marker
-                )
-
-                marker.update()
-
-            line.style().unpolish(line)
-            line.style().polish(line)
-            line.update()
+            refresh_unity_widget_style(line)
 
     def _series_progress_title(
         self,
@@ -2533,8 +2521,7 @@ class GuidesView(QWidget):
             done = self.quest_progress_service.is_quest_completed(self.current_character_key, int(quest.id)) or self.progress_calculator.quest_progress(quest, self.current_character_key).is_complete
             self.detail_header_done_button.setText("✓ Quête terminée" if done else "○ Marquer terminée")
             self.detail_header_done_button.setProperty("state", "done" if done else "todo")
-            self.detail_header_done_button.style().unpolish(self.detail_header_done_button)
-            self.detail_header_done_button.style().polish(self.detail_header_done_button)
+            refresh_unity_widget_style(self.detail_header_done_button)
         pixmap = None if quest is not None else _guide_pixmap(guide)
         if pixmap is not None and not pixmap.isNull():
             self.detail_header_image.setText("")

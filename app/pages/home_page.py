@@ -20,8 +20,9 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
+from app.core.numbers import format_grouped_int
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon
+from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, refresh_unity_widget_style
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
 
 HOME_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["home"]
@@ -206,7 +207,7 @@ class HomeTrackingRow(QWidget):
         percent = max(0, min(100, percent))
         self.bar.setValue(percent)
         if show_count and total:
-            self.value.setText(f"{completed} / {total}")
+            self.value.setText(f"{format_grouped_int(completed)} / {format_grouped_int(total)}")
         else:
             self.value.setText(f"{percent} %")
 
@@ -700,8 +701,7 @@ class HomePage(QWidget):
         )
         if self.network_indicator.property("state") != state:
             self.network_indicator.setProperty("state", state)
-            self.network_indicator.style().unpolish(self.network_indicator)
-            self.network_indicator.style().polish(self.network_indicator)
+            refresh_unity_widget_style(self.network_indicator)
 
     def _retry_network_tracking(self) -> None:
         """User-initiated retry; no expensive catalogue reload in the UI."""

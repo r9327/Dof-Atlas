@@ -35,3 +35,8 @@ def optional_int(value: object, default: int | None = None) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def format_grouped_int(value: int) -> str:
+    """Format UI counts with stable space grouping, independently of system locale."""
+    return f"{int(value):,}".replace(",", " ")

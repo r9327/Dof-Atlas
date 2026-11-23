@@ -11,7 +11,7 @@ from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
 from app.core.map_coordinates import normalize_coordinate_pair
-from app.core.numbers import optional_int as _safe_int
+from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
     EntityRef,
@@ -1122,7 +1122,7 @@ def _normalize_clean_text(raw: str) -> str:
 
 
 def format_number(value: int) -> str:
-    return f"{int(value):,}".replace(",", " ")
+    return format_grouped_int(value)
 
 
 def _positive_level(value: int | None) -> int | None:

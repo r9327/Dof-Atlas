@@ -109,6 +109,14 @@ def fit_unity_number_spinbox(spinbox: QSpinBox) -> int:
     return width
 
 
+def refresh_unity_widget_style(widget: QWidget) -> None:
+    """Repolish shared Qt property/object-name styles without local QSS."""
+    style = widget.style()
+    style.unpolish(widget)
+    style.polish(widget)
+    widget.update()
+
+
 class AtlasButton(QPushButton):
     """Shared push button whose visual variants are owned by the global theme."""
 
@@ -140,10 +148,7 @@ class AtlasButton(QPushButton):
         if self.objectName() == object_name:
             return
         self.setObjectName(object_name)
-        style = self.style()
-        style.unpolish(self)
-        style.polish(self)
-        self.update()
+        refresh_unity_widget_style(self)
 
 
 class UnityPopupSeparatorDelegate(QStyledItemDelegate):
@@ -334,10 +339,7 @@ class AtlasStatusBadge(QLabel):
         if self.property("state") == state:
             return
         self.setProperty("state", state)
-        style = self.style()
-        style.unpolish(self)
-        style.polish(self)
-        self.update()
+        refresh_unity_widget_style(self)
 
 
 class AtlasGuideCover(QLabel):
@@ -518,10 +520,7 @@ class AtlasPanelToggle(QToolButton):
         if self.property("collapsed") == collapsed:
             return
         self.setProperty("collapsed", collapsed)
-        style = self.style()
-        style.unpolish(self)
-        style.polish(self)
-        self.update()
+        refresh_unity_widget_style(self)
 
 
 class AtlasPageTitle(QLabel):

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.numbers import coerce_positive_int, optional_int, positive_int
+from app.core.numbers import coerce_positive_int, format_grouped_int, optional_int, positive_int
 
 
 class PositiveIntTests(unittest.TestCase):
@@ -58,6 +58,17 @@ class CoercePositiveIntTests(unittest.TestCase):
         for raw in (None, "", {}, float("nan"), Overflow()):
             with self.subTest(raw=repr(raw)):
                 self.assertIsNone(coerce_positive_int(raw))
+
+
+class FormatGroupedIntTests(unittest.TestCase):
+    def test_grouping_preserves_sign_and_one_digit(self):
+        for raw, expected in ((0, "0"), (1, "1"), (12345, "12 345"), (-1234567, "-1 234 567"), (True, "1")):
+            with self.subTest(raw=raw):
+                self.assertEqual(format_grouped_int(raw), expected)
+
+    def test_invalid_input_keeps_int_conversion_errors(self):
+        with self.assertRaises(ValueError):
+            format_grouped_int("not a number")
 
 
 if __name__ == "__main__":

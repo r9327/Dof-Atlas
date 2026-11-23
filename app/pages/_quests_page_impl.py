@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
+from app.core.numbers import format_grouped_int
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     QuestGraphService,
@@ -865,7 +866,7 @@ class QuestsPage(QWidget):
         self.quest_list.setVisible(len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS and bool(matches))
         if self.count_label.isVisible():
             done_count = len(self.quest_progress_service.completed_quest_ids(self.current_character_key))
-            self.count_label.setText(f"{len(matches)} / {len(self.catalog.quests)} quêtes • {done_count} terminées")
+            self.count_label.setText(f"{format_grouped_int(len(matches))} / {format_grouped_int(len(self.catalog.quests))} quêtes • {format_grouped_int(done_count)} terminées")
         if current_id is not None:
             row = self.quest_model.row_for_quest(current_id)
             if row >= 0:

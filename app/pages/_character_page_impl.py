@@ -32,6 +32,7 @@ from app.network.character_runtime_state import (
     CharacterRuntimeStateStore,
     character_runtime_state,
 )
+from app.core.numbers import format_grouped_int
 from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
 from app.quest_catalog import QuestCharacter, load_quest_characters
 from app.services.character_order_service import CharacterOrderService
@@ -628,7 +629,7 @@ class CharacterPage(QWidget):
         points = snapshot.achievement_points if snapshot is not None else None
         level = snapshot.level if snapshot is not None else None
         self.achievement_points.setText(
-            f"{points} points de succès" if points is not None else "— points de succès"
+            f"{format_grouped_int(points)} points de succès" if points is not None else "— points de succès"
         )
         self.character_level.setText(f"Niveau {level}" if level is not None else "")
         self._render_stats(snapshot)
@@ -648,7 +649,7 @@ class CharacterPage(QWidget):
                 value_label.setText("")
                 row.hide()
                 continue
-            value_label.setText(str(values[stat_key]))
+            value_label.setText(format_grouped_int(values[stat_key]))
             row.show()
 
     def _skin_path(self, label: str) -> str:

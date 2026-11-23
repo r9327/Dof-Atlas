@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -19,6 +20,7 @@ from app.ui.components import (
     AtlasStatusBadge,
     BUTTON_OBJECT_NAMES,
     fit_unity_number_spinbox,
+    refresh_unity_widget_style,
 )
 from app.ui.theme import atlas_stylesheet
 
@@ -27,6 +29,21 @@ class SharedUiComponentsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
+        button = AtlasButton("Contrôle")
+        badge = AtlasStatusBadge("Statut", "neutral")
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                button.set_style_name("SharedStyleTest")
+                badge.set_state("ready")
+                self.assertEqual(refresh.call_count, 2)
+                self.assertIs(refresh.call_args_list[0].args[0], button)
+                self.assertIs(refresh.call_args_list[1].args[0], badge)
+            refresh_unity_widget_style(button)
+        finally:
+            button.deleteLater()
+            badge.deleteLater()
 
     def test_dialog_standard_and_compact_sizes_use_shared_tokens(self) -> None:
         from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
