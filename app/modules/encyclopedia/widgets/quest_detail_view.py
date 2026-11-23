@@ -35,7 +35,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton, AtlasPanelToggle, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasPanelToggle, configure_unity_scroll_area, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
@@ -163,12 +163,10 @@ class QuestDetailView(QWidget):
         inset = QUEST_DETAIL_GEOMETRY["panel_padding"]
         panel_root.setContentsMargins(inset, inset, inset, inset)
         panel_root.setSpacing(QUEST_DETAIL_GEOMETRY["panel_spacing"])
-        scroll = QScrollArea()
+        scroll = configure_unity_scroll_area(
+            QScrollArea(), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         scroll.setObjectName(f"{object_name}Scroll")
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         content = QWidget()
         content.setObjectName(f"{object_name}Content")
         content.setMinimumWidth(0)

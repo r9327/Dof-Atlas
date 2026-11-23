@@ -50,6 +50,21 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             achievement_context_section([achievement], progress, []),
         )
 
+    def test_quest_columns_share_unity_scroll_policy(self) -> None:
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QFrame
+
+        panel, scroll, layout = QuestDetailView._build_column("TestQuestPanel")
+        try:
+            self.assertTrue(scroll.widgetResizable())
+            self.assertEqual(scroll.frameShape(), QFrame.NoFrame)
+            self.assertEqual(scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(scroll.verticalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            self.assertEqual(scroll.objectName(), "TestQuestPanelScroll")
+            self.assertIsNotNone(layout)
+        finally:
+            panel.deleteLater()
+
     def test_detail_geometry_is_shared_with_dev_ui(self) -> None:
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
