@@ -87,11 +87,7 @@ class AchievementProgressService:
             objectives = {}
             character["completed_objectives"] = objectives
         key = str(int(achievement_id))
-        values = {
-            int(value)
-            for value in objectives.get(key, [])
-            if self._safe_int(value) is not None
-        }
+        values = set(valid_int_ids(objectives.get(key, [])))
         if completed:
             values.add(int(objective_id))
         else:
