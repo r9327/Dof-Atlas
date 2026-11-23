@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -43,6 +44,26 @@ class OrganizerIdentityOverflowTests(unittest.TestCase):
         self.assertIsNone(AtlasSettings.client_by_handle(
             SimpleNamespace(clients=(SimpleNamespace(handle=101.9),)), 101,
         ))
+
+    def test_verified_roster_cache_reuses_shared_signature_and_invalidates(self):
+        from app.core.file_stamp import resolved_mtime_size_stamp
+
+        owner = CharacterSessionsMixin()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bindings.json"
+            owner.network_character_bindings_file = path
+            row = {"source": "verified_network_identity", "name": "Panda"}
+            with patch(
+                "app.pages.organizer.character_sessions.read_json",
+                return_value={"characters": {"101": row}},
+            ) as reader:
+                self.assertEqual(owner._verified_character_rows(), ((101, row),))
+                self.assertEqual(owner._verified_character_rows_stamp, resolved_mtime_size_stamp(path))
+                self.assertEqual(owner._verified_character_rows(), ((101, row),))
+                reader.assert_called_once()
+                path.write_text("{}", encoding="utf-8")
+                self.assertEqual(owner._verified_character_rows(), ((101, row),))
+                self.assertEqual(reader.call_count, 2)
 
     def test_verified_identity_scan_skips_invalid_digit_strings(self):
         owner = CharacterSessionsMixin()

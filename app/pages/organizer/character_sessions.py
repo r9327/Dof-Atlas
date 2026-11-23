@@ -26,6 +26,7 @@ from app.constants import (
     NETWORK_CHARACTER_BINDINGS_FILE,
     PROFILE_FILE,
 )
+from app.core.file_stamp import resolved_mtime_size_stamp
 from app.quest_catalog import is_generic_dofus_client_name
 from app.services.profile_settings_service import ProfileSettingsService
 from app.storage import (
@@ -77,11 +78,7 @@ class CharacterSessionsMixin:
 
     def _verified_character_rows(self) -> tuple[tuple[int, dict[str, Any]], ...]:
         path = self._network_character_bindings_file()
-        try:
-            stat = path.stat()
-            stamp = (str(path.resolve()), int(stat.st_mtime_ns), int(stat.st_size))
-        except OSError:
-            stamp = (str(path.resolve()), 0, 0)
+        stamp = resolved_mtime_size_stamp(path)
         if stamp == getattr(self, "_verified_character_rows_stamp", None):
             return getattr(self, "_verified_character_rows_cache", ())
         payload = read_json(path, {})
