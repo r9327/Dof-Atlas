@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QToolBu
 
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON
+from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_noun
 from app.ui.components import AtlasButton
 
 
@@ -166,7 +167,4 @@ class GuideProgressHeader(QFrame):
 
     @staticmethod
     def _progress_word(guide: Guide, total: int) -> str:
-        required = list(guide.required_steps)
-        if total and required and all(step.step_type == "quest" for step in required):
-            return "quête" if total == 1 else "quêtes"
-        return "étape" if total == 1 else "étapes"
+        return guide_progress_noun(guide, total)

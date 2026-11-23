@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QBoxLayout, QListView, QStyle, QStyledItemDelegate
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_noun
 from app.ui.theme import PALETTE
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
@@ -262,10 +263,7 @@ class GuideListModel(QAbstractListModel):
 
     @staticmethod
     def _progress_word(guide: Guide, total: int) -> str:
-        required = list(guide.required_steps)
-        if total and (not required or all(step.step_type == "quest" for step in required)):
-            return "quête" if total == 1 else "quêtes"
-        return "étape" if total == 1 else "étapes"
+        return guide_progress_noun(guide, total, empty_counts_as_quests=True)
 
 
 class GuideCardDelegate(QStyledItemDelegate):
