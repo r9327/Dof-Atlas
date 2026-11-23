@@ -155,6 +155,16 @@ def configure_unity_scroll_area(
     return area
 
 
+def clear_unity_widget_layout(layout: QVBoxLayout) -> None:
+    """Remove layout items and release widgets through Qt's deferred deletion."""
+    while layout.count():
+        item = layout.takeAt(0)
+        widget = item.widget()
+        if widget is not None:
+            widget.setParent(None)
+            widget.deleteLater()
+
+
 def fill_unity_navigation_menu(
     menu: QMenu, choices: tuple[tuple[str, str], ...], activate: Callable[[str], None],
 ) -> QMenu:

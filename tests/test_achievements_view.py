@@ -50,6 +50,28 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_compact_and_detail_scrollers_share_widget_cleanup(self):
+        from app.modules.encyclopedia.widgets.dashboard import CompactScroll
+        from app.modules.encyclopedia.widgets.detail_panel import DetailPanel
+
+        for create, action in (
+            (CompactScroll, "clear"),
+            (DetailPanel, "clear_content"),
+        ):
+            with self.subTest(scroller=create.__name__):
+                area = create()
+                label = QLabel("Élément temporaire")
+                try:
+                    area.layout.addWidget(label)
+                    area.layout.addStretch(1)
+                    getattr(area, action)()
+                    self.assertEqual(area.layout.count(), 0)
+                    self.assertIsNone(label.parent())
+                    getattr(area, action)()
+                    self.assertEqual(area.layout.count(), 0)
+                finally:
+                    area.deleteLater()
+
     def test_compact_dashboard_scroller_keeps_legacy_frame_and_overflow(self):
         from app.modules.encyclopedia.widgets.dashboard import CompactScroll
 

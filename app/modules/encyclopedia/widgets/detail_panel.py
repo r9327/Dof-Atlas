@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QLabel, QScrollArea, QVBoxLayout, QWidget
-from app.ui.components import configure_unity_scroll_area
+from app.ui.components import clear_unity_widget_layout, configure_unity_scroll_area
 
 
 class DetailPanel(QScrollArea):
@@ -20,12 +20,7 @@ class DetailPanel(QScrollArea):
         self.setWidget(self.content)
 
     def clear_content(self) -> None:
-        while self.layout.count():
-            item = self.layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(self.layout)
 
     def add_title(self, text: str) -> QLabel:
         label = QLabel(text)
