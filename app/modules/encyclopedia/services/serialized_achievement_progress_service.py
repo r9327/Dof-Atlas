@@ -12,7 +12,6 @@ from app.core.progress_coordinator import (
     progress_characters_for_validation,
     validate_progress_character_keys,
 )
-from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
 from app.modules.encyclopedia.services.progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
     AchievementProgressService as LegacyAchievementProgressService,
@@ -41,20 +40,6 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
             super().__init__(Path(path))
             self._seen_generation = self._coordinator.generation
             self._disk_signature = self._current_disk_signature()
-
-    def _completion_state(
-        self,
-        character_key: str,
-    ) -> tuple[frozenset[int], dict[int, frozenset[int]]]:
-        key = str(character_key or "").strip()
-        if not key:
-            return frozenset(), {}
-        cached = self._completion_cache.get(key)
-        if cached is not None:
-            return cached
-        result = derive_completion_state(self._character(key))
-        self._completion_cache[key] = result
-        return result
 
     def _coordinated_load(self) -> dict[str, Any]:
         return self._load()

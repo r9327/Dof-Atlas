@@ -38,6 +38,15 @@ class AchievementProgressLogicTests(unittest.TestCase):
         self.assertEqual(character["completed_achievements"], [3, 4, 9])
         self.assertEqual(saves, [True])
 
+    def test_coordinated_and_legacy_success_readers_share_exact_method(self):
+        from app.modules.encyclopedia.services.progress_service import (
+            AchievementProgressService as Legacy,
+        )
+        from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
+            AchievementProgressService as Coordinated,
+        )
+        self.assertIs(Coordinated._completion_state, Legacy._completion_state)
+
     def test_legacy_reader_shares_canonical_achievement_state(self) -> None:
         from types import SimpleNamespace
         from app.modules.encyclopedia.services.progress_service import AchievementProgressService
