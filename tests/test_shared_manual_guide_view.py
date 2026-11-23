@@ -21,6 +21,15 @@ from app.ui.theme import atlas_stylesheet
 
 
 class SharedGuideManualViewThemeTests(unittest.TestCase):
+    def test_guide_scrolls_use_canonical_policy_without_local_scroll_styles(self):
+        source = inspect.getsource(SharedGuideManualView._build_ui)
+        preparation = inspect.getsource(SharedGuideManualView._build_preparation_panel)
+        self.assertIn("configure_unity_scroll_area(QScrollArea(), borderless=True)", source)
+        self.assertIn("configure_unity_scroll_area(QScrollArea(), borderless=True)", preparation)
+        for fragment in (source, preparation):
+            self.assertNotIn("setHorizontalScrollBarPolicy", fragment)
+            self.assertNotIn("setWidgetResizable", fragment)
+
     def test_participant_progress_uses_shared_clamped_calculation(self):
         probe = SimpleNamespace(service=SimpleNamespace(route_sheet_progress=lambda key: (3, 4)))
         self.assertEqual(SharedGuideManualView._participant_progress(probe, "character:1"), 75)

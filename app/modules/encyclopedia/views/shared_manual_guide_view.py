@@ -43,7 +43,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, fit_unity_number_spinbox
+from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, fit_unity_number_spinbox, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
 from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
@@ -978,11 +978,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._build_preparation_panel(root)
         self._build_sheet_header(root)
 
-        self.scroll = QScrollArea()
+        self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
         self.scroll.setObjectName("GuideManualScroll")
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content = QWidget()
         self.content.setObjectName("GuideManualContent")
         self.cards_layout = QVBoxLayout(self.content)
@@ -1200,11 +1197,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_filter.currentTextChanged.connect(self._render_preparation)
         panel_layout.addWidget(self.preparation_filter, 0, Qt.AlignLeft)
 
-        self.preparation_scroll = QScrollArea()
+        self.preparation_scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
         self.preparation_scroll.setObjectName("GuidePreparationScroll")
-        self.preparation_scroll.setWidgetResizable(True)
-        self.preparation_scroll.setFrameShape(QFrame.NoFrame)
-        self.preparation_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.preparation_scroll.setMinimumHeight(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"])
         self.preparation_scroll.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
         self.preparation_content = QWidget()
