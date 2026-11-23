@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.core.map_coordinates import extract_bracketed_position
-from app.core.numbers import optional_int
+from app.modules.encyclopedia.services.guide_catalog_step_index import ordered_route_quest_steps
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
@@ -29,15 +29,7 @@ def catalog_route_map_count(guide, quest_provider) -> int:
     raw_keys: list[str] = []
     seen_quests: set[int] = set()
 
-    for step in sorted(
-        getattr(guide, "required_steps", ()) or (),
-        key=lambda row: int(getattr(row, "order", 0) or 0),
-    ):
-        if str(getattr(step, "step_type", "")) != "quest":
-            continue
-        quest_id = optional_int(getattr(step, "entity_id", None))
-        if quest_id is None:
-            continue
+    for step, quest_id in ordered_route_quest_steps(guide):
         if quest_id in seen_quests:
             continue
         quest = quest_provider.get_quest(quest_id)
