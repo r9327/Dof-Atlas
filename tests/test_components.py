@@ -52,6 +52,30 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
+    def test_progress_geometry_and_format_use_shared_configuration(self) -> None:
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import configure_unity_progress_bar
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        for role in ("progress_primary", "progress_secondary",
+                     "progress_home_compact", "progress_route", "progress_generated_route"):
+            with self.subTest(role=role):
+                bar = QProgressBar()
+                try:
+                    self.assertIs(configure_unity_progress_bar(
+                        bar, maximum=3, text_visible=True, height_role=role,
+                        expanding=True, display_format="%p %"), bar)
+                    bar.setValue(2)
+                    self.assertEqual((bar.minimum(), bar.maximum(), bar.value()), (0, 3, 2))
+                    self.assertEqual(bar.minimumHeight(), UNITY_CONTROL_SIZES_PX[role])
+                    self.assertEqual(bar.maximumHeight(), UNITY_CONTROL_SIZES_PX[role])
+                    self.assertEqual(bar.sizePolicy().horizontalPolicy(), QSizePolicy.Expanding)
+                    self.assertEqual(bar.sizePolicy().verticalPolicy(), QSizePolicy.Fixed)
+                    self.assertEqual(bar.format(), "%p %")
+                    self.assertTrue(bar.isTextVisible())
+                finally:
+                    bar.deleteLater()
+
     def test_shared_scroll_defaults_preserve_native_frame_and_optional_vertical_policy(self) -> None:
         from PySide6.QtWidgets import QFrame, QScrollArea
 
