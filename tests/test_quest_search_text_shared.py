@@ -28,6 +28,24 @@ class QuestSearchFieldsTests(unittest.TestCase):
                                 info=("Hebdomadaire", "Autre"))
         self.assertEqual(quest_repeatability_text(quest), "Dofus Qf=3 Hebdomadaire Autre")
 
+    def test_inactive_search_filters_never_read_quest_details_or_progress(self):
+        from app.pages._quests_page_impl import QuestsPage
+        from unittest.mock import Mock
+        page = SimpleNamespace(
+            search=SimpleNamespace(text=lambda: "test"),
+            catalog=SimpleNamespace(quests=[SimpleNamespace(id=1)]),
+            _matches_search_tokens=lambda quest, tokens: True,
+            _matches_current_mode=lambda quest: True,
+            _matches_state_filter=Mock(side_effect=AssertionError("inactive state filter")),
+            _matches_type_filter=Mock(side_effect=AssertionError("inactive type filter")),
+            quest_state=Mock(side_effect=AssertionError("inactive state")),
+            repeatability_kind=Mock(side_effect=AssertionError("inactive type")),
+        )
+        quest = page.catalog.quests[0]
+        self.assertEqual(QuestsPage.matching_quests(page), [quest])
+        self.assertTrue(QuestsPage._matches_state_filter(page, quest, False, "Toutes"))
+        self.assertTrue(QuestsPage._matches_type_filter(page, quest, "Toutes"))
+
     def test_empty_optional_fields_match_original_join_semantics(self):
         quest = SimpleNamespace(search_text="Nom", steps=(), rewards=())
         self.assertEqual(quest_search_fields(quest, ()), ("Nom", "", "", "", ""))

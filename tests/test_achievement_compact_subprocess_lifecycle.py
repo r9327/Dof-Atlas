@@ -370,6 +370,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 "offsets": offsets,
                 "by_category": {"1": [10]},
                 "search_texts": ["grand_monstre"],
+                "startup_rows": [[10, "Grand monstre", 42, 10]],
             }
             sidecar.write_text(json.dumps(payload), encoding="utf-8")
             provider = MemoryBoundAchievementProvider()
@@ -386,12 +387,16 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 ):
                     self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
                     self.assertEqual(provider.search_catalogue_ids("petit"), ())
+                    self.assertEqual(provider.catalogue_rows_by_ids([10]), [(10, "Grand monstre", 42, 10)])
+                    self.assertEqual(provider.catalogue_row_by_id(10), (10, "Grand monstre", 42, 10))
 
                 # Old schema-5 sidecars need no migration or forced rebuild.
                 payload.pop("search_texts")
+                payload.pop("startup_rows")
                 sidecar.write_text(json.dumps(payload), encoding="utf-8")
                 provider._load_from_compact_cache()
                 self.assertIsNone(provider._compact_search_text_index)
+                self.assertEqual(provider._compact_startup_rows, {})
                 with patch.object(provider, "_ensure_loaded"):
                     self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
 
@@ -430,6 +435,17 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                     self.assertEqual(provider.catalogue_ids(1), (10,))
                     self.assertEqual(provider.count_by_category(1), 1)
                     self.assertEqual(provider.catalogue_ids(3), ())
+
+    def test_startup_projection_is_bounded_and_rejects_invalid_rows(self):
+        decode = MemoryBoundAchievementProvider._decode_startup_rows
+        self.assertEqual(decode([
+            [10, "Nom", None, 5], [10, "Autre", 1, 5], [True, "Bool", 1, 5],
+            [11, "Level", True, 5], [11, "Points", 1, -5], [99, "Externe", 1, 5],
+            [11, "Valide", 20, 3],
+        ], frozenset({10, 11})), {
+            10: (10, "Nom", None, 5), 11: (11, "Valide", 20, 3),
+        })
+        self.assertEqual(decode([[10, "Nom", 1, 5]] * 513, frozenset({10})), {})
 
     def test_compact_search_falls_back_only_for_broken_row_and_preserves_order(self):
         from types import SimpleNamespace

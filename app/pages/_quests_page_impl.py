@@ -763,8 +763,7 @@ class QuestsPage(QWidget):
     def quest_state(self, quest: QuestRecord) -> str:
         if self.is_quest_done(quest.id):
             return "Terminée"
-        missing = [quest_id for quest_id in self.graph.previous_ids(quest.id) if not self.is_quest_done(quest_id)]
-        if missing:
+        if any(not self.is_quest_done(quest_id) for quest_id in self.graph.previous_ids(quest.id)):
             return "Bloquée"
         if self.graph.is_repeatable(quest):
             return "Répétable"
@@ -785,16 +784,10 @@ class QuestsPage(QWidget):
             return []
         query = normalize_text(self.search.text())
         tokens = [token for token in query.split("_") if token]
-        hide_done = False
-        state_filter = "Toutes"
-        type_filter = "Toutes"
+        # Inactive filters must not hydrate details or read progress.
         matches: list[QuestRecord] = []
         for quest in self.catalog.quests:
             if not self._matches_search_tokens(quest, tokens):
-                continue
-            if not self._matches_state_filter(quest, hide_done, state_filter):
-                continue
-            if not self._matches_type_filter(quest, type_filter):
                 continue
             if not self._matches_current_mode(quest):
                 continue
@@ -806,6 +799,8 @@ class QuestsPage(QWidget):
         return not tokens or all(token in haystack for token in tokens)
 
     def _matches_state_filter(self, quest: QuestRecord, hide_done: bool, state_filter: str) -> bool:
+        if not hide_done and state_filter == "Toutes":
+            return True
         state = self.quest_state(quest)
         if hide_done and state == "Terminée":
             return False
@@ -818,6 +813,8 @@ class QuestsPage(QWidget):
         return True
 
     def _matches_type_filter(self, quest: QuestRecord, type_filter: str) -> bool:
+        if type_filter == "Toutes":
+            return True
         repeatability = self.repeatability_kind(quest)
         if type_filter == "Normales":
             return repeatability == "Normale"

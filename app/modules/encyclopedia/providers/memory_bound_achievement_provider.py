@@ -44,6 +44,8 @@ ACHIEVEMENT_COMPACT_CACHE = (
     ROOT_DIR / ".cache" / "dofus_atlas" / "achievement_catalogue_v1.jsonl"
 )
 _ACHIEVEMENT_COMPACT_SCHEMA = 5
+_STARTUP_ROWS_PER_CATEGORY = 8
+_STARTUP_ROWS_LIMIT = 512
 _ACHIEVEMENT_COMPACT_SOURCES = (
     "achievements.json",
     "achievement_categories.json",
@@ -514,6 +516,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids: tuple[int, ...] = ()
         self._compact_retained_set: frozenset[int] = frozenset()
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
+        self._compact_startup_rows: dict[int, tuple[int, str, int | None, int]] = {}
+        self._compact_startup_generation: tuple[int, int, int, int] | None = None
         # Optional compact scalars for the network score profile; do not
         # construct every rich Achievement merely to sum its points.
         self._compact_points_index: dict[int, int] | None = None
@@ -575,6 +579,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids = ()
         self._compact_retained_set = frozenset()
         self._compact_category_ids = {}
+        self._compact_startup_rows.clear()
+        self._compact_startup_generation = None
         self._compact_points_index = None
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
@@ -914,6 +920,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             self._compact_search_text_index = None
             self._compact_search_generation = None
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
+        self._compact_startup_rows = self._decode_startup_rows(
+            index_payload.get("startup_rows"), self._compact_retained_set,
+        )
+        self._compact_startup_generation = source_generation if self._compact_startup_rows else None
         raw_points = index_payload.get("points_by_id")
         points_index: dict[int, int] | None = None
         if isinstance(raw_points, dict) and len(raw_points) == index_payload.get("achievement_count"):
@@ -1340,6 +1350,36 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             pass
         return None
 
+    @staticmethod
+    def _decode_startup_rows(value: object, retained: frozenset[int]) -> dict[int, tuple[int, str, int | None, int]]:
+        """Optional bounded first-viewport projection, never a rich record."""
+        if not isinstance(value, list) or len(value) > _STARTUP_ROWS_LIMIT:
+            return {}
+        rows = {}
+        for row in value:
+            if not isinstance(row, list) or len(row) != 4:
+                continue
+            ident, name, level, points = row
+            if (type(ident) is not int or ident not in retained
+                    or type(name) is not str or len(name) > 512
+                    or (level is not None and type(level) is not int)
+                    or type(points) is not int or points < 0 or ident in rows):
+                continue
+            rows[ident] = (ident, name, level, points)
+        return rows
+
+    def _current_startup_rows(self) -> dict[int, tuple[int, str, int | None, int]]:
+        rows = self._compact_startup_rows
+        if rows:
+            try:
+                current = size_mtime_ctime_inode_stamp(ACHIEVEMENT_COMPACT_CACHE)
+            except OSError:
+                current = None
+            if current is None or current != self._compact_startup_generation:
+                rows.clear()
+                self._compact_startup_generation = None
+        return rows
+
     def catalogue_row_by_id(
         self,
         achievement_id: int,
@@ -1348,6 +1388,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
         self._ensure_loaded()
         achievement_id = int(achievement_id)
+        startup = self._current_startup_rows().get(achievement_id)
+        if startup is not None:
+            return startup
         if (
             self._compact_retained_set
             and achievement_id in self._compact_retained_set
@@ -1389,14 +1432,19 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return []
         if not self._compact_retained_set or self._compact_external_index is None:
             return [self.catalogue_row_by_id(ident) for ident in identifiers]
+        startup = self._current_startup_rows()
+        if startup and all(ident in startup for ident in identifiers):
+            return [startup[ident] for ident in identifiers]
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
                 stream.seek(0, 2)
                 total = stream.tell()
                 rows = [
-                    self._compact_catalogue_row(
-                        stream, ident, self._compact_external_index.get(ident), total
-                    ) if ident in self._compact_retained_set else None
+                    startup.get(ident) or (
+                        self._compact_catalogue_row(
+                            stream, ident, self._compact_external_index.get(ident), total
+                        ) if ident in self._compact_retained_set else None
+                    )
                     for ident in identifiers
                 ]
         except OSError:
@@ -2361,6 +2409,17 @@ def _build_compact_cache_unlocked(path: Path) -> int:
             }
             stream.write(line_bytes(payload))
 
+    # Only the first viewport of each category, including the global list.
+    startup_ids = dict.fromkeys(int(row.id) for row in retained[:_STARTUP_ROWS_PER_CATEGORY])
+    for category_id in provider._categories:
+        for ident in by_category_ids.get(category_id, ())[:_STARTUP_ROWS_PER_CATEGORY]:
+            if len(startup_ids) >= _STARTUP_ROWS_LIMIT:
+                break
+            startup_ids[ident] = None
+    startup_rows = [
+        [int(row.id), str(row.name or ""), row.level, max(0, int(row.points or 0))]
+        for row in retained if int(row.id) in startup_ids
+    ]
     temp_index.write_text(
         json.dumps(
             {
@@ -2369,6 +2428,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 "retained_count": len(retained),
                 "cache_generation": generation,
                 "retained_ids": [int(achievement.id) for achievement in retained],
+                "startup_rows": startup_rows,
                 # A network score needs all static points (including non-
                 # retained Successes), never the heavy compatibility objects.
                 "points_by_id": {
