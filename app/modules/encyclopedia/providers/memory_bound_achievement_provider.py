@@ -102,6 +102,51 @@ def _achievement_compact_cache_valid(
     )
 
 
+def _validated_compact_cache_count(path: Path, *, data_dir: Path) -> int | None:
+    """One sidecar contract for CLI, preload and the locked cache writer."""
+    if not _achievement_compact_cache_valid(path, data_dir=data_dir):
+        return None
+    try:
+        index = json.loads(_achievement_compact_index_path(path).read_text(encoding="utf-8"))
+        if not isinstance(index, dict):
+            return None
+        count = index.get("achievement_count")
+        retained = index.get("retained_count")
+        retained_ids = index.get("retained_ids")
+        offsets = index.get("offsets")
+        with path.open("r", encoding="utf-8") as stream:
+            source_meta = json.loads(stream.readline())
+        if not isinstance(source_meta, dict):
+            return None
+        source_marker = source_meta.get("cache_generation")
+        index_marker = index.get("cache_generation")
+        same_generation = (
+            (source_marker is None and index_marker is None)
+            or (isinstance(source_marker, str) and bool(source_marker)
+                and source_marker == index_marker)
+        )
+        if (same_generation
+                and type(count) is int and count > 0
+                and type(retained) is int and 0 < retained <= count
+                and isinstance(retained_ids, list)
+                and len(retained_ids) == retained
+                and all(type(value) is int for value in retained_ids)
+                and len(set(retained_ids)) == retained
+                and isinstance(offsets, dict)
+                and len(offsets) == retained
+                and set(offsets) == {str(value) for value in retained_ids}
+                and all(
+                    isinstance(span, list) and len(span) == 2
+                    and type(span[0]) is int and span[0] >= 0
+                    and type(span[1]) is int and span[1] > 0
+                    for span in offsets.values()
+                )):
+            return count
+    except (OSError, ValueError, TypeError):
+        pass
+    return None
+
+
 def ensure_achievement_compact_cache(
     *,
     data_dir: Path = RAW_QUEST_DATA_DIR,
@@ -109,46 +154,9 @@ def ensure_achievement_compact_cache(
 ) -> int:
     """Materialize compact Success summaries during controlled preload."""
 
-    if _achievement_compact_cache_valid(path, data_dir=data_dir):
-        try:
-            index_payload = json.loads(
-                _achievement_compact_index_path(path).read_text(encoding="utf-8")
-            )
-            if isinstance(index_payload, dict):
-                count = index_payload.get("achievement_count")
-                retained = index_payload.get("retained_count")
-                retained_ids = index_payload.get("retained_ids")
-                offsets = index_payload.get("offsets")
-                with path.open("r", encoding="utf-8") as stream:
-                    source_meta = json.loads(stream.readline())
-                source_marker = source_meta.get("cache_generation")
-                index_marker = index_payload.get("cache_generation")
-                same_generation = (
-                    (source_marker is None and index_marker is None)
-                    or (isinstance(source_marker, str) and bool(source_marker)
-                        and source_marker == index_marker)
-                )
-                if (same_generation
-                        and type(count) is int and count > 0
-                        and type(retained) is int and 0 < retained <= count
-                        and isinstance(retained_ids, list)
-                        and len(retained_ids) == retained
-                        and all(type(value) is int for value in retained_ids)
-                        and len(set(retained_ids)) == retained
-                        and isinstance(offsets, dict)
-                        and len(offsets) == retained
-                        and set(offsets) == {str(value) for value in retained_ids}
-                        and all(
-                            isinstance(span, list) and len(span) == 2
-                            and type(span[0]) is int and span[0] >= 0
-                            and type(span[1]) is int and span[1] > 0
-                            for span in offsets.values()
-                        )):
-                    return count
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            pass
-        # The JSONL header can be valid while its sidecar is corrupt. A zero
-        # result incorrectly certified an unbuilt cache instead of repairing it.
+    count = _validated_compact_cache_count(path, data_dir=data_dir)
+    if count is not None:
+        return count
     if bool(getattr(sys, "frozen", False)):
         return 0
     completed = subprocess.run(
@@ -2282,49 +2290,16 @@ def _build_compact_cache(path: Path, force_rebuild: bool = False) -> int:
     """Build once per shared cache path; repair invalid sidecars under the lock."""
     path = Path(path)
     with _achievement_compact_write_lock(path):
-        # A valid JSONL header and positive count do not prove the companion
-        # offsets index is usable. The preload can require a repair explicitly.
-        if not force_rebuild and _achievement_compact_cache_valid(path, data_dir=RAW_QUEST_DATA_DIR):
-            try:
-                index_payload = json.loads(
-                    _achievement_compact_index_path(path).read_text(encoding="utf-8")
-                )
-                count = index_payload.get("achievement_count")
-                retained = index_payload.get("retained_count")
-                retained_ids = index_payload.get("retained_ids")
-                offsets = index_payload.get("offsets")
-                with path.open("r", encoding="utf-8") as stream:
-                    source_meta = json.loads(stream.readline())
-                source_marker = source_meta.get("cache_generation")
-                index_marker = index_payload.get("cache_generation")
-                same_generation = (
-                    (source_marker is None and index_marker is None)
-                    or (isinstance(source_marker, str) and bool(source_marker)
-                        and source_marker == index_marker)
-                )
-                if (same_generation
-                        and type(count) is int and count > 0
-                        and type(retained) is int and 0 < retained <= count
-                        and isinstance(retained_ids, list)
-                        and len(retained_ids) == retained
-                        and all(type(value) is int for value in retained_ids)
-                        and len(set(retained_ids)) == retained
-                        and isinstance(offsets, dict)
-                        and len(offsets) == retained
-                        and set(offsets) == {str(value) for value in retained_ids}
-                        and all(
-                            isinstance(span, list) and len(span) == 2
-                            and type(span[0]) is int and span[0] >= 0
-                            and type(span[1]) is int and span[1] > 0
-                            for span in offsets.values()
-                        )):
-                    print(json.dumps(
-                        {"achievement_count": count, "path": str(path)},
-                        ensure_ascii=False, separators=(",", ":"),
-                    ))
-                    return 0
-            except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                pass
+        # Recheck under the lock: another writer may already have repaired it.
+        count = None if force_rebuild else _validated_compact_cache_count(
+            path, data_dir=RAW_QUEST_DATA_DIR,
+        )
+        if count is not None:
+            print(json.dumps(
+                {"achievement_count": count, "path": str(path)},
+                ensure_ascii=False, separators=(",", ":"),
+            ))
+            return 0
         return _build_compact_cache_unlocked(path)
 
 
@@ -2510,14 +2485,16 @@ def _dump_default_detail(achievement_id: int) -> int:
 
 
 def _ensure_compact_cache_cli() -> int:
-    if _achievement_compact_cache_valid(ACHIEVEMENT_COMPACT_CACHE, data_dir=RAW_QUEST_DATA_DIR):
-        try:
-            payload = json.loads(_achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE).read_text(encoding="utf-8"))
-            count = max(0, int(payload.get("achievement_count") or 0))
-        except (OSError, TypeError, ValueError, json.JSONDecodeError):
-            count = 0
-        print(json.dumps({"achievement_count": count, "path": str(ACHIEVEMENT_COMPACT_CACHE)}, ensure_ascii=False, separators=(",", ":")))
+    count = _validated_compact_cache_count(
+        ACHIEVEMENT_COMPACT_CACHE, data_dir=RAW_QUEST_DATA_DIR,
+    )
+    if count is not None:
+        print(json.dumps(
+            {"achievement_count": count, "path": str(ACHIEVEMENT_COMPACT_CACHE)},
+            ensure_ascii=False, separators=(",", ":"),
+        ))
         return 0
+    # A correct header and a positive count alone are not a usable cache.
     return _build_compact_cache(ACHIEVEMENT_COMPACT_CACHE)
 
 

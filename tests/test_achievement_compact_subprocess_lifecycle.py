@@ -686,6 +686,35 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                     (12, "C", ()),
                 ))
 
+    def test_cli_ensure_repairs_invalid_sidecar_and_reuses_complete_one(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            path.write_text('{"kind":"meta","cache_generation":"a"}\n', encoding="utf-8")
+            sidecar = mod._achievement_compact_index_path(path)
+            valid = {
+                "achievement_count": 2, "retained_count": 1,
+                "retained_ids": [10], "offsets": {"10": [30, 40]},
+                "cache_generation": "a",
+            }
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(mod, "_build_compact_cache_unlocked", return_value=0) as repair,
+                redirect_stdout(io.StringIO()) as output,
+            ):
+                for payload in ([], {"achievement_count": 99},
+                                {**valid, "cache_generation": "b"}):
+                    with self.subTest(payload=payload):
+                        sidecar.write_text(json.dumps(payload), encoding="utf-8")
+                        self.assertEqual(mod._ensure_compact_cache_cli(), 0)
+                self.assertEqual(repair.call_count, 3)
+                sidecar.write_text(json.dumps(valid), encoding="utf-8")
+                self.assertEqual(mod._ensure_compact_cache_cli(), 0)
+                self.assertEqual(repair.call_count, 3)
+                self.assertEqual(json.loads(output.getvalue())["achievement_count"], 2)
+
     def test_locked_builder_repairs_positive_count_but_missing_offset_sidecar(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
