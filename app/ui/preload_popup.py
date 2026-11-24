@@ -83,7 +83,9 @@ class PreloadProgressPopup(QDialog):
         self._has_started = False
         self._finished = False
         self._handed_off = False
-        self._hide_generation = 0
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        self._hide_timer.timeout.connect(self._hide_when_finished)
 
     def begin(self, states: Mapping[str, str] | None = None) -> None:
         """Show preload before any application pages are made visible."""
@@ -141,15 +143,13 @@ class PreloadProgressPopup(QDialog):
             )
 
         self._finished = completed == len(PRELOAD_TASK_ORDER)
-        self._hide_generation += 1
-        generation = self._hide_generation
         if self._finished:
-            QTimer.singleShot(
-                0 if self._silent_handoff else (500 if failed == 0 else 1800),
-                lambda: self._hide_if_current(generation),
-            )
-        elif not self._silent_handoff and not self.isVisible():
-            self._show_centered()
+            if not self._hide_timer.isActive():
+                self._hide_timer.start(0 if self._silent_handoff else (500 if failed == 0 else 1800))
+        else:
+            self._hide_timer.stop()
+            if not self._silent_handoff and not self.isVisible():
+                self._show_centered()
 
     def handoff(self) -> None:
         """Release the modal gate once the Quest preload reaches terminal state."""
@@ -159,7 +159,7 @@ class PreloadProgressPopup(QDialog):
         # The dialog's lifecycle is finished even if background cache tasks
         # remain active; permit close/reject and prevent a hidden modal gate.
         self._finished = True
-        self._hide_generation += 1
+        self._hide_timer.stop()
         self.hide()
         self.readyForMainWindow.emit()
 
@@ -186,10 +186,9 @@ class PreloadProgressPopup(QDialog):
             return
         event.ignore()
 
-    def _hide_if_current(self, generation: int) -> None:
-        if generation != self._hide_generation or not self._finished:
-            return
-        self.handoff()
+    def _hide_when_finished(self) -> None:
+        if self._finished and not self._handed_off:
+            self.handoff()
 
 
 __all__ = [

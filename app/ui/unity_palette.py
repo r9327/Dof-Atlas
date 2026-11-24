@@ -588,6 +588,7 @@ UNITY_MODULE_GEOMETRY_PX = {
     },
     "world_map": {"canvas_min_size": (420, 320)},
     "unavailable_page": {"margins": (24, 24, 24, 24), "spacing": 10},
+    "encyclopedia_warmup": {"margins": (18, 18, 18, 18), "spacing": 12, "progress_max_width": 360},
     # Existing Quêtes hierarchy and search dimensions, not forced across modules.
     "quests": {
         "hierarchy_open_width": 300, "hierarchy_collapsed_width": 44,
@@ -646,6 +647,7 @@ UNITY_MODULE_GEOMETRY_OWNERS = {
     "world_scan": "app/ui/world_scan_panel.py",
     "world_map": "app/ui/map_canvas_widget.py",
     "unavailable_page": "app/ui/components.py",
+    "encyclopedia_warmup": "app/modules/encyclopedia/views/encyclopedia_bootstrap_views.py",
     "quests": "app/pages/_quests_page_impl.py",
     "achievement_filters": "app/modules/encyclopedia/widgets/filter_panel.py",
     "quest_detail": "app/modules/encyclopedia/widgets/quest_detail_view.py",

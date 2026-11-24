@@ -83,6 +83,30 @@ class PopupInteractionInventoryTests(unittest.TestCase):
             self.assertFalse(popup.isVisible())
             self.dispose(popup, host)
 
+    def test_preload_completion_uses_one_owned_timer_and_one_handoff(self):
+        from unittest.mock import Mock
+        popup = PreloadProgressPopup()
+        popup._silent_handoff = False
+        ready = Mock()
+        popup.readyForMainWindow.connect(ready)
+        try:
+            states = {"quests": "READY", "encyclopedia": "READY", "craft": "READY"}
+            popup.begin(states)
+            timer = popup._hide_timer
+            self.assertIs(timer.parent(), popup)
+            self.assertTrue(timer.isActive())
+            for _ in range(5):
+                popup.update_states(states)
+            self.assertIs(popup._hide_timer, timer)
+            popup.handoff()
+            self.assertFalse(timer.isActive())
+            popup.update_states(states)
+            popup._hide_when_finished()
+            ready.assert_called_once_with()
+            self.assertFalse(popup.isVisible())
+        finally:
+            self.dispose(popup)
+
     def test_close_action_dialog_buttons_are_clickable_and_terminal(self) -> None:
         for label, expected, accepted in (
             ("Annuler", "cancel", False),

@@ -55,6 +55,20 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
             EncyclopediaPage.sync_tab_accent(page, "GUIDES")
             refresh.assert_called_once_with(tab_bar)
 
+    def test_encyclopedia_warmup_uses_indeterminate_progress_and_indexed_geometry(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.modules.encyclopedia.views.encyclopedia_bootstrap_views import EncyclopediaWarmupView
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+        view = EncyclopediaWarmupView("Guides")
+        try:
+            progress = view.findChild(QProgressBar)
+            self.assertEqual((progress.minimum(), progress.maximum()), (0, 0))
+            self.assertFalse(progress.isTextVisible())
+            self.assertEqual(progress.maximumWidth(),
+                             UNITY_MODULE_GEOMETRY_PX["encyclopedia_warmup"]["progress_max_width"])
+        finally:
+            view.deleteLater()
+
     def test_navigation_group_uses_canonical_tab_ids_and_preserves_order(self):
         from app.modules.encyclopedia.constants import (
             ENCYCLOPEDIA_TABS, GUIDE_TABS, BESTIARY_TABS,
