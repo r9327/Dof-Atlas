@@ -15,6 +15,8 @@ from app.constants import (
 )
 from local_dofus_data.config import DEFAULT_CONFIG
 from app.core.item_identity import item_id
+from app.core.craft_selection import resolve_selection
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.json_store import read_json_resilient as read_json
 from app.core.text import normalize_key
 
@@ -157,22 +159,12 @@ def build_compact_craft_preload() -> dict[str, object]:
             lookup_items.append(item)
         payload["lookup_items"] = lookup_items
 
+        # Capture the signature before reading. If another page saves in the
+        # meantime the consumer will resolve the current file on activation.
+        stamp = mtime_ctime_size_stamp(CRAFT_SELECTION_FILE)
         selection_payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
-        rows = selection_payload.get("items") if isinstance(selection_payload, dict) else []
-        selection: dict[int, dict[str, object]] = {}
-        if isinstance(rows, list):
-            for row in rows:
-                try:
-                    ident = int(row.get("ankama_id") or row.get("item_id"))
-                except (AttributeError, TypeError, ValueError):
-                    continue
-                item = adapter.get_item(ident)
-                if item:
-                    selection[ident] = {
-                        "item": item,
-                        "quantity": max(1, int(row.get("quantity") or 1)),
-                    }
-        payload["selection"] = selection
+        payload["selection"] = resolve_selection(selection_payload, adapter.get_item, allow_legacy=True)
+        payload["selection_source_stamp"] = list(stamp) if stamp is not None else None
     except Exception as exc:
         errors = payload.get("errors")
         if isinstance(errors, list):

@@ -43,6 +43,18 @@ class OwnedItemsNormalizationTests(unittest.TestCase):
                 {"item_id": 12, "quantity": 9},
             ]})
 
+    def test_preload_and_runtime_share_distinct_item_resolution(self):
+        from unittest.mock import Mock
+        from app.core.craft_selection import resolve_selection
+        lookup = Mock(return_value={"name": "Potion"})
+        payload = {"items": [{"item_id": 42, "quantity": 2},
+                             {"ankama_id": 42, "quantity": 3},
+                             {"item_id": 43, "quantity": "invalid"}]}
+        self.assertEqual(resolve_selection(payload, lookup), {
+            42: {"item": {"name": "Potion"}, "quantity": 5},
+        })
+        lookup.assert_called_once_with(42)
+
     def test_replacing_total_collapses_duplicate_rows_without_losing_other_items(self):
         from app.core.craft_selection import replace_selection_quantity, selection_quantities
         payload = {"items": [

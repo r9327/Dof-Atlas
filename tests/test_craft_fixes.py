@@ -287,6 +287,32 @@ class CraftFixesTests(unittest.TestCase):
         generate.assert_not_called()
         self.assertIs(dialog.call_args.args[1], official)
 
+    def test_stale_preload_reuses_item_metadata_but_reads_latest_quantities(self):
+        page = self.make_page()
+        page.preload = {
+            "selection": {"42": {"item": {"ankama_id": 42, "name": "Potion"}, "quantity": 1}},
+            "selection_source_stamp": [1, 2, 3],
+        }
+        with patch("app.pages.craft_page.mtime_ctime_size_stamp", return_value=(4, 5, 6)), \
+             patch("app.pages.craft_page.read_json", return_value={"items": [{"item_id": 42, "quantity": 6}]}), \
+             patch("app.pages.craft_page.local_data_cache.get_item") as lookup:
+            page.load_selection()
+        lookup.assert_not_called()
+        self.assertEqual(page.selection[42]["quantity"], 6)
+
+    def test_bulk_selection_quantity_is_not_clipped_by_the_editor(self):
+        from PySide6.QtWidgets import QSpinBox
+        page = self.make_page()
+        with patch.object(page, "save_selection"):
+            page.add_item({"ankama_id": 42, "name": "Potion"}, 1500)
+            row = page.selection_list.itemWidget(page.selection_list.item(0))
+            counter = row.findChild(QSpinBox)
+            self.assertEqual(counter.value(), 1500)
+            counter.setValue(1499)
+            self.assertEqual(page.selection[42]["quantity"], 1499)
+            page.change_selection_quantity(42, 1)
+            self.assertEqual(page.selection[42]["quantity"], 1500)
+
     def test_craft_and_quest_read_duplicate_quantities_consistently(self):
         page = self.make_page()
         page.preload = {}

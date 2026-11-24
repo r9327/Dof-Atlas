@@ -32,8 +32,10 @@ from PySide6.QtWidgets import (
 
 from app import local_data_cache
 from app.core.item_artwork import item_with_artwork
+from app.core.file_stamp import mtime_ctime_size_stamp
+from app.core.numbers import optional_int
 from app.core.craft_selection import (
-    selection_item_row, selection_quantities,
+    selection_item_row, resolve_selection, selection_editor_maximum,
 )
 from app.constants import (
     CRAFT_SELECTION_FILE,
@@ -942,7 +944,8 @@ class CraftPage(QWidget):
         row = self.selection.get(ident)
         if not row:
             return
-        row["quantity"] = max(1, min(999, int(row.get("quantity") or 1) + delta))
+        current = int(row.get("quantity") or 1)
+        row["quantity"] = max(1, min(selection_editor_maximum(current), current + delta))
         self.save_selection()
         self.refresh_selection()
 
@@ -950,7 +953,8 @@ class CraftPage(QWidget):
         row = self.selection.get(ident)
         if not row:
             return
-        row["quantity"] = max(1, min(999, int(value or 1)))
+        current = int(row.get("quantity") or 1)
+        row["quantity"] = max(1, min(selection_editor_maximum(current), int(value or 1)))
         self.save_selection()
 
     def clear_selection(self) -> None:
@@ -983,7 +987,8 @@ class CraftPage(QWidget):
                 label = QLabel(str(item.get("name", "Objet")))
                 label.setWordWrap(False)
                 layout.addWidget(label, 1)
-                qty = quantity_spinbox(int(row["quantity"]))
+                quantity = int(row["quantity"])
+                qty = quantity_spinbox(quantity, maximum=selection_editor_maximum(quantity))
                 delete = AtlasButton("x")
                 delete.setObjectName("CraftRemoveSelectionItem")
                 accessible_label = f"Retirer {item.get('name', 'Objet')} de la sélection"
@@ -1013,28 +1018,32 @@ class CraftPage(QWidget):
 
     def load_selection(self) -> None:
         preloaded_selection = self.preload.get("selection")
-        if isinstance(preloaded_selection, dict):
+        stamp = mtime_ctime_size_stamp(CRAFT_SELECTION_FILE)
+        stamp_value = list(stamp) if stamp is not None else None
+        if (isinstance(preloaded_selection, dict)
+                and ("selection_source_stamp" not in self.preload
+                     or self.preload["selection_source_stamp"] == stamp_value)):
             for ident, row in preloaded_selection.items():
-                try:
-                    item_id_value = int(ident)
-                except (TypeError, ValueError):
-                    continue
+                item_id_value = optional_int(ident)
                 item = row.get("item") if isinstance(row, dict) else None
-                if isinstance(item, dict):
-                    self.selection[item_id_value] = {
-                        "item": item,
-                        "quantity": max(1, int(row.get("quantity") or 1)),
-                    }
+                quantity = optional_int(row.get("quantity")) if isinstance(row, dict) else None
+                if (item_id_value is not None and item_id_value > 0
+                        and isinstance(item, dict) and quantity is not None and quantity > 0):
+                    self.selection[item_id_value] = {"item": item, "quantity": quantity}
             return
-        payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
-        for ident, quantity in selection_quantities(payload).items():
+
+        def lookup(ident: int):
+            if isinstance(preloaded_selection, dict):
+                row = preloaded_selection.get(ident, preloaded_selection.get(str(ident)))
+                if isinstance(row, dict) and isinstance(row.get("item"), dict):
+                    return row["item"]
             try:
-                item = local_data_cache.get_item(ident)
+                return local_data_cache.get_item(ident)
             except Exception:
-                item = None
-            if not item:
-                continue
-            self.selection[ident] = {"item": item, "quantity": quantity}
+                return None
+
+        payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
+        self.selection.update(resolve_selection(payload, lookup, allow_legacy=True))
 
     def load_leveling_guides(self) -> None:
         payload = self.preload.get("guides")

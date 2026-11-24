@@ -75,3 +75,18 @@ def replace_selection_quantity(payload: object, item_id: int, name: str, quantit
     if not replaced and quantity > 0:
         rows.append(selection_item_row(item_id, name, quantity))
     return {"items": rows}
+
+
+def resolve_selection(payload: object, get_item, *, allow_legacy: bool = False) -> dict[int, dict[str, Any]]:
+    """Resolve each distinct saved item once, with the same total everywhere."""
+    selection = {}
+    for ident, quantity in selection_quantities(payload, allow_legacy=allow_legacy).items():
+        item = get_item(ident)
+        if isinstance(item, dict) and item:
+            selection[ident] = {"item": item, "quantity": quantity}
+    return selection
+
+
+def selection_editor_maximum(quantity: int) -> int:
+    """Keep ordinary counters compact without clipping a bulk craft quantity."""
+    return max(999, min(2_147_483_647, max(999_999, quantity))) if quantity > 999 else 999
