@@ -72,9 +72,9 @@ class PreloadProgressPopup(QDialog):
         self.progress = configure_unity_progress_bar(
             QProgressBar(), object_name="PreloadPopupProgress",
             maximum=len(PRELOAD_TASK_ORDER), text_visible=True,
+            display_format="%p %",
         )
         self.progress.setValue(0)
-        self.progress.setFormat("%p %")
         layout.addWidget(self.progress)
 
         # The standalone launcher remains the only visible progress window.
