@@ -247,6 +247,19 @@ class CoreSharedStateTests(unittest.TestCase):
                         second.save()
                     second.save()
 
+    def test_nested_progress_map_validation_preserves_first_error(self) -> None:
+        from app.core.progress_coordinator import progress_mapping_values_error
+
+        self.assertIsNone(progress_mapping_values_error("manual_steps", {"g": []}, value_type=list))
+        self.assertEqual(
+            progress_mapping_values_error("completed_objectives", {"1": [], "2": {}, "3": None}, value_type=list),
+            "completed_objectives['2'] doit être une liste",
+        )
+        self.assertEqual(
+            progress_mapping_values_error("quest_items", {"1": []}, value_type=dict),
+            "quest_items['1'] doit être un objet",
+        )
+
     def test_file_stamps_match_existing_cache_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index.json"

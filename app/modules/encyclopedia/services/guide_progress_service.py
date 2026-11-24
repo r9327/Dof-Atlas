@@ -9,7 +9,7 @@ from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
-    mutable_progress_character, progress_characters_for_validation, read_progress_character,
+    mutable_progress_character, progress_characters_for_validation, progress_mapping_values_error, read_progress_character,
     validate_progress_character_keys,
 )
 
@@ -30,8 +30,7 @@ class GuideProgressService(CoordinatedProgressReader):
         self._manual_steps_cache: dict[tuple[str, str], frozenset[str]] = {}
         with self._coordinator.lock:
             self.progress = self._load()
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
+            self._record_snapshot_identity_locked()
 
     def _coordinated_load(self) -> dict[str, Any]:
         return self._load()
@@ -166,7 +165,7 @@ def _guide_progress_schema_error(payload: Any) -> str | None:
         manual_steps = character.get("manual_steps", {})
         if not isinstance(manual_steps, dict):
             return f"characters[{character_key!r}].manual_steps doit être un objet"
-        for guide_id, values in manual_steps.items():
-            if not isinstance(values, list):
-                return f"manual_steps[{guide_id!r}] doit être une liste"
+        error = progress_mapping_values_error("manual_steps", manual_steps, value_type=list)
+        if error is not None:
+            return error
     return None

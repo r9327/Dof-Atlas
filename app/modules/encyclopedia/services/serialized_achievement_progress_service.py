@@ -9,7 +9,7 @@ from app.core.character_identity import require_character_key
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
-    progress_characters_for_validation,
+    progress_characters_for_validation, progress_mapping_values_error,
     validate_progress_character_keys,
 )
 from app.modules.encyclopedia.services.progress_service import (
@@ -38,8 +38,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
         self._coordinator = coordinator_for(Path(path))
         with self._coordinator.lock:
             super().__init__(Path(path))
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
+            self._record_snapshot_identity_locked()
 
     def _coordinated_load(self) -> dict[str, Any]:
         return self._load()
@@ -220,9 +219,9 @@ def _achievement_progress_schema_error(payload: Any) -> str | None:
             rows = character.get(field, {})
             if not isinstance(rows, dict):
                 return f"characters[{character_key!r}].{field} doit être un objet"
-            for achievement_id, values in rows.items():
-                if not isinstance(values, list):
-                    return f"{field}[{achievement_id!r}] doit être une liste"
+            error = progress_mapping_values_error(field, rows, value_type=list)
+            if error is not None:
+                return error
         if "alignment_order" in character and not isinstance(character["alignment_order"], dict):
             return f"characters[{character_key!r}].alignment_order doit être un objet"
     return None

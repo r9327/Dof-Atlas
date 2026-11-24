@@ -10,7 +10,7 @@ from app.core.numbers import optional_int, valid_list_int_ids, valid_truthy_int_
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
-    mutable_progress_character, progress_characters_for_validation, read_progress_character,
+    mutable_progress_character, progress_characters_for_validation, progress_mapping_values_error, read_progress_character,
     validate_progress_character_keys,
 )
 from app.quest_catalog import save_quest_progress
@@ -25,13 +25,12 @@ def _quest_progress_schema_error(payload: Any) -> str | None:
             if field in character and not isinstance(character[field], dict):
                 return f"characters[{character_key!r}].{field} doit être un objet"
         objectives = character.get("completed_quest_objectives", {})
-        for quest_id, values in objectives.items():
-            if not isinstance(values, list):
-                return f"completed_quest_objectives[{quest_id!r}] doit être une liste"
-        items = character.get("quest_items", {})
-        for quest_id, values in items.items():
-            if not isinstance(values, dict):
-                return f"quest_items[{quest_id!r}] doit être un objet"
+        error = progress_mapping_values_error("completed_quest_objectives", objectives, value_type=list)
+        if error is not None:
+            return error
+        error = progress_mapping_values_error("quest_items", character.get("quest_items", {}), value_type=dict)
+        if error is not None:
+            return error
     return None
 
 
@@ -58,8 +57,7 @@ class QuestProgressService(CoordinatedProgressReader):
         self._completed_item_ids_cache: dict[tuple[str, int], frozenset[int]] = {}
         with self._coordinator.lock:
             self.progress = load_quest_progress(self.path)
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
+            self._record_snapshot_identity_locked()
 
     def _coordinated_load(self) -> dict[str, Any]:
         return load_quest_progress(self.path)

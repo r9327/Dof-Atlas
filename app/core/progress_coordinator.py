@@ -212,6 +212,17 @@ def progress_characters_for_validation(payload: Any) -> tuple[dict[str, Any], st
     return characters, None
 
 
+def progress_mapping_values_error(
+    field: str, rows: dict[str, Any], *, value_type: type,
+) -> str | None:
+    """One nested progress-map validator, preserving domain field diagnostics."""
+    expected = "une liste" if value_type is list else "un objet"
+    for key, value in rows.items():
+        if not isinstance(value, value_type):
+            return f"{field}[{key!r}] doit être {expected}"
+    return None
+
+
 def read_progress_character(
     payload: dict[str, Any], character_key: object,
 ) -> dict[str, Any]:
@@ -265,6 +276,11 @@ class CoordinatedProgressReader:
 
     def _coordinated_invalidate(self) -> None:
         raise NotImplementedError
+
+    def _record_snapshot_identity_locked(self) -> None:
+        """Record the generation and disk stamp of an already loaded snapshot."""
+        self._seen_generation = self._coordinator.generation
+        self._disk_signature = self._current_disk_signature()
 
     def _current_disk_signature(self) -> tuple[int, int, int] | None:
         return mtime_ctime_size_stamp(self.path)

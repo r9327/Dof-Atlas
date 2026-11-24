@@ -20,7 +20,7 @@ from app.modules.encyclopedia.services.guide_progress_service import (
     GUIDE_PROGRESS_FILE,
     _guide_progress_schema_error,
 )
-from app.core.progress_coordinator import coordinator_for
+from app.core.progress_coordinator import coordinator_for, empty_progress_payload
 from app.modules.encyclopedia.services.progress_service import ACHIEVEMENT_PROGRESS_FILE
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
     _achievement_progress_schema_error,
@@ -107,7 +107,7 @@ class CharacterDataService:
         with coordinator.lock:
             payload = read_json_validated(
                 path,
-                {"version": 1, "characters": {}},
+                empty_progress_payload(),
                 validator,
             )
             characters = payload.get("characters")
