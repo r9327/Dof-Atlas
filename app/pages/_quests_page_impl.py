@@ -27,6 +27,7 @@ from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE,
 from app.core.character_identity import is_character_key
 from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
+from app.core.json_store import InvalidPersistentJsonError
 from app.core.craft_selection import (
     selection_item_id as owned_item_identifier, selection_quantities,
     persist_selection_quantity,
@@ -1087,10 +1088,23 @@ class QuestsPage(QWidget):
         if self.object_rows_refreshing:
             return
         quantity = max(0, min(int(value or 0), int(maximum)))
-        self.owned_items[int(item["item_id"])] = quantity
-        if quantity <= 0:
-            self.owned_items.pop(int(item["item_id"]), None)
-        save_owned_item_quantity(item, quantity, self.owned_items_path)
+        ident = int(item["item_id"])
+        try:
+            save_owned_item_quantity(item, quantity, self.owned_items_path)
+        except (InvalidPersistentJsonError, OSError, TimeoutError) as exc:
+            counter = self.sender()
+            if isinstance(counter, QSpinBox):
+                blocked = counter.blockSignals(True)
+                try:
+                    counter.setValue(min(int(maximum), self.owned_items.get(ident, 0)))
+                finally:
+                    counter.blockSignals(blocked)
+            self.status_callback(f"Quantité non enregistrée : {exc}")
+            return
+        if quantity > 0:
+            self.owned_items[ident] = quantity
+        else:
+            self.owned_items.pop(ident, None)
 
 
 def empty_detail_html(message: str) -> str:

@@ -60,6 +60,22 @@ class OwnedItemsNormalizationTests(unittest.TestCase):
                 persist_selection_quantity(path, 8, "Potion", 1)
             self.assertEqual(path.read_text(encoding="utf-8"), "{broken")
 
+    def test_clear_keeps_metadata_and_rejects_malformed_items_container(self):
+        from app.core.craft_selection import clear_persisted_selection, persist_selection_quantity
+        from app.core.json_store import InvalidPersistentJsonError
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            path.write_text(json.dumps({"items": [{"item_id": 8, "quantity": 2}], "version": 2}), encoding="utf-8")
+            clear_persisted_selection(path)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"items": [], "version": 2})
+            malformed = '{"items": "bad"}'
+            path.write_text(malformed, encoding="utf-8")
+            for action in (lambda: clear_persisted_selection(path),
+                           lambda: persist_selection_quantity(path, 8, "Potion", 1)):
+                with self.assertRaises(InvalidPersistentJsonError):
+                    action()
+                self.assertEqual(path.read_text(encoding="utf-8"), malformed)
+
     def test_preload_and_runtime_share_distinct_item_resolution(self):
         from unittest.mock import Mock
         from app.core.craft_selection import resolve_selection

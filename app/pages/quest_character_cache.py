@@ -13,10 +13,6 @@ from app.constants import (
     PROFILE_FILE,
 )
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
-
-
-def _file_stamp(path: Path | None) -> tuple[int, int, int]:
-    return mtime_ctime_size_stamp_or_zero(path) if path is not None else (0, 0, 0)
 from app.core.json_store import read_json_resilient
 from app.services.character_order_logic import (
     character_order_from_profile,
@@ -28,6 +24,10 @@ _ORIGINAL_LOAD_QUEST_CHARACTERS = _quest_catalog.load_quest_characters
 _LOCK = RLock()
 _CACHE: OrderedDict[tuple[object, ...], tuple[_quest_catalog.QuestCharacter, ...]] = OrderedDict()
 _MAX_CACHE_ENTRIES = 16
+
+
+def _file_stamp(path: Path | None) -> tuple[int, int, int]:
+    return mtime_ctime_size_stamp_or_zero(path) if path is not None else (0, 0, 0)
 
 
 def _semantic_session_order(profile_path: Path) -> tuple[str, ...]:

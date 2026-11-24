@@ -287,6 +287,21 @@ class CraftFixesTests(unittest.TestCase):
         generate.assert_not_called()
         self.assertIs(dialog.call_args.args[1], official)
 
+    def test_rejected_craft_selection_edit_rolls_back_in_memory(self):
+        page = self.make_page()
+        with patch.object(page, "save_selection"):
+            page.add_item({"ankama_id": 42, "name": "Potion"}, 2)
+        with patch.object(page, "save_selection", side_effect=OSError("disk full")):
+            page.set_selection_quantity(42, 3)
+            self.assertEqual(page.selection[42]["quantity"], 2)
+            page.remove_selection_item(42)
+            self.assertEqual(page.selection[42]["quantity"], 2)
+            page.clear_selection()
+            self.assertEqual(page.selection[42]["quantity"], 2)
+            page.add_item({"ankama_id": 43, "name": "Fer"}, 1)
+            self.assertNotIn(43, page.selection)
+        self.assertIn("non enregistrée", page.status_callback.call_args.args[0])
+
     def test_craft_edit_preserves_external_quest_selection(self):
         import json
         import tempfile

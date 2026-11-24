@@ -80,6 +80,14 @@ def replace_selection_quantity(payload: object, item_id: int, name: str, quantit
     return result
 
 
+def _selection_schema_error(value: object) -> str | None:
+    if not isinstance(value, dict):
+        return "la sélection doit être un objet"
+    if "items" in value and not isinstance(value["items"], list):
+        return "items doit être une liste"
+    return None
+
+
 def persist_selection_quantity(path: Path, item_id: int, name: str, quantity: int) -> None:
     """Serialize a targeted edit against the latest shared Craft/Quest file."""
     from app.core.json_store import read_json_validated, write_json_atomic
@@ -89,7 +97,7 @@ def persist_selection_quantity(path: Path, item_id: int, name: str, quantity: in
     with coordinator.lock:
         payload = read_json_validated(
             path, {"items": []},
-            lambda value: None if isinstance(value, dict) else "la sélection doit être un objet",
+            _selection_schema_error,
         )
         updated = replace_selection_quantity(payload, item_id, name, quantity)
         if updated != payload:
@@ -99,13 +107,17 @@ def persist_selection_quantity(path: Path, item_id: int, name: str, quantity: in
 
 def clear_persisted_selection(path: Path) -> None:
     """Only an explicit full clear replaces every saved row."""
-    from app.core.json_store import write_json_atomic
+    from app.core.json_store import read_json_validated, write_json_atomic
     from app.core.progress_coordinator import coordinator_for
 
     coordinator = coordinator_for(path)
     with coordinator.lock:
-        write_json_atomic(path, {"items": []})
-        coordinator.mark_changed()
+        payload = read_json_validated(path, {"items": []}, _selection_schema_error)
+        updated = dict(payload) if isinstance(payload.get("items"), list) else {}
+        updated["items"] = []
+        if updated != payload:
+            write_json_atomic(path, updated)
+            coordinator.mark_changed()
 
 
 def resolve_selection(payload: object, get_item, *, allow_legacy: bool = False) -> dict[int, dict[str, Any]]:

@@ -34,6 +34,7 @@ from app import local_data_cache
 from app.core.item_artwork import item_with_artwork
 from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.numbers import optional_int
+from app.core.json_store import InvalidPersistentJsonError
 from app.core.craft_selection import (
     selection_item_row, resolve_selection, selection_editor_maximum,
     persist_selection_quantity, clear_persisted_selection,
@@ -922,10 +923,11 @@ class CraftPage(QWidget):
         if ident is None:
             self.status_callback(f"Objet ignore: ID local invalide ({item.get('name', 'Objet')}).")
             return
-        if ident not in self.selection:
-            self.selection[ident] = {"item": item, "quantity": 0}
-        self.selection[ident]["quantity"] = max(1, int(self.selection[ident]["quantity"]) + int(quantity or 1))
-        self.save_selection(ident)
+        before = dict(self.selection)
+        row = self.selection.get(ident, {"item": item, "quantity": 0})
+        self.selection[ident] = {**row, "quantity": max(1, int(row["quantity"]) + int(quantity or 1))}
+        if not self._commit_selection_edit(before, ident):
+            return
         self.refresh_selection()
         self.status_callback(f"Ajoute: {item.get('name', 'Objet')}")
 
@@ -937,18 +939,20 @@ class CraftPage(QWidget):
         self.remove_selection_item(ident)
 
     def remove_selection_item(self, ident: int) -> None:
+        before = dict(self.selection)
         self.selection.pop(ident, None)
-        self.save_selection(ident)
-        self.refresh_selection()
+        if self._commit_selection_edit(before, ident):
+            self.refresh_selection()
 
     def change_selection_quantity(self, ident: int, delta: int) -> None:
         row = self.selection.get(ident)
         if not row:
             return
         current = int(row.get("quantity") or 1)
-        row["quantity"] = max(1, min(selection_editor_maximum(current), current + delta))
-        self.save_selection(ident)
-        self.refresh_selection()
+        before = dict(self.selection)
+        self.selection[ident] = {**row, "quantity": max(1, min(selection_editor_maximum(current), current + delta))}
+        if self._commit_selection_edit(before, ident):
+            self.refresh_selection()
 
     def set_selection_quantity(self, ident: int, value: int) -> None:
         row = self.selection.get(ident)
@@ -956,14 +960,34 @@ class CraftPage(QWidget):
             return
         # The live editor already enforces its displayed range; do not
         # shrink it mid-edit when a bulk quantity crosses below 1000.
-        row["quantity"] = max(1, min(2_147_483_647, int(value or 1)))
-        self.save_selection(ident)
+        before = dict(self.selection)
+        self.selection[ident] = {**row, "quantity": max(1, min(2_147_483_647, int(value or 1)))}
+        if not self._commit_selection_edit(before, ident):
+            # Roll back the visible counter without replacing its live sender.
+            counter = self.sender()
+            if isinstance(counter, QSpinBox):
+                blocked = counter.blockSignals(True)
+                try:
+                    counter.setValue(int(row["quantity"]))
+                finally:
+                    counter.blockSignals(blocked)
+
+    def _commit_selection_edit(self, before: dict, ident: int | None = None, *, clear: bool = False) -> bool:
+        try:
+            self.save_selection(ident, clear=clear)
+        except (InvalidPersistentJsonError, OSError, TimeoutError) as exc:
+            self.selection.clear()
+            self.selection.update(before)
+            self.status_callback(f"Sélection non enregistrée : {exc}")
+            return False
+        return True
 
     def clear_selection(self) -> None:
+        before = dict(self.selection)
         self.selection.clear()
-        self.save_selection(clear=True)
-        self.refresh_selection()
-        self.status_callback("Sélection vidée.")
+        if self._commit_selection_edit(before, clear=True):
+            self.refresh_selection()
+            self.status_callback("Sélection vidée.")
 
     def refresh_selection(self) -> None:
         # The dict's insertion order is the user's craft order, including after
