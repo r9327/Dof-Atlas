@@ -893,7 +893,7 @@ UNITY_UI_FAMILY_INDEX = {
             "GuideHeader", "GuidesHomeCategory", "GuideDofusCard",
             "GuideQuestLineActive", "GuideCompactHeader",
             "GuidePreparationSummary", "GuidePreparationRow",
-            "GuideManualNav", "GuideUltimeGeneratedView",
+            "GuideManualNav", "GuideUltimeGeneratedView", "SharedGuideManualView",
             "QuestLaunchPosition", "QComboBox",
         ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",

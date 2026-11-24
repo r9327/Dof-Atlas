@@ -480,7 +480,7 @@ QWidget#DevUiPage QListWidget QScrollBar::sub-page:vertical {
 }
 
 QTabWidget#EncyclopediaTabs::pane {
-    background: @BG;
+    background: transparent;
     border: none;
     top: -1px;
 }
@@ -3022,7 +3022,9 @@ QScrollArea#GuideManualScroll {
     border: 1px solid @BORDER_CARD;
     border-radius: @RADIUS_MD;
 }
-QWidget#GuideManualContent {
+QWidget#GuideManualContent,
+QWidget#SharedGuideManualView,
+QScrollArea#GuideManualScroll > QWidget#qt_scrollarea_viewport {
     background: transparent;
 }
 
@@ -3606,9 +3608,8 @@ QLabel#GuideManualCombatTargetsTitle {
 }
 
 #GuideManualSheet {
-    background: @PANEL;
-    border: 1px solid @BORDER_SOFT;
-    border-radius: @RADIUS_XS;
+    background: transparent;
+    border: none;
 }
 
 #GuideManualStageTitle {

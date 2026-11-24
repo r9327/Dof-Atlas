@@ -774,6 +774,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.rendered_card_count = 0
 
     def _build_ui(self) -> None:
+        # The shared reader must not inherit the legacy generated route's
+        # blanket button rules or its opaque background.
+        self.setObjectName("SharedGuideManualView")
         self.filter_mode = "Tout"
         self.navigate_entity = None
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()

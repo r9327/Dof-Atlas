@@ -300,7 +300,14 @@ class UiSession:
         files = [prefix + "-tree.json"]
         write_json(self.folder / files[0], tree)
         if self.mode in {"all", "capture"}:
-            pixmap = root.grab()
+            # Capture the actual backdrop under translucent page surfaces.
+            # QWidget.grab() on a transparent child alone drops its parent paint.
+            backdrop = getattr(root, "_doctor_backdrop", None)
+            if backdrop is not None:
+                backdrop.resize(root.size())
+                pixmap = backdrop.grab()
+            else:
+                pixmap = root.grab()
             if pixmap.isNull() or not pixmap.save(str(self.folder / (prefix + ".png"))):
                 raise RuntimeError("Qt PNG capture failed")
             files.append(prefix + ".png")
@@ -455,6 +462,7 @@ def build_scene(temp: Path):
         ensure_lazy_catalog_cache,
     )
     from app.ui.theme import atlas_stylesheet
+    from app.ui.unity_skin import UnityBackdrop
 
     app = QApplication.instance() or QApplication([])
     app._doctor_font_registration = configure_validation_fonts(app)
@@ -477,14 +485,18 @@ def build_scene(temp: Path):
     for name in ("quests", "achievements", "guides", "profiles", "clients", "items"):
         paths[name] = temp / (name + ".json")
         write_json(paths[name], {})
+    backdrop = UnityBackdrop()
     page = EncyclopediaPage(
-        lambda _message: None, quest_provider=quests,
+        lambda _message: None, parent=backdrop, quest_provider=quests,
         achievement_provider=achievements, guide_provider=guides,
         quest_graph=QuestGraphService(quests, guides, achievements, eager=False),
         progress_path=paths["quests"], achievement_progress_path=paths["achievements"],
         guide_progress_path=paths["guides"], profile_path=paths["profiles"],
         client_index_path=paths["clients"], owned_items_path=paths["items"])
     page.resize(1200, 800)
+    backdrop.resize(page.size())
+    page._doctor_backdrop = backdrop
+    page.destroyed.connect(backdrop.deleteLater)
     page.set_character_key("character:990000001")
     # Local Doctor-only source fixture: genuine canonical IDs with explicit
     # verification provenance. Never infer a progression ID from a slot/name.
@@ -507,6 +519,7 @@ def build_scene(temp: Path):
     page._doctor_participant_service = owner.guide_participant_service
     if not owner._runtime_ready:
         owner.hydrate_runtime(graph=page._quest_graph)
+    backdrop.show()
     page.show()
     settle()
     return app, page, owner
@@ -2068,7 +2081,9 @@ def worker(folder: Path) -> int:
                         device_pixel_ratio=screen.devicePixelRatio(),
                         data_source="canonical local public catalog + authored Guide data",
                         validation_fonts=getattr(app, "_doctor_font_registration", {}),
-                        progress_source="temporary isolated canonical services")
+                        progress_source="temporary isolated canonical services",
+                        background_source=("local-unity-image" if page._doctor_backdrop.has_wallpaper
+                                           else "unity-blue-gradient"))
         write_json(folder / "manifest.json", manifest)
         for name in request["scenarios"]:
             session.scenario = name
