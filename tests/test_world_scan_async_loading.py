@@ -88,6 +88,39 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
         finally:
             canvas.deleteLater()
 
+    def test_suspending_map_discards_render_cache_without_losing_navigation(self):
+        from app.ui.map_canvas_widget import MapCanvasWidget
+        canvas = MapCanvasWidget()
+        row = {"x": 3, "y": 4, "rect": {"x": 0, "y": 0, "w": 10, "h": 10}}
+        try:
+            canvas.set_view({"view_key": "world"}, QPixmap(100, 100), [row], [], "", False)
+            canvas.select_map_coord(3, 4)
+            self.assertTrue(canvas._map_rects)
+            canvas.suspend_rendering()
+            self.assertTrue(canvas.pixmap.isNull())
+            self.assertFalse(canvas._map_rects)
+            self.assertFalse(canvas._coord_rects)
+            self.assertEqual(canvas._selected_coord, (3, 4))
+            self.assertEqual(canvas.view_key, "world")
+        finally:
+            canvas.deleteLater()
+
+    def test_loading_canvas_draws_message_even_before_image_arrives(self):
+        from app.ui.map_canvas_widget import MapCanvasWidget
+        canvas = MapCanvasWidget()
+        try:
+            canvas.set_map_placeholder("Chargement de la cartographie…")
+            with patch.object(canvas, "_draw_placeholder_text",
+                              wraps=canvas._draw_placeholder_text) as draw:
+                canvas.resize(500, 350)
+                canvas.show()
+                self.app.processEvents()
+                canvas.grab()
+                self.assertGreaterEqual(draw.call_count, 1)
+        finally:
+            canvas.close()
+            canvas.deleteLater()
+
     def test_local_image_stats_initializes_cache_layout_once(self) -> None:
         import app.services.maps.map_cache_builder as builder
 

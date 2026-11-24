@@ -297,7 +297,8 @@ class WorldScanPanel(QWidget):
         self._initial_load_pending = True
 
     def release_runtime(self) -> None:
-        """Drop our global Qt event filter before a reconstructed page is deleted."""
+        """Drop native render data and the global Qt event filter before deletion."""
+        self.canvas.suspend_rendering()
         app = QApplication.instance()
         if app is not None:
             app.removeEventFilter(self)
@@ -966,7 +967,7 @@ class WorldScanPanel(QWidget):
             # QPixmap is the largest long-lived native allocation in this
             # module (often a full 1400x880 ARGB image). Release pixels but
             # preserve the selected world, coordinates, and navigation history.
-            self.canvas.pixmap = QPixmap()
+            self.canvas.suspend_rendering()
             self._image_suspended = True
         super().hideEvent(event)
 

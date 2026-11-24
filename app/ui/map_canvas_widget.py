@@ -63,9 +63,7 @@ class MapCanvasWidget(QWidget):
         self.pixmap = pixmap
         self.maps = maps
         self.links = links
-        self._map_rects.clear()
-        self._coord_rects.clear()
-        self._link_points.clear()
+        self._clear_geometry()
         for row in maps:
             rect = self._decode_map_rect(row)
             self._map_rects[id(row)] = rect
@@ -82,6 +80,21 @@ class MapCanvasWidget(QWidget):
         self.update()
         if self.view_key:
             self.viewChanged.emit(self.view_key)
+
+    def _clear_geometry(self) -> None:
+        self._map_rects.clear()
+        self._coord_rects.clear()
+        self._link_points.clear()
+
+    def suspend_rendering(self) -> None:
+        """Drop reconstructible native pixels and hit-test geometry together."""
+        self.pixmap = QPixmap()
+        self._clear_geometry()
+        self._left_press_pos = None
+        self._panning = False
+        self.unsetCursor()
+        self._fit_pending = True
+        self.update()
 
     def set_map_placeholder(self, text: str = "") -> None:
         self.placeholder_text = text or ""
@@ -101,11 +114,8 @@ class MapCanvasWidget(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         painter.fillRect(self.rect(), QColor(unity_painted_ui_color("world_scan.placeholder")))
 
-        if self.view is None:
-            painter.end()
-            return
-
-        if self.pixmap.isNull():
+        if self.view is None or self.pixmap.isNull():
+            self._draw_placeholder_text(painter)
             painter.end()
             return
 
