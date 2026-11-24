@@ -12,11 +12,7 @@ from collections.abc import Iterable
 def positive_int(value: object) -> int | None:
     if isinstance(value, bool):
         return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
+    return coerce_positive_int(value)
 
 
 def coerce_positive_int(value: object) -> int | None:
@@ -24,18 +20,15 @@ def coerce_positive_int(value: object) -> int | None:
 
     Keep this separate from positive_int, which must reject bool identifiers.
     """
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
+    parsed = optional_int(value)
+    return parsed if parsed is not None and parsed > 0 else None
 
 
 def optional_int(value: object, default: int | None = None) -> int | None:
     """Preserve legacy int coercion, returning the caller's optional fallback."""
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
