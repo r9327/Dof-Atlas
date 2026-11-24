@@ -353,6 +353,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 category,
                 {"kind": "achievement", "value": {
                     "id": 10, "search_text": "grand_monstre",
+                    "name": "Grand monstre", "level": 42, "points": 10,
                 }},
             ]
             data = b""
@@ -389,6 +390,15 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                     self.assertEqual(provider.search_catalogue_ids("petit"), ())
                     self.assertEqual(provider.catalogue_rows_by_ids([10]), [(10, "Grand monstre", 42, 10)])
                     self.assertEqual(provider.catalogue_row_by_id(10), (10, "Grand monstre", 42, 10))
+
+                # Replacing only the sidecar must invalidate resident rows.
+                replacement = sidecar.with_suffix(".replacement")
+                payload["startup_rows"] = [[10, "Autre nom", 42, 10]]
+                replacement.write_text(json.dumps(payload), encoding="utf-8")
+                replacement.replace(sidecar)
+                with patch.object(provider, "_ensure_loaded"):
+                    self.assertEqual(provider.catalogue_rows_by_ids([10]), [(10, "Grand monstre", 42, 10)])
+                    self.assertEqual(provider._compact_startup_rows, {})
 
                 # Old schema-5 sidecars need no migration or forced rebuild.
                 payload.pop("search_texts")

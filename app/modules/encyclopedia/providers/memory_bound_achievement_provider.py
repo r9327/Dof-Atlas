@@ -517,7 +517,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_set: frozenset[int] = frozenset()
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
         self._compact_startup_rows: dict[int, tuple[int, str, int | None, int]] = {}
-        self._compact_startup_generation: tuple[int, int, int, int] | None = None
+        self._compact_startup_generation: tuple[tuple[int, int, int, int], tuple[int, int, int, int]] | None = None
         # Optional compact scalars for the network score profile; do not
         # construct every rich Achievement merely to sum its points.
         self._compact_points_index: dict[int, int] | None = None
@@ -923,7 +923,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_startup_rows = self._decode_startup_rows(
             index_payload.get("startup_rows"), self._compact_retained_set,
         )
-        self._compact_startup_generation = source_generation if self._compact_startup_rows else None
+        self._compact_startup_generation = (
+            (source_generation, sidecar_generation) if self._compact_startup_rows else None
+        )
         raw_points = index_payload.get("points_by_id")
         points_index: dict[int, int] | None = None
         if isinstance(raw_points, dict) and len(raw_points) == index_payload.get("achievement_count"):
@@ -1372,10 +1374,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         rows = self._compact_startup_rows
         if rows:
             try:
-                current = size_mtime_ctime_inode_stamp(ACHIEVEMENT_COMPACT_CACHE)
+                current = (
+                    size_mtime_ctime_inode_stamp(ACHIEVEMENT_COMPACT_CACHE),
+                    size_mtime_ctime_inode_stamp(_achievement_compact_index_path(ACHIEVEMENT_COMPACT_CACHE)),
+                )
             except OSError:
                 current = None
-            if current is None or current != self._compact_startup_generation:
+            if current != self._compact_startup_generation:
                 rows.clear()
                 self._compact_startup_generation = None
         return rows
@@ -2417,7 +2422,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 break
             startup_ids[ident] = None
     startup_rows = [
-        [int(row.id), str(row.name or ""), row.level, max(0, int(row.points or 0))]
+        [int(row.id), str(row.name or ""), row.level, int(row.points or 0)]
         for row in retained if int(row.id) in startup_ids
     ]
     temp_index.write_text(

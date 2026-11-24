@@ -877,6 +877,14 @@ class AtlasPanelToggle(QToolButton):
         set_unity_widget_property(self, "collapsed", collapsed)
 
 
+def atlas_guide_global_progress_bar() -> QProgressBar:
+    """Single indexed progress control, shared by headers and standalone previews."""
+    return configure_unity_progress_bar(
+        QProgressBar(), object_name="GuideGlobalProgress",
+        height_role="progress_primary", expanding=True,
+    )
+
+
 class AtlasGuideReadingHeader(QFrame):
     """Shared UI shell for real Guide readers and the Dev UI, without game data."""
 
@@ -899,10 +907,7 @@ class AtlasGuideReadingHeader(QFrame):
         right = QVBoxLayout()
         right.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
         outer.addLayout(right, 1)
-        self.global_progress_bar = configure_unity_progress_bar(
-            QProgressBar(), object_name="GuideGlobalProgress",
-            height_role="progress_primary", expanding=True,
-        )
+        self.global_progress_bar = atlas_guide_global_progress_bar()
         self.global_progress_label = QLabel("—")
         self.global_progress_label.setObjectName("GuideCompactMetricValue")
 

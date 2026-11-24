@@ -75,7 +75,7 @@ from app.ui.components import (
     fill_unity_navigation_menu,
     present_transient_dialog,
     configure_unity_progress_bar, configure_unity_scroll_area, configure_unity_tool_button,
-    atlas_guide_symbol_icon,
+    atlas_guide_symbol_icon, atlas_guide_global_progress_bar,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
 from app.ui.entity_link_roles import entity_link_markup
@@ -1640,10 +1640,7 @@ class DevUiPage(QWidget):
             description.setWordWrap(True)
             content.addWidget(description)
             if index == 0:
-                progress = configure_unity_progress_bar(
-                    QProgressBar(), object_name="GuideGlobalProgress",
-                    height_role="progress_primary",
-                )
+                progress = atlas_guide_global_progress_bar()
                 progress.setValue(45)
                 content.addWidget(progress)
             elif index == 1:
