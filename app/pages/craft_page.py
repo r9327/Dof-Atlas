@@ -1254,9 +1254,10 @@ class CraftPage(QWidget):
         for index in range(self.job_buttons_layout.count()):
             button = self.job_buttons_layout.itemAt(index).widget()
             if isinstance(button, AtlasButton):
-                button.set_variant(
-                    "selected" if normalize_key(button.text()) == selected_key else "secondary"
-                )
+                if normalize_key(button.text()) == selected_key:
+                    button.set_variant("selected")
+                else:
+                    button.set_variant("secondary")
 
         if not selected_key:
             self.job_grid.setAlignment(Qt.AlignTop | Qt.AlignLeft)
