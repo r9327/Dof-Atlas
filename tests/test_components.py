@@ -107,6 +107,7 @@ class SharedUiComponentsTests(unittest.TestCase):
         try:
             header.set_summary_provider(lambda: tuple(titles))
             header.summaryRequested.connect(requests.append)
+            header.global_details_button.click()
             header.summary_button.click()
             self.assertEqual(header.summary_panel.item(0).text(), "1. <Coffre> & clef")
             self.assertEqual(header.summary_panel.item(0).toolTip(),
@@ -117,8 +118,15 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertEqual(header.summary_panel.count(), 1)
             self.assertEqual(header.summary_panel.currentRow(), 0)
             self.assertEqual(requests, [])
+            header.global_details_button.click()
+            titles[:] = ["Fiche mise à jour", "Suite"]
+            header.set_summary_position(1)
+            self.assertEqual(header.summary_panel.count(), 1)
+            header.global_details_button.click()
+            self.assertEqual(header.summary_panel.count(), 2)
+            self.assertEqual(header.summary_panel.currentRow(), 1)
             header._request_summary_row(-1)
-            header._request_summary_row(1)
+            header._request_summary_row(2)
             self.assertEqual(requests, [])
             header.summary_button.click()
             self.assertEqual(header.summary_button.toolTip(), "Afficher Sommaire")

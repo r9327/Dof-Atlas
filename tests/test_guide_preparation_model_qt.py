@@ -124,7 +124,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertTrue(pixmap.save(str(image), "PNG"))
 
         with patch(
-            "app.modules.encyclopedia.views.shared_manual_guide_view._preparation_icon_path",
+            "app.modules.encyclopedia.views.shared_manual_guide_view.item_icon_path",
             return_value=image,
         ) as resolver:
             item = view._copyable_preparation_item("Potion de rappel", "Potion de rappel", 12003)
@@ -134,7 +134,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         missing_id = view._copyable_preparation_item("Objet inconnu", "Objet inconnu", None)
         self.assertTrue(missing_id.icon().isNull())
         with patch(
-            "app.modules.encyclopedia.views.shared_manual_guide_view._preparation_icon_path",
+            "app.modules.encyclopedia.views.shared_manual_guide_view.item_icon_path",
             return_value=None,
         ):
             missing_artwork = view._copyable_preparation_item(
@@ -308,6 +308,26 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
             QPushButton, "GuidePreparationItemCopy",
         )
         self.assertEqual(button.text(), "Potion nouvelle")
+
+    def test_collapsed_global_parent_defers_preparation_until_reopened(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        view.global_details_button.setChecked(False)
+        self.assertTrue(view.preparation_button.isChecked())
+        self.assertFalse(view.preparation_panel.isVisible())
+        self.service.cards[0]["a_preparer"] = [
+            {"item_id": 125, "name": "Potion nouvelle", "quantity": 5},
+        ]
+        with patch.object(view, "_load_preparation_needs",
+                          wraps=view._load_preparation_needs) as load:
+            view.refresh()
+            load.assert_not_called()
+            self.assertFalse(view._preparation_loaded)
+            view.global_details_button.setChecked(True)
+            QApplication.processEvents()
+            load.assert_called_once()
+        self.assertTrue(view.preparation_panel.isVisible())
+        self.assertEqual(view._preparation_needs[0].required_total, 5)
 
     def test_changing_team_discards_old_quantity_drafts(self):
         self.participants.save_selected_keys(("character:1",))

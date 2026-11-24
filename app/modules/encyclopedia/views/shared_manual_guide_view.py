@@ -1062,6 +1062,12 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _global_details_toggled(self, opened: bool) -> None:
         if opened:
             self._refresh_global_details()
+            if self.preparation_button.isChecked() and not self._preparation_loaded:
+                self._preparation_toggled(True)
+
+    def _preparation_drawer_requested(self) -> bool:
+        """An expanded child under a collapsed parent is not a live drawer."""
+        return self.global_details_button.isChecked() and self.preparation_button.isChecked()
 
     def _refresh_global_details(self) -> None:
         clear_unity_widget_layout(self.global_details_layout, hide_widgets=True)
@@ -1085,7 +1091,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.global_details_layout.addWidget(label)
 
     def _preparation_toggled(self, opened: bool) -> None:
-        if not opened:
+        if not opened or not self.global_details_button.isChecked():
             return
         if not self._preparation_loaded:
             self._load_preparation_needs()
@@ -1184,6 +1190,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         expected = {character_key: bool(getter(character_key, key)) for character_key in keys}
         if all(value == bool(checked) for value in expected.values()):
             return
+        saved = False
         if callable(batcher):
             from app.modules.encyclopedia.services.guide_ultime_generated_service import (
                 GUIDE_ULTIME_PROGRESS_ID,
@@ -1193,6 +1200,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             try:
                 batcher(keys, progress_id, key, bool(checked),
                         expected_completed=expected)
+                saved = True
             except RuntimeError:
                 # Atomic compare-and-swap rejected concurrent progress edits;
                 # never overwrite the other instance's work.
@@ -1202,11 +1210,17 @@ class SharedGuideManualView(GuideUltimeManualView):
                 )
         elif len(keys) == 1 and callable(setter):
             setter(keys[0], key, bool(checked))
+            saved = True
         else:
             self.validation_host.setToolTip(
                 "Sauvegarde atomique multi-personnages indisponible."
             )
-            return
+        if saved:
+            self._preparation_quantity_drafts[need.item_key] = (
+                int(need.required_total or 0) if checked else 0
+            )
+        # On conflict or unavailable persistence, render the actual saved
+        # state again; never invent a successful stock confirmation.
         self._render_preparation(self.preparation_filter.currentText())
         self._update_preparation_progress()
 
@@ -1463,11 +1477,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             counter.valueChanged.connect(update_stock_label)
             update_stock_label(counter.value())
         ready_button.toggled.connect(
-            lambda checked, row=need: self._preparation_quantity_drafts.__setitem__(
-                row.item_key, int(row.required_total or 0) if checked else 0
-            )
-        )
-        ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
         # Same indexed row in every guide: ready | quantity | copyable name.
@@ -1548,14 +1557,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._sync_compact_action_labels()
         self._preparation_loaded = False
         self._preparation_needs = ()
+        self._preparation_preview = ()
         # Counts belong to the previous team composition, not the new one.
         # Keep quantity drafts session-local but never apply the old team's
         # stock to a different participant selection.
         self._preparation_quantity_drafts.clear()
         self._preparation_visible_limit = 80
-        if self.preparation_button.isChecked():
-            self._load_preparation_needs()
-            self._render_preparation(self.preparation_filter.currentText())
         self._refresh_header()
         # Selection changes must immediately replace the live Valider control.
         self._render_window()
@@ -1597,6 +1604,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 self.view_index = actual_index
         self._preparation_loaded = False
         self._preparation_needs = ()
+        self._preparation_preview = ()
         self._sync_order_combo()
         self._refresh_header()
         self._render_window()
@@ -1616,6 +1624,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # drawer never keeps requirements from a finished route.
         self._preparation_loaded = False
         self._preparation_needs = ()
+        self._preparation_preview = ()
         actual_index = self._actual_index_for_participants()
         if actual_index is None:
             # End-of-route and empty-selection transitions must replace the
@@ -1675,9 +1684,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         # An already open preparation drawer must be refreshed alongside its
         # progress bar after a quest, participant or external progress change.
         # Otherwise the header displays 0 while stale prepared rows remain.
-        if self.preparation_button.isChecked() and not self._preparation_loaded:
-            self._load_preparation_needs()
-            self._render_preparation(self.preparation_filter.currentText())
+        if self._preparation_drawer_requested() and not self._preparation_loaded:
+            self._preparation_toggled(True)
         else:
             self._update_preparation_progress()
         if self.global_details_panel.isVisible():
@@ -1708,6 +1716,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._preparation_quantity_drafts.clear()
             self._preparation_loaded = False
             self._preparation_needs = ()
+            self._preparation_preview = ()
         super().set_character_key(character_key)
         self._refresh_participants_panel()
 

@@ -275,18 +275,24 @@ class UnitySkinTests(unittest.TestCase):
             "GUIDE_PREPARATION_ROW": "#405060",
             "GUIDE_PREPARATION_ROW_BORDER": "#506070",
             "GUIDE_COPY_HOVER": "#607080",
-            "GUIDE_MANUAL_NAV_SURFACE": "#708090",
         })
         for expected in (
             "rgba(32, 48, 64, 0.97)",
             "rgba(48, 64, 80, 0.97)",
             "rgba(64, 80, 96, 0.92)",
             "rgba(80, 96, 112, 0.65)",
-            "rgba(112, 128, 144, 0.94)",
         ):
             with self.subTest(value=expected):
                 self.assertIn(expected, style)
         self.assertEqual(UNITY_PALETTE, original)
+
+    def test_reader_header_drawer_and_footer_share_one_glass_rule(self) -> None:
+        from app.ui.theme import atlas_stylesheet
+        style = atlas_stylesheet({"PANEL_2": "#203040", "PANEL": "#304050"})
+        self.assertIn("QFrame#GuideCompactHeader,\nQFrame#GuidePreparationPanel,\n"
+                      "QFrame#GuideSheetHeader,\nQFrame#GuideManualNav {", style)
+        self.assertNotIn("QFrame#GuideManualNav {", unity_skin_stylesheet())
+        self.assertNotIn("QFrame#GuidePreparationPanel {", unity_skin_stylesheet())
 
     def test_preview_palette_does_not_mutate_global_unity_colors(self) -> None:
         original = dict(UNITY_PALETTE)

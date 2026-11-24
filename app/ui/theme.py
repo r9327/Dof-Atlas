@@ -484,6 +484,8 @@ QWidget#DevUiPage QListWidget QScrollBar::sub-page:vertical {
 QTabWidget#EncyclopediaTabs,
 QTabWidget#EncyclopediaTabs QStackedWidget#qt_tabwidget_stackedwidget,
 QStackedWidget#GuidesStack,
+QStackedWidget#GuideDetailContentStack,
+QSplitter#GuideDetailSplitter,
 QFrame#GuideManualValidationHost {
     background: transparent;
     border: none;
@@ -3018,8 +3020,7 @@ QLabel#GuideBreadcrumbCurrent {
     font-weight: 700;
 }
 
-#GuideManualProgressFrame,
-#GuideManualNav {
+#GuideManualProgressFrame {
     background: transparent;
     border: none;
 }
@@ -3075,7 +3076,8 @@ QToolButton#GuideManualProgressLock[state="locked"] {
 
 QFrame#GuideCompactHeader,
 QFrame#GuidePreparationPanel,
-QFrame#GuideSheetHeader {
+QFrame#GuideSheetHeader,
+QFrame#GuideManualNav {
     background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
         stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
     border: 1px solid @BORDER_SOFT;
@@ -3094,14 +3096,6 @@ QFrame#GuideHeaderProgressGroup {
     background: transparent;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
-}
-
-/* Expanded preparation must retain the blue Unity surface,
-   not Qt's native gray scroll/panel background. */
-QFrame#GuidePreparationPanel {
-    background: @GUIDE_COMPACT_SURFACE;
-    border: 1px solid @BORDER_SOFT;
-    border-radius: @RADIUS_MD;
 }
 
 /* Shared Ganymede preparation tabs: blue glass, semantic border/text. */
@@ -3246,10 +3240,6 @@ QToolButton#GuideMetricDropdown {
     max-width: 16px;
     min-height: 16px;
     max-height: 16px;
-}
-QToolButton#GuideMetricDropdown:disabled {
-    background: transparent;
-    border-color: transparent;
 }
 QToolButton#GuideMetricDropdown:hover,
 QToolButton#GuideMetricDropdown:checked {
@@ -3537,7 +3527,8 @@ QToolButton#GuideParticipantPortrait:checked {
 #GuideManualResourceSection,
 #GuideManualDungeonSection,
 #GuideManualWarningSection {
-    background: @PANEL_2;
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GLASS_SECTION_TOP,stop:1 @GLASS_SECTION_BOTTOM);
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
 }
@@ -3603,7 +3594,7 @@ QLabel#GuideManualCombatTargetsTitle {
 }
 
 #GuideManualLegendCard {
-    background: @PANEL_HOVER;
+    background: @GLASS_HOVER;
     border: 1px solid @GREEN_BORDER;
     border-radius: @RADIUS_XS;
 }
@@ -3721,15 +3712,19 @@ QToolButton#GuideContinuousValidate:checked {
 
 #GuideManualPageCheck {
     color: @TEXT_SOFT;
-    background: @PANEL_2;
-    border: 1px solid @BORDER_SOFT;
+    background: @GLASS_BUTTON;
+    border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;
-    padding: 2px;
+    padding: 5px 12px;
     spacing: 9px;
     font-size: @FONT_BODY;
     font-weight: 700;
 }
 
+#GuideManualPageCheck:hover:!disabled {
+    background: @GLASS_HOVER;
+    border-color: @GREEN_BORDER;
+}
 #GuideManualPageCheck:disabled {
     color: @TEXT_MUTED;
 }

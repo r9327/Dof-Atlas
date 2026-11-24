@@ -1130,6 +1130,8 @@ class AtlasGuideReadingHeader(QFrame):
         apply_unity_panel_shadow(self)
 
     def _set_global_details_open(self, opened: bool) -> None:
+        if opened and self.summary_button.isChecked():
+            self._refresh_summary_rows()
         self.global_details_panel.setVisible(opened)
         self.global_details_button.setAccessibleName(
             "Replier la progression globale" if opened else "Déplier la progression globale"
@@ -1213,7 +1215,7 @@ class AtlasGuideReadingHeader(QFrame):
 
     def set_summary_provider(self, provider: Callable[[], tuple[str, ...]]) -> None:
         self._summary_provider = provider
-        if self.summary_button.isChecked():
+        if self.global_details_button.isChecked() and self.summary_button.isChecked():
             self._refresh_summary_rows()
 
     def _refresh_summary_rows(self) -> None:
@@ -1241,7 +1243,7 @@ class AtlasGuideReadingHeader(QFrame):
             self.summaryRequested.emit(index)
 
     def _set_summary_open(self, opened: bool) -> None:
-        if opened:
+        if opened and self.global_details_button.isChecked():
             self._refresh_summary_rows()
         self.summary_panel.setVisible(opened)
         action = "Masquer Sommaire" if opened else "Afficher Sommaire"
@@ -1253,7 +1255,7 @@ class AtlasGuideReadingHeader(QFrame):
         self.summary_bar.setRange(self.global_progress_bar.minimum(), self.global_progress_bar.maximum())
         self.summary_bar.setValue(self.global_progress_bar.value())
         self.summary_progress_label.setText(self.global_progress_label.text())
-        if self.summary_button.isChecked():
+        if self.global_details_button.isChecked() and self.summary_button.isChecked():
             self._refresh_summary_rows()
 
     def attach_preparation(self, panel: QWidget) -> None:

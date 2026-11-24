@@ -388,22 +388,8 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress::chunk { "
         "background: %s; border-radius: %s; }"
         % (colors["GREEN"], radii["RADIUS_XS"]),
-        "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader { "
-        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
-        "stop:0 %s,stop:1 %s); border: 1px solid %s; "
-        "border-top: 1px solid %s; border-radius: %s; }" % (
-            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
-            colors["BORDER_SOFT"],
-            translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY),
-            radii["RADIUS_MD"],
-        ),
-        # The expanded preparation drawer uses the indexed blue Unity surface.
-        # Do not inherit the separate darkStone 9-slice or grey glass gradient.
-        "QFrame#GuidePreparationPanel { "
-        "background: %s; border: 1px solid %s; border-radius: %s; }" % (
-            colors["GUIDE_COMPACT_SURFACE"], colors["BORDER_SOFT"],
-            radii["RADIUS_MD"],
-        ),
+        # Reader header, preparation drawer and footer share the canonical
+        # glass rule in theme.py. Do not repaint them in the asset layer.
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
         # the game-native depth when installed.
@@ -424,11 +410,6 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         # Do not append a later Unity skin rule that overrides its green text.
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
         "color: %s; font-weight: 600; }" % colors["GUIDE_STATUS_TEXT"],
-        "QFrame#GuideManualNav { "
-        "background: %s; border-top: 1px solid %s; }" % (
-            translucent("GUIDE_MANUAL_NAV_SURFACE", 0.94),
-            colors["GUIDE_NAV_BORDER"],
-        ),
         "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 %s, stop:1 %s); "
