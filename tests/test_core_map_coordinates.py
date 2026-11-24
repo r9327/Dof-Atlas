@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.map_coordinates import extract_bracketed_position, normalize_coordinate_pair
+from app.core.map_coordinates import (
+    extract_bracketed_coordinates, extract_bracketed_position, normalize_coordinate_pair,
+)
 
 
 class NormalizeCoordinatePairTests(unittest.TestCase):
@@ -36,6 +38,19 @@ class NormalizeCoordinatePairTests(unittest.TestCase):
     def test_oversized_bracketed_source_does_not_crash(self):
         self.assertIsNone(extract_bracketed_position("[" + "9" * 5000 + ",1]"))
         self.assertIsNone(extract_bracketed_position("[1," + "9" * 5000 + "]"))
+
+    def test_coordinate_tuple_and_text_share_one_source_parser(self):
+        for raw, expected in (
+            ("[ -03, 004 ]", (-3, 4)),
+            ("[0,0] puis [1,2]", (0, 0)),
+            ("[-2147483648,1]", (-2147483648, 1)),
+            ("[1;2]", None),
+            ("[" + "9" * 5000 + ",1]", None),
+        ):
+            with self.subTest(raw=raw[:40]):
+                self.assertEqual(extract_bracketed_coordinates(raw), expected)
+                text = f"{expected[0]},{expected[1]}" if expected is not None else None
+                self.assertEqual(extract_bracketed_position(raw), text)
 
     def test_normalization_and_negative_values(self):
         self.assertEqual(normalize_coordinate_pair("003", "-06"), "3,-6")

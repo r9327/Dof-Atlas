@@ -11,16 +11,22 @@ import re
 BRACKETED_POSITION_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
 
-def extract_bracketed_position(value: object) -> str | None:
-    """Extract a source bracket coordinate without imposing map boundary rules."""
+def extract_bracketed_coordinates(value: object) -> tuple[int, int] | None:
+    """Decode the first bracketed coordinate, without imposing map bounds."""
     match = BRACKETED_POSITION_RE.search(str(value or ""))
     if match is None:
         return None
     try:
-        return f"{int(match.group(1))},{int(match.group(2))}"
+        return int(match.group(1)), int(match.group(2))
     except ValueError:
         # Python limits decimal conversion for pathological source strings.
         return None
+
+
+def extract_bracketed_position(value: object) -> str | None:
+    """Format the same source coordinate for route keys and text consumers."""
+    coords = extract_bracketed_coordinates(value)
+    return f"{coords[0]},{coords[1]}" if coords is not None else None
 
 
 

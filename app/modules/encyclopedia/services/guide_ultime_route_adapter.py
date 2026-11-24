@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import re
 from typing import Any, Mapping
 from app.core.numbers import optional_int as _safe_int
+from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, extract_bracketed_coordinates
 
 from app.core.doduda_rows import array_rows as _array
 from app.modules.encyclopedia.services.adventure_route_adapter import AdventureRouteAdapter
@@ -10,7 +10,7 @@ from app.modules.encyclopedia.services.adventure_route_engine import RouteLocati
 
 
 SENTINEL_COORD = -2147483648
-COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
+
 
 
 
@@ -28,11 +28,11 @@ def _safe_coord(value: Any) -> int | None:
 
 
 def _coord_from_text(value: Any) -> tuple[int, int] | None:
-    match = COORD_RE.search(str(value or ""))
-    if not match:
+    coords = extract_bracketed_coordinates(value)
+    if coords is None:
         return None
-    x = _safe_coord(match.group(1))
-    y = _safe_coord(match.group(2))
+    x = _safe_coord(coords[0])
+    y = _safe_coord(coords[1])
     return (x, y) if x is not None and y is not None else None
 
 

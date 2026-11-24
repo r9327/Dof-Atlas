@@ -20,6 +20,7 @@ from app.modules.encyclopedia.services.guide_ultime_manual_route import (
     load_manual_chapter,
 )
 from app.modules.encyclopedia.services.guide_ultime_runtime_service import GuideUltimeRuntimeService
+from app.core.map_coordinates import extract_bracketed_coordinates
 from app.core.numbers import optional_int
 from app.core.text import normalize_key as normalize_text
 
@@ -1936,10 +1937,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
 
     @staticmethod
     def _coords_from_text(text: str) -> tuple[int, int] | None:
-        match = re.search(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]", str(text or ""))
-        if not match:
-            return None
-        return int(match.group(1)), int(match.group(2))
+        return extract_bracketed_coordinates(text)
 
     @staticmethod
     def _string_list(value: Any) -> list[str]:

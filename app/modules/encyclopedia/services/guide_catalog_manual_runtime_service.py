@@ -16,7 +16,8 @@ from typing import Any
 from uuid import uuid4
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
-from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE, extract_bracketed_position
+from app.core import map_coordinates
+from app.core.map_coordinates import extract_bracketed_coordinates, extract_bracketed_position
 from app.quest_catalog import quest_catalog_cache_signature
 from app.modules.encyclopedia.services.guide_catalog_step_index import resolved_route_quests
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
@@ -102,6 +103,7 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         Path(guide_quest_view_model.__file__),
         Path(guide_ultime_player_policy.__file__),
         Path(guide_catalog_route_store.__file__),
+        Path(map_coordinates.__file__),
     )
     # Frozen bundles unpack sources to a different temporary path on each
     # launch. Bind cache validity to the durable executable version instead.
@@ -839,10 +841,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
 
     @staticmethod
     def _coords(position: str) -> tuple[int, int] | None:
-        match = _COORD_RE.search(str(position or ""))
-        if match is None:
-            return None
-        return int(match.group(1)), int(match.group(2))
+        return extract_bracketed_coordinates(position)
 
     @staticmethod
     def _position_key(value: Any) -> str:
