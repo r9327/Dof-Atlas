@@ -464,8 +464,8 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
 
         self.route_bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideRouteProgress",
+            height_role="progress_route",
         )
-        self.route_bar.setFixedHeight(6)
         root.addWidget(self.route_bar)
 
         self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
