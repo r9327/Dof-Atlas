@@ -128,37 +128,9 @@ class GuideProgressService(CoordinatedProgressReader):
         step_id: str,
         completed: bool,
     ) -> bool:
-        key = require_character_key(character_key)
-        with self._coordinator.lock:
-            # Always mutate the latest on-disk payload. The generation bump makes
-            # every other live GuideProgressService refresh on its next read.
-            self.progress = self._load()
-            self._disk_signature = self._current_disk_signature()
-            guide_steps = self._manual_steps_map(key)
-            raw_values = guide_steps.get(str(guide_id), [])
-            values = {
-                str(value)
-                for value in raw_values if isinstance(raw_values, list) and str(value)
-            }
-            previous = set(values)
-            if completed:
-                values.add(str(step_id))
-            else:
-                values.discard(str(step_id))
-            if values == previous:
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_manual_steps_cache()
-                return False
-            if values:
-                guide_steps[str(guide_id)] = sorted(values)
-            else:
-                guide_steps.pop(str(guide_id), None)
-            self._save_unlocked()
-            self._seen_generation = self._coordinator.mark_changed()
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
-            return True
+        return self.set_manual_steps_for_characters(
+            (character_key,), guide_id, step_id, completed,
+        )
 
     def save(self) -> None:
         """Persist a deliberate compatibility snapshot only when it is current."""
@@ -167,10 +139,7 @@ class GuideProgressService(CoordinatedProgressReader):
                 self._seen_generation != self._coordinator.generation
                 or self._disk_signature != self._current_disk_signature()
             ):
-                self.progress = self._load()
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_manual_steps_cache()
+                self._replace_snapshot_locked(self._coordinator.generation)
                 raise RuntimeError(
                     "Guide progress snapshot is stale; reload and apply the mutation again."
                 )
