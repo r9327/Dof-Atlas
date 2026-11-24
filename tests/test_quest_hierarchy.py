@@ -72,6 +72,19 @@ class QuestsPageHierarchyTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_global_and_standalone_character_changes_share_one_pipeline(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+        quest_page = Mock()
+        host = SimpleNamespace(quest_page=quest_page, current_character_key="character:8")
+        EncyclopediaPage.sync_quest_page_character(host)
+        quest_page.set_character_key.assert_called_once_with("character:8")
+        from app.pages._quests_page_impl import QuestsPage as Base
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        self.assertIs(QuestsPage.set_character_key, Base.set_character_key)
+        self.assertIs(LazyQuestsPage.set_character_key, Base.set_character_key)
+
     def test_all_quest_readers_use_one_hierarchy_materializer(self):
         from app.pages._quests_page_impl import QuestsPage as Base
         from app.pages.lazy_quests_page import LazyQuestsPage

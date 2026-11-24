@@ -36,9 +36,14 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadGate,
     RelatedPreloadState,
 )
-from app.pages.quest_character_cache import quest_character_source_signature
-from app.ui.components import AtlasComboBox, AtlasPageTitle, AtlasUnavailablePage, set_unity_widget_property
-from app.quest_catalog import QuestCharacter, load_quest_characters
+from app.pages.quest_character_cache import (
+    quest_character_source_signature, cached_load_quest_characters as load_quest_characters,
+)
+from app.ui.components import (
+    AtlasComboBox, AtlasPageTitle, AtlasUnavailablePage, set_unity_widget_property,
+    populate_character_combo, select_character_combo_key,
+)
+from app.quest_catalog import QuestCharacter
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.views.achievements_view import AchievementsView
@@ -409,49 +414,17 @@ class EncyclopediaPage(QWidget):
             self.client_index_path,
             connected_only=True,
         )
-        self.character_combo.blockSignals(True)
-        self.character_combo.clear()
-        selected_index = 0
-        for index, character in enumerate(self.characters):
-            self.character_combo.addItem(character.label, character)
-            self.character_combo.setItemData(index, character.label, Qt.ToolTipRole)
-            if character.key == previous_key:
-                selected_index = index
-            elif not previous_key and character.connected:
-                selected_index = index
-        self.character_combo.setCurrentIndex(selected_index)
-        self.character_combo.blockSignals(False)
-        character = self.character_combo.currentData()
-        self.current_character_key = (
-            character.key if isinstance(character, QuestCharacter) else previous_key
+        self.current_character_key = populate_character_combo(
+            self.character_combo, self.characters, previous_key,
         )
-        self.character_combo.setToolTip(character.label if isinstance(character, QuestCharacter) else "")
 
     def set_character_key(self, character_key: str) -> None:
         """Synchronise le personnage global piloté par AtlasWindow."""
         target = str(character_key or "")
-        target_index = -1
-        for index in range(self.character_combo.count()):
-            character = self.character_combo.itemData(index)
-            if isinstance(character, QuestCharacter) and character.key == target:
-                target_index = index
-                break
-        if target_index < 0:
+        if not select_character_combo_key(self.character_combo, target):
             self.refresh_characters()
-            for index in range(self.character_combo.count()):
-                character = self.character_combo.itemData(index)
-                if isinstance(character, QuestCharacter) and character.key == target:
-                    target_index = index
-                    break
-        if target_index >= 0:
-            self.character_combo.blockSignals(True)
-            self.character_combo.setCurrentIndex(target_index)
-            self.character_combo.blockSignals(False)
-            character = self.character_combo.currentData()
-            self.current_character_key = character.key if isinstance(character, QuestCharacter) else target
-            self.character_combo.setToolTip(character.label if isinstance(character, QuestCharacter) else "")
-        else:
-            self.current_character_key = target
+            select_character_combo_key(self.character_combo, target)
+        self.current_character_key = target
         self.sync_character_to_children()
 
     def on_global_character_changed(self) -> None:
@@ -487,28 +460,7 @@ class EncyclopediaPage(QWidget):
     def sync_quest_page_character(self) -> None:
         if self.quest_page is None:
             return
-        combo = self.quest_page.character_combo
-        target_index = -1
-        for index in range(combo.count()):
-            character = combo.itemData(index)
-            if isinstance(character, QuestCharacter) and character.key == self.current_character_key:
-                target_index = index
-                break
-        if target_index >= 0:
-            combo.blockSignals(True)
-            combo.setCurrentIndex(target_index)
-            combo.blockSignals(False)
-        if self.quest_page.current_character_key == self.current_character_key:
-            return
-        self.quest_page.current_character_key = self.current_character_key
-        self.quest_page.progress = self.quest_page.quest_progress_service.reload()
-        self.quest_page.rebuild_hierarchy()
-        self.quest_page.refresh_quests()
-        detail_view = self.quest_page.quest_detail_view
-        if detail_view is not None:
-            detail_view.set_character_key(self.current_character_key)
-        if self.quest_page.selected_quest_id is not None:
-            self.quest_page.show_quest_detail(self.quest_page.selected_quest_id)
+        self.quest_page.set_character_key(self.current_character_key)
 
     def on_search_changed(self, text: str) -> None:
         widget = self.tabs.currentWidget()
@@ -665,6 +617,7 @@ class EncyclopediaPage(QWidget):
         return quest_character_source_signature(
             self.profile_path,
             self.client_index_path,
+            connected_only=True,
         )
 
     def refresh_characters(self) -> None:

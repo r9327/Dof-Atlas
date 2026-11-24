@@ -637,6 +637,29 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             selector.deleteLater()
 
+    def test_character_combo_projection_preserves_identity_and_blocked_signals(self):
+        from types import SimpleNamespace
+        from app.ui.components import AtlasComboBox, populate_character_combo, select_character_combo_key
+        combo = AtlasComboBox()
+        rows = (
+            SimpleNamespace(key="character:1", label="Alpha", connected=True),
+            SimpleNamespace(key="character:2", label="Alpha", connected=False),
+        )
+        try:
+            combo.blockSignals(True)
+            self.assertEqual(populate_character_combo(combo, rows, "character:2"), "character:2")
+            self.assertTrue(combo.signalsBlocked())
+            self.assertEqual(combo.currentIndex(), 1)
+            self.assertTrue(select_character_combo_key(combo, "character:1"))
+            self.assertEqual(combo.currentIndex(), 0)
+            self.assertEqual(combo.toolTip(), "Alpha")
+            self.assertTrue(combo.signalsBlocked())
+            self.assertFalse(select_character_combo_key(combo, "character:9"))
+            self.assertEqual(combo.currentIndex(), 0)
+            self.assertEqual(populate_character_combo(combo, (), "character:1"), "character:1")
+        finally:
+            combo.deleteLater()
+
     def test_atlas_combo_owns_content_size_policy(self) -> None:
         from app.ui.components import AtlasComboBox
 

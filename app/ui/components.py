@@ -369,6 +369,47 @@ class AtlasComboBox(QComboBox):
         popup.setGeometry(geometry)
 
 
+def character_combo_index(combo: QComboBox, character_key: str) -> int:
+    """Find a character by canonical identity, never its display name."""
+    for index in range(combo.count()):
+        if getattr(combo.itemData(index), "key", None) == character_key:
+            return index
+    return -1
+
+
+def select_character_combo_key(combo: QComboBox, character_key: str) -> bool:
+    index = character_combo_index(combo, character_key)
+    if index < 0:
+        return False
+    blocked = combo.blockSignals(True)
+    try:
+        combo.setCurrentIndex(index)
+        combo.setToolTip(str(getattr(combo.currentData(), "label", "")))
+    finally:
+        combo.blockSignals(blocked)
+    return True
+
+
+def populate_character_combo(combo: QComboBox, characters, previous_key: str) -> str:
+    """Shared selector projection, retaining selection and caller signal state."""
+    rows = tuple(characters)
+    blocked = combo.blockSignals(True)
+    try:
+        combo.clear()
+        selected = 0
+        for index, row in enumerate(rows):
+            combo.addItem(row.label, row)
+            combo.setItemData(index, row.label, Qt.ToolTipRole)
+            if row.key == previous_key or (not previous_key and row.connected):
+                selected = index
+        combo.setCurrentIndex(selected)
+        current = combo.currentData()
+        combo.setToolTip(str(getattr(current, "label", "")))
+        return str(getattr(current, "key", previous_key))
+    finally:
+        combo.blockSignals(blocked)
+
+
 class AtlasPageNavigator(QWidget):
     """Reusable compact ‹ current/total › control; the caller owns the page."""
 

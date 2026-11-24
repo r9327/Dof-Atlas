@@ -61,7 +61,11 @@ from app.quest_catalog import (
     normalize_text,
 )
 from app.storage import IconCache, read_json
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout, fit_unity_number_spinbox, configure_unity_tool_button
+from app.ui.components import (
+    AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout,
+    fit_unity_number_spinbox, configure_unity_tool_button,
+    populate_character_combo, select_character_combo_key,
+)
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -758,31 +762,29 @@ class QuestsPage(QWidget):
             self.client_index_path,
             connected_only=True,
         )
-        self.character_combo.blockSignals(True)
-        self.character_combo.clear()
-        selected_index = 0
-        for index, character in enumerate(self.characters):
-            self.character_combo.addItem(character.label, character)
-            if character.key == previous:
-                selected_index = index
-            elif not previous and character.connected:
-                selected_index = index
-        self.character_combo.setCurrentIndex(selected_index)
-        self.character_combo.blockSignals(False)
-        current = self.character_combo.currentData()
-        self.current_character_key = (
-            current.key if isinstance(current, QuestCharacter) else previous
+        self.current_character_key = populate_character_combo(
+            self.character_combo, self.characters, previous,
         )
 
     def on_character_changed(self) -> None:
         character = self.character_combo.currentData()
-        self.current_character_key = character.key if isinstance(character, QuestCharacter) else ""
+        self.set_character_key(character.key if isinstance(character, QuestCharacter) else "")
+
+    def set_character_key(self, character_key: str) -> None:
+        """One character-switch pipeline for standalone and embedded Quests."""
+        character_key = str(character_key or "")
+        select_character_combo_key(self.character_combo, character_key)
+        if character_key == self.current_character_key:
+            return
+        self.current_character_key = character_key
         self.progress = self.quest_progress_service.reload()
         self._sync_achievement_progress()
         self.rebuild_hierarchy()
         self.refresh_quests()
         if self.selected_quest_id is not None:
             self.show_quest_detail(self.selected_quest_id)
+        elif self.quest_detail_view is not None:
+            self.quest_detail_view.set_character_key(character_key, refresh=False)
 
     def on_mode_changed(self, text: str) -> None:
         self.current_mode = text or "TOUTES"
