@@ -331,8 +331,8 @@ class GuideUltimeGeneratedView(QWidget):
 
         self.route_bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideUltimeProgressBar",
+            height_role="progress_generated_route",
         )
-        self.route_bar.setFixedHeight(8)
         progress_layout.addWidget(self.route_bar)
 
         self.progress_details = QLabel()
