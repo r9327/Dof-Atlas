@@ -32,7 +32,7 @@ from app.network.character_runtime_state import (
     CharacterRuntimeStateStore,
     character_runtime_state,
 )
-from app.core.file_stamp import resolved_mtime_size_stamp
+from app.core.file_stamp import resolved_mtime_size_stamp, mtime_ctime_size_stamp
 from app.core.numbers import format_grouped_int
 from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
 from app.quest_catalog import QuestCharacter
@@ -664,7 +664,7 @@ class CharacterPage(QWidget):
         except Exception:
             candidate = None
         path = Path(candidate) if candidate else None
-        return str(path) if path is not None and path.exists() else ""
+        return str(path) if path is not None and path.is_file() else ""
 
     def _icon_path(self, label: str) -> str:
         candidate: str | Path | None = None
@@ -679,7 +679,7 @@ class CharacterPage(QWidget):
             except Exception:
                 candidate = None
         path = Path(candidate) if candidate else None
-        return str(path) if path is not None and path.exists() else ""
+        return str(path) if path is not None and path.is_file() else ""
 
     def _visual_path(self, label: str) -> str:
         return self._skin_path(label) or self._icon_path(label)
@@ -691,10 +691,14 @@ class CharacterPage(QWidget):
         path = Path(icon_path) if icon_path else None
         width = self.portrait.maximumWidth() - 12
         height = self.portrait.maximumHeight() - 12
-        signature = (self._file_stamp(path) if path is not None else None, width, height)
+        signature = (str(path), mtime_ctime_size_stamp(path) if path is not None else None, width, height)
         if signature == self._portrait_signature:
             return
-        pixmap = QPixmap(str(path)) if path is not None and path.is_file() else QPixmap()
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        pixmap = (
+            ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(width, height))
+            if path is not None and path.is_file() else QPixmap()
+        )
         if pixmap.isNull():
             self.portrait.setPixmap(QPixmap())
             self.portrait.setText(self._portrait_placeholder())

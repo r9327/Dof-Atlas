@@ -35,7 +35,6 @@ _ARTWORK_FOLDERS = (
 )
 
 
-@lru_cache(maxsize=4096)
 def _nested_artwork(directory: str, filename: str, family: str) -> Path | None:
     root = Path(directory)
     tokens = set(family.split("_"))
@@ -44,8 +43,9 @@ def _nested_artwork(directory: str, filename: str, family: str) -> Path | None:
             candidate = root / folder / filename
             if candidate.is_file():
                 return candidate
-    # An unknown family may use a unique matching asset, never an arbitrary
-    # sprite from a different category with the same numerical basename.
+    # A missing or ambiguous asset can change after an incremental update.
+    # Never retain these guesses indefinitely. Known families above use an
+    # exact path; only the fallback enumerates one directory level.
     matches = tuple(path for path in root.glob("*/" + escape(filename)) if path.is_file())
     return matches[0] if len(matches) == 1 else None
 

@@ -323,6 +323,33 @@ class CharacterPageTests(unittest.TestCase):
             page.deleteLater()
             self.app.processEvents()
 
+    def test_portrait_uses_shared_scaled_decoder_and_invalidates_changed_source(self):
+        from PySide6.QtGui import QImage
+        from unittest.mock import patch
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            skin = root / "skin.png"
+            image = QImage(300, 400, QImage.Format_ARGB32)
+            image.fill(0xFF336699)
+            self.assertTrue(image.save(str(skin), "PNG"))
+            page = self.build_page(self.build_files(root))
+            try:
+                with patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled",
+                                  wraps=ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled) as load:
+                    page._set_portrait(str(skin))
+                    page._set_portrait(str(skin))
+                    load.assert_called_once()
+                    self.assertFalse(page.portrait.pixmap().isNull())
+                    replacement = QImage(600, 400, QImage.Format_ARGB32)
+                    replacement.fill(0xFFAA0000)
+                    self.assertTrue(replacement.save(str(skin), "PNG"))
+                    page._set_portrait(str(skin))
+                    self.assertEqual(load.call_count, 2)
+                    self.assertEqual(page.portrait.pixmap().toImage().pixelColor(0, 0).red(), 170)
+            finally:
+                page.deleteLater()
+
     def test_real_skin_has_priority_and_class_icon_is_the_fallback(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

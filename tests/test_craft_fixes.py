@@ -521,10 +521,16 @@ class CraftFixesTests(unittest.TestCase):
                 self.assertIs(craft_image_item(item, root=root), item)
             exact = folder / "[7].png"
             exact.write_bytes(b"fixture")
-            # The cached miss belongs to the former filesystem snapshot.
-            # Use a distinct item family to exercise the exact-match branch.
-            item = {"type": "Autre objet", "image_path": "data/images/items/[7].png"}
+            item = {"type": "Objet mystère", "image_path": "data/images/items/[7].png"}
             self.assertEqual(Path(craft_image_item(item, root=root)["image_path"]), exact)
+            duplicate = root / "data" / "images" / "items" / "armes" / exact.name
+            duplicate.parent.mkdir()
+            duplicate.write_bytes(b"duplicate")
+            self.assertIs(craft_image_item(item, root=root), item)
+            duplicate.unlink()
+            self.assertEqual(Path(craft_image_item(item, root=root)["image_path"]), exact)
+            exact.unlink()
+            self.assertIs(craft_image_item(item, root=root), item)
 
     def test_image_fallback_does_not_guess_between_duplicate_sprites(self):
         with tempfile.TemporaryDirectory() as tmp:

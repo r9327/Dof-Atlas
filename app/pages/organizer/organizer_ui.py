@@ -36,7 +36,7 @@ from app.constants import (
     KEY_SWITCH_MOVEMENT,
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
-from app.core.file_stamp import resolved_mtime_size_stamp
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.components import AtlasButton, clear_unity_widget_layout, refresh_unity_widget_style, set_unity_widget_object_name, set_unity_widget_property, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
@@ -68,11 +68,12 @@ ORGANIZER_GEOMETRY = UNITY_ORGANIZER_METRICS_PX
 def _organizer_class_pixmap(path: str) -> QPixmap:
     """Refresh the cleaned portrait whenever its source file changes."""
     from pathlib import Path
-    return _organizer_class_pixmap_cached(path, resolved_mtime_size_stamp(Path(path)))
+    source = Path(path)
+    return QPixmap(_organizer_class_pixmap_cached(str(source.resolve()), mtime_ctime_size_stamp(source)))
 
 
 @lru_cache(maxsize=48)
-def _organizer_class_pixmap_cached(path: str, stamp: tuple) -> QPixmap:
+def _organizer_class_pixmap_cached(path: str, stamp: tuple[int, int, int] | None) -> QPixmap:
     pixmap = QPixmap(path)
     if pixmap.isNull():
         return pixmap
