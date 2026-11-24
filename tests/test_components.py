@@ -76,6 +76,31 @@ class SharedUiComponentsTests(unittest.TestCase):
                 finally:
                     bar.deleteLater()
 
+    def test_shared_tool_button_keeps_native_state_and_callbacks(self) -> None:
+        from PySide6.QtCore import QSize
+        from PySide6.QtWidgets import QToolButton
+        from app.ui.components import configure_unity_tool_button
+
+        button = QToolButton()
+        button.setCheckable(True)
+        calls = []
+        button.clicked.connect(calls.append)
+        try:
+            self.assertIs(configure_unity_tool_button(
+                button, object_name="ResourceTile", box=(56, 42), icon_size=16,
+                text="Test", pointing=True, focus_policy=Qt.NoFocus,
+            ), button)
+            self.assertEqual(button.minimumSize(), QSize(56, 42))
+            self.assertEqual(button.maximumSize(), QSize(56, 42))
+            self.assertEqual(button.iconSize(), QSize(16, 16))
+            self.assertEqual(button.objectName(), "ResourceTile")
+            self.assertEqual(button.cursor().shape(), Qt.PointingHandCursor)
+            self.assertEqual(button.focusPolicy(), Qt.NoFocus)
+            button.click()
+            self.assertEqual(calls, [True])
+        finally:
+            button.deleteLater()
+
     def test_shared_scroll_defaults_preserve_native_frame_and_optional_vertical_policy(self) -> None:
         from PySide6.QtWidgets import QFrame, QScrollArea
 

@@ -23,7 +23,7 @@ from app.core.file_stamp import mtime_size_stamp
 from app.core.numbers import clamped_percent, format_grouped_int
 from app.core.text import strip_accents
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, configure_unity_progress_bar, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, configure_unity_progress_bar, configure_unity_tool_button, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
 
 HOME_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["home"]
@@ -289,12 +289,11 @@ class HomePage(QWidget):
         identity = QHBoxLayout()
         identity.setContentsMargins(*HOME_GEOMETRY["identity_margins"])
         identity.setSpacing(HOME_GEOMETRY["identity_spacing"])
-        self.character_portrait = QToolButton()
-        self.character_portrait.setObjectName("HomeCharacterPortrait")
         portrait_box = HOME_GEOMETRY["portrait_box"]
-        self.character_portrait.setFixedSize(portrait_box, portrait_box)
-        portrait_icon = HOME_GEOMETRY["portrait_artwork"]
-        self.character_portrait.setIconSize(QSize(portrait_icon, portrait_icon))
+        self.character_portrait = configure_unity_tool_button(
+            QToolButton(), object_name="HomeCharacterPortrait",
+            box=(portrait_box, portrait_box), icon_size=HOME_GEOMETRY["portrait_artwork"],
+        )
         self.character_portrait.setEnabled(False)
         identity.addWidget(self.character_portrait, 0, Qt.AlignVCenter)
 
@@ -391,12 +390,11 @@ class HomePage(QWidget):
         self._add_card_title(almanax_layout, "Almanax")
         almanax_layout.addStretch(1)
 
-        self.almanax_icon = QToolButton()
-        self.almanax_icon.setObjectName("HomeAlmanaxPlaceholderIcon")
         almanax_box = HOME_GEOMETRY["almanax_box"]
-        self.almanax_icon.setFixedSize(almanax_box, almanax_box)
-        almanax_icon = HOME_GEOMETRY["almanax_artwork"]
-        self.almanax_icon.setIconSize(QSize(almanax_icon, almanax_icon))
+        self.almanax_icon = configure_unity_tool_button(
+            QToolButton(), object_name="HomeAlmanaxPlaceholderIcon",
+            box=(almanax_box, almanax_box), icon_size=HOME_GEOMETRY["almanax_artwork"],
+        )
         self.almanax_icon.setToolTip("Ouvrir le calendrier Almanax")
         self.almanax_icon.clicked.connect(self.almanaxRequested.emit)
         almanax_sprite = unity_original_preview_icon(

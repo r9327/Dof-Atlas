@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSize, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QToolButton, QVBoxLayout
 
@@ -10,7 +10,10 @@ from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON
 from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
-from app.ui.components import AtlasButton, configure_unity_progress_bar
+from app.ui.components import AtlasButton, configure_unity_progress_bar, configure_unity_tool_button
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+GUIDE_HEADER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_header"]
 
 
 class GuideProgressHeader(QFrame):
@@ -22,24 +25,24 @@ class GuideProgressHeader(QFrame):
         self.setObjectName("GuideProgressHeader")
         self.sections_expanded = True
         root = QVBoxLayout(self)
-        root.setContentsMargins(10, 10, 10, 10)
-        root.setSpacing(8)
+        root.setContentsMargins(*GUIDE_HEADER_GEOMETRY["outer_margins"])
+        root.setSpacing(GUIDE_HEADER_GEOMETRY["outer_spacing"])
 
         top = QHBoxLayout()
         top.setContentsMargins(0, 0, 0, 0)
-        top.setSpacing(10)
+        top.setSpacing(GUIDE_HEADER_GEOMETRY["top_spacing"])
         root.addLayout(top)
 
-        self.image = QToolButton()
-        self.image.setObjectName("GuideHeaderImage")
-        self.image.setFixedSize(82, 82)
-        self.image.setIconSize(QSize(74, 74))
-        self.image.setFocusPolicy(Qt.NoFocus)
+        self.image = configure_unity_tool_button(
+            QToolButton(), object_name="GuideHeaderImage",
+            box=GUIDE_HEADER_GEOMETRY["cover_box"],
+            icon_size=GUIDE_HEADER_GEOMETRY["cover_artwork"], focus_policy=Qt.NoFocus,
+        )
         top.addWidget(self.image)
 
         content = QVBoxLayout()
         content.setContentsMargins(0, 0, 0, 0)
-        content.setSpacing(4)
+        content.setSpacing(GUIDE_HEADER_GEOMETRY["content_spacing"])
         top.addLayout(content, 1)
 
         self.title = QLabel("")
@@ -56,8 +59,8 @@ class GuideProgressHeader(QFrame):
         content.addWidget(self.description)
 
         progress_row = QHBoxLayout()
-        progress_row.setContentsMargins(0, 2, 0, 0)
-        progress_row.setSpacing(8)
+        progress_row.setContentsMargins(*GUIDE_HEADER_GEOMETRY["secondary_row_margins"])
+        progress_row.setSpacing(GUIDE_HEADER_GEOMETRY["progress_spacing"])
         self.progress_label = QLabel("Progression")
         self.progress_label.setObjectName("PanelTitle")
         self.progress_text = QLabel("")
@@ -75,13 +78,13 @@ class GuideProgressHeader(QFrame):
         content.addWidget(self.progress)
 
         reward = QHBoxLayout()
-        reward.setContentsMargins(0, 2, 0, 0)
-        reward.setSpacing(6)
-        self.reward_image = QToolButton()
-        self.reward_image.setObjectName("GuideRewardImage")
-        self.reward_image.setFixedSize(36, 36)
-        self.reward_image.setIconSize(QSize(30, 30))
-        self.reward_image.setFocusPolicy(Qt.NoFocus)
+        reward.setContentsMargins(*GUIDE_HEADER_GEOMETRY["secondary_row_margins"])
+        reward.setSpacing(GUIDE_HEADER_GEOMETRY["reward_spacing"])
+        self.reward_image = configure_unity_tool_button(
+            QToolButton(), object_name="GuideRewardImage",
+            box=GUIDE_HEADER_GEOMETRY["reward_box"],
+            icon_size=GUIDE_HEADER_GEOMETRY["reward_artwork"], focus_policy=Qt.NoFocus,
+        )
         self.reward_label = QLabel("")
         self.reward_label.setObjectName("MutedLabel")
         self.reward_label.setWordWrap(True)

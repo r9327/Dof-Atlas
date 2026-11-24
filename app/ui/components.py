@@ -140,6 +140,28 @@ def set_unity_widget_object_name(widget: QWidget, object_name: str) -> bool:
     return True
 
 
+def configure_unity_tool_button(
+    button: QToolButton, *, object_name: str | None = None,
+    box: tuple[int, int] | None = None, icon_size: int | None = None,
+    text: str | None = None, pointing: bool = False,
+    focus_policy: Qt.FocusPolicy | None = None,
+) -> QToolButton:
+    """Configure shared icon/action chrome without changing callbacks or button state."""
+    if object_name is not None:
+        button.setObjectName(object_name)
+    if box is not None:
+        button.setFixedSize(*box)
+    if icon_size is not None:
+        button.setIconSize(QSize(icon_size, icon_size))
+    if text is not None:
+        button.setText(text)
+    if pointing:
+        button.setCursor(Qt.PointingHandCursor)
+    if focus_policy is not None:
+        button.setFocusPolicy(focus_policy)
+    return button
+
+
 def configure_unity_scroll_area(
     area: QScrollArea, *, borderless: bool = False,
     vertical_policy: Qt.ScrollBarPolicy | None = None,
@@ -527,8 +549,7 @@ class AtlasGuideParticipantButton(QToolButton):
         """Apply the shared title-row geometry, leaving menu/check behavior to the caller."""
         size = UNITY_CONTROL_SIZES_PX["guide_character_button"]
         icon_size = UNITY_CONTROL_SIZES_PX["guide_character_icon"]
-        self.setFixedSize(size, size)
-        self.setIconSize(QSize(icon_size, icon_size))
+        configure_unity_tool_button(self, box=(size, size), icon_size=icon_size)
         self.setToolButtonStyle(Qt.ToolButtonIconOnly)
 
     def paintEvent(self, event) -> None:
@@ -558,12 +579,12 @@ class AtlasGuideDisclosure(QToolButton):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setObjectName("GuideMetricDropdown")
+        configure_unity_tool_button(
+            self, object_name="GuideMetricDropdown", pointing=True,
+            focus_policy=Qt.StrongFocus,
+            icon_size=UNITY_CONTROL_SIZES_PX["progress_toggle_icon"],
+        )
         self.setCheckable(True)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFocusPolicy(Qt.StrongFocus)
-        icon_size = UNITY_CONTROL_SIZES_PX["progress_toggle_icon"]
-        self.setIconSize(QSize(icon_size, icon_size))
         self.toggled.connect(self._sync_direction)
         self._sync_direction(False)
 
@@ -609,9 +630,10 @@ class AtlasPanelToggle(QToolButton):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setObjectName("GuideRightPanelToggle")
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFocusPolicy(Qt.StrongFocus)
+        configure_unity_tool_button(
+            self, object_name="GuideRightPanelToggle", pointing=True,
+            focus_policy=Qt.StrongFocus,
+        )
         self.setProperty("collapsed", False)
         self.setText("›")
         self.setToolTip("Masquer la colonne d'informations")

@@ -29,7 +29,7 @@ from app.modules.encyclopedia.services.guide_progress_service import GuideProgre
 from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
 from app.ui.components import (
     AtlasGuideDisclosure, AtlasGuideParticipantButton, atlas_guide_character_icon,
-    configure_unity_progress_bar, configure_unity_scroll_area,
+    configure_unity_progress_bar, configure_unity_scroll_area, configure_unity_tool_button,
 )
 from app.ui.unity_palette import (
     UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
@@ -318,11 +318,9 @@ class ContinuousGuideRoutePanel(QWidget):
 
     @staticmethod
     def _button(text: str, name: str) -> QToolButton:
-        button = QToolButton()
-        button.setObjectName(name)
-        button.setText(text)
-        button.setCursor(Qt.PointingHandCursor)
-        return button
+        return configure_unity_tool_button(
+            QToolButton(), object_name=name, text=text, pointing=True,
+        )
 
     def toggle_preparation(self) -> None:
         if self.preparation_toggle.isEnabled():

@@ -35,7 +35,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton, AtlasPanelToggle, clear_unity_widget_layout, configure_unity_scroll_area, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasPanelToggle, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
@@ -122,10 +122,10 @@ class QuestDetailView(QWidget):
         title_layout.addWidget(self.title_label)
         title_layout.addWidget(self.meta_label)
         header_layout.addLayout(title_layout, 1)
-        self.done_button = QToolButton()
-        self.done_button.setObjectName("QuestGlobalDoneButton")
-        self.done_button.setCursor(Qt.PointingHandCursor)
-        self.done_button.setFocusPolicy(Qt.NoFocus)
+        self.done_button = configure_unity_tool_button(
+            QToolButton(), object_name="QuestGlobalDoneButton",
+            pointing=True, focus_policy=Qt.NoFocus,
+        )
         self.done_button.clicked.connect(self.toggle_completed)
         header_layout.addWidget(self.done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
         # The same Unity control serves Quêtes and the shared Guide quest sheet.

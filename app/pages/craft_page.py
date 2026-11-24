@@ -61,7 +61,7 @@ from app.ui.components import (
     AtlasButton, AtlasDialog, AtlasPageTitle,
     fit_unity_number_spinbox, release_transient_dialog,
     clear_current_dialog_reference, clear_unity_widget_layout,
-    configure_unity_scroll_area,
+    configure_unity_scroll_area, configure_unity_tool_button,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -1277,15 +1277,15 @@ class CraftPage(QWidget):
             for resource_name, _tag in resources:
                 item = self.find_job_resource(job_name, resource_name)
                 label = str(item.get("name", "Ressource"))
-                button = QToolButton()
-                button.setCursor(Qt.PointingHandCursor)
-                button.setObjectName("ResourceTile")
+                button = configure_unity_tool_button(
+                    QToolButton(), object_name="ResourceTile",
+                    box=CRAFT_GEOMETRY["resource_tile_box"],
+                    icon_size=CRAFT_GEOMETRY["resource_tile_artwork"],
+                    text=short_label(label, 10), pointing=True,
+                )
                 button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-                button.setText(short_label(label, 10))
                 button.setToolTip(label)
                 button.setIcon(self.icon_cache.icon_for_item(item))
-                button.setIconSize(QSize(16, 16))
-                button.setFixedSize(56, 42)
                 button.clicked.connect(lambda _checked=False, job=job_name, target=item: self.show_route(job, target))
                 self.job_grid.addWidget(button, tile_index // columns, tile_index % columns, alignment=Qt.AlignTop)
                 tile_index += 1

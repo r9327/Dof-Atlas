@@ -15,7 +15,7 @@ from app.core.text import normalize_world_label
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
-from app.ui.components import AtlasButton, AtlasPageTitle, clear_unity_widget_layout, configure_unity_scroll_area
+from app.ui.components import AtlasButton, AtlasPageTitle, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
 
 WORLD_SCAN_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["world_scan"]
@@ -121,14 +121,13 @@ class WorldScanPanel(QWidget):
         self.canvas.set_map_placeholder("Chargement de la cartographie…")
         root.addWidget(self.canvas, 1)
 
-        self.planet_button = QToolButton(self.canvas)
-        self.planet_button.setObjectName("WorldPlanetButton")
         icon_box = WORLD_SCAN_GEOMETRY["world_icon_box"]
-        self.planet_button.setFixedSize(icon_box, icon_box)
-        self.planet_button.setCursor(Qt.PointingHandCursor)
+        self.planet_button = configure_unity_tool_button(
+            QToolButton(self.canvas), object_name="WorldPlanetButton",
+            box=(icon_box, icon_box), icon_size=WORLD_SCAN_GEOMETRY["world_icon_artwork"],
+            pointing=True,
+        )
         self.planet_button.setIcon(self.planet_icon())
-        icon_art = WORLD_SCAN_GEOMETRY["world_icon_artwork"]
-        self.planet_button.setIconSize(QSize(icon_art, icon_art))
         self.planet_button.setToolTip("Sélection du monde")
         self.planet_button.clicked.connect(self.toggle_world_menu)
         self.planet_button.move(14, 14)
