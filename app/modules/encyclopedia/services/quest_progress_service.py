@@ -328,19 +328,15 @@ class QuestProgressService(CoordinatedProgressReader):
         than silently overwriting progress written by another live surface.
         """
         with self._coordinator.lock:
-            if self._seen_generation != self._coordinator.generation:
-                self.progress = load_quest_progress(self.path)
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_read_caches()
+            if (
+                self._seen_generation != self._coordinator.generation
+                or self._disk_signature != self._current_disk_signature()
+            ):
+                self._replace_snapshot_locked(self._coordinator.generation)
                 raise RuntimeError(
                     "Quest progress snapshot is stale; reload and apply the mutation again."
                 )
-            self._validate_write_snapshot()
-            save_quest_progress(self.progress, self.path)
-            self._seen_generation = self._coordinator.mark_changed()
-            self._disk_signature = self._current_disk_signature()
-            self._clear_read_caches()
+            self._write_locked()
 
     def _write_locked(self) -> None:
         self._validate_write_snapshot()
