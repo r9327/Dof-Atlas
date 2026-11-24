@@ -12,7 +12,11 @@ from app.constants import (
     NETWORK_CHARACTER_BINDINGS_FILE,
     PROFILE_FILE,
 )
-from app.core.file_stamp import mtime_size_stamp as _file_stamp
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
+
+
+def _file_stamp(path: Path | None) -> tuple[int, int, int]:
+    return mtime_ctime_size_stamp_or_zero(path) if path is not None else (0, 0, 0)
 from app.core.json_store import read_json_resilient
 from app.services.character_order_logic import (
     character_order_from_profile,
@@ -104,6 +108,11 @@ def cached_load_quest_characters(
     # Otherwise a concurrent reorder can store the wrong order under this key.
     ordered = sort_character_rows(rows, signature[1], label_getter=lambda row: row.label)
     frozen = tuple(replace(row) for row in ordered)
+    # Avoid caching a roster read across a concurrent client/binding rewrite.
+    # The logical order remains the single captured snapshot for this call.
+    if (_file_stamp(client_index_path) != signature[3]
+            or _file_stamp(_resolved_binding_path(profile_path, client_index_path, binding_path)) != signature[5]):
+        return _clone_characters(frozen)
     with _LOCK:
         cached = _CACHE.get(signature)
         if cached is None:

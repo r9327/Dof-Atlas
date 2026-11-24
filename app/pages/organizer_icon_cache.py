@@ -8,6 +8,7 @@ from app.constants import NETWORK_CHARACTER_BINDINGS_FILE
 from app.core.file_stamp import resolved_mtime_size_stamp as _file_stamp
 from app.network.character_resolver import merge_verified_binding_classes
 from app.pages import organizer_page as _organizer_page
+from app.pages.organizer.common import client_class_candidates
 
 
 _LOCK = RLock()
@@ -38,15 +39,8 @@ def _add_candidate(candidates: dict[str, set[str]], name: Any, class_key: Any) -
 
 
 def _collect_client_candidates(payload: object, candidates: dict[str, set[str]]) -> None:
-    clients = payload.get("clients", []) if isinstance(payload, dict) else []
-    for client in clients if isinstance(clients, list) else []:
-        if not isinstance(client, dict):
-            continue
-        display_name = str(client.get("character_name") or "").strip()
-        class_key = _valid_class_key(client.get("class_key"))
-        if not class_key:
-            class_key = _organizer_page.dofus_class_key_from_window_name(client.get("name")) or ""
-        _add_candidate(candidates, display_name, class_key)
+    for name, classes in client_class_candidates(payload).items():
+        candidates.setdefault(name, set()).update(classes)
 
 
 def _collect_binding_candidates(payload: object, candidates: dict[str, set[str]]) -> None:

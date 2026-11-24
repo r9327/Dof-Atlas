@@ -110,32 +110,31 @@ def dofus_class_key_for_character_name(value: Any) -> str | None:
     return class_key_from_client_index(value, read_json(CLIENT_INDEX_JSON, {"clients": []}))
 
 
+def client_class_candidates(payload: object) -> dict[str, set[str]]:
+    """One cosmetic metadata projection for direct and cached class lookup."""
+    candidates: dict[str, set[str]] = {}
+    clients = payload.get("clients", []) if isinstance(payload, dict) else []
+    for client in clients if isinstance(clients, list) else []:
+        if not isinstance(client, dict):
+            continue
+        name = normalize_key(client.get("character_name"))
+        if not name:
+            continue
+        class_key = normalize_key(client.get("class_key"))
+        if class_key not in DOFUS_CLASS_DEFINITIONS:
+            class_key = dofus_class_key_from_window_name(client.get("name")) or ""
+        if class_key:
+            candidates.setdefault(name, set()).add(class_key)
+    return candidates
+
+
 def class_key_from_client_index(value: Any, payload: object) -> str | None:
     """Resolve only unambiguous class metadata from an explicit index."""
     character_key = normalize_key(value)
     if not character_key:
         return None
-    clients = payload.get("clients", []) if isinstance(payload, dict) else []
-    if not isinstance(clients, list):
-        return None
-
-    matches: set[str] = set()
-    for client in clients:
-        if not isinstance(client, dict):
-            continue
-        display_name = str(client.get("character_name") or "").strip()
-        if normalize_key(display_name) != character_key:
-            continue
-        explicit_class = normalize_key(client.get("class_key"))
-        if explicit_class in DOFUS_CLASS_DEFINITIONS:
-            matches.add(explicit_class)
-            continue
-        inferred_class = dofus_class_key_from_window_name(client.get("name"))
-        if inferred_class:
-            matches.add(inferred_class)
-    if len(matches) != 1:
-        return None
-    return next(iter(matches))
+    matches = client_class_candidates(payload).get(character_key, set())
+    return next(iter(matches)) if len(matches) == 1 else None
 
 
 def class_icon_candidates(

@@ -125,6 +125,23 @@ class OrganizerIdentityOverflowTests(unittest.TestCase):
                 self.assertEqual(organizer_page.class_icon_candidates("pandawa"),
                                  common.class_icon_candidates("pandawa", directories=dirs))
 
+    def test_cached_and_direct_class_lookup_share_ambiguity_rules(self):
+        from app.pages.organizer.common import client_class_candidates, class_key_from_client_index
+        from app.pages.organizer_icon_cache import _collect_client_candidates
+        payload = {"clients": [
+            {"character_name": "Alpha", "class_key": "cra"},
+            {"character_name": "Alpha", "name": "Alpha - Pandawa"},
+            {"character_name": "Beta", "name": "Beta - Crâ"},
+            {"character_name": "", "class_key": "cra"},
+        ]}
+        expected = {"alpha": {"cra", "pandawa"}, "beta": {"cra"}}
+        self.assertEqual(client_class_candidates(payload), expected)
+        cached = {}
+        _collect_client_candidates(payload, cached)
+        self.assertEqual(cached, expected)
+        self.assertIsNone(class_key_from_client_index("Alpha", payload))
+        self.assertEqual(class_key_from_client_index("Beta", payload), "cra")
+
     def test_both_identity_paths_reject_duplicate_live_name_and_class(self):
         owner = CharacterSessionsMixin()
         owner.sessions = [{"nom": "Witsis", "hwnd": 101, "pid": 42},

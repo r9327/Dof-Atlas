@@ -282,6 +282,33 @@ class CoreSharedStateTests(unittest.TestCase):
             finally:
                 cache.clear_quest_character_cache()
 
+    def test_character_cache_does_not_publish_roster_during_source_rewrite(self) -> None:
+        from unittest.mock import patch
+        from app.pages import quest_character_cache as cache
+        from app.quest_catalog import QuestCharacter
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            clients = path / "clients"
+            clients.write_text("old", encoding="utf-8")
+            cache.clear_quest_character_cache()
+            try:
+                def changing_load(*args):
+                    clients.write_text("new source", encoding="utf-8")
+                    return [QuestCharacter("character:1", "Alpha", 1)]
+
+                with patch.object(cache, "_ORIGINAL_LOAD_QUEST_CHARACTERS", side_effect=changing_load):
+                    cache.cached_load_quest_characters(path / "profile", clients)
+                self.assertFalse(cache._CACHE)
+                with patch.object(cache, "_ORIGINAL_LOAD_QUEST_CHARACTERS",
+                                  return_value=[QuestCharacter("character:2", "Beta", 2)]) as load:
+                    rows = cache.cached_load_quest_characters(path / "profile", clients)
+                    self.assertEqual(rows[0].label, "Beta")
+                    cache.cached_load_quest_characters(path / "profile", clients)
+                    load.assert_called_once()
+            finally:
+                cache.clear_quest_character_cache()
+
     def test_optional_file_stamp_keeps_missing_and_strict_contracts(self) -> None:
         from app.core.file_stamp import mtime_size_stamp_optional
         from app.quest_catalog import _path_signature
