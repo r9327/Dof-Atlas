@@ -230,40 +230,29 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         )
 
     def first_incomplete_index(self, character_key: str) -> int:
-        # This method is also called directly by navigation handlers. Refresh the
-        # three progress snapshots before consulting the cache so a peer/external
-        # write cannot be hidden behind an otherwise valid old cache entry.
+        """Use the same completion rule for every derived guide runtime.
+
+        The warm path reuses the complete route snapshot. Cold navigation
+        stops at the first incomplete sheet without materializing the route.
+        """
         self.reload_progress()
         cache_key = self._route_cache_key(character_key)
-        cache = getattr(self, "_first_incomplete_cache", None)
-        if isinstance(cache, dict) and cache_key in cache:
+        flags = self._cached_completion(cache_key)
+        if flags is not None:
+            first = flags.find(b"\x00")
+            return first if first >= 0 else max(0, len(flags) - 1)
+        cache = getattr(self, "_first_incomplete_cache", {})
+        if cache_key in cache:
             return int(cache[cache_key])
-
-        # Fast migration path: historical completed cards are skipped from cached
-        # set membership, avoiding thousands of QWidget/state-level operations.
         completed_quests = self.quest_progress.completed_quest_ids(character_key)
-        achievement_state = self.achievement_progress.state_for(character_key)
         result = max(0, len(self.cards) - 1)
         for index, card in enumerate(self.cards):
-            quest_ids = self.card_quest_ids(card)
-            success_ids = self.card_success_ids(card)
-            historical_auto_done = (
-                bool(quest_ids)
-                and all(qid in completed_quests for qid in quest_ids)
-                and all(achievement_state.is_achievement_completed(aid) for aid in success_ids)
-                and self.class_gate_satisfied(character_key, card, completed_quests)
-            )
-            if historical_auto_done:
-                continue
             if not self.card_state(
-                character_key,
-                card,
-                index,
-                completed_quests=completed_quests,
+                character_key, card, index, completed_quests=completed_quests,
             ).complete:
                 result = index
                 break
-
         if self._route_cache_key(character_key) == cache_key:
             self._remember_route_result("_first_incomplete_cache", cache_key, result)
         return result
+

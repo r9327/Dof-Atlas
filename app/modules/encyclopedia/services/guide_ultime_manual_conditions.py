@@ -707,40 +707,6 @@ class GuideUltimeManualConditionsMixin:
             manual_total=state.manual_total,
         )
 
-    def first_incomplete_index(self, character_key: str) -> int:
-        # This is the production manual route override. Keep the same freshness
-        # and revision cache contract as GuideUltimeRuntimeService while applying
-        # the authored class/Order conditions above.
-        self.reload_progress()
-        cache_key_getter = getattr(self, "_route_cache_key", None)
-        cache_key = cache_key_getter(character_key) if callable(cache_key_getter) else None
-        cache = getattr(self, "_first_incomplete_cache", None)
-        if cache_key is not None and isinstance(cache, dict) and cache_key in cache:
-            return int(cache[cache_key])
-        cached_completion = getattr(self, "_cached_completion", None)
-        flags = cached_completion(cache_key) if cache_key is not None and callable(cached_completion) else None
-        if flags is not None:
-            first = flags.find(b"\x00")
-            return first if first >= 0 else max(0, len(flags) - 1)
-
-        completed_quests = self.quest_progress.completed_quest_ids(character_key)
-        result = max(0, len(self.cards) - 1)
-        for index, card in enumerate(self.cards):
-            if not self.card_state(
-                character_key,
-                card,
-                index,
-                completed_quests=completed_quests,
-            ).complete:
-                result = index
-                break
-
-        if cache_key is not None and cache_key_getter(character_key) == cache_key:
-            remember = getattr(self, "_remember_route_result", None)
-            if callable(remember):
-                remember("_first_incomplete_cache", cache_key, result)
-        return result
-
     def _append_ocre_policy_lines(self, result: list[dict[str, Any]], card: dict[str, Any]) -> None:
         stage = card.get("manual_stage_data") if isinstance(card.get("manual_stage_data"), dict) else {}
         if not stage and bool(card.get("manual_capture_transition")):

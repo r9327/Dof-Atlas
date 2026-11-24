@@ -20,6 +20,31 @@ class GuideManualStructuredRuntimeTests(unittest.TestCase):
         }
         return service
 
+    def test_first_incomplete_uses_one_rule_for_generated_and_manual_routes(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.services.guide_ultime_runtime_service import GuideUltimeRuntimeService
+
+        self.assertIs(GuideUltimeManualRuntimeService.first_incomplete_index,
+                      GuideUltimeRuntimeService.first_incomplete_index)
+        for runtime in (GuideUltimeRuntimeService, GuideUltimeManualRuntimeService):
+            with self.subTest(runtime=runtime.__name__):
+                service = object.__new__(runtime)
+                service.cards = [{"quest_ids": [101]}, {}, {}]
+                service.reload_progress = Mock()
+                service.quest_progress = SimpleNamespace(completed_quest_ids=lambda key: {101})
+                service._route_cache_key = lambda key: (key, 0)
+                service.card_state = Mock(side_effect=lambda key, card, index, **kw:
+                                          SimpleNamespace(complete=index != 0))
+                # Historical quest completion must not bypass the actual
+                # automatic conditions and class/order gates of the sheet.
+                self.assertEqual(service.first_incomplete_index("a"), 0)
+                self.assertEqual(service.card_state.call_count, 1)
+                self.assertEqual(service.route_sheet_progress("a"), (2, 3))
+                self.assertEqual(service.card_state.call_count, 4)
+                self.assertEqual(service.first_incomplete_index("a"), 0)
+                self.assertEqual(service.card_state.call_count, 4)
+
     def test_route_completion_cache_reuses_eight_characters_and_current_revision(self):
         from types import SimpleNamespace
         from unittest.mock import Mock
