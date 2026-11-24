@@ -23,6 +23,27 @@ class JsonStoreTests(unittest.TestCase):
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(encoding="utf-8"), '{"broken": ')
 
+    def test_unrepresentable_json_uses_both_existing_error_policies(self) -> None:
+        from app.core.json_store import InvalidPersistentJsonError, read_json_validated
+
+        for invalid in ('{"id": ' + "9" * 5000 + "}", "[" * 2000 + "]" * 2000):
+            with self.subTest(length=len(invalid)), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "settings.json"
+                path.write_text(invalid, encoding="utf-8")
+                self.assertEqual(read_json_resilient(path, {"default": True}), {"default": True})
+                with self.assertRaises(InvalidPersistentJsonError):
+                    read_json_validated(path, {}, lambda _payload: None)
+                self.assertEqual(path.read_text(encoding="utf-8"), invalid)
+                backups = list(Path(tmp).glob("settings.json.corrupt.*.bak"))
+                self.assertEqual(len(backups), 2)
+                self.assertTrue(all(p.read_text(encoding="utf-8") == invalid for p in backups))
+
+    def test_legacy_numeric_import_keeps_decimal_strings_and_rejects_infinity(self) -> None:
+        self.assertEqual(utils.safe_int("4.9"), 4)
+        for raw in (float("inf"), -float("inf"), "inf", "1e9999"):
+            with self.subTest(raw=raw):
+                self.assertEqual(utils.safe_int(raw, 7), 7)
+
     def test_atomic_writer_round_trips_unicode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "settings.json"
