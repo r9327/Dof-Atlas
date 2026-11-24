@@ -892,7 +892,7 @@ UNITY_UI_FAMILY_INDEX = {
         "components": (
             "GuideHeader", "GuidesHomeCategory", "GuideDofusCard",
             "GuideQuestLineActive", "GuideCompactHeader",
-            "GuidePreparationSummary", "GuidePreparationRow",
+            "GuidePreparationSummary", "GuidePreparationRow", "AtlasGuidePreparationRow",
             "GuideManualNav", "GuideUltimeGeneratedView", "SharedGuideManualView",
             "QuestLaunchPosition", "QComboBox",
         ),

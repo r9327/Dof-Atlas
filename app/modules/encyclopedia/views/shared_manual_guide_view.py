@@ -41,7 +41,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, atlas_guide_arrow_icon, fit_unity_number_spinbox, configure_unity_scroll_area, clear_unity_widget_layout
+from app.ui.components import AtlasButton, AtlasComboBox, atlas_guide_arrow_icon, configure_unity_scroll_area, clear_unity_widget_layout
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
 from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
@@ -53,6 +53,7 @@ from app.ui.components import (
     atlas_guide_symbol_icon as _guide_symbol_icon,
     _cached_atlas_guide_symbol_icon as _cached_guide_symbol_icon,
     configure_unity_tool_button, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
+    AtlasGuidePreparationRow, atlas_preparation_copy_button,
 )
 
 
@@ -783,6 +784,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_preview: tuple[tuple[str, str, int, int | None], ...] = ()
         self._preparation_loaded = False
         self._preparation_visible_limit = 80
+        self._preparation_rows: list[tuple[_PreparationNeed, AtlasGuidePreparationRow]] = []
+        self._preparation_category_labels: list[tuple[QLabel, tuple[_PreparationNeed, ...]]] = []
         # Draft counts are session-local; only the explicit Prêt action is persisted.
         self._preparation_quantity_drafts: dict[str, int] = {}
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
@@ -1169,12 +1172,17 @@ class SharedGuideManualView(GuideUltimeManualView):
         guide_id = str(getattr(self.service, "guide_id", "guide_complet") or "guide_complet")
         return preparation_ready_key(guide_id, need.item_key)
 
-    def _need_ready(self, need: _PreparationNeed) -> bool:
+    def _need_confirmed_count(self, need: _PreparationNeed) -> int:
         getter = getattr(self.service, "manual_checked", None)
-        if not callable(getter) or not need.required_by_character:
-            return False
+        if not callable(getter):
+            return 0
         key = self._ready_progress_key(need)
-        return all(getter(character_key, key) for character_key, _qty in need.required_by_character)
+        return sum(bool(getter(character_key, key)) for character_key, _qty in need.required_by_character)
+
+    def _need_ready(self, need: _PreparationNeed) -> bool:
+        return bool(need.required_by_character) and (
+            self._need_confirmed_count(need) == len(need.required_by_character)
+        )
 
     def _set_need_ready(self, need: _PreparationNeed, checked: bool) -> None:
         key = self._ready_progress_key(need)
@@ -1185,10 +1193,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         batcher = getattr(getattr(self.service, "guide_progress", None),
                           "set_manual_steps_for_characters", None)
         setter = getattr(self.service, "set_manual_checked", None)
-        if not keys or not callable(getter):
+        if not keys or len(keys) != len(need.required_by_character) or not callable(getter):
+            # A deleted participant cannot be silently removed from a pending
+            # confirmation. Refresh the real selection instead of writing a subset.
+            self._preparation_loaded = False
+            self._refresh_header()
             return
         expected = {character_key: bool(getter(character_key, key)) for character_key in keys}
         if all(value == bool(checked) for value in expected.values()):
+            self._sync_preparation_ready_rows()
             return
         saved = False
         if callable(batcher):
@@ -1219,12 +1232,27 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._preparation_quantity_drafts[need.item_key] = (
                 int(need.required_total or 0) if checked else 0
             )
-        # On conflict or unavailable persistence, render the actual saved
-        # state again; never invent a successful stock confirmation.
-        self._render_preparation(self.preparation_filter.currentText())
-        self._update_preparation_progress()
+        # Both success and conflict refresh the real persisted state without
+        # recreating widgets, image icons, opened details or scroll position.
+        self._sync_preparation_ready_rows()
+
+    def _sync_preparation_ready_rows(self) -> None:
+        counts = {need: self._need_confirmed_count(need) for need in self._preparation_needs}
+        ready_needs = {need for need, count in counts.items()
+                       if need.required_by_character and count == len(need.required_by_character)}
+        for need, row in self._preparation_rows:
+            owned = self._preparation_quantity_drafts.get(
+                need.item_key, int(need.required_total or 0) if need in ready_needs else 0
+            )
+            row.set_saved_state(confirmed=counts.get(need, 0),
+                                participants=len(need.required_by_character), owned=owned)
+        for label, needs in self._preparation_category_labels:
+            label.setText(f"{sum(need in ready_needs for need in needs)} / {len(needs)} prêts")
+        self._update_preparation_progress(ready_count=len(ready_needs))
 
     def _clear_preparation_rows(self) -> None:
+        self._preparation_rows.clear()
+        self._preparation_category_labels.clear()
         clear_unity_widget_layout(self.preparation_rows_layout, hide_widgets=True)
 
     def _show_more_preparation(self) -> None:
@@ -1341,6 +1369,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ready_count = sum(1 for need in matching if self._need_ready(need))
                 count_label = QLabel(f"{ready_count} / {len(matching)} prêts")
                 count_label.setObjectName("GuidePreparationSummaryCount")
+                self._preparation_category_labels.append((count_label, tuple(matching)))
                 row.addWidget(count_label)
                 self.preparation_rows_layout.addWidget(summary)
                 available = max(0, self._preparation_visible_limit - rendered_count)
@@ -1374,15 +1403,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _copyable_preparation_item(self, name: str, display: str,
                                    item_id: int | None) -> QPushButton:
-        button = AtlasButton(display, size="compact")
-        button.set_style_name("GuidePreparationItemCopy")
-        # The indexed transparent-button QSS already removes its chrome;
-        # Qt flat mode can suppress stylesheet text rendering on Windows.
-        button.setFlat(False)
-        button.setCursor(Qt.PointingHandCursor)
-        button.setToolTip(f"Cliquer pour copier : {name}")
-        button.setAccessibleName(f"Copier {name}")
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        button = atlas_preparation_copy_button(name, display)
         if item_id is not None:
             # Quest and Preparation use the same item -> iconId catalogue.
             # Sprite filenames are icon IDs, not necessarily database IDs.
@@ -1397,112 +1418,43 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Missing IDs or missing shipped artwork are NOT the same inventory
         # object. Show no icon rather than a misleading generic backpack.
         button.setIconSize(QSize(UNITY_CONTROL_SIZES_PX["guide_preparation_icon"], UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]))
-        button.clicked.connect(lambda _checked=False, value=name:
-                               QApplication.clipboard().setText(value))
         return button
 
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
-        frame = QFrame()
-        frame.setObjectName("GuidePreparationRow")
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(
-            UNITY_SPACING_PX["xs"], 0,
-            UNITY_SPACING_PX["xs"], 0,
-        )
-        layout.setSpacing(UNITY_SPACING_PX["xxs"])
-        top = QHBoxLayout()
-        top.setSpacing(UNITY_SPACING_PX["xs"])
-        ready = self._need_ready(need)
-        confirmed = sum(
-            1 for character_key, _quantity in need.required_by_character
-            if callable(getattr(self.service, "manual_checked", None))
-            and self.service.manual_checked(character_key, self._ready_progress_key(need))
-        )
+        confirmed = self._need_confirmed_count(need)
         total = len(need.required_by_character)
-        quantity = need.required_total
-        amount = (
-            "" if need.category in {"Prérequis", "Métiers"}
-            else f"{quantity} × " if quantity is not None else "? × "
-        )
-        status = "Prêt" if ready else f"{confirmed}/{total} prêts"
-        item_button = self._copyable_preparation_item(
-            need.name, need.name, need.item_id,
-        )
+        ready = bool(total and confirmed == total)
+        quantity = need.required_total if need.category not in {"Prérequis", "Métiers"} else None
+        item_button = self._copyable_preparation_item(need.name, need.name, need.item_id)
         item_button.setToolTip("Cliquer pour copier le nom · " +
                                (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
-        status_label = QLabel(status)
-        status_label.setObjectName("GuidePreparationRowStatus")
-        status_label.setProperty("ready", "true" if ready else "false")
-        counter = None
-        if quantity is not None and quantity > 0 and need.category not in {"Prérequis", "Métiers"}:
-            counter = QSpinBox()
-            counter.setObjectName("GuidePreparationQuantity")
-            counter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
-            counter.setRange(0, max(1, int(quantity)))
-            counter.setSuffix(f"/{quantity}")
-            fit_unity_number_spinbox(counter)
-            counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
-            draft = self._preparation_quantity_drafts.get(
-                need.item_key, int(quantity) if ready else 0
-            )
-            counter.setValue(max(0, min(int(quantity), draft)))
-            counter.valueChanged.connect(
-                lambda value, key=need.item_key:
-                self._preparation_quantity_drafts.__setitem__(key, value)
-            )
-        ready_button = QCheckBox()
-        ready_button.setObjectName("GuidePreparationReady")
-        ready_button.setChecked(ready)
+        frame = AtlasGuidePreparationRow(
+            need.name, quantity=quantity, confirmed=confirmed, participants=total,
+            owned=self._preparation_quantity_drafts.get(need.item_key, int(quantity or 0) if ready else 0),
+            stock_formatter=preparation_stock_presentation, name_button=item_button,
+        )
+        counter = frame.quantity_editor
+        ready_button = frame.ready_button
         ready_button.setToolTip("Confirmer Prêt pour les participants sélectionnés concernés")
-        ready_button.setAccessibleName(f"Valider {need.name}")
-        ready_button.setCursor(Qt.PointingHandCursor)
-        if len(need.required_by_character) > 1 and not callable(
+        if total > 1 and not callable(
             getattr(getattr(self.service, "guide_progress", None),
                     "set_manual_steps_for_characters", None)
         ):
             ready_button.setEnabled(False)
             ready_button.setToolTip("Sauvegarde atomique indisponible")
         if counter is not None:
-            # The stock counter is a session draft, not a saved proof of
-            # preparation. Reflect its useful remaining count immediately,
-            # but never check the saved Prêt box automatically.
-            def update_stock_label(value: int) -> None:
-                label, hint = preparation_stock_presentation(
-                    int(quantity), int(value), ready=ready,
-                    confirmed=confirmed, participants=total,
-                )
-                status_label.setText(label)
-                status_label.setToolTip(hint)
-
-            counter.valueChanged.connect(update_stock_label)
-            update_stock_label(counter.value())
-        ready_button.toggled.connect(
-            lambda checked, row=need: self._set_need_ready(row, checked)
-        )
-        # Same indexed row in every guide: ready | quantity | copyable name.
-        ready_button.setFixedWidth(
-            UNITY_CONTROL_SIZES_PX["guide_validation_width"]
-        )
-        top.addWidget(ready_button, 0, Qt.AlignVCenter)
-        if counter is not None:
-            top.addWidget(counter, 0, Qt.AlignVCenter)
-        else:
-            missing_quantity = QLabel("—")
-            missing_quantity.setObjectName("GuidePreparationQuantityPlaceholder")
-            missing_quantity.setFixedWidth(
-                UNITY_CONTROL_SIZES_PX["guide_quantity_width"]
+            counter.valueChanged.connect(
+                lambda value, key=need.item_key:
+                self._preparation_quantity_drafts.__setitem__(key, value)
             )
-            missing_quantity.setAlignment(Qt.AlignCenter)
-            top.addWidget(missing_quantity, 0, Qt.AlignVCenter)
-        top.addWidget(item_button, 1, Qt.AlignVCenter)
-        top.addWidget(status_label, 0, Qt.AlignVCenter)
+        ready_button.toggled.connect(lambda checked, row=need: self._set_need_ready(row, checked))
+        self._preparation_rows.append((need, frame))
         details_button = configure_unity_tool_button(
             QToolButton(), object_name="GuidePreparationDetailsButton",
         )
         details_button.setArrowType(Qt.RightArrow)
         details_button.setCheckable(True)
-        top.addWidget(details_button)
-        layout.addLayout(top)
+        frame.row_layout.addWidget(details_button)
         details = QFrame()
         details.setObjectName("GuidePreparationDetails")
         details_layout = QVBoxLayout(details)
@@ -1535,12 +1487,13 @@ class SharedGuideManualView(GuideUltimeManualView):
                 Qt.DownArrow if opened else Qt.RightArrow
             )
         )
-        layout.addWidget(details)
+        frame.body_layout.addWidget(details)
         return frame
 
-    def _update_preparation_progress(self) -> None:
+    def _update_preparation_progress(self, *, ready_count: int | None = None) -> None:
         total = len(self._preparation_needs)
-        ready = sum(1 for need in self._preparation_needs if self._need_ready(need))
+        ready = (sum(1 for need in self._preparation_needs if self._need_ready(need))
+                 if ready_count is None else ready_count)
         self.preparation_bar.setRange(0, max(1, total))
         self.preparation_bar.setValue(ready)
         self.preparation_progress_label.setText(

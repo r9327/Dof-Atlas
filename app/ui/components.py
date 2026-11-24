@@ -8,7 +8,9 @@ from typing import Callable, Literal
 from PySide6.QtCore import QObject, QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPen, QPixmap, QTransform
 from PySide6.QtWidgets import (
+    QApplication,
     QCalendarWidget,
+    QCheckBox,
     QComboBox,
     QDialog,
     QFrame,
@@ -1276,6 +1278,113 @@ class AtlasGuideReadingHeader(QFrame):
         self.preparation_button.setToolTip(
             f"{action} — {description}" if description else action
         )
+
+
+def atlas_preparation_copy_button(name: str, display: str | None = None) -> AtlasButton:
+    """Copy the real item name, independently of its visible presentation."""
+    button = AtlasButton(name if display is None else display, size="compact")
+    button.set_style_name("GuidePreparationItemCopy")
+    button.setFlat(False)
+    button.setToolTip(f"Cliquer pour copier : {name}")
+    button.setAccessibleName(f"Copier {name}")
+    button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    button.clicked.connect(lambda _checked=False: QApplication.clipboard().setText(name))
+    return button
+
+
+class AtlasGuidePreparationRow(QFrame):
+    """One preparation row for Dev UI and live Guides; the host owns persistence."""
+
+    def __init__(
+        self, name: str, *, quantity: int | None, owned: int = 0,
+        confirmed: int = 0, participants: int = 1,
+        stock_formatter: Callable[..., tuple[str, str]],
+        name_button: AtlasButton | None = None, parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuidePreparationRow")
+        self._stock_formatter = stock_formatter
+        self._confirmed = confirmed
+        self._participants = participants
+        self._ready = bool(participants and confirmed == participants)
+        self.body_layout = QVBoxLayout(self)
+        self.body_layout.setContentsMargins(UNITY_SPACING_PX["xs"], 0, UNITY_SPACING_PX["xs"], 0)
+        self.body_layout.setSpacing(UNITY_SPACING_PX["xxs"])
+        self.row_layout = QHBoxLayout()
+        self.row_layout.setSpacing(UNITY_SPACING_PX["xs"])
+        self.body_layout.addLayout(self.row_layout)
+
+        self.ready_button = QCheckBox()
+        self.ready_button.setObjectName("GuidePreparationReady")
+        self.ready_button.setAccessibleName(f"Valider {name}")
+        self.ready_button.setToolTip("Confirmer Prêt")
+        self.ready_button.setCursor(Qt.PointingHandCursor)
+        self.ready_button.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_validation_width"])
+        self.ready_button.setChecked(self._ready)
+        self.row_layout.addWidget(self.ready_button, 0, Qt.AlignVCenter)
+
+        self.quantity_editor: QSpinBox | None = None
+        if quantity is not None and quantity > 0:
+            counter = QSpinBox()
+            counter.setObjectName("GuidePreparationQuantity")
+            counter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
+            counter.setRange(0, int(quantity))
+            counter.setSuffix(f"/{quantity}")
+            fit_unity_number_spinbox(counter)
+            counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
+            counter.setValue(max(0, min(int(quantity), int(owned))))
+            self.quantity_editor = counter
+            self.row_layout.addWidget(counter, 0, Qt.AlignVCenter)
+        else:
+            placeholder = QLabel("—")
+            placeholder.setObjectName("GuidePreparationQuantityPlaceholder")
+            placeholder.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_quantity_width"])
+            placeholder.setAlignment(Qt.AlignCenter)
+            self.row_layout.addWidget(placeholder, 0, Qt.AlignVCenter)
+
+        self.name_button = name_button if name_button is not None else atlas_preparation_copy_button(name)
+        self.row_layout.addWidget(self.name_button, 1, Qt.AlignVCenter)
+        self.status_label = QLabel()
+        self.status_label.setObjectName("GuidePreparationRowStatus")
+        self.row_layout.addWidget(self.status_label, 0, Qt.AlignVCenter)
+        if self.quantity_editor is not None:
+            self.quantity_editor.valueChanged.connect(self._refresh_status)
+        self._refresh_status()
+
+    def _refresh_status(self, _changed: int | None = None) -> None:
+        counter = self.quantity_editor
+        if counter is not None:
+            text, tooltip = self._stock_formatter(
+                counter.maximum(), counter.value(), ready=self._ready,
+                confirmed=self._confirmed, participants=self._participants,
+            )
+        else:
+            text = "Prêt" if self._ready else f"{self._confirmed}/{self._participants} prêts"
+            tooltip = text
+        if self.status_label.text() != text:
+            self.status_label.setText(text)
+        if self.status_label.toolTip() != tooltip:
+            self.status_label.setToolTip(tooltip)
+        set_unity_widget_property(self.status_label, "ready", "true" if self._ready else "false")
+
+    def set_saved_state(self, *, confirmed: int, participants: int, owned: int | None = None) -> None:
+        """Refresh widgets in place without emitting a second save request."""
+        self._confirmed = confirmed
+        self._participants = participants
+        self._ready = bool(participants and confirmed == participants)
+        blocked = self.ready_button.blockSignals(True)
+        try:
+            self.ready_button.setChecked(self._ready)
+        finally:
+            self.ready_button.blockSignals(blocked)
+        counter = self.quantity_editor
+        if counter is not None and owned is not None:
+            blocked = counter.blockSignals(True)
+            try:
+                counter.setValue(max(0, min(counter.maximum(), int(owned))))
+            finally:
+                counter.blockSignals(blocked)
+        self._refresh_status()
 
 
 class AtlasGuideSheetHeader(QFrame):

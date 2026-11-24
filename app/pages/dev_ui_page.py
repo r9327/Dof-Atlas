@@ -13,7 +13,6 @@ from PySide6.QtCore import QDate, QEasingCurve, QEvent, QPropertyAnimation, QSiz
 from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QApplication,
     QCheckBox,
     QCalendarWidget,
     QDateEdit,
@@ -69,6 +68,7 @@ from app.ui.components import (
     AtlasGuideParticipantButton,
     fit_unity_number_spinbox,
     AtlasGuideCover, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
+    AtlasGuidePreparationRow,
     AtlasStatusBadge,
     atlas_application_icon,
     apply_unity_calendar_weekdays,
@@ -628,61 +628,23 @@ class DevUiPage(QWidget):
             ("Clefs", "Clef du donjon", 1, False),
             ("Objets", "Ressources à récupérer", 8, False),
         ):
-            item = QFrame()
-            item.setObjectName("GuidePreparationRow")
-            row = QHBoxLayout(item)
-            row.setContentsMargins(UNITY_SPACING_PX["xs"], 0, UNITY_SPACING_PX["xs"], 0)
-            copy_button = AtlasButton(name, variant="secondary", size="compact")
-            copy_button.set_style_name("GuidePreparationItemCopy")
-            copy_button.setFlat(False)
-            copy_button.setCursor(Qt.PointingHandCursor)
-            copy_button.setToolTip(f"Cliquer pour copier : {name}")
-            copy_button.setAccessibleName(f"Copier {name}")
-            copy_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            copy_button.clicked.connect(
-                lambda _checked=False, text=name:
-                QApplication.clipboard().setText(text)
+            # The gallery uses the same live row, but no persistence or
+            # invented quantity for non-material requirements.
+            required = quantity if category not in {"Prérequis", "Métiers"} else None
+            item = AtlasGuidePreparationRow(
+                name, quantity=required, owned=quantity if done else 0,
+                confirmed=int(done), participants=1,
+                stock_formatter=preparation_stock_presentation,
             )
-            amount = QSpinBox()
-            amount.setObjectName("GuidePreparationQuantity")
-            amount.setFixedHeight(UNITY_SIZES_PX["control_compact"])
-            amount.setRange(0, quantity)
-            amount.setValue(quantity if done else 0)
-            amount.setSuffix(f"/{quantity}")
-            fit_unity_number_spinbox(amount)
-            amount.setToolTip("Quantité possédée · aperçu fictif")
-            checkbox = QCheckBox()
-            checkbox.setObjectName("GuidePreparationReady")
-            checkbox.setChecked(done)
+            amount = item.quantity_editor
+            checkbox = item.ready_button
+            copy_button = item.name_button
             checkbox.setToolTip("Marquer comme prêt · aperçu fictif")
-            checkbox.setAccessibleName(f"Valider {name}")
             checkbox.toggled.connect(
-                lambda checked, spin=amount: spin.setValue(
-                    spin.maximum() if checked else 0
+                lambda checked, row=item, total=quantity: row.set_saved_state(
+                    confirmed=int(checked), participants=1, owned=total if checked else 0,
                 )
             )
-            checkbox.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_validation_width"])
-            row.addWidget(checkbox, 0, Qt.AlignVCenter)
-            row.addWidget(amount, 0, Qt.AlignVCenter)
-            row.addWidget(copy_button, 1, Qt.AlignVCenter)
-            status_label = QLabel()
-            status_label.setObjectName("GuidePreparationRowStatus")
-            row.addWidget(status_label, 0, Qt.AlignVCenter)
-
-            def refresh_example_stock(
-                _changed=None, *,
-                spin=amount, box=checkbox, label=status_label,
-                required=quantity,
-            ) -> None:
-                text, tooltip = preparation_stock_presentation(
-                    required, spin.value(), ready=box.isChecked(),
-                )
-                label.setText(text)
-                label.setToolTip(tooltip)
-
-            amount.valueChanged.connect(refresh_example_stock)
-            checkbox.toggled.connect(refresh_example_stock)
-            refresh_example_stock()
             materials_layout.addWidget(item)
             self.preview_header_preparation_examples.append((item, category, name))
             self.preview_header_preparation_rows.append((amount, checkbox))
@@ -1875,16 +1837,19 @@ class DevUiPage(QWidget):
         summary_layout.addWidget(QLabel("Préparation · fond et bordures Unity"))
         section.addWidget(self.guide_sample_summary)
 
-        self.guide_sample_row = QFrame()
-        self.guide_sample_row.setObjectName("GuidePreparationRow")
-        row_layout = QHBoxLayout(self.guide_sample_row)
-        row_layout.addWidget(QLabel("Ressource de démonstration"), 1)
-        self.guide_copy_button = AtlasButton("Copier", variant="secondary")
-        self.guide_copy_button.set_style_name("GuidePreparationItemCopy")
+        self.guide_sample_row = AtlasGuidePreparationRow(
+            "Ressource de démonstration", quantity=3,
+            stock_formatter=preparation_stock_presentation,
+        )
+        self.guide_copy_button = self.guide_sample_row.name_button
+        self.guide_sample_row.ready_button.toggled.connect(
+            lambda checked: self.guide_sample_row.set_saved_state(
+                confirmed=int(checked), participants=1, owned=3 if checked else 0,
+            )
+        )
         self.guide_copy_button.clicked.connect(
             lambda: self._report("Guide · bouton Copier cliqué")
         )
-        row_layout.addWidget(self.guide_copy_button)
         section.addWidget(self.guide_sample_row)
 
         self.guide_manual_nav = QFrame()

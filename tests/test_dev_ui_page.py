@@ -702,7 +702,12 @@ class DevUiPageTests(unittest.TestCase):
             self.assertFalse(checkbox.isChecked())
             checkbox.click()
             self.assertEqual((quantity.value(), checkbox.isChecked()), (1, True))
-            row = checkbox.parentWidget().layout()
+            from app.ui.components import AtlasGuidePreparationRow
+            item = page.preview_header_preparation_examples[4][0]
+            self.assertIsInstance(item, AtlasGuidePreparationRow)
+            self.assertIsNone(page.preview_header_preparation_rows[0][0])
+            self.assertIsNone(page.preview_header_preparation_rows[1][0])
+            row = item.row_layout
             self.assertIs(row.itemAt(0).widget(), checkbox)
             self.assertIs(row.itemAt(1).widget(), quantity)
             copy = row.itemAt(2).widget()

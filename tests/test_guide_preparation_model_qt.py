@@ -381,11 +381,11 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(view._preparation_needs, ())
         self.assertEqual(view.preparation_progress_label.text(), "—")
         self.assertEqual(view.global_progress_label.text(), "100 %")
-        labels = view.preparation_panel.findChildren(QLabel, "GuidePreparationEmpty")
-        self.assertTrue(any(
-            "Aucun besoin confirmé" in label.text()
-            for label in labels
-        ))
+        self.assertFalse(view.preparation_button.isVisible())
+        self.assertFalse(view.preparation_panel.isVisible())
+        self.assertFalse(any(button.isVisible() for button in view.preparation_panel.findChildren(
+            QPushButton, "GuidePreparationItemCopy",
+        )))
 
     def test_missing_selected_character_keeps_copyable_readonly_preview(self):
         # Selection can outlive a removed profile, which must not hide the
@@ -403,6 +403,40 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertFalse(view.preparation_panel.findChildren(
             QCheckBox, "GuidePreparationReady",
         ))
+
+    def test_ready_updates_existing_row_and_category_without_rebuilding_widgets(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        from app.ui.components import AtlasGuidePreparationRow
+        row = view.preparation_panel.findChild(AtlasGuidePreparationRow)
+        details = row.findChild(QToolButton, "GuidePreparationDetailsButton")
+        details.click()
+        with patch.object(view, "_render_preparation", wraps=view._render_preparation) as rebuild:
+            row.ready_button.click()
+            QApplication.processEvents()
+            rebuild.assert_not_called()
+        self.assertIs(view.preparation_panel.findChild(AtlasGuidePreparationRow), row)
+        self.assertTrue(details.isChecked())
+        self.assertEqual(row.quantity_editor.value(), 2)
+        self.assertEqual(row.status_label.text(), "Prêt")
+        self.assertEqual(view.preparation_bar.value(), 1)
+        self.assertEqual(view.preparation_panel.findChild(
+            QLabel, "GuidePreparationSummaryCount",
+        ).text(), "1 / 1 prêts")
+
+    def test_rejected_ready_write_does_not_claim_draft_quantity_or_ready(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        from app.ui.components import AtlasGuidePreparationRow
+        row = view.preparation_panel.findChild(AtlasGuidePreparationRow)
+        row.quantity_editor.setValue(1)
+        with patch.object(self.service.guide_progress, "set_manual_steps_for_characters",
+                          side_effect=RuntimeError("concurrent update")):
+            row.ready_button.click()
+        self.assertFalse(row.ready_button.isChecked())
+        self.assertEqual(row.quantity_editor.value(), 1)
+        self.assertEqual(row.status_label.text(), "Manque 1")
+        self.assertEqual(view.preparation_bar.value(), 0)
 
     def test_atomic_team_ready_and_undo_survive_real_reload(self):
         self.participants.save_selected_keys(("character:1", "character:2"))
