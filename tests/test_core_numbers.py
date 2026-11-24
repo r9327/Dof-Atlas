@@ -146,9 +146,24 @@ class OptionalIntTests(unittest.TestCase):
                 self.assertEqual(optional_int(raw, 7), 7)
 
     def test_invalid_values_return_none(self):
-        for raw in (None, "bad", {}, float("nan")):
+        for raw in (None, "bad", {}, float("nan"), float("inf"), -float("inf")):
             with self.subTest(raw=repr(raw)):
                 self.assertIsNone(optional_int(raw))
+
+
+    def test_overflow_uses_optional_fallback_in_all_shared_readers(self):
+        class Overflow:
+            def __int__(self):
+                raise OverflowError("out of range")
+
+        for value in (float("inf"), -float("inf"), Overflow()):
+            with self.subTest(value=value):
+                self.assertIsNone(optional_int(value))
+                self.assertEqual(optional_int(value, 7), 7)
+                self.assertIsNone(positive_int(value))
+                self.assertIsNone(coerce_positive_int(value))
+                self.assertIsNone(item_id({"id": value}))
+        self.assertEqual(valid_int_ids([1, float("inf"), 2]), frozenset({1, 2}))
 
 
 class CoercePositiveIntTests(unittest.TestCase):
