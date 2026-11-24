@@ -44,6 +44,12 @@ def mtime_ctime_size_stamp_or_zero(path: Path) -> tuple[int, int, int]:
     return mtime_ctime_size_stamp(path) or (0, 0, 0)
 
 
+def size_mtime_ctime_inode_stamp(path: Path) -> tuple[int, int, int, int]:
+    """Strict generation identity for a source and its paired index."""
+    stat = Path(path).stat()
+    return (int(stat.st_size), int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_ino))
+
+
 def source_file_sizes(
     root: Path,
     files: Iterable[tuple[str, str]],

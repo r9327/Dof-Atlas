@@ -18,6 +18,7 @@ from uuid import uuid4
 
 from app.constants import RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.core.cache_write_lock import exclusive_cache_write_lock as _achievement_compact_write_lock
+from app.core.file_stamp import size_mtime_ctime_inode_stamp
 from app.modules.encyclopedia.achievement_catalog_policy import RETAINED_TOP_CATEGORY_IDS
 from app.modules.encyclopedia.models.achievement import (
     Achievement,
@@ -68,14 +69,10 @@ def _achievement_compact_source_signature(data_dir: Path) -> list[list[object]]:
     for relative in _ACHIEVEMENT_COMPACT_SOURCES:
         path = data_dir / relative
         try:
-            stat = path.stat()
+            stamp = size_mtime_ctime_inode_stamp(path)
         except OSError:
-            signature.append([relative, -1, -1, -1, -1])
-            continue
-        signature.append([
-            relative, int(stat.st_size), int(stat.st_mtime_ns),
-            int(stat.st_ctime_ns), int(stat.st_ino),
-        ])
+            stamp = (-1, -1, -1, -1)
+        signature.append([relative, *stamp])
     return signature
 
 
@@ -779,14 +776,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
         # The JSONL and its offset sidecar are published separately. Detect
         # concurrent replacement before installing an incoherent catalogue.
-        def fingerprint(path: Path) -> tuple[int, int, int, int]:
-            stat = path.stat()
-            return stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino
-
         source_path = ACHIEVEMENT_COMPACT_CACHE
         sidecar_path = _achievement_compact_index_path(source_path)
-        source_generation = fingerprint(source_path)
-        sidecar_generation = fingerprint(sidecar_path)
+        source_generation = size_mtime_ctime_inode_stamp(source_path)
+        sidecar_generation = size_mtime_ctime_inode_stamp(sidecar_path)
         try:
             index_payload = json.loads(
                 sidecar_path.read_text(encoding="utf-8")
@@ -888,8 +881,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             or source_marker != index_marker
         ):
             raise RuntimeError("Cache compact Succès et index de générations différentes")
-        if (fingerprint(source_path) != source_generation
-                or fingerprint(sidecar_path) != sidecar_generation):
+        if (size_mtime_ctime_inode_stamp(source_path) != source_generation
+                or size_mtime_ctime_inode_stamp(sidecar_path) != sidecar_generation):
             raise RuntimeError("Cache compact Succès remplacé pendant le chargement")
 
         self._categories = categories

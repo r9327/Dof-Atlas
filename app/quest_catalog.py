@@ -22,7 +22,7 @@ from app.constants import (
     RAW_QUEST_DATA_DIR,
     ROOT_DIR,
 )
-from app.core.character_identity import character_id_from_key
+from app.core.character_identity import character_id_from_key, is_verified_character_binding
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.file_stamp import mtime_size_stamp_optional
 from app.core.doduda_rows import array_rows as array_value, rows_by_id, keyed_rows
@@ -1397,8 +1397,7 @@ def load_quest_characters(
             candidate_id = character_id_from_key(client.get("character_key"))
             row = identities.get(candidate_id) if candidate_id is not None else None
             if (
-                row is None
-                or row.get("source") != "verified_network_identity"
+                not is_verified_character_binding(row)
                 or normalize_text(row.get("name")) != normalize_text(name)
             ):
                 continue
@@ -1443,7 +1442,7 @@ def load_quest_characters(
                 connected=connected is not None,
                 class_key=(
                     str(row.get("class_key") or "").strip().lower()
-                    if row.get("source") == "verified_network_identity"
+                    if is_verified_character_binding(row)
                     and isinstance(row.get("class_key"), str)
                     and str(row.get("class_key")).isascii()
                     and str(row.get("class_key")).isalpha()

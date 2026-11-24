@@ -297,6 +297,18 @@ class CoreSharedStateTests(unittest.TestCase):
             self.assertEqual(stamp[1], 4)
             self.assertEqual(_path_signature("source", path), ("source", str(path), *stamp))
 
+    def test_verified_character_binding_iterator_keeps_real_id_and_provenance(self) -> None:
+        from app.core.character_identity import iter_verified_character_bindings
+
+        proven = {"source": "verified_network_identity"}
+        payload = {
+            "characters": {"1": proven, " 2 ": proven, "3": {"source": "inferred"}, "bad": proven},
+            "slots": {"8": {**proven, "character_id": 22}, "7": proven},
+        }
+        self.assertEqual([ident for ident, _ in iter_verified_character_bindings(payload, strict_registry_keys=True)], [1])
+        self.assertEqual([ident for ident, _ in iter_verified_character_bindings(payload, include_legacy_slots=True)], [1, 2, 22])
+        self.assertEqual(list(iter_verified_character_bindings(None)), [])
+
     def test_file_stamps_match_existing_cache_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index.json"

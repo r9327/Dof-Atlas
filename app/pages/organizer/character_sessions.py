@@ -27,6 +27,7 @@ from app.constants import (
     PROFILE_FILE,
 )
 from app.core.file_stamp import resolved_mtime_size_stamp
+from app.core.character_identity import iter_verified_character_bindings
 from app.quest_catalog import is_generic_dofus_client_name
 from app.services.profile_settings_service import ProfileSettingsService
 from app.storage import (
@@ -82,21 +83,10 @@ class CharacterSessionsMixin:
         if stamp == getattr(self, "_verified_character_rows_stamp", None):
             return getattr(self, "_verified_character_rows_cache", ())
         payload = read_json(path, {})
-        characters = payload.get("characters", {}) if isinstance(payload, dict) else {}
-        rows: list[tuple[int, dict[str, Any]]] = []
-        for raw_id, row in characters.items() if isinstance(characters, dict) else ():
-            if not str(raw_id).isdigit() or not isinstance(row, dict):
-                continue
-            try:
-                character_id = int(raw_id)
-            except (ValueError, OverflowError):
-                # Unicode digit-like keys and oversized integers must not
-                # interrupt the entire verified identity refresh.
-                continue
-            if character_id <= 0 or str(row.get("source") or "") != "verified_network_identity":
-                continue
-            rows.append((character_id, dict(row)))
-        result = tuple(rows)
+        result = tuple(
+            (ident, dict(row))
+            for ident, row in iter_verified_character_bindings(payload, strict_registry_keys=True)
+        )
         self._verified_character_rows_stamp = stamp
         self._verified_character_rows_cache = result
         return result
