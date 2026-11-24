@@ -30,6 +30,9 @@ class LazyQuestsPage(QuestsPage):
         self._detail_pending = False
         self._search_worker = None
         self._search_results = Queue()
+        self._navigation_suspended = False
+        self._resume_detail = False
+        self._resume_search = False
         super().__init__(*args, **kwargs)
         self._detail_timer = QTimer(self)
         self._detail_timer.setInterval(30)
@@ -49,6 +52,51 @@ class LazyQuestsPage(QuestsPage):
                 margins.right(),
                 margins.bottom(),
             )
+
+    def hideEvent(self, event) -> None:
+        self._navigation_suspended = True
+        self._resume_detail = self._resume_detail or self._detail_pending
+        self._detail_pending = False
+        self._resume_search = (
+            self._resume_search or self._search_worker is not None
+            or self._search_debounce_timer.isActive()
+        )
+        self._detail_timer.stop()
+        self._search_index_timer.stop()
+        self._search_debounce_timer.stop()
+        # Never join a catalogue worker in the UI navigation path.
+        super().hideEvent(event)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if not self._navigation_suspended:
+            return
+        self._navigation_suspended = False
+        if self._detail_worker is not None:
+            self._detail_timer.start()
+        if self._search_worker is not None:
+            self._search_index_timer.start()
+        resume_detail, self._resume_detail = self._resume_detail, False
+        resume_search, self._resume_search = self._resume_search, False
+        if resume_detail and self.selected_quest_id is not None:
+            self.show_quest_detail(self.selected_quest_id)
+        if resume_search and len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS:
+            self.refresh_quests()
+
+    def release_runtime(self) -> None:
+        """Detach this UI from outstanding workers; their queues are UI-free."""
+        self._navigation_suspended = True
+        self._detail_pending = False
+        self._resume_detail = False
+        self._resume_search = False
+        self._requested_detail_id = None
+        self._detail_timer.stop()
+        self._search_index_timer.stop()
+        self._search_debounce_timer.stop()
+        self._detail_results = Queue()
+        self._search_results = Queue()
+        self._detail_worker = None
+        self._search_worker = None
 
     @staticmethod
     def _file_stamp(path: Path) -> tuple[int, int, int]:
@@ -108,6 +156,9 @@ class LazyQuestsPage(QuestsPage):
     def show_quest_detail(self, quest_id: int) -> None:
         quest_id = int(quest_id)
         self._requested_detail_id = quest_id
+        if self._navigation_suspended:
+            self._resume_detail = True
+            return
         if getattr(self.catalog, "deferred_details", False) and not self.catalog.is_detail_cached(quest_id):
             self._detail_pending = True
             self.clear_detail_columns()
@@ -156,6 +207,8 @@ class LazyQuestsPage(QuestsPage):
         self._detail_timer.start()
 
     def _collect_detail(self) -> None:
+        if self._navigation_suspended:
+            return
         try:
             quest_id, error = self._detail_results.get_nowait()
         except Empty:
@@ -226,6 +279,9 @@ class LazyQuestsPage(QuestsPage):
         return text
 
     def matching_quests(self):
+        if self._navigation_suspended:
+            self._resume_search = len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS
+            return []
         if (
             getattr(self.catalog, "deferred_details", False)
             and len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS
@@ -257,18 +313,23 @@ class LazyQuestsPage(QuestsPage):
         return super().matching_quests()
 
     def _collect_search_index(self):
+        if self._navigation_suspended:
+            return
         try:
             documents, error = self._search_results.get_nowait()
         except Empty:
             return
         self._search_worker = None
         self._search_index_timer.stop()
+        active_query = len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS
         if error is not None:
-            self.status_callback(f"Recherche indisponible : {error}")
+            if active_query:
+                self.status_callback(f"Recherche indisponible : {error}")
             return
         self.catalog._prebuilt_quest_search_text = documents
         self._quest_search_text_cache.clear()
-        self.refresh_quests()
+        if active_query:
+            self.refresh_quests()
 
 
 __all__ = ["LazyQuestsPage"]

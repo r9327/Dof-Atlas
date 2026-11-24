@@ -464,6 +464,55 @@ class DeferredQuestUiTests(unittest.TestCase):
                     actual.deleteLater()
                     app.processEvents()
 
+    def test_hidden_quest_ignores_worker_result_and_resumes_latest_selection(self):
+        from PySide6.QtWidgets import QApplication
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        app = QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalog = QuestDetailsTests().build(root)
+            entered, release = threading.Event(), threading.Event()
+            def compile(*args, **kwargs):
+                if kwargs["quest_ids"] == {1}:
+                    entered.set()
+                    release.wait(3)
+                return QuestDetailsTests.compile(*args, **kwargs)
+            page = LazyQuestsPage(lambda _: None, catalog=catalog, progress_path=root/"progress.json",
+                achievement_progress_path=root/"success.json", profile_path=root/"profile.json",
+                client_index_path=root/"clients.json", owned_items_path=root/"items.json")
+            try:
+                page.show()
+                app.processEvents()
+                with patch.object(QuestCatalog, "_load_source", side_effect=compile):
+                    page.select_quest(1, persist=False)
+                    self.assertTrue(entered.wait(1))
+                    worker = page._detail_worker
+                    page.hide()
+                    self.assertTrue(page._navigation_suspended)
+                    self.assertFalse(page._detail_timer.isActive())
+                    page.select_quest(2, persist=False)
+                    self.assertIs(page._detail_worker, worker)
+                    release.set()
+                    worker.join(3)
+                    page._collect_detail()
+                    self.assertFalse(page._detail_pending)
+                    self.assertNotEqual(getattr(page.quest_detail_view, "current_quest_id", None), 1)
+                    page.show()
+                    deadline = time.monotonic() + 4
+                    while (page._detail_pending or page._detail_worker is not None) and time.monotonic() < deadline:
+                        app.processEvents()
+                        time.sleep(.005)
+                    self.assertEqual(page.quest_detail_view.current_quest_id, 2)
+                    self.assertFalse(page._detail_pending)
+                    self.assertFalse(page._detail_timer.isActive())
+            finally:
+                release.set()
+                if page._detail_worker is not None:
+                    page._detail_worker.join(4)
+                page.release_runtime()
+                page.deleteLater()
+                app.processEvents()
+
     def test_fast_selection_renders_only_latest_and_reuses_a(self):
         from PySide6.QtWidgets import QApplication
         from app.pages.lazy_quests_page import LazyQuestsPage
