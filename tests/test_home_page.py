@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication
 
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.pages.home_page import HomePage, HomeTrackingRow
-from app.core.file_stamp import mtime_size_stamp
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
 
 
 class HomeNetworkIndicatorTests(unittest.TestCase):
@@ -22,12 +22,41 @@ class HomeNetworkIndicatorTests(unittest.TestCase):
     def test_home_progress_file_stamp_is_shared_and_handles_missing_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "quest_progress.json"
-            self.assertEqual(HomePage._progress_file_stamp(path), (0, 0))
+            self.assertEqual(HomePage._progress_file_stamp(path), (0, 0, 0))
             path.write_text('{"characters":{}}', encoding="utf-8")
-            self.assertEqual(HomePage._progress_file_stamp(path), mtime_size_stamp(path))
-            self.assertEqual(HomePage._progress_file_stamp(path)[1], path.stat().st_size)
+            self.assertEqual(HomePage._progress_file_stamp(path), mtime_ctime_size_stamp_or_zero(path))
+            self.assertEqual(HomePage._progress_file_stamp(path)[2], path.stat().st_size)
             path.unlink()
-            self.assertEqual(HomePage._progress_file_stamp(path), (0, 0))
+            self.assertEqual(HomePage._progress_file_stamp(path), (0, 0, 0))
+
+    def test_empty_character_icon_uses_logo_and_same_path_replacement_refreshes(self):
+        from unittest.mock import patch
+        from PySide6.QtGui import QImage, QIcon
+        page = HomePage()
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                logo = root / "logo.png"
+                image = QImage(24, 24, QImage.Format_ARGB32)
+                image.fill(0xFF336699)
+                self.assertTrue(image.save(str(logo), "PNG"))
+                with patch("app.pages.home_page.LOGO_PATH", logo), \
+                     patch("app.pages.home_page.atlas_application_icon", return_value=QIcon(str(logo))) as fallback, \
+                     patch.object(page, "refresh_progress"):
+                    page.set_character("character:1", "Alpha", "")
+                    fallback.assert_called_once()
+                    self.assertFalse(page.character_portrait.icon().isNull())
+                    skin = root / "skin.png"
+                    image.save(str(skin), "PNG")
+                    page.set_character("character:1", "Alpha", str(skin))
+                    before = page._character_icon_signature
+                    replacement = QImage(42, 42, QImage.Format_ARGB32)
+                    replacement.fill(0xFFFF0000)
+                    replacement.save(str(skin), "PNG")
+                    page.set_character("character:1", "Alpha", str(skin))
+                    self.assertNotEqual(page._character_icon_signature, before)
+        finally:
+            page.deleteLater()
 
     def test_home_uses_canonical_runtime_without_optional_legacy_provider(self) -> None:
         from unittest.mock import patch

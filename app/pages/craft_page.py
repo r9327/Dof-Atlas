@@ -63,7 +63,8 @@ from app.storage import (
 )
 from app.ui.components import (
     AtlasButton, AtlasDialog, AtlasPageTitle,
-    fit_unity_number_spinbox, present_transient_dialog, exec_transient_dialog,
+    configure_unity_number_spinbox, restore_unity_number_value,
+    present_transient_dialog, exec_transient_dialog,
     clear_unity_widget_layout,
     configure_unity_scroll_area, configure_unity_tool_button,
 )
@@ -84,14 +85,11 @@ def craft_image_item(item: dict[str, Any], *, root: Path = ROOT_DIR) -> dict[str
 
 
 def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
-    spinbox = QSpinBox()
-    spinbox.setObjectName("QuantitySpinBox")
-    spinbox.setRange(1, maximum)
-    spinbox.setValue(max(1, min(maximum, int(value or 1))))
-    fit_unity_number_spinbox(spinbox)
-    spinbox.setAlignment(Qt.AlignCenter)
-    spinbox.setToolTip("Quantité")
-    return spinbox
+    return configure_unity_number_spinbox(
+        QSpinBox(), minimum=1, maximum=maximum,
+        value=max(1, min(maximum, int(value or 1))),
+        object_name="QuantitySpinBox", centered=True, tooltip="Quantité",
+    )
 
 
 class CraftResourceDialog(AtlasDialog):
@@ -441,6 +439,8 @@ class CraftPage(QWidget):
         self.items_by_name: dict[str, dict[str, Any]] = {}
         self.item_lookup_cache: dict[str, dict[str, Any] | None] = {}
         self.selection: dict[int, dict[str, Any]] = {}
+        self._selection_source_stamp = None
+        self._selection_source_loaded = False
         self.guides: dict[str, Any] = {}
         self.jobs: list[dict[str, Any]] = []
         self.selected_job = ""
@@ -717,6 +717,14 @@ class CraftPage(QWidget):
         # Craft used to keep widget parents until Qt processes DeferredDelete.
         clear_unity_widget_layout(layout, recursive=True, detach_widgets=False)
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._runtime_ready and self._selection_source_loaded:
+            stamp = mtime_ctime_size_stamp(CRAFT_SELECTION_FILE)
+            if stamp != self._selection_source_stamp:
+                self.load_selection()
+                self.refresh_selection()
+
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self.apply_craft_body_layout()
@@ -966,11 +974,7 @@ class CraftPage(QWidget):
             # Roll back the visible counter without replacing its live sender.
             counter = self.sender()
             if isinstance(counter, QSpinBox):
-                blocked = counter.blockSignals(True)
-                try:
-                    counter.setValue(int(row["quantity"]))
-                finally:
-                    counter.blockSignals(blocked)
+                restore_unity_number_value(counter, min(counter.maximum(), int(row["quantity"])))
 
     def _commit_selection_edit(self, before: dict, ident: int | None = None, *, clear: bool = False) -> bool:
         try:
@@ -1034,6 +1038,8 @@ class CraftPage(QWidget):
     def save_selection(self, ident: int | None = None, *, clear: bool = False) -> None:
         if clear:
             clear_persisted_selection(CRAFT_SELECTION_FILE)
+            self._selection_source_stamp = mtime_ctime_size_stamp(CRAFT_SELECTION_FILE)
+            self._selection_source_loaded = True
             return
         if ident is not None:
             row = self.selection.get(ident)
@@ -1042,6 +1048,9 @@ class CraftPage(QWidget):
                 str(row["item"].get("name") or "") if row else "",
                 int(row["quantity"]) if row else 0,
             )
+            # An external editor may have changed unrelated rows. Force the
+            # next activation to compare against the full persisted selection.
+            self._selection_source_loaded = True
             return
         # Compatibility snapshot writer for explicit legacy callers.
         payload = {
@@ -1058,7 +1067,9 @@ class CraftPage(QWidget):
         preloaded_selection = self.preload.get("selection")
         stamp = mtime_ctime_size_stamp(CRAFT_SELECTION_FILE)
         stamp_value = list(stamp) if stamp is not None else None
-        if (isinstance(preloaded_selection, dict)
+        previous_selection = dict(self.selection)
+        loaded_selection = {}
+        if (not self._selection_source_loaded and isinstance(preloaded_selection, dict)
                 and ("selection_source_stamp" not in self.preload
                      or self.preload["selection_source_stamp"] == stamp_value)):
             for ident, row in preloaded_selection.items():
@@ -1067,10 +1078,17 @@ class CraftPage(QWidget):
                 quantity = optional_int(row.get("quantity")) if isinstance(row, dict) else None
                 if (item_id_value is not None and item_id_value > 0
                         and isinstance(item, dict) and quantity is not None and quantity > 0):
-                    self.selection[item_id_value] = {"item": item, "quantity": quantity}
+                    loaded_selection[item_id_value] = {"item": item, "quantity": quantity}
+            self.selection.clear()
+            self.selection.update(loaded_selection)
+            self._selection_source_stamp = stamp
+            self._selection_source_loaded = True
             return
 
         def lookup(ident: int):
+            previous = previous_selection.get(ident)
+            if previous is not None:
+                return previous["item"]
             if isinstance(preloaded_selection, dict):
                 row = preloaded_selection.get(ident, preloaded_selection.get(str(ident)))
                 if isinstance(row, dict) and isinstance(row.get("item"), dict):
@@ -1081,7 +1099,11 @@ class CraftPage(QWidget):
                 return None
 
         payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
-        self.selection.update(resolve_selection(payload, lookup, allow_legacy=True))
+        loaded_selection = resolve_selection(payload, lookup, allow_legacy=True)
+        self.selection.clear()
+        self.selection.update(loaded_selection)
+        self._selection_source_stamp = stamp
+        self._selection_source_loaded = True
 
     def load_leveling_guides(self) -> None:
         payload = self.preload.get("guides")

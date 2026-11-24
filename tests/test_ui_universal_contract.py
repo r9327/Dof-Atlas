@@ -173,7 +173,7 @@ class UiUniversalContractTests(unittest.TestCase):
         quests = (
             REPO_ROOT / "app/pages/_quests_page_impl.py"
         ).read_text(encoding="utf-8")
-        self.assertIn("fit_unity_number_spinbox(quantity)", quests)
+        self.assertIn("quantity = configure_unity_number_spinbox(", quests)
         self.assertNotIn(
             'quantity.setFixedWidth(QUEST_GEOMETRY["item_quantity_width"])',
             quests,
@@ -294,7 +294,7 @@ class UiUniversalContractTests(unittest.TestCase):
         components = (REPO_ROOT / "app/ui/components.py").read_text(encoding="utf-8")
         self.assertEqual(components.count('setObjectName("GuideCompactPageJump")'), 1)
         self.assertIn("AtlasGuideParticipantButton()", components)
-        self.assertIn("fit_unity_number_spinbox(self.page_jump)", components)
+        self.assertIn("self.page_jump, minimum=1 if total else 0, maximum=total", components)
         theme = (REPO_ROOT / "app/ui/theme.py").read_text(encoding="utf-8")
         self.assertIn(
             "QToolButton#GuideParticipantsButton:focus,", theme,

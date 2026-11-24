@@ -386,7 +386,8 @@ class UnityPaletteTests(unittest.TestCase):
         # so neither page is allowed to implement its own fixed value.
         self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_width"]', component)
         self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]', component)
-        self.assertIn("fit_unity_number_spinbox(counter)", component)
+        self.assertIn("counter = configure_unity_number_spinbox(", component)
+        self.assertIn("fit_unity_number_spinbox(spinbox)", component)
         self.assertNotIn("fit_unity_number_spinbox(counter)", source)
         self.assertNotIn("fit_unity_number_spinbox(amount)", gallery)
         self.assertGreater(UNITY_CONTROL_SIZES_PX["guide_quantity_width"], 0)

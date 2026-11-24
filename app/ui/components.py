@@ -120,6 +120,41 @@ def fit_unity_number_spinbox(spinbox: QSpinBox) -> int:
     return width
 
 
+def configure_unity_number_spinbox(
+    spinbox: QSpinBox, *, minimum: int, maximum: int, value: int,
+    object_name: str | None = None, suffix: str | None = None,
+    tooltip: str | None = None, centered: bool = False, compact: bool = False,
+) -> QSpinBox:
+    """One numeric editor projection; callers own the meaning of the value."""
+    blocked = spinbox.blockSignals(True)
+    try:
+        if object_name is not None:
+            spinbox.setObjectName(object_name)
+        if compact:
+            spinbox.setFixedHeight(UNITY_SIZES_PX["control_compact"])
+        if centered:
+            spinbox.setAlignment(Qt.AlignCenter)
+        spinbox.setRange(minimum, maximum)
+        if suffix is not None:
+            spinbox.setSuffix(suffix)
+        if tooltip is not None:
+            spinbox.setToolTip(tooltip)
+        spinbox.setValue(value)
+        fit_unity_number_spinbox(spinbox)
+    finally:
+        spinbox.blockSignals(blocked)
+    return spinbox
+
+
+def restore_unity_number_value(spinbox: QSpinBox, value: int) -> None:
+    """Restore a persisted value without generating a second user edit."""
+    blocked = spinbox.blockSignals(True)
+    try:
+        spinbox.setValue(value)
+    finally:
+        spinbox.blockSignals(blocked)
+
+
 def refresh_unity_widget_style(widget: QWidget) -> None:
     """Repolish shared Qt property/object-name styles without local QSS."""
     style = widget.style()
@@ -1458,14 +1493,12 @@ class AtlasGuidePreparationRow(QFrame):
 
         self.quantity_editor: QSpinBox | None = None
         if quantity is not None and quantity > 0:
-            counter = QSpinBox()
-            counter.setObjectName("GuidePreparationQuantity")
-            counter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
-            counter.setRange(0, int(quantity))
-            counter.setSuffix(f"/{quantity}")
-            fit_unity_number_spinbox(counter)
-            counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
-            counter.setValue(max(0, min(int(quantity), int(owned))))
+            counter = configure_unity_number_spinbox(
+                QSpinBox(), minimum=0, maximum=min(2_147_483_647, int(quantity)),
+                value=min(2_147_483_647, max(0, int(owned))),
+                object_name="GuidePreparationQuantity", suffix=f"/{quantity}",
+                tooltip="Quantité déjà possédée (brouillon de cette session)", compact=True,
+            )
             self.quantity_editor = counter
             self.row_layout.addWidget(counter, 0, Qt.AlignVCenter)
         else:
@@ -1548,11 +1581,7 @@ class AtlasGuidePreparationRow(QFrame):
             self.ready_button.blockSignals(blocked)
         counter = self.quantity_editor
         if counter is not None and owned is not None:
-            blocked = counter.blockSignals(True)
-            try:
-                counter.setValue(max(0, min(counter.maximum(), int(owned))))
-            finally:
-                counter.blockSignals(blocked)
+            restore_unity_number_value(counter, max(0, min(counter.maximum(), int(owned))))
         self._refresh_status()
 
 
@@ -1635,16 +1664,12 @@ class AtlasGuideSheetHeader(QFrame):
         apply_unity_panel_shadow(self)
 
     def set_page(self, page: int, total: int) -> None:
-        previous = self.page_jump.blockSignals(True)
-        try:
-            total = max(0, int(total))
-            self.page_jump.setRange(1 if total else 0, total)
-            self.page_jump.setSuffix(f"/{total}")
-            self.page_jump.setValue(max(1, min(page, total)) if total else 0)
-            self.page_jump.setEnabled(total > 0)
-            fit_unity_number_spinbox(self.page_jump)
-        finally:
-            self.page_jump.blockSignals(previous)
+        total = max(0, int(total))
+        configure_unity_number_spinbox(
+            self.page_jump, minimum=1 if total else 0, maximum=total,
+            value=max(1, min(page, total)) if total else 0, suffix=f"/{total}",
+        )
+        self.page_jump.setEnabled(total > 0)
 
 
 class AtlasPageTitle(QLabel):

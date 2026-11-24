@@ -66,7 +66,7 @@ from app.ui.components import (
     atlas_guide_arrow_icon,
     atlas_guide_character_icon,
     AtlasGuideParticipantButton,
-    fit_unity_number_spinbox,
+    configure_unity_number_spinbox,
     AtlasGuideCover, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
     AtlasGuidePreparationRow, AtlasGuidePreparationPanel, AtlasGuidePreparationSummary,
     AtlasGuideReadingNav, AtlasGuideValidationButton,
@@ -969,10 +969,9 @@ class DevUiPage(QWidget):
             lambda value: self._report(f"Menu déroulant : {value}")
         )
         row.addWidget(self.preview_combo, 0, Qt.AlignVCenter)
-        self.preview_spin = QSpinBox()
-        self.preview_spin.setRange(1, 8)
-        self.preview_spin.setValue(4)
-        fit_unity_number_spinbox(self.preview_spin)
+        self.preview_spin = configure_unity_number_spinbox(
+            QSpinBox(), minimum=1, maximum=8, value=4,
+        )
         self.preview_spin.valueChanged.connect(
             lambda value: self._report(f"Compteur : {value}")
         )
@@ -2324,13 +2323,11 @@ class DevUiPage(QWidget):
 
         timing = QHBoxLayout()
         timing.addWidget(QLabel("Durée de référence"))
-        self.motion_duration = QSpinBox()
-        self.motion_duration.setObjectName("DevUiMotionDuration")
-        self.motion_duration.setRange(80, 600)
+        self.motion_duration = configure_unity_number_spinbox(
+            QSpinBox(), minimum=80, maximum=600, value=180,
+            object_name="DevUiMotionDuration", suffix=" ms",
+        )
         self.motion_duration.setSingleStep(20)
-        self.motion_duration.setSuffix(" ms")
-        self.motion_duration.setValue(180)
-        fit_unity_number_spinbox(self.motion_duration)
         timing.addWidget(self.motion_duration)
         timing.addStretch(1)
         section.addLayout(timing)
@@ -2694,11 +2691,9 @@ class DevUiPage(QWidget):
             option = QCheckBox("Option de préparation")
             option.setObjectName("DevUiDialogOption")
             fields.addWidget(option, 1)
-            count = QSpinBox()
-            count.setObjectName("DevUiDialogQuantity")
-            count.setRange(0, 9999)
-            count.setValue(3)
-            fit_unity_number_spinbox(count)
+            count = configure_unity_number_spinbox(
+                QSpinBox(), minimum=0, maximum=9999, value=3, object_name="DevUiDialogQuantity",
+            )
             fields.addWidget(count)
             dialog.content_layout.addLayout(fields)
         footer_actions: list[AtlasButton] = []

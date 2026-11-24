@@ -38,6 +38,7 @@ def iter_selection_item_rows(
     if allow_legacy:
         for ident, row in payload.items():
             yield {
+                **(row if isinstance(row, dict) else {}),
                 "item_id": ident,
                 "quantity": row.get("quantity") if isinstance(row, dict) else 0,
             }

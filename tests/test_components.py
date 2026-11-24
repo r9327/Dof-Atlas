@@ -272,6 +272,30 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
+    def test_shared_numeric_editor_configuration_and_rollback_are_silent(self):
+        from unittest.mock import Mock
+        from app.ui.components import configure_unity_number_spinbox, restore_unity_number_value
+        counter = QSpinBox()
+        changed = Mock()
+        counter.valueChanged.connect(changed)
+        try:
+            self.assertIs(configure_unity_number_spinbox(
+                counter, minimum=0, maximum=1234, value=123,
+                object_name="QuestItemQuantity", suffix="/1234", centered=True, compact=True,
+            ), counter)
+            self.assertEqual(counter.text(), "123/1234")
+            self.assertEqual(counter.alignment(), Qt.AlignCenter)
+            changed.assert_not_called()
+            counter.setValue(3)
+            changed.assert_called_once_with(3)
+            counter.blockSignals(True)
+            restore_unity_number_value(counter, 123)
+            self.assertTrue(counter.signalsBlocked())
+            self.assertEqual(counter.value(), 123)
+            changed.assert_called_once_with(3)
+        finally:
+            counter.deleteLater()
+
     def test_progress_geometry_and_format_use_shared_configuration(self) -> None:
         from PySide6.QtWidgets import QProgressBar
         from app.ui.components import configure_unity_progress_bar

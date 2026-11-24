@@ -63,7 +63,7 @@ from app.quest_catalog import (
 from app.storage import IconCache, read_json
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout,
-    fit_unity_number_spinbox, configure_unity_tool_button,
+    configure_unity_number_spinbox, restore_unity_number_value, configure_unity_tool_button,
     populate_character_combo, select_character_combo_key,
 )
 from app.ui.theme import PALETTE, render_theme_template
@@ -1138,12 +1138,11 @@ class QuestsPage(QWidget):
         layout = row.layout()
         required_label = QLabel(f"/ {format_number(required)}")
         required_label.setObjectName("MutedLabel")
-        quantity = QSpinBox()
-        quantity.setObjectName("QuestItemQuantity")
-        quantity.setRange(0, required)
-        quantity.setValue(owned)
-        fit_unity_number_spinbox(quantity)
-        quantity.setAlignment(Qt.AlignCenter)
+        quantity = configure_unity_number_spinbox(
+            QSpinBox(), minimum=0, maximum=min(required, 2_147_483_647),
+            value=min(owned, required, 2_147_483_647), object_name="QuestItemQuantity",
+            centered=True,
+        )
         quantity.valueChanged.connect(lambda value, data=dict(item), maximum=required: self.set_owned_item_quantity(data, value, maximum))
         layout.addWidget(quantity)
         layout.addWidget(required_label)
@@ -1177,11 +1176,7 @@ class QuestsPage(QWidget):
         except (InvalidPersistentJsonError, OSError, TimeoutError) as exc:
             counter = self.sender()
             if isinstance(counter, QSpinBox):
-                blocked = counter.blockSignals(True)
-                try:
-                    counter.setValue(min(int(maximum), self.owned_items.get(ident, 0)))
-                finally:
-                    counter.blockSignals(blocked)
+                restore_unity_number_value(counter, min(counter.maximum(), self.owned_items.get(ident, 0)))
             self.status_callback(f"Quantité non enregistrée : {exc}")
             return
         if quantity > 0:

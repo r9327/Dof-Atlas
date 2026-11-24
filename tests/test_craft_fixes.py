@@ -320,6 +320,27 @@ class CraftFixesTests(unittest.TestCase):
                 page.remove_selection_item(42)
                 self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["items"][0]["item_id"], 43)
 
+    def test_reopening_craft_replaces_stale_selection_and_reuses_existing_metadata(self):
+        import json
+        page = self.make_page()
+        page.preload = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            path.write_text(json.dumps({"items": [{"item_id": 42, "quantity": 2}, {"item_id": 43, "quantity": 3}]}))
+            with patch("app.pages.craft_page.CRAFT_SELECTION_FILE", path), \
+                 patch("app.pages.craft_page.local_data_cache.get_item",
+                       side_effect=lambda ident: {"ankama_id": ident, "name": str(ident)}) as lookup:
+                page.load_selection()
+                self.assertEqual(lookup.call_count, 2)
+                page._runtime_ready = True
+                path.write_text(json.dumps({"items": [{"item_id": 43, "quantity": 17}]}))
+                page.show()
+                self.app.processEvents()
+                self.assertEqual(set(page.selection), {43})
+                self.assertEqual(page.selection[43]["quantity"], 17)
+                self.assertEqual(lookup.call_count, 2)
+                page.hide()
+
     def test_stale_preload_reuses_item_metadata_but_reads_latest_quantities(self):
         page = self.make_page()
         page.preload = {

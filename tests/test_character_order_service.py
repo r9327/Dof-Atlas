@@ -19,6 +19,30 @@ class Row:
 
 
 class CharacterOrderServiceTests(unittest.TestCase):
+    def test_order_projection_cache_reuses_stable_reads_and_keeps_strict_errors(self):
+        from app.services.character_order_logic import load_character_order, clear_character_order_cache
+        from app.core.json_store import InvalidPersistentJsonError
+        with tempfile.TemporaryDirectory() as tmp:
+            profile = Path(tmp) / "profile.json"
+            profile.write_text(json.dumps({KEY_SESSION_ORDER: ["Beta", "Alpha"]}))
+            clear_character_order_cache()
+            try:
+                service = CharacterOrderService(profile)
+                with patch.object(profile_settings_module.ProfileSettingsService, "load",
+                                  autospec=True, side_effect=profile_settings_module.ProfileSettingsService.load) as load:
+                    self.assertEqual(service.load_order(), ("beta", "alpha"))
+                    self.assertEqual(service.load_order(), ("beta", "alpha"))
+                    load.assert_called_once()
+                    service.save_labels(["Alpha", "Beta"])
+                    self.assertEqual(service.load_order(), ("alpha", "beta"))
+                    self.assertEqual(load.call_count, 2)
+                profile.write_text("{bad")
+                self.assertEqual(load_character_order(profile), ())
+                with self.assertRaises(InvalidPersistentJsonError):
+                    service.load_order()
+            finally:
+                clear_character_order_cache()
+
     def test_save_preserves_other_profile_values_and_new_instance_keeps_order(self):
         with tempfile.TemporaryDirectory() as temporary:
             profile = Path(temporary) / "profiles.json"

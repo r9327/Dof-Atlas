@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
-from app.core.file_stamp import mtime_size_stamp
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero, mtime_ctime_size_stamp
 from app.core.numbers import clamped_percent, format_grouped_int
 from app.core.text import strip_accents
 from app.network.application_coordinator import NetworkApplicationStatus
@@ -262,6 +262,7 @@ class HomePage(QWidget):
         self.character_key = ""
         self.character_label = "Aucun personnage connecté"
         self.character_icon_path = ""
+        self._character_icon_signature = None
         self.current_guide_id = ""
         self.current_quest_id: int | None = None
         self._last_progress_signature: tuple[object, ...] | None = None
@@ -607,6 +608,7 @@ class HomePage(QWidget):
             and next_label == self.character_label
             and next_icon_path == self.character_icon_path
         ):
+            self._update_character_icon()
             return
         self.character_key = next_key
         self.character_label = next_label
@@ -809,8 +811,8 @@ class HomePage(QWidget):
         self.refresh_progress()
 
     @staticmethod
-    def _progress_file_stamp(path: Path) -> tuple[int, int]:
-        return mtime_size_stamp(path)
+    def _progress_file_stamp(path: Path) -> tuple[int, int, int]:
+        return mtime_ctime_size_stamp_or_zero(path)
 
     def _progress_input_signature(self) -> tuple[object, ...]:
         from app.modules.encyclopedia.services import (
@@ -1127,9 +1129,13 @@ class HomePage(QWidget):
         self.continueRequested.emit(self.current_guide_id, self.current_quest_id)
 
     def _update_character_icon(self) -> None:
-        path = Path(self.character_icon_path)
+        path = Path(self.character_icon_path) if self.character_icon_path else None
         fallback = Path(LOGO_PATH)
-        selected = path if path.exists() else fallback if fallback.exists() else None
+        selected = path if path is not None and path.is_file() else fallback if fallback.is_file() else None
+        signature = (str(selected), mtime_ctime_size_stamp(selected) if selected is not None else None)
+        if signature == self._character_icon_signature:
+            return
+        self._character_icon_signature = signature
         if selected is None:
             self.character_portrait.setIcon(QIcon())
             return

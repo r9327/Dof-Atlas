@@ -13,10 +13,8 @@ from app.constants import (
     PROFILE_FILE,
 )
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
-from app.core.json_store import read_json_resilient
 from app.services.character_order_logic import (
-    character_order_from_profile,
-    sort_character_rows,
+    load_character_order, clear_character_order_cache, sort_character_rows,
 )
 
 
@@ -31,7 +29,7 @@ def _file_stamp(path: Path | None) -> tuple[int, int, int]:
 
 
 def _semantic_session_order(profile_path: Path) -> tuple[str, ...]:
-    return character_order_from_profile(read_json_resilient(profile_path, {}))
+    return load_character_order(profile_path)
 
 
 def _resolved_binding_path(
@@ -127,6 +125,7 @@ def cached_load_quest_characters(
 def clear_quest_character_cache() -> None:
     with _LOCK:
         _CACHE.clear()
+    clear_character_order_cache()
 
 
 __all__ = [
