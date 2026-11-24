@@ -624,7 +624,8 @@ class UiUniversalContractTests(unittest.TestCase):
                 "apply_unity_panel_shadow(panel)",
             ),
             "app/modules/encyclopedia/views/shared_manual_guide_view.py": (
-                "apply_unity_panel_shadow(nav)",
+                "AtlasGuideReadingNav(",
+                "AtlasGuidePreparationPanel(",
                 "AtlasGuideReadingHeader(",
                 "AtlasGuideSheetHeader(",
             ),

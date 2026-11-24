@@ -68,7 +68,7 @@ from app.ui.components import (
     AtlasGuideParticipantButton,
     fit_unity_number_spinbox,
     AtlasGuideCover, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
-    AtlasGuidePreparationRow, AtlasGuidePreparationPanel,
+    AtlasGuidePreparationRow, AtlasGuidePreparationPanel, AtlasGuidePreparationSummary,
     AtlasGuideReadingNav, AtlasGuideValidationButton,
     AtlasStatusBadge,
     atlas_application_icon,
@@ -1821,17 +1821,18 @@ class DevUiPage(QWidget):
         )
         section.addWidget(self.preview_quest_start_position)
 
-        self.guide_sample_summary = QFrame()
-        self.guide_sample_summary.setObjectName("GuidePreparationSummary")
-        summary_layout = QVBoxLayout(self.guide_sample_summary)
-        summary_layout.addWidget(QLabel("Préparation · fond et bordures Unity"))
+        self.guide_sample_summary = AtlasGuidePreparationSummary("Objets", ready=0, total=1)
         section.addWidget(self.guide_sample_summary)
 
         self.guide_sample_row = AtlasGuidePreparationRow(
             "Ressource de démonstration", quantity=3,
             stock_formatter=preparation_stock_presentation,
         )
+        self.guide_sample_row.attach_details(lambda: ("Personnage fictif 1 : besoin 3",))
         self.guide_copy_button = self.guide_sample_row.name_button
+        self.guide_sample_row.ready_button.toggled.connect(
+            lambda checked: self.guide_sample_summary.set_counts(int(checked), 1)
+        )
         self.guide_sample_row.ready_button.toggled.connect(
             lambda checked: self.guide_sample_row.set_saved_state(
                 confirmed=int(checked), participants=1, owned=3 if checked else 0,

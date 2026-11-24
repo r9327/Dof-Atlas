@@ -1336,6 +1336,30 @@ class AtlasGuidePreparationPanel(QFrame):
         self.scroll.verticalScrollBar().setValue(scroll_position)
 
 
+class AtlasGuidePreparationSummary(QFrame):
+    """One category title/count bar for real preparation and the gallery."""
+
+    def __init__(self, category: str, *, ready: int, total: int, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuidePreparationSummary")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xxs"],
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xxs"],
+        )
+        title = QLabel(category)
+        title.setObjectName("GuidePreparationSummaryTitle")
+        layout.addWidget(title)
+        layout.addStretch(1)
+        self.count_label = QLabel()
+        self.count_label.setObjectName("GuidePreparationSummaryCount")
+        layout.addWidget(self.count_label)
+        self.set_counts(ready, total)
+
+    def set_counts(self, ready: int, total: int) -> None:
+        self.count_label.setText(f"{ready} / {total} prêts")
+
+
 class AtlasGuidePreparationRow(QFrame):
     """One preparation row for Dev UI and live Guides; the host owns persistence."""
 
@@ -1410,6 +1434,40 @@ class AtlasGuidePreparationRow(QFrame):
         if self.status_label.toolTip() != tooltip:
             self.status_label.setToolTip(tooltip)
         set_unity_widget_property(self.status_label, "ready", "true" if self._ready else "false")
+
+    def attach_details(self, provider: Callable[[], tuple[str, ...]]) -> QToolButton:
+        """Build participant details only on first expansion; preserve them on checks."""
+        button = configure_unity_tool_button(
+            QToolButton(), object_name="GuidePreparationDetailsButton",
+            pointing=True, focus_policy=Qt.StrongFocus,
+        )
+        button.setArrowType(Qt.RightArrow)
+        button.setCheckable(True)
+        button.setAccessibleName("Détails de préparation")
+        button.setToolTip("Afficher les détails de préparation")
+        self.row_layout.addWidget(button)
+        details = QFrame()
+        details.setObjectName("GuidePreparationDetails")
+        layout = QVBoxLayout(details)
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]
+        layout.setContentsMargins(*geometry["preparation_detail_margins"])
+        layout.setSpacing(UNITY_SPACING_PX["xxs"])
+        details.hide()
+        self.body_layout.addWidget(details)
+
+        def toggle(opened: bool) -> None:
+            if opened and not layout.count():
+                for text in provider():
+                    label = QLabel(text)
+                    label.setObjectName("GuidePreparationParticipantNeed")
+                    label.setWordWrap(True)
+                    layout.addWidget(label)
+            details.setVisible(opened)
+            button.setArrowType(Qt.DownArrow if opened else Qt.RightArrow)
+            button.setToolTip(("Masquer" if opened else "Afficher") + " les détails de préparation")
+
+        button.toggled.connect(toggle)
+        return button
 
     def set_saved_state(self, *, confirmed: int, participants: int, owned: int | None = None) -> None:
         """Refresh widgets in place without emitting a second save request."""

@@ -25,8 +25,11 @@ class SharedGuideManualViewThemeTests(unittest.TestCase):
         source = inspect.getsource(SharedGuideManualView._build_ui)
         preparation = inspect.getsource(SharedGuideManualView._build_preparation_panel)
         self.assertIn("configure_unity_scroll_area(QScrollArea(), borderless=True)", source)
-        self.assertIn("configure_unity_scroll_area(QScrollArea(), borderless=True)", preparation)
-        for fragment in (source, preparation):
+        from app.ui.components import AtlasGuidePreparationPanel
+        self.assertIn("AtlasGuidePreparationPanel(", preparation)
+        drawer = inspect.getsource(AtlasGuidePreparationPanel)
+        self.assertIn("configure_unity_scroll_area(QScrollArea(), borderless=True)", drawer)
+        for fragment in (source, preparation, drawer):
             self.assertNotIn("setHorizontalScrollBarPolicy", fragment)
             self.assertNotIn("setWidgetResizable", fragment)
 

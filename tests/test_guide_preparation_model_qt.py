@@ -293,6 +293,23 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(view._preparation_needs[0].required_total, 3)
         self.assertEqual(view.preparation_bar.maximum(), 1)
 
+    def test_empty_preparation_is_hidden_on_first_parent_open(self):
+        self.participants.save_selected_keys(("character:1",))
+        for card in self.service.cards:
+            card["a_preparer"] = []
+        view = SharedGuideManualView(self.service, character_key="character:1",
+                                     participant_service=self.participants)
+        self.view = view
+        view.show()
+        QApplication.processEvents()
+        with patch.object(view, "_render_preparation", wraps=view._render_preparation) as render:
+            view.global_details_button.click()
+            QApplication.processEvents()
+            render.assert_not_called()
+        self.assertTrue(view._preparation_loaded)
+        self.assertFalse(view.preparation_button.isVisible())
+        self.assertTrue(view.reading_header.summary_button.isVisible())
+
     def test_closed_preparation_defers_rebuild_until_reopened(self):
         self.participants.save_selected_keys(("character:1",))
         view = self._view()
@@ -300,10 +317,13 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.service.cards[0]["a_preparer"] = [
             {"item_id": 125, "name": "Potion nouvelle", "quantity": 5},
         ]
-        view.refresh()
-        self.assertFalse(view._preparation_loaded)
-        view.preparation_button.setChecked(True)
-        QApplication.processEvents()
+        with patch.object(view, "_render_preparation", wraps=view._render_preparation) as render:
+            view.refresh()
+            self.assertTrue(view._preparation_loaded)
+            render.assert_not_called()
+            view.preparation_button.setChecked(True)
+            QApplication.processEvents()
+            render.assert_called_once()
         self.assertTrue(view._preparation_loaded)
         self.assertEqual(view._preparation_needs[0].required_total, 5)
         button = view.preparation_panel.findChild(

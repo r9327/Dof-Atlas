@@ -16,9 +16,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSpinBox,
-    QStyle,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -41,9 +38,8 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, atlas_guide_arrow_icon, configure_unity_scroll_area, clear_unity_widget_layout
+from app.ui.components import AtlasButton, configure_unity_scroll_area, clear_unity_widget_layout
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
-from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
@@ -52,8 +48,8 @@ from app.ui.components import (
     AtlasGuideParticipantPortrait as _ParticipantPortraitButton,
     atlas_guide_symbol_icon as _guide_symbol_icon,
     _cached_atlas_guide_symbol_icon as _cached_guide_symbol_icon,
-    configure_unity_tool_button, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
-    AtlasGuidePreparationRow, AtlasGuidePreparationPanel,
+    AtlasGuideReadingHeader, AtlasGuideSheetHeader,
+    AtlasGuidePreparationRow, AtlasGuidePreparationPanel, AtlasGuidePreparationSummary,
     AtlasGuideReadingNav, AtlasGuideValidationButton, atlas_preparation_copy_button,
 )
 
@@ -784,7 +780,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_loaded = False
         self._preparation_visible_limit = 80
         self._preparation_rows: list[tuple[_PreparationNeed, AtlasGuidePreparationRow]] = []
-        self._preparation_category_labels: list[tuple[QLabel, tuple[_PreparationNeed, ...]]] = []
+        self._preparation_category_labels: list[tuple[AtlasGuidePreparationSummary, tuple[_PreparationNeed, ...]]] = []
         # Draft counts are session-local; only the explicit Prêt action is persisted.
         self._preparation_quantity_drafts: dict[str, int] = {}
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
@@ -1020,12 +1016,20 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _global_details_toggled(self, opened: bool) -> None:
         if opened:
             self._refresh_global_details()
-            if self.preparation_button.isChecked() and not self._preparation_loaded:
-                self._preparation_toggled(True)
+            self._refresh_preparation_metric()
 
-    def _preparation_drawer_requested(self) -> bool:
-        """An expanded child under a collapsed parent is not a live drawer."""
-        return self.global_details_button.isChecked() and self.preparation_button.isChecked()
+    def _refresh_preparation_metric(self) -> None:
+        """Resolve the metric on parent open, but only build an expanded drawer."""
+        if self.global_details_button.isChecked() and not self._preparation_loaded:
+            self._load_preparation_needs()
+            available = bool(self._preparation_needs or self._preparation_preview)
+            if not available:
+                self._clear_preparation_rows()
+            self.reading_header.set_metric_available("preparation", available)
+            if available and self.preparation_button.isChecked():
+                self._render_preparation(self.preparation_filter.currentText())
+        else:
+            self._update_preparation_progress()
 
     def _refresh_global_details(self) -> None:
         clear_unity_widget_layout(self.global_details_layout, hide_widgets=True)
@@ -1201,8 +1205,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
             row.set_saved_state(confirmed=counts.get(need, 0),
                                 participants=len(need.required_by_character), owned=owned)
-        for label, needs in self._preparation_category_labels:
-            label.setText(f"{sum(need in ready_needs for need in needs)} / {len(needs)} prêts")
+        for summary, needs in self._preparation_category_labels:
+            summary.set_counts(sum(need in ready_needs for need in needs), len(needs))
         self._update_preparation_progress(ready_count=len(ready_needs))
 
     def _clear_preparation_rows(self) -> None:
@@ -1298,22 +1302,9 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ]
                 if not matching:
                     continue
-                summary = QFrame()
-                summary.setObjectName("GuidePreparationSummary")
-                row = QHBoxLayout(summary)
-                row.setContentsMargins(
-                    UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xxs"],
-                    UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xxs"],
-                )
-                category_label = QLabel(category)
-                category_label.setObjectName("GuidePreparationSummaryTitle")
-                row.addWidget(category_label)
-                row.addStretch(1)
                 ready_count = sum(1 for need in matching if self._need_ready(need))
-                count_label = QLabel(f"{ready_count} / {len(matching)} prêts")
-                count_label.setObjectName("GuidePreparationSummaryCount")
-                self._preparation_category_labels.append((count_label, tuple(matching)))
-                row.addWidget(count_label)
+                summary = AtlasGuidePreparationSummary(category, ready=ready_count, total=len(matching))
+                self._preparation_category_labels.append((summary, tuple(matching)))
                 self.preparation_rows_layout.addWidget(summary)
                 available = max(0, self._preparation_visible_limit - rendered_count)
                 for need in matching[:available]:
@@ -1392,45 +1383,18 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
         ready_button.toggled.connect(lambda checked, row=need: self._set_need_ready(row, checked))
         self._preparation_rows.append((need, frame))
-        details_button = configure_unity_tool_button(
-            QToolButton(), object_name="GuidePreparationDetailsButton",
-        )
-        details_button.setArrowType(Qt.RightArrow)
-        details_button.setCheckable(True)
-        frame.row_layout.addWidget(details_button)
-        details = QFrame()
-        details.setObjectName("GuidePreparationDetails")
-        details_layout = QVBoxLayout(details)
-        details_layout.setContentsMargins(8, 2, 8, 3)
-        details_layout.setSpacing(2)
-        # Most preparation rows stay collapsed. The previous implementation
-        # fetched all character labels and constructed a QLabel per participant
-        # for EVERY need, even if the user never opened its details.
-        # Populate on the first expansion only, preserving copy/ready actions.
-        def populate_details(opened: bool) -> None:
-            if not opened or details_layout.count():
-                return
+        def participant_details() -> tuple[str, ...]:
             labels_by_key = {
                 character.key: character.label
                 for character in self.participant_service.available_characters()
             }
-            for character_key, quantity in need.required_by_character:
-                detail = QLabel(
-                    f"{labels_by_key.get(character_key, character_key)} : "
-                    f"besoin {quantity if quantity is not None else 'à confirmer'}"
-                )
-                detail.setObjectName("GuidePreparationParticipantNeed")
-                details_layout.addWidget(detail)
-
-        details.setVisible(False)
-        details_button.toggled.connect(populate_details)
-        details_button.toggled.connect(details.setVisible)
-        details_button.toggled.connect(
-            lambda opened, button=details_button: button.setArrowType(
-                Qt.DownArrow if opened else Qt.RightArrow
+            return tuple(
+                f"{labels_by_key.get(character_key, character_key)} : "
+                f"besoin {quantity if quantity is not None else 'à confirmer'}"
+                for character_key, quantity in need.required_by_character
             )
-        )
-        frame.body_layout.addWidget(details)
+
+        frame.attach_details(participant_details)
         return frame
 
     def _update_preparation_progress(self, *, ready_count: int | None = None) -> None:
@@ -1580,10 +1544,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # An already open preparation drawer must be refreshed alongside its
         # progress bar after a quest, participant or external progress change.
         # Otherwise the header displays 0 while stale prepared rows remain.
-        if self._preparation_drawer_requested() and not self._preparation_loaded:
-            self._preparation_toggled(True)
-        else:
-            self._update_preparation_progress()
+        self._refresh_preparation_metric()
         if self.global_details_panel.isVisible():
             self._refresh_global_details()
 

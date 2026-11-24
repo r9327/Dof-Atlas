@@ -378,14 +378,17 @@ class UnityPaletteTests(unittest.TestCase):
         for consumer in (source, gallery):
             self.assertIn("AtlasGuideReadingHeader(", consumer)
         for consumer in (source, gallery):
-            self.assertIn('UNITY_CONTROL_SIZES_PX["guide_validation_width"]', consumer)
+            self.assertIn("AtlasGuidePreparationRow(", consumer)
+            self.assertNotIn('UNITY_CONTROL_SIZES_PX["guide_validation_width"]', consumer)
+        self.assertIn('UNITY_CONTROL_SIZES_PX["guide_validation_width"]', component)
         self.assertGreater(UNITY_CONTROL_SIZES_PX["guide_validation_width"], 0)
         # Quantity width is now calculated by one shared component,
         # so neither page is allowed to implement its own fixed value.
         self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_width"]', component)
         self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]', component)
-        self.assertIn("fit_unity_number_spinbox(counter)", source)
-        self.assertIn("fit_unity_number_spinbox(amount)", gallery)
+        self.assertIn("fit_unity_number_spinbox(counter)", component)
+        self.assertNotIn("fit_unity_number_spinbox(counter)", source)
+        self.assertNotIn("fit_unity_number_spinbox(amount)", gallery)
         self.assertGreater(UNITY_CONTROL_SIZES_PX["guide_quantity_width"], 0)
 
     def test_indexed_module_dimensions_match_existing_constraints(self) -> None:
