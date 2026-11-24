@@ -134,6 +134,10 @@ class SharedUiComponentsTests(unittest.TestCase):
         try:
             self.assertIs(header.content_layout.itemAt(1).widget(), header.participants_panel)
             self.assertIs(header.preparation_bar.parentWidget(), header.preparation_column)
+            self.assertIs(header.global_progress_bar.parentWidget(), header.progress_group)
+            self.assertIs(header.preparation_column.parentWidget(), header.progress_group)
+            self.assertIs(header.summary_column.parentWidget(), header.progress_group)
+            self.assertIs(header.global_details_panel.parentWidget(), header.progress_group)
             header.set_summary_provider(lambda: ("Première fiche", "Seconde fiche"))
             header.preparation_button.click()
             header.summary_button.click()

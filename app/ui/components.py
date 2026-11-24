@@ -987,8 +987,17 @@ class AtlasGuideReadingHeader(QFrame):
         overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
-        right.addLayout(overall_caption)
-        right.addWidget(self.global_progress_bar)
+        # One visual progress block owns the global bar and both independent
+        # drawers. The title/participant row remains outside that block.
+        self.progress_group = QFrame()
+        self.progress_group.setObjectName("GuideHeaderProgressGroup")
+        progress_layout = QVBoxLayout(self.progress_group)
+        inset = UNITY_SPACING_PX["xs"]
+        progress_layout.setContentsMargins(inset, inset, inset, inset)
+        progress_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        progress_layout.addLayout(overall_caption)
+        progress_layout.addWidget(self.global_progress_bar)
+        right.addWidget(self.progress_group)
 
         self.global_details_panel = QFrame()
         self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
@@ -1096,10 +1105,10 @@ class AtlasGuideReadingHeader(QFrame):
         # Keep both progress bars at the same height regardless of open panels.
         metrics.setAlignment(self.preparation_column, Qt.AlignTop)
         metrics.setAlignment(self.summary_column, Qt.AlignTop)
-        right.addLayout(metrics)
+        progress_layout.addLayout(metrics)
         self.global_details_panel.setVisible(False)
         self.global_details_button.toggled.connect(self._set_global_details_open)
-        right.addWidget(self.global_details_panel)
+        progress_layout.addWidget(self.global_details_panel)
         self.content_layout = right
 
         self.participants_button = AtlasGuideParticipantButton()

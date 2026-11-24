@@ -771,7 +771,7 @@ UNITY_UI_FAMILY_INDEX = {
         "components": (
             "AtlasPageTitle", "PageTitle", "PanelTitle", "GuideHeader",
             "GuideHeaderTitle", "GuideHeaderMeta", "GuideCompactHeader",
-            "GuideHeaderSectionHost", "GuideHeaderSectionScroll",
+            "GuideHeaderSectionHost", "GuideHeaderSectionScroll", "GuideHeaderProgressGroup",
             "GuideCompactTitle", "GuideCompactPageJump",
             "GuideManualProgress", "GuideCompactPreparationProgress", "GuideCompactSummaryProgress", "GuideSummaryList",
             "GuideCompactDonutHeading", "GuideCompactDonutCount",

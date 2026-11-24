@@ -479,6 +479,15 @@ QWidget#DevUiPage QListWidget QScrollBar::sub-page:vertical {
     background: @PANEL;
 }
 
+/* Layout-only stacks must reveal the shell backdrop, not the global
+   opaque QWidget window color. This also covers the Quêtes tab. */
+QTabWidget#EncyclopediaTabs,
+QTabWidget#EncyclopediaTabs QStackedWidget#qt_tabwidget_stackedwidget,
+QStackedWidget#GuidesStack,
+QFrame#GuideManualValidationHost {
+    background: transparent;
+    border: none;
+}
 QTabWidget#EncyclopediaTabs::pane {
     background: transparent;
     border: none;
@@ -3075,6 +3084,13 @@ QFrame#GuideSheetHeader {
     border-radius: @RADIUS_MD;
 }
 
+/* Group all three progress meters without another opaque layer of glass. */
+QFrame#GuideHeaderProgressGroup {
+    background: transparent;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
 /* Expanded preparation must retain the blue Unity surface,
    not Qt's native gray scroll/panel background. */
 QFrame#GuidePreparationPanel,
@@ -3701,7 +3717,7 @@ QToolButton#GuideContinuousValidate:checked {
 
 #GuideManualPageCheck {
     color: @TEXT_SOFT;
-    background: transparent;
+    background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
     padding: 2px;
