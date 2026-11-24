@@ -783,6 +783,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_category_labels: list[tuple[AtlasGuidePreparationSummary, tuple[_PreparationNeed, ...]]] = []
         # Draft counts are session-local; only the explicit Prêt action is persisted.
         self._preparation_quantity_drafts: dict[str, int] = {}
+        self._preparation_team: frozenset[str] = frozenset()
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         # One bounded SQLite detail per tick. A navigation change stops the
         # previous neighborhood before reading anything for the new sheet.
@@ -1126,6 +1127,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         # A browsing character is never consent for Prêt. The no-selection
         # state remains readable without manufacturing an inventory/progress ID.
         participant_keys = self._progress_participant_keys()
+        team = frozenset(participant_keys)
+        if team != self._preparation_team:
+            self._preparation_quantity_drafts.clear()
+            self._preparation_visible_limit = 80
+            self._preparation_team = team
         if not participant_keys:
             summary = aggregate_remaining((card, False) for card in self.service.cards)
             self._preparation_preview = tuple(
@@ -1166,7 +1172,14 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _set_need_ready(self, need: _PreparationNeed, checked: bool) -> None:
         key = self._ready_progress_key(need)
-        known = set(self._progress_participant_keys())
+        known = frozenset(self._progress_participant_keys())
+        if (known != self._preparation_team
+                or not any(row is need for row in self._preparation_needs)):
+            # A queued click from an old drawer is not consent to persist
+            # the previous team's requirements, even if all old keys remain.
+            self._preparation_loaded = False
+            self._refresh_header()
+            return
         keys = tuple(character_key for character_key, _quantity in need.required_by_character
                      if character_key in known)
         getter = getattr(self.service, "manual_checked", None)
@@ -1215,6 +1228,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Both success and conflict refresh the real persisted state without
         # recreating widgets, image icons, opened details or scroll position.
         self._sync_preparation_ready_rows()
+
+    def _set_preparation_draft(self, need: _PreparationNeed, value: int) -> None:
+        if (self._preparation_team == frozenset(self._progress_participant_keys())
+                and any(row is need for row in self._preparation_needs)):
+            self._preparation_quantity_drafts[need.item_key] = value
 
     def _sync_preparation_ready_rows(self) -> None:
         counts = {need: self._need_confirmed_count(need) for need in self._preparation_needs}
@@ -1395,8 +1413,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             ready_button.setToolTip("Sauvegarde atomique indisponible")
         if counter is not None:
             counter.valueChanged.connect(
-                lambda value, key=need.item_key:
-                self._preparation_quantity_drafts.__setitem__(key, value)
+                lambda value, row=need: self._set_preparation_draft(row, value)
             )
         ready_button.toggled.connect(lambda checked, row=need: self._set_need_ready(row, checked))
         self._preparation_rows.append((need, frame))

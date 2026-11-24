@@ -369,6 +369,30 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(next_counter.value(), 0)
         self.assertEqual(next_counter.suffix(), "/4")
 
+    def test_external_team_change_clears_drafts_and_rejects_stale_ready_click(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        old_need = view._preparation_needs[0]
+        counter = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        counter.setValue(1)
+        view.refresh()
+        self.assertEqual(view._preparation_quantity_drafts[old_need.item_key], 1)
+
+        # A superset is especially important: checking the old row used to
+        # write a valid but incomplete subset of the new team's requirement.
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        with patch.object(self.service.guide_progress, "set_manual_steps_for_characters") as write:
+            view._set_preparation_draft(old_need, 2)
+            view._set_need_ready(old_need, True)
+            write.assert_not_called()
+        QApplication.processEvents()
+        self.assertEqual(view._preparation_quantity_drafts, {})
+        self.assertEqual(view._preparation_needs[0].required_total, 4)
+        next_counter = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual(next_counter.value(), 0)
+        self.assertEqual(next_counter.suffix(), "/4")
+        self.assertEqual(view.preparation_bar.value(), 0)
+
     def test_browsing_character_change_refreshes_open_preparation_once(self):
         self.participants.save_selected_keys(("character:1",))
         view = self._view()
