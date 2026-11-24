@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from html import escape
 from pathlib import Path
 from typing import Callable, Literal
 
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLayout,
     QListWidget,
+    QListWidgetItem,
     QMenu,
     QProgressBar,
     QScrollArea,
@@ -1065,9 +1067,7 @@ class AtlasGuideReadingHeader(QFrame):
         self.summary_panel.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
         self.summary_panel.setAccessibleName("Sommaire du guide")
         self.summary_panel.hide()
-        self.summary_panel.currentRowChanged.connect(
-            lambda index: self.summaryRequested.emit(index) if index >= 0 else None
-        )
+        self.summary_panel.currentRowChanged.connect(self._request_summary_row)
         self._summary_titles = ()
         self._summary_index = -1
         self._summary_provider = None
@@ -1137,20 +1137,28 @@ class AtlasGuideReadingHeader(QFrame):
             if titles != self._summary_titles:
                 self._summary_titles = titles
                 self.summary_panel.clear()
-                self.summary_panel.addItems([
-                    f"{index}. {title}" for index, title in enumerate(titles, 1)
-                ])
+                for index, title in enumerate(titles, 1):
+                    text = f"{index}. {title}"
+                    item = QListWidgetItem(text)
+                    # Long authored titles remain readable in the narrow drawer;
+                    # escape source text before passing it to Qt's rich tooltip.
+                    item.setToolTip(f"<qt>{escape(text)}</qt>")
+                    self.summary_panel.addItem(item)
             self.summary_panel.setCurrentRow(self._summary_index)
         finally:
             self.summary_panel.blockSignals(blocked)
+
+    def _request_summary_row(self, index: int) -> None:
+        if 0 <= index < len(self._summary_titles):
+            self.summaryRequested.emit(index)
 
     def _set_summary_open(self, opened: bool) -> None:
         if opened:
             self._refresh_summary_rows()
         self.summary_panel.setVisible(opened)
-        self.summary_button.setAccessibleName(
-            "Masquer Sommaire" if opened else "Afficher Sommaire"
-        )
+        action = "Masquer Sommaire" if opened else "Afficher Sommaire"
+        self.summary_button.setAccessibleName(action)
+        self.summary_button.setToolTip(action)
 
     def set_summary_position(self, index: int) -> None:
         self._summary_index = index
@@ -1167,9 +1175,9 @@ class AtlasGuideReadingHeader(QFrame):
         self.preparation_button.toggled.connect(self._set_preparation_open)
 
     def _set_preparation_open(self, opened: bool) -> None:
-        self.preparation_button.setAccessibleName(
-            "Masquer Préparation" if opened else "Afficher Préparation"
-        )
+        action = "Masquer Préparation" if opened else "Afficher Préparation"
+        self.preparation_button.setAccessibleName(action)
+        self.preparation_button.setToolTip(action)
 
 
 class AtlasGuideSheetHeader(QFrame):

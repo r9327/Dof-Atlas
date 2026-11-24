@@ -81,6 +81,32 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             parent.deleteLater()
 
+    def test_shared_summary_refresh_escapes_source_and_ignores_invalid_rows(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide exemple")
+        titles = ["<Coffre> & clef", "Seconde fiche"]
+        requests = []
+        try:
+            header.set_summary_provider(lambda: tuple(titles))
+            header.summaryRequested.connect(requests.append)
+            header.summary_button.click()
+            self.assertEqual(header.summary_panel.item(0).text(), "1. <Coffre> & clef")
+            self.assertEqual(header.summary_panel.item(0).toolTip(),
+                             "<qt>1. &lt;Coffre&gt; &amp; clef</qt>")
+            header.set_summary_position(1)
+            titles[:] = ["Nouvelle fiche"]
+            header.set_summary_position(0)
+            self.assertEqual(header.summary_panel.count(), 1)
+            self.assertEqual(header.summary_panel.currentRow(), 0)
+            self.assertEqual(requests, [])
+            header._request_summary_row(-1)
+            header._request_summary_row(1)
+            self.assertEqual(requests, [])
+            header.summary_button.click()
+            self.assertEqual(header.summary_button.toolTip(), "Afficher Sommaire")
+        finally:
+            header.deleteLater()
+
     def test_shared_guide_header_owns_controls_and_sheet_navigation(self) -> None:
         from app.ui.components import AtlasGuideReadingHeader, AtlasGuideSheetHeader
         header = AtlasGuideReadingHeader("Guide exemple")
@@ -94,6 +120,8 @@ class SharedUiComponentsTests(unittest.TestCase):
             header.preparation_button.click()
             header.summary_button.click()
             self.assertEqual(header.summary_panel.item(1).text(), "2. Seconde fiche")
+            self.assertEqual(header.summary_panel.item(1).toolTip(), "<qt>2. Seconde fiche</qt>")
+            self.assertEqual(header.summary_button.toolTip(), "Masquer Sommaire")
             requested = []
             header.summaryRequested.connect(requested.append)
             header.set_summary_position(0)
