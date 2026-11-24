@@ -364,9 +364,9 @@ class QuestDetailView(QWidget):
         documentary_blocks = ui.quest_solution_blocks(quest)
         # Image-only or heading-only documents may coexist with genuine local
         # objectives. Do not discard either source and do not call it complete.
+        has_instructions = quest_blocks_have_instructions(documentary_blocks)
         fallback_steps = (
-            () if quest_blocks_have_instructions(documentary_blocks)
-            else quest_fallback_instruction_steps(quest)
+            () if has_instructions else quest_fallback_instruction_steps(quest)
         )
         if fallback_steps:
             self.center_layout.addWidget(
@@ -380,7 +380,7 @@ class QuestDetailView(QWidget):
             source_blocks=documentary_blocks,
             fallback_steps=fallback_steps,
         )
-        if not widgets:
+        if not has_instructions and not fallback_steps:
             self.center_layout.addWidget(
                 ui.text_label(
                     "Les données locales ne contiennent pas d'objectifs exploitables pour cette quête.",

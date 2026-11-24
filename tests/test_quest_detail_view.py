@@ -770,6 +770,8 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             (QuestSolutionBlock(1, "heading", "Étape 1"), True),
             (QuestSolutionBlock(1, "heading", "Préparation"), True),
             (QuestSolutionBlock(1, "image", image_path="missing.webp"), True),
+            (QuestSolutionBlock(1, "text", position="[3,4]"), True),
+            (QuestSolutionBlock(1, "text", "[3,4]"), True),
         ):
             with self.subTest(block=raw_block.content):
                 provider = Mock()
@@ -801,6 +803,31 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                 finally:
                     sheet.deleteLater()
                     self.app.processEvents()
+
+    def test_waypoint_without_objectives_reports_missing_instructions(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestSolutionBlock
+
+        provider = Mock()
+        provider.get_catalog.return_value = SimpleNamespace(by_id={})
+        sheet = QuestDetailView(provider, Mock(), Mock())
+        sheet._prerequisite_rows = Mock(return_value=([], Mock()))
+        sheet._ordered_neighbors = Mock(return_value=(None, None))
+        quest = QuestRecord(
+            id=927, name="Position seule", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            solution_blocks=[QuestSolutionBlock(1, "text", position="[3,4]")],
+        )
+        try:
+            sheet._render_solution(quest, None)
+            texts = [label.text() for label in sheet.findChildren(QLabel)]
+            self.assertTrue(any("atlas-travel:3,4" in text for text in texts))
+            self.assertTrue(any("ne contiennent pas d'objectifs exploitables" in text
+                                for text in texts))
+        finally:
+            sheet.deleteLater()
+            self.app.processEvents()
 
     def test_empty_imported_steps_do_not_hide_native_objectives(self) -> None:
         from app.modules.encyclopedia.services.guide_quest_view_model import (

@@ -293,6 +293,18 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         )
         self.assertNotIn(10, report["missing_instruction_quest_ids"])
 
+    def test_waypoint_only_blocks_do_not_count_as_instructions(self):
+        rows = {
+            "1": {"solution_blocks": [{"type": "text", "position": "[3,4]"}]},
+            "2": {"solution_blocks": [{"type": "text", "content": "[3,4]"}],
+                  "solution_steps": [{"description": "Parler au garde."}]},
+            "3": {"solution_blocks": [{"type": "text", "content": "Aller en [3,4]."}]},
+        }
+        report = local_start_position_coverage(rows, (1, 2, 3))
+        self.assertEqual(report["missing_instruction_quest_ids"], [1])
+        self.assertEqual(report["fallback_instruction_quest_ids"], [2])
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
+
     def test_quest_coverage_counts_only_fallback_instructions_actually_rendered(self):
         rows = {
             "1": {"solution_steps": [

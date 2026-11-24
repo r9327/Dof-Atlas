@@ -821,9 +821,10 @@ def quest_solution_steps(
 
 
 def quest_blocks_have_instructions(blocks: Iterable[DisplaySolutionBlock]) -> bool:
-    """A heading or illustration alone must not conceal existing objectives."""
+    """A heading, illustration or bare waypoint is not an instruction."""
     return any(
-        (block.content or block.position)
+        block.content
+        and not _canonical_source_coordinate(block.content)
         and block.block_type not in {"image", "heading", "title", "subtitle", "section_heading"}
         for block in blocks
     )
