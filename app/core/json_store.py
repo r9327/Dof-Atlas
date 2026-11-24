@@ -39,7 +39,7 @@ def read_json_resilient(path: Path, default: Any, *, logger: logging.Logger | No
         return copy.deepcopy(default)
     try:
         return json.loads(target.read_text(encoding="utf-8-sig"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         backup = backup_corrupt_json(target)
         active_logger = logger or LOGGER
         active_logger.error(
@@ -65,7 +65,7 @@ def read_json_validated(
         return copy.deepcopy(default)
     try:
         payload = json.loads(target.read_text(encoding="utf-8-sig"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         raise _reject_persistent_json(target, f"lecture impossible: {exc}", logger) from exc
     reason = validator(payload)
     if reason is not None:
