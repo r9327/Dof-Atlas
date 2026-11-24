@@ -23,6 +23,33 @@ class QuestSearchFieldsTests(unittest.TestCase):
              "Cawotte Ortie", "Succès 1 Succès 2"),
         )
 
+    def test_prebuilt_search_keeps_live_achievement_and_guide_names_without_hydration(self):
+        from app.modules.encyclopedia.services.quest_search_text import (
+            quest_document_text, quest_context_search_text,
+        )
+        from app.pages._quests_page_impl import QuestsPage
+        from app.pages.quests_page import QuestsPage as CachedQuestsPage
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        quest = SimpleNamespace(id=1, search_text="Quête", steps=(), rewards=())
+        document = quest_document_text(quest)
+        self.assertEqual(quest_context_search_text(quest, ["Succès rare"], ["Guide Cawotte"]),
+                         "quete_guide_cawotte_succes_rare")
+        class Deferred:
+            id = 1
+            @property
+            def steps(self):
+                raise AssertionError("unexpected detail load")
+        page = SimpleNamespace(
+            catalog=SimpleNamespace(_prebuilt_quest_search_text={1: document}),
+            graph=SimpleNamespace(achievement_names=lambda _: ["Succès rare"]),
+            guide_provider=SimpleNamespace(get_guides_for_entity=lambda *_: [
+                SimpleNamespace(title="Guide Cawotte"),
+            ]),
+        )
+        self.assertEqual(QuestsPage.quest_search_text(page, Deferred()),
+                         "quete_guide_cawotte_succes_rare")
+        self.assertIs(LazyQuestsPage.quest_search_text, CachedQuestsPage.quest_search_text)
+
     def test_repeatability_source_is_identical_for_graph_and_view(self):
         quest = SimpleNamespace(category="Dofus", start_criterion="Qf=3",
                                 info=("Hebdomadaire", "Autre"))

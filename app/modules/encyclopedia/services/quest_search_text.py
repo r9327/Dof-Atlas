@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Iterable, TYPE_CHECKING
 
+from app.core.text import normalize_key
+
 if TYPE_CHECKING:
     from app.quest_catalog import QuestRecord
 
@@ -24,3 +26,17 @@ def quest_search_fields(quest: QuestRecord, achievement_names: Iterable[str]) ->
         " ".join(reward.name for reward in quest.rewards),
         " ".join(achievement_names),
     )
+
+
+def quest_document_text(quest: QuestRecord) -> str:
+    """Persist only documentary fields; related entities are live context."""
+    return normalize_key(" ".join(quest_search_fields(quest, ())[:4]))
+
+
+def quest_context_search_text(
+    quest: QuestRecord, achievement_names: Iterable[str], guide_titles: Iterable[str],
+    *, document: str | None = None,
+) -> str:
+    """Merge the same live relations into eager and prebuilt documents."""
+    base = quest_document_text(quest) if document is None else document
+    return normalize_key(" ".join((base, " ".join(guide_titles), " ".join(achievement_names))))

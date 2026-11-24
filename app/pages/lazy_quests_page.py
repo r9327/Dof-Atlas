@@ -7,13 +7,12 @@ from threading import Thread
 from PySide6.QtCore import QTimer
 
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
-from app.modules.encyclopedia.services.quest_search_text import quest_search_fields
 from app.pages.quest_character_cache import quest_character_source_signature
 from app.pages.quests_page import (
     MIN_QUEST_SEARCH_CHARS,
     QuestsPage,
 )
-from app.quest_catalog import QuestRecord, normalize_text
+from app.quest_catalog import QuestRecord
 
 
 class LazyQuestsPage(QuestsPage):
@@ -254,29 +253,6 @@ class LazyQuestsPage(QuestsPage):
         kind = super().repeatability_kind(quest)
         self._repeatability_cache[quest_id] = kind
         return kind
-
-    def quest_search_text(self, quest: QuestRecord) -> str:
-        quest_id = int(quest.id)
-        cached = self._quest_search_text_cache.get(quest_id)
-        if cached is not None:
-            return cached
-
-        prebuilt = getattr(self.catalog, "_prebuilt_quest_search_text", None)
-        base = str(prebuilt.get(quest_id) or "") if isinstance(prebuilt, dict) else ""
-        if not base:
-            base = normalize_text(" ".join(
-                quest_search_fields(quest, self.graph.achievement_names(quest.id))
-            ))
-
-        guides = (
-            self.guide_provider.get_guides_for_entity("quest", quest.id)
-            if self.guide_provider is not None
-            else []
-        )
-        guide_text = normalize_text(" ".join(guide.title for guide in guides))
-        text = f"{base}_{guide_text}" if base and guide_text else base or guide_text
-        self._quest_search_text_cache[quest_id] = text
-        return text
 
     def matching_quests(self):
         if self._navigation_suspended:

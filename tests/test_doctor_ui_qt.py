@@ -945,8 +945,12 @@ class DoctorUiQtFaultTests(unittest.TestCase):
             self.assertEqual(first_quest_failure(quest_outcome(page, 321, [spy.at(0)])), "QUESTS_TAB")
 
             sheet, button, spy = reset()
-            with patch.object(page.quest_page, "select_quest", return_value=None):
+            # Inject at selection, after the tab's showEvent has resumed
+            # suspended work. Setting the flag before navigation no longer
+            # represents a stuck current request.
+            def stuck_selection(*_args, **_kwargs):
                 page.quest_page._detail_pending = True
+            with patch.object(page.quest_page, "select_quest", side_effect=stuck_selection):
                 click_target(self.view, button, self.view.scroll)
                 self.assertEqual(first_quest_failure(quest_outcome(page, 321, [spy.at(0)])), "lazy-initialization")
             page.quest_page._detail_pending = False

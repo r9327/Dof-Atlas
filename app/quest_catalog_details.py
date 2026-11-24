@@ -299,11 +299,8 @@ class QuestDetails:
                 for offset in range(0, len(ids), 32):
                     catalog = qc.QuestCatalog._load_source(self.data_dir, quest_ids=set(ids[offset:offset + 32]),
                         sources=self._sources, include_enrichment=False)
-                    documents.update({quest.id: qc.normalize_text(" ".join([
-                        quest.search_text, " ".join(step.name for step in quest.steps),
-                        " ".join(objective.text for step in quest.steps for objective in step.objectives),
-                        " ".join(reward.name for reward in quest.rewards),
-                    ])) for quest in catalog.quests})
+                    from app.modules.encyclopedia.services.quest_search_text import quest_document_text
+                    documents.update({quest.id: quest_document_text(quest) for quest in catalog.quests})
                     del catalog
             finally:
                 self._sources.close()
@@ -609,7 +606,7 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
 
     def load_search_documents():
         current = catalogue_ref()
-        return details.search_documents(current.by_id) if current is not None else []
+        return details.search_documents(current.by_id) if current is not None else {}
 
     catalog.load_search_documents = load_search_documents
     # Rich search is populated only by an explicit search; graph/list prewarm
