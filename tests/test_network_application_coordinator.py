@@ -271,12 +271,13 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
                 ):
                     self.assertFalse(coordinator.request_prepare_capture())
                     self.assertFalse(coordinator.request_start_compact_runtime())
+                    self.assertFalse(coordinator.request_configure_compact_context())
                     self.assertFalse(coordinator.request_start_calibration())
                     self.assertFalse(coordinator.request_start_verified_runtime())
                     worker.assert_not_called()
                     self.assertTrue(coordinator._commands.empty())
                     for command in ("prepare_capture", "start_compact_runtime",
-                                    "start_calibration", "start_runtime"):
+                                    "configure_compact_context", "start_calibration", "start_runtime"):
                         coordinator._handle_command(command)
                     coordinator._last_runtime = NetworkControllerStatus(
                         False, "build_fingerprint_unavailable",
@@ -311,6 +312,55 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             guides.assert_called_once_with()
             configure.assert_called_once()
             self.assertIs(configure.call_args.kwargs["quest_catalog"], catalog)
+
+    def test_compact_replacement_queues_and_reuses_worker_without_capture_restart(self) -> None:
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._context = (QuestCatalog([]), object(), object())
+        catalog = QuestCatalog([])
+        with patch.object(coordinator, "start_worker", return_value=True):
+            self.assertTrue(coordinator.request_configure_compact_context())
+        self.assertEqual(coordinator._commands.get_nowait(), "configure_compact_context")
+        with (
+            patch("app.quest_catalog_details.load_network_catalog", return_value=catalog) as loader,
+            patch("app.modules.encyclopedia.providers.AchievementProvider", return_value=Mock()),
+            patch("app.modules.encyclopedia.providers.GuideProvider", return_value=Mock()),
+            patch.object(coordinator, "configure_context") as configure,
+            patch.object(coordinator, "_start_runtime") as start,
+        ):
+            coordinator._handle_command("configure_compact_context")
+            loader.assert_called_once_with()
+            self.assertIs(configure.call_args.kwargs["quest_catalog"], catalog)
+            start.assert_not_called()
+            self.assertTrue(coordinator.worker_compact_context_ready)
+            coordinator._handle_command("configure_compact_context")
+            loader.assert_called_once_with()
+            configure.assert_called_once()
+
+    def test_compact_replacement_preserves_new_context_arriving_during_disk_read(self) -> None:
+        from app.quest_catalog import QuestCatalog
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._context = (QuestCatalog([]), object(), object())
+        newer = (QuestCatalog([]), object(), object())
+
+        def load():
+            coordinator._context = newer
+            return QuestCatalog([])
+
+        with (
+            patch("app.quest_catalog_details.load_network_catalog", side_effect=load),
+            patch("app.modules.encyclopedia.providers.AchievementProvider"),
+            patch("app.modules.encyclopedia.providers.GuideProvider"),
+            patch.object(coordinator, "configure_context") as configure,
+        ):
+            coordinator._handle_command("configure_compact_context")
+        configure.assert_not_called()
+        self.assertIs(coordinator._context, newer)
+        self.assertFalse(coordinator.worker_compact_context_ready)
 
     def test_compact_bootstrap_honors_shutdown_and_existing_context(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())

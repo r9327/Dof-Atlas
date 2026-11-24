@@ -316,6 +316,28 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
+    def test_compact_context_replacement_never_loads_catalogue_on_qt_thread(self) -> None:
+        from unittest.mock import Mock, patch
+        coordinator = Mock()
+        coordinator.worker_compact_context_ready = False
+        coordinator.request_configure_compact_context.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        try:
+            with patch("app.quest_catalog_details.load_network_catalog",
+                       side_effect=AssertionError("no catalogue I/O on Qt")):
+                self.assertTrue(bridge.configure_compact_context())
+                coordinator.request_configure_compact_context.assert_called_once_with()
+                coordinator.configure_context.assert_not_called()
+                self.assertFalse(bridge._compact_context_ready)
+                coordinator.worker_compact_context_ready = True
+                self.assertTrue(bridge.configure_compact_context())
+                self.assertTrue(bridge._compact_context_ready)
+                coordinator.request_configure_compact_context.assert_called_once_with()
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def _new_network_bridge(self, coordinator):
         from unittest.mock import patch
         from app.ui.network_bridge import NetworkUiBridge

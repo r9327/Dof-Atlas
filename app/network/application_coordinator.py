@@ -253,6 +253,15 @@ class NetworkApplicationCoordinator:
             return self.request_start_verified_runtime()
         return self._enqueue_command("start_compact_runtime")
 
+    def request_configure_compact_context(self) -> bool:
+        """Replace the UI-owned context on the existing network worker."""
+        with self._lock:
+            if self._shutdown_requested:
+                return False
+            if self._worker_compact_context_ready and self._context_ready:
+                return True
+        return self._enqueue_command("configure_compact_context")
+
     def latest_status(self) -> NetworkApplicationStatus:
         with self._lock:
             return self._last_status
@@ -370,26 +379,31 @@ class NetworkApplicationCoordinator:
         if command == "start_compact_runtime":
             self._start_compact_runtime()
             return
+        if command == "configure_compact_context":
+            self._start_compact_runtime(replace_existing=True)
+            return
         if command == "start_calibration":
             self._start_calibration()
             return
         if command == "start_runtime":
             self._start_runtime()
 
-    def _start_compact_runtime(self) -> None:
-        """Resolve a cold, minimal network context on the existing worker.
-
-        The Home retry control is an explicit opt-in. It must not block Qt
-        by compiling the network Quest catalogue on the caller thread.
-        """
+    def _start_compact_runtime(self, *, replace_existing: bool = False) -> None:
+        """Resolve or replace the minimal context on the existing worker."""
         with self._lock:
             if self._shutdown_requested or self._stop_event.is_set():
                 return
             already_ready = self._context_ready
-        if already_ready:
+            previous_context = self._context
+            if replace_existing and already_ready and self._worker_compact_context_ready:
+                return
+        if already_ready and not replace_existing:
             self._start_runtime()
             return
-        self._publish_current("network_context_loading")
+        # Replacing a live rich context must not temporarily advertise a
+        # disconnect or restart the capture. Only cold activation is pending.
+        if not already_ready:
+            self._publish_current("network_context_loading")
         try:
             from app.modules.encyclopedia.providers import (
                 AchievementProvider, GuideProvider,
@@ -406,10 +420,13 @@ class NetworkApplicationCoordinator:
         with self._lock:
             if self._shutdown_requested or self._stop_event.is_set():
                 return
-            if self._context_ready:
-                # An Encyclopedia context arrived while this worker was
-                # reading disk: preserve the newer live configuration.
-                self.request_start_verified_runtime()
+            if self._context_ready and (
+                not replace_existing or self._context is not previous_context
+            ):
+                # A newer context arrived while reading disk. Do not overwrite
+                # it or restart an already active capture during replacement.
+                if not replace_existing:
+                    self.request_start_verified_runtime()
                 return
             self.configure_context(
                 quest_catalog=catalog,

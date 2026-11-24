@@ -96,21 +96,12 @@ class NetworkUiBridge(QObject):
             # existing coordinator worker: no second provider or disk scan.
             self._compact_context_ready = True
             return True
-        from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
-        from app.quest_catalog_details import load_network_catalog
-
-        quest_catalog = load_network_catalog()
-        achievement_provider = AchievementProvider()
-        guide_provider = GuideProvider()
-        signature = (id(quest_catalog), id(achievement_provider), id(guide_provider))
-        self.coordinator.configure_context(
-            quest_catalog=quest_catalog,
-            achievement_provider=achievement_provider,
-            guide_provider=guide_provider,
-        )
-        self._context_signature = signature
-        self._compact_context_ready = True
-        return True
+        # The coordinator owns the only cold catalogue constructor. A return
+        # to Home must not run its SQLite/index I/O on the GUI thread.
+        accepted = self.coordinator.request_configure_compact_context()
+        if accepted:
+            self._context_signature = None
+        return accepted
 
     def request_calibration(self) -> bool:
         if self._stopped:
