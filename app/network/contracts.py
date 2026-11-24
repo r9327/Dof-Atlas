@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 
 from types import MappingProxyType
@@ -16,6 +17,37 @@ def _is_sha256(value: object) -> bool:
     Preserve uppercase hexadecimal without trimming or coercing the input.
     """
     return isinstance(value, str) and re.fullmatch(r"[0-9a-fA-F]{64}", value) is not None
+
+
+def protocol_event_id(
+    version: str, fingerprint: str, type_url: str, payload: bytes, *, namespace: str = "",
+) -> str:
+    """Preserve byte-for-byte legacy event IDs across all verified decoders."""
+    digest = hashlib.sha256()
+    digest.update(version.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(fingerprint.encode("ascii"))
+    digest.update(b"\0")
+    if namespace:
+        digest.update(namespace.encode("ascii"))
+        digest.update(b"\0")
+    digest.update(type_url.encode("utf-8", errors="strict"))
+    digest.update(b"\0")
+    digest.update(payload)
+    return f"proto:{digest.hexdigest()[:32]}"
+
+
+def required_mapping_identity(version: object, fingerprint: object, provider: object) -> tuple[str, str]:
+    """Shared normalization for decoders requiring a fingerprint provider."""
+    normalized_version = str(version or "").strip()
+    normalized_fingerprint = str(fingerprint or "").strip().casefold()
+    if not normalized_version:
+        raise ValueError("mapping_version cannot be empty")
+    if not _is_sha256(normalized_fingerprint):
+        raise ValueError("mapping_fingerprint must be a SHA-256 digest")
+    if provider is None:
+        raise ValueError("active_fingerprint_provider is required")
+    return normalized_version, normalized_fingerprint
 
 
 def active_build_matches(

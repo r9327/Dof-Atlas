@@ -68,6 +68,18 @@ class QuestSnapshotDiscoveryTests(unittest.TestCase):
             known_quest_ids=self.known,
         )
 
+    def test_runtime_and_discovery_reuse_historical_wire_shapes(self) -> None:
+        from app.network.protobuf_fields import decode_packed_positive_varints, historical_reinitialized_ids
+        from app.network.quest_snapshot_decoder import FinishedQuestsSnapshotDecoder
+        from app.network.quest_snapshot_discovery import _active_quest_id, _finished_quest_id
+
+        for row in (b"\x08\x01\x10\x01", b"\x08\x01", b"\x08\x00", b"\x08\x80", b"\x08\x01\x12\x00"):
+            self.assertEqual(FinishedQuestsSnapshotDecoder._finished_entry_is_valid(row), _finished_quest_id(row) is not None)
+            self.assertEqual(FinishedQuestsSnapshotDecoder._active_entry_quest_id(row), _active_quest_id(row))
+        self.assertEqual(historical_reinitialized_ids((1, b"\x02\x01")), (1, 2))
+        self.assertIsNone(historical_reinitialized_ids((b"\x80",)))
+        self.assertIsNone(decode_packed_positive_varints(b"\x01\x02", limit=1))
+
     def test_diagnostic_alias_is_only_exact_current_lowercase_three_letter_name(self) -> None:
         from app.network.contracts import is_current_ankama_alias
         from app.network.quest_snapshot_discovery import _is_current_type_url

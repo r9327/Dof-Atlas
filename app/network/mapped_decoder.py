@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256 as _strict_sha256, active_build_matches
+from app.network.contracts import _is_sha256 as _strict_sha256, active_build_matches, protocol_event_id
 
-import hashlib
 from dataclasses import dataclass
 from typing import Mapping
 
@@ -120,19 +119,13 @@ class StrictMappedProtocolDecoder:
                 self._reported_failures.add(message.type_url)
             return None
 
-        digest = hashlib.sha256()
-        digest.update(self.mapping_version.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(self.mapping_fingerprint.encode("ascii"))
-        digest.update(b"\0")
-        digest.update(message.type_url.encode("utf-8", errors="strict"))
-        digest.update(b"\0")
-        digest.update(message.payload)
         return DecodedClientMessage(
             session_id=message.session_id,
             event_type=rule.event_type,
             fields=fields,
-            event_id=f"proto:{digest.hexdigest()[:32]}",
+            event_id=protocol_event_id(
+                self.mapping_version, self.mapping_fingerprint, message.type_url, message.payload,
+            ),
             verified=True,
         )
 
