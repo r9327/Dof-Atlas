@@ -328,29 +328,18 @@ class QuestProgressService(CoordinatedProgressReader):
         than silently overwriting progress written by another live surface.
         """
         with self._coordinator.lock:
-            if (
-                self._seen_generation != self._coordinator.generation
-                or self._disk_signature != self._current_disk_signature()
-            ):
-                self._replace_snapshot_locked(self._coordinator.generation)
-                raise RuntimeError(
-                    "Quest progress snapshot is stale; reload and apply the mutation again."
-                )
+            self._require_current_snapshot_locked("Quest")
             self._write_locked()
 
     def _write_locked(self) -> None:
         self._validate_write_snapshot()
         save_quest_progress(self.progress, self.path)
-        self._seen_generation = self._coordinator.mark_changed()
-        self._disk_signature = self._current_disk_signature()
-        self._clear_read_caches()
+        self._accept_snapshot_locked(changed=True)
 
     def _accept_loaded_snapshot_locked(self) -> None:
         """Mark a no-op reload current without publishing a false change."""
 
-        self._seen_generation = self._coordinator.generation
-        self._disk_signature = self._current_disk_signature()
-        self._clear_read_caches()
+        self._accept_snapshot_locked(changed=False)
 
     def _read_character(self, character_key: str) -> dict[str, Any]:
         return read_progress_character(self.progress, character_key)

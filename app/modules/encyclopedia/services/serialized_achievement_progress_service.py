@@ -114,19 +114,10 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
     def save(self) -> None:
         """Persist a compatibility snapshot only when no peer changed the file."""
         with self._coordinator.lock:
-            if (
-                self._seen_generation != self._coordinator.generation
-                or self._disk_signature != self._current_disk_signature()
-            ):
-                self._replace_snapshot_locked(self._coordinator.generation)
-                raise RuntimeError(
-                    "Achievement progress snapshot is stale; reload and apply the mutation again."
-                )
+            self._require_current_snapshot_locked("Achievement")
             self._validate_write_snapshot()
             write_json_atomic(self.path, self.progress)
-            self._seen_generation = self._coordinator.mark_changed()
-            self._disk_signature = self._current_disk_signature()
-            self._invalidate_runtime_caches()
+            self._accept_snapshot_locked(changed=True)
 
     def set_achievement_completed(self, character_key: str, achievement_id: int, completed: bool) -> bool:
         key = require_character_key(character_key)

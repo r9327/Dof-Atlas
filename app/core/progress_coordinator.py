@@ -275,6 +275,25 @@ class CoordinatedProgressReader:
         self._disk_signature = self._current_disk_signature()
         self._coordinated_invalidate()
 
+    def _require_current_snapshot_locked(self, domain: str) -> None:
+        """Reject a stale compatibility save before it can overwrite a peer."""
+        if (
+            self._seen_generation != self._coordinator.generation
+            or self._disk_signature != self._current_disk_signature()
+        ):
+            self._replace_snapshot_locked(self._coordinator.generation)
+            raise RuntimeError(
+                f"{domain} progress snapshot is stale; reload and apply the mutation again."
+            )
+
+    def _accept_snapshot_locked(self, *, changed: bool) -> None:
+        """Publish a durable write or accept a no-op reload, then clear domain caches."""
+        self._seen_generation = (
+            self._coordinator.mark_changed() if changed else self._coordinator.generation
+        )
+        self._disk_signature = self._current_disk_signature()
+        self._coordinated_invalidate()
+
     def _ensure_fresh(self) -> None:
         if self._seen_generation == self._coordinator.generation:
             return

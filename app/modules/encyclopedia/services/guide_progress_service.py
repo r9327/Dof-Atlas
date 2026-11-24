@@ -114,11 +114,7 @@ class GuideProgressService(CoordinatedProgressReader):
                     guide_steps.pop(str(guide_id), None)
             if changed:
                 self._save_unlocked()
-                self._seen_generation = self._coordinator.mark_changed()
-            else:
-                self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
+            self._accept_snapshot_locked(changed=changed)
             return changed
 
     def set_manual_step_completed(
@@ -135,19 +131,9 @@ class GuideProgressService(CoordinatedProgressReader):
     def save(self) -> None:
         """Persist a deliberate compatibility snapshot only when it is current."""
         with self._coordinator.lock:
-            if (
-                self._seen_generation != self._coordinator.generation
-                or self._disk_signature != self._current_disk_signature()
-            ):
-                self._replace_snapshot_locked(self._coordinator.generation)
-                raise RuntimeError(
-                    "Guide progress snapshot is stale; reload and apply the mutation again."
-                )
-            self._validate_write_snapshot()
+            self._require_current_snapshot_locked("Guide")
             self._save_unlocked()
-            self._seen_generation = self._coordinator.mark_changed()
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
+            self._accept_snapshot_locked(changed=True)
 
     def _save_unlocked(self) -> None:
         self._validate_write_snapshot()

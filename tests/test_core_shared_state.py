@@ -228,6 +228,25 @@ class CoreSharedStateTests(unittest.TestCase):
             "characters['character:1'].completed_achievements doit être une liste",
         )
 
+    def test_compatibility_save_refuses_stale_peer_for_all_progress_domains(self) -> None:
+        from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+        from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+        from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for service_type, domain in (
+                (GuideProgressService, "Guide"),
+                (QuestProgressService, "Quest"),
+                (AchievementProgressService, "Achievement"),
+            ):
+                with self.subTest(domain=domain):
+                    path = Path(tmp) / f"{domain}.json"
+                    first, second = service_type(path), service_type(path)
+                    first.save()
+                    with self.assertRaisesRegex(RuntimeError, f"{domain} progress snapshot is stale"):
+                        second.save()
+                    second.save()
+
     def test_file_stamps_match_existing_cache_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index.json"
