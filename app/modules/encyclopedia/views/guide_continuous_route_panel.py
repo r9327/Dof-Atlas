@@ -405,6 +405,10 @@ class ContinuousGuideRoutePanel(QWidget):
         self.travel_button.setAccessibleDescription(explanation)
         return request
 
+    def refresh_connection_state(self) -> None:
+        """Refresh live action availability without rebuilding the current sheet."""
+        self._sync_travel_button()
+
     def request_current_travel(self) -> None:
         # A disconnect between paint and click must also update the button.
         request = self._sync_travel_button()

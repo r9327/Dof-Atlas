@@ -29,6 +29,22 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         self.addCleanup(tabs.deleteLater)
         return page
 
+    def test_connection_change_refreshes_guide_without_reselecting_character(self):
+        from unittest.mock import Mock
+
+        guide = Mock(current_character_key="character:1")
+        page = SimpleNamespace(
+            _syncing_character=False,
+            guides_view=guide,
+            current_character_key="character:1",
+            quest_page=None,
+            get_achievements_view=lambda: None,
+        )
+        EncyclopediaPage.sync_character_to_children(page)
+        guide.set_character_key.assert_not_called()
+        guide.refresh_connection_state.assert_called_once_with()
+        self.assertFalse(page._syncing_character)
+
     def test_guide_tab_accent_uses_the_shared_style_refresh(self):
         page = self.make_page()
         tab_bar = page.tabs.tabBar()

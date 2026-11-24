@@ -473,8 +473,15 @@ class EncyclopediaPage(QWidget):
             return
         self._syncing_character = True
         try:
-            if self.guides_view is not None and getattr(self.guides_view, "current_character_key", None) != self.current_character_key:
-                self.guides_view.set_character_key(self.current_character_key)
+            if self.guides_view is not None:
+                if getattr(self.guides_view, "current_character_key", None) != self.current_character_key:
+                    self.guides_view.set_character_key(self.current_character_key)
+                # A network membership change need not change the active
+                # character or write quest progress. Refresh visible Guide
+                # actions independently of those two triggers.
+                refresh_connections = getattr(self.guides_view, "refresh_connection_state", None)
+                if callable(refresh_connections):
+                    refresh_connections()
             if self.quest_page is not None:
                 self.sync_quest_page_character()
             achievements_view = self.get_achievements_view()

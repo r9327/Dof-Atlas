@@ -1826,6 +1826,12 @@ class GuidesView(QWidget):
                 "Déplacement refusé : commande copiée dans le presse-papiers.",
             )
 
+    def refresh_connection_state(self) -> None:
+        """Refresh only the visible reader's connection-dependent controls."""
+        panel = self._continuous_route_panel
+        if panel is not None and isValid(panel) and panel.isVisible():
+            panel.refresh_connection_state()
+
     def apply_continuous_travel_projection(
         self, projection: Mapping[str, object],
     ) -> bool:

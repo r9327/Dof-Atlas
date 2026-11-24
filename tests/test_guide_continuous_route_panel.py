@@ -627,6 +627,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         # identity provider now says otherwise. Neither the next click nor
         # the refreshed button may use the old evidence.
         state["connected"] = False
+        panel.refresh_connection_state()
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertEqual(len(emitted), 1)
         panel.request_current_travel()
         self.assertEqual(len(emitted), 1)
         self.assertFalse(panel.travel_button.isEnabled())
