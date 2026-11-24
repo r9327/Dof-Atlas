@@ -87,9 +87,8 @@ def doduda_rows(path: Path) -> dict[int, dict[str, Any]]:
         data = ref.get("data") if isinstance(ref, dict) else None
         if not isinstance(data, dict):
             continue
-        try:
-            ident = int(data.get("id"))
-        except (TypeError, ValueError):
+        ident = safe_int(data.get("id"))
+        if ident is None:
             continue
         rows[ident] = data
     return rows
@@ -390,10 +389,9 @@ class QuestCatalog:
         record_phase("global_names_and_links")
         objectives_by_step: dict[int, list[dict[str, Any]]] = defaultdict(list)
         for objective in objective_rows:
-            try:
-                objectives_by_step[int(objective.get("stepId"))].append(objective)
-            except (TypeError, ValueError):
-                continue
+            step_id = safe_int(objective.get("stepId"))
+            if step_id is not None:
+                objectives_by_step[step_id].append(objective)
         record_phase("objective_lookup")
         rewards_by_id = rewards
 
@@ -410,15 +408,15 @@ class QuestCatalog:
                     zone = zone_for_map(start.get("mapId"), maps, subareas, areas, entries)
                     if zone:
                         add_unique(zones, zone)
-            for step_id in array_value(quest.get("stepIds")):
-                try:
-                    step = quest_steps.get(int(step_id))
-                except (TypeError, ValueError):
-                    step = None
+            for raw_step_id in array_value(quest.get("stepIds")):
+                step_id = safe_int(raw_step_id)
+                if step_id is None:
+                    continue
+                step = quest_steps.get(step_id)
                 if not step:
                     continue
                 step_objectives: list[QuestObjective] = []
-                for objective in objectives_by_step.get(int(step_id), []):
+                for objective in objectives_by_step.get(step_id, []):
                     resolved = resolve_objective(
                         objective,
                         objective_type_names,
