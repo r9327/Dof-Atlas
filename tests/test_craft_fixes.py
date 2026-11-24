@@ -399,6 +399,58 @@ class CraftFixesTests(unittest.TestCase):
             self.assertFalse(dialog.isVisible())
             self.assertEqual(question.call_count, 2)
 
+    def test_shared_image_decoder_does_not_cache_pixels_under_a_changed_source(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtCore import QSize
+        from PySide6.QtGui import QPixmap
+        from app.modules.encyclopedia.services.image_service import ImageService
+        service = ImageService()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "image.png"
+            path.write_bytes(b"old")
+            pixmap = QPixmap(16, 16)
+            pixmap.fill()
+            def decode(*args):
+                path.write_bytes(b"new source")
+                return pixmap
+            with patch.object(service, "_decode_scaled", side_effect=decode):
+                service.load_scaled(path, QSize(16, 16))
+            self.assertEqual(service.info()["items"], 0)
+            with patch.object(service, "_decode_scaled", return_value=pixmap) as decode:
+                first = service.load_scaled(path, QSize(16, 16))
+                first.fill()
+                second = service.load_scaled(path, QSize(16, 16))
+                decode.assert_called_once()
+                self.assertNotEqual(first.cacheKey(), second.cacheKey())
+
+    def test_craft_icon_cache_invalidates_replaced_file_and_reuses_recent_icons(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtGui import QPixmap
+        from app.storage import IconCache
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = [Path(tmp) / f"{n}.png" for n in range(3)]
+            for path in paths:
+                path.write_bytes(b"source")
+            cache = IconCache(16, max_items=2)
+            pixmap = QPixmap(16, 16)
+            pixmap.fill()
+            with patch("app.storage.local_image_path", side_effect=lambda item: paths[item["id"]]), \
+                 patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled", return_value=pixmap) as load:
+                cache.icon_for_item({"id": 0})
+                cache.icon_for_item({"id": 1})
+                cache.icon_for_item({"id": 0})
+                cache.icon_for_item({"id": 2})
+                self.assertNotIn(str(paths[1]), cache.cache)
+                self.assertEqual(load.call_count, 3)
+                paths[0].write_bytes(b"new source")
+                cache.icon_for_item({"id": 0})
+                self.assertEqual(load.call_count, 4)
+                cache.clear()
+                self.assertEqual(cache._stamps, {})
+
     def test_flat_legacy_craft_icon_resolves_nested_weapon_asset(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

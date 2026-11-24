@@ -7,6 +7,8 @@ from threading import RLock
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QImageReader, QPixmap
 
+from app.core.file_stamp import mtime_size_stamp
+
 
 CacheKey = tuple[str, int, int, int, int]
 DEFAULT_IMAGE_CACHE_BYTES = 8 * 1024 * 1024
@@ -35,11 +37,7 @@ class ImageService:
 
     @staticmethod
     def _stamp(path: Path) -> tuple[int, int]:
-        try:
-            stat = path.stat()
-        except OSError:
-            return (0, 0)
-        return (int(stat.st_mtime_ns), int(stat.st_size))
+        return mtime_size_stamp(path)
 
     def _cache_key(self, path: Path, size: QSize) -> CacheKey | None:
         path = Path(path)
@@ -71,7 +69,7 @@ class ImageService:
             if cached is None:
                 return QPixmap()
             self._cache.move_to_end(key)
-            return cached[0]
+            return QPixmap(cached[0])
 
     def store_scaled(self, path: Path, size: QSize, pixmap: QPixmap) -> QPixmap:
         """Store a Qt-thread pixmap in the byte-bounded true-LRU cache."""
@@ -81,17 +79,20 @@ class ImageService:
         key = self._cache_key(Path(path), size)
         if key is None:
             return pixmap
+        return self._store_key(key, pixmap)
+
+    def _store_key(self, key: CacheKey, pixmap: QPixmap) -> QPixmap:
         cost = self._pixmap_bytes(pixmap)
         with self._lock:
             existing = self._cache.get(key)
             if existing is not None:
                 self._cache.move_to_end(key)
-                return existing[0]
+                return QPixmap(existing[0])
 
             if cost <= 0 or self.max_bytes <= 0 or self.max_items <= 0 or cost > self.max_bytes:
                 return pixmap
 
-            self._cache[key] = (pixmap, cost)
+            self._cache[key] = (QPixmap(pixmap), cost)
             self._cache_bytes += cost
             while self._cache and (
                 self._cache_bytes > self.max_bytes or len(self._cache) > self.max_items
@@ -131,13 +132,21 @@ class ImageService:
         """Decode one visible image close to its requested raster size."""
 
         path = Path(path)
-        cached = self.get_scaled(path, size)
-        if not cached.isNull():
-            return cached
+        key = self._cache_key(path, size)
+        if key is not None:
+            with self._lock:
+                cached = self._cache.get(key)
+                if cached is not None:
+                    self._cache.move_to_end(key)
+                    return QPixmap(cached[0])
         scaled = self._decode_scaled(path, size)
         if scaled.isNull():
             return QPixmap()
-        return self.store_scaled(path, size, scaled)
+        # A source replaced during decoding must not seed the new revision
+        # with pixels belonging to the old file.
+        if key is None or self._cache_key(path, size) != key:
+            return scaled
+        return self._store_key(key, scaled)
 
     def info(self) -> dict[str, int]:
         with self._lock:

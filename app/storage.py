@@ -66,6 +66,7 @@ from app.constants import (
 )
 from app.core.item_identity import item_id
 from app.core.item_artwork import item_artwork_path
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.profile_settings import default_profiles, profile_bool, parse_zaap_click_position
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.zaap_shortcuts import parse_unit_ratio, update_zaap_shortcuts_field, zaap_ratios_from_payload
@@ -870,14 +871,23 @@ class IconCache:
         self.max_items = max_items
         self.cache: dict[str, QIcon] = {}
         self.order: list[str] = []
+        self._stamps: dict[str, tuple[int, int, int]] = {}
 
     def icon_for_item(self, item: dict[str, Any], fallback: QIcon | None = None) -> QIcon:
         path = local_image_path(item)
         if path is None:
             return fallback or QIcon()
         key = str(path)
+        stamp = mtime_ctime_size_stamp(path)
+        if stamp is None:
+            return fallback or QIcon()
         if key in self.cache:
-            return self.cache[key]
+            self.order.remove(key)
+            if self._stamps.get(key) == stamp:
+                self.order.append(key)
+                return QIcon(self.cache[key])
+            self.cache.pop(key, None)
+            self._stamps.pop(key, None)
 
         # One Qt-thread thumbnail decoder/cache serves Craft, Guides and the
         # Encyclopedia. The small local QIcon cache keeps item list scrolling
@@ -892,16 +902,21 @@ class IconCache:
         if pixmap.isNull():
             return fallback or QIcon()
         icon = QIcon(pixmap)
-        self.cache[key] = icon
+        if mtime_ctime_size_stamp(path) != stamp:
+            return icon
+        self.cache[key] = QIcon(icon)
+        self._stamps[key] = stamp
         self.order.append(key)
-        while len(self.order) > self.max_items:
+        while self.order and len(self.order) > max(0, self.max_items):
             old = self.order.pop(0)
             self.cache.pop(old, None)
+            self._stamps.pop(old, None)
         return icon
 
     def clear(self) -> None:
         self.cache.clear()
         self.order.clear()
+        self._stamps.clear()
 
 
 def lock_icon(locked: bool) -> QIcon:

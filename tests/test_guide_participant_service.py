@@ -54,6 +54,30 @@ class GuideParticipantServiceTests(unittest.TestCase):
                 ["character:2", "character:1"],
             )
 
+    def test_available_participants_reuse_shared_roster_without_retaining_revoked_ids(self):
+        from unittest.mock import patch
+        from app.pages import quest_character_cache as cache
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            bindings.write_text(json.dumps({"characters": {
+                "1": {"name": "Alpha", "source": "verified_network_identity"},
+            }}), encoding="utf-8")
+            service = GuideParticipantService(root / "profile.json", root / "clients.json", bindings)
+            cache.clear_quest_character_cache()
+            try:
+                with patch.object(cache, "_ORIGINAL_LOAD_QUEST_CHARACTERS",
+                                  wraps=cache._ORIGINAL_LOAD_QUEST_CHARACTERS) as load:
+                    first = service.available_characters()
+                    self.assertEqual([row.key for row in first], ["character:1"])
+                    first[0].label = "modified"
+                    self.assertEqual(service.available_characters()[0].label, "Alpha")
+                    load.assert_called_once()
+                    bindings.write_text('{"characters":{}}', encoding="utf-8")
+                    self.assertEqual(service.available_characters(), ())
+            finally:
+                cache.clear_quest_character_cache()
+
     def test_selection_read_write_normalizes_whitespace_and_deduplicates(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -11,7 +11,8 @@ from app.constants import (
 from app.core.character_identity import character_key, is_character_key, iter_verified_character_bindings
 from app.core.json_store import read_json_resilient
 from app.core.profile_settings import default_profiles
-from app.quest_catalog import QuestCharacter, load_quest_characters
+from app.quest_catalog import QuestCharacter
+from app.pages.quest_character_cache import cached_load_quest_characters as load_quest_characters
 from app.services.profile_settings_service import ProfileSettingsService
 
 
