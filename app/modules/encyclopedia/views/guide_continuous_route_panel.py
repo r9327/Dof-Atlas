@@ -328,13 +328,15 @@ class ContinuousGuideRoutePanel(QWidget):
         self.set_verified_travel_plans(projection["runtime_verified_travel_plans"])
         return True
 
-    def _current_verified_travel(self) -> tuple[str, tuple[str, ...]] | None:
-        """Only an explicitly supplied runtime planner overlay may dispatch."""
+    def _travel_availability(self) -> tuple[tuple[str, tuple[str, ...]] | None, str]:
+        """Evaluate the current evidence once for the UI and for dispatch."""
         step_id = self.navigation.viewed_step_id
         selected = self.navigation.selected_character_keys
         registered = {row.key for row in self.available_characters}
-        if not step_id or not selected or any(key not in registered for key in selected):
-            return None
+        if not step_id:
+            return None, "Aucune fiche sélectionnée"
+        if not selected or any(key not in registered for key in selected):
+            return None, "Sélectionnez des personnages identifiés"
         if any(
             self.navigation.progress.is_manual_step_completed(
                 key, self.navigation.guide_id, step_id,
@@ -342,7 +344,7 @@ class ContinuousGuideRoutePanel(QWidget):
         ):
             # A projection computed before the participant checked this step
             # must never move that participant again with the whole team.
-            return None
+            return None, "La fiche est déjà validée pour un personnage sélectionné"
         # Source step dicts can contain arbitrary imported metadata. They must
         # never enable game input without an independently supplied runtime plan.
         plan = self._verified_travel_plans.get(step_id)
@@ -350,14 +352,14 @@ class ContinuousGuideRoutePanel(QWidget):
                 or plan.get("atlas_guide_id") != self.navigation.guide_id
                 or plan.get("source_step_id") != step_id
                 or plan.get("source_payload_sha256") != self._source_payload_sha256):
-            return None
+            return None, "Aucun trajet vérifié pour cette fiche"
         keys = plan.get("participant_keys")
         if (not isinstance(keys, (list, tuple))
                 or tuple(keys) != selected):
             # A stale plan for a different selection must never be broadcast.
-            return None
+            return None, "Le trajet doit être recalculé pour les personnages sélectionnés"
         if not isinstance(plan.get("evidence"), str) or not plan["evidence"].strip():
-            return None
+            return None, "Source du trajet non vérifiée"
         # Preserve offline identities for manual progress, but do not send
         # game input to an old connected snapshot. Re-read the verified
         # participant inventory only when a signed travel plan is usable.
@@ -375,29 +377,37 @@ class ContinuousGuideRoutePanel(QWidget):
         except Exception:
             from app.core.logger import get_runtime_logger
             get_runtime_logger().exception("Guide participant connection lookup failed")
-            return None
+            return None, "État de connexion indisponible"
         if any(key not in online for key in selected):
-            return None
+            return None, "Un ou plusieurs personnages sélectionnés sont hors ligne"
         destination = self._exact_coordinates(plan.get("destination"))
         if destination is None:
-            return None
+            return None, "Coordonnées de destination non vérifiées"
         command = f"/travel {destination[0]},{destination[1]}"
         mode = plan.get("mode")
         if mode == "direct":
             if plan.get("zaap") is not None:
-                return None
+                return None, "Trajet direct incohérent"
         elif mode == "zaap_then_travel":
             zaap = self._exact_coordinates(plan.get("zaap"))
             if (zaap is None or not isinstance(plan.get("world"), str)
                     or not plan["world"].strip()):
-                return None
+                return None, "Zaap ou monde de destination non vérifié"
             command = f"/zaap {zaap[0]},{zaap[1]} ; {command}"
         else:
-            return None
-        return command, selected
+            return None, "Mode de déplacement non vérifié"
+        return (command, selected), f"Envoyer {command} aux personnages sélectionnés"
+
+    def _sync_travel_button(self) -> tuple[str, tuple[str, ...]] | None:
+        request, explanation = self._travel_availability()
+        self.travel_button.setEnabled(request is not None)
+        self.travel_button.setToolTip(explanation)
+        self.travel_button.setAccessibleDescription(explanation)
+        return request
 
     def request_current_travel(self) -> None:
-        request = self._current_verified_travel()
+        # A disconnect between paint and click must also update the button.
+        request = self._sync_travel_button()
         if request is not None:
             self.travelRequested.emit(*request)
 
@@ -447,8 +457,7 @@ class ContinuousGuideRoutePanel(QWidget):
             if all_validated else
             "Valider manuellement cette fiche pour les personnages sélectionnés"
         )
-        travel = self._current_verified_travel()
-        self.travel_button.setEnabled(travel is not None)
+        self._sync_travel_button()
         if current is None:
             self.title_label.setText("Aucune fiche sélectionnée")
             self.body_label.setText(

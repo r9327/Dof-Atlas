@@ -496,6 +496,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         events = []
         panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
         self.assertFalse(panel.travel_button.isEnabled())
+        self.assertIn("Aucun trajet vérifié", panel.travel_button.toolTip())
         panel.request_current_travel()
         self.assertEqual(events, [])
 
@@ -628,6 +629,10 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         state["connected"] = False
         panel.request_current_travel()
         self.assertEqual(len(emitted), 1)
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertIn("hors ligne", panel.travel_button.toolTip())
+        self.assertEqual(panel.travel_button.accessibleDescription(),
+                         panel.travel_button.toolTip())
         panel.refresh()
         self.assertFalse(panel.travel_button.isEnabled())
         state["connected"] = True
