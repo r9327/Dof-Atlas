@@ -47,6 +47,48 @@ class CoreSharedStateTests(unittest.TestCase):
             self.assertFalse(second.is_manual_step_completed("character:1", "guide", "step"))
             self.assertTrue(second.is_manual_step_completed("character:2", "guide", "step"))
 
+    def test_guide_quest_count_uses_same_unique_completion_logic(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.services.guide_progress_calculator import GuideProgressCalculator, ProgressCount
+
+        progress = Mock()
+        progress.completed_quest_ids.return_value = {17}
+        calculator = GuideProgressCalculator(progress, Mock(), Mock(), {})
+        steps = (
+            SimpleNamespace(step_type="quest", entity_id=17, counts_for_completion=True),
+            SimpleNamespace(step_type="quest", entity_id=17, counts_for_completion=True),
+            SimpleNamespace(step_type="quest", entity_id=18, counts_for_completion=True),
+            SimpleNamespace(step_type="quest", entity_id=19, counts_for_completion=False),
+            SimpleNamespace(step_type="info", entity_id=None, counts_for_completion=True),
+        )
+        self.assertEqual(calculator.quest_steps_progress(SimpleNamespace(id="test"), steps, "character:1"), ProgressCount(1, 2))
+        self.assertEqual(calculator.quest_ids_progress("test", (17, 17, 18), "character:1"), ProgressCount(1, 2))
+
+    def test_achievement_objective_cache_signature_skips_invalid_numeric_values(self) -> None:
+        from app.modules.encyclopedia.services.progress_service import AchievementProgressService
+
+        self.assertEqual(
+            AchievementProgressService._manual_objectives_signature({
+                "completed_objectives": {"17": [4, "4", 8, float("inf"), None], "bad": [3]}
+            }),
+            ((17, (4, 8)),),
+        )
+
+    def test_map_manifest_recovers_from_wrong_root_and_preserves_atomic_writes(self) -> None:
+        from unittest.mock import patch
+        from app.services.maps import map_manifest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "manifest.json"
+            with patch.object(map_manifest, "MAP_MANIFEST_PATH", path):
+                path.write_text("[]", encoding="utf-8")
+                self.assertEqual(map_manifest.load_map_entries(), [])
+                path.write_text("{", encoding="utf-8")
+                self.assertEqual(map_manifest.load_map_entries(), [])
+                map_manifest.write_json(path, {"maps": [], "name": "Éliotrope"})
+                self.assertEqual(map_manifest.load_manifest()["name"], "Éliotrope")
+
     def test_progress_payload_is_fresh_and_versioned(self) -> None:
         first = empty_progress_payload()
         self.assertEqual(first, {"version": 1, "characters": {}})
