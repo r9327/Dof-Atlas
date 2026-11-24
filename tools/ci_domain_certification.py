@@ -201,11 +201,126 @@ CRAFT_PATHS = frozenset({
 })
 
 
+# Reviewed concrete #365 paths from the exact-SHA draft plan. Broad shared
+# consumers retain conservative cross-domain coverage; no directory wildcard.
+# This is ownership only, not a modular or FULL certificate.
+PR365_REVIEWED_DOMAIN_GROUPS = (
+    (frozenset({"craft", "data", "ui"}), frozenset({
+        "app/core/craft_selection.py",
+        "app/core/item_artwork.py",
+        "tests/test_owned_items_normalization.py",
+    })),
+    (frozenset({"craft", "quests", "guides", "data", "startup"}), frozenset({
+        "app/core/doduda_rows.py",
+        "tests/test_core_doduda_rows.py",
+    })),
+    (frozenset({"ci", "startup", "data", "craft", "quests", "guides", "ui", "identity", "organizer"}), frozenset({
+        "app/core/file_hash.py",
+        "app/core/file_stamp.py",
+        "app/core/numbers.py",
+        "tests/test_core_file_hash.py",
+        "tests/test_core_numbers.py",
+        "tests/test_core_shared_state.py",
+        "tests/test_json_store.py",
+        "tests/test_release_signatures.py",
+    })),
+    (frozenset({"quests", "guides", "ui", "data", "organizer"}), frozenset({
+        "app/core/map_coordinates.py",
+        "tests/test_core_map_coordinates.py",
+    })),
+    (frozenset({"organizer", "ui", "startup", "data"}), frozenset({
+        "app/core/zaap_shortcuts.py",
+        "tests/test_zaap_clipboard_fallback.py",
+    })),
+    (frozenset({"quests", "guides", "identity", "data", "startup"}), frozenset({
+        "app/modules/encyclopedia/services/achievement_progress_logic.py",
+        "app/modules/encyclopedia/services/progress_service.py",
+        "app/modules/encyclopedia/services/quest_graph_service.py",
+        "app/modules/encyclopedia/services/quest_progress_service.py",
+        "app/modules/encyclopedia/services/quest_search_text.py",
+        "app/modules/encyclopedia/services/serialized_achievement_progress_service.py",
+    })),
+    (frozenset({"quests", "guides", "data"}), frozenset({
+        "app/modules/encyclopedia/services/adventure_route_adapter.py",
+        "app/modules/encyclopedia/tools/audit_quests_guides_semantic.py",
+    })),
+    (frozenset({"ci", "guides", "startup"}), frozenset({
+        "app/modules/encyclopedia/tools/benchmark_guides_performance.py",
+        "tests/test_atlas_doctor_runtime_benchmark.py",
+    })),
+    (frozenset({"guides", "ui"}), frozenset({
+        "app/modules/encyclopedia/views/guide_progress_presentation.py",
+        "app/modules/encyclopedia/widgets/guide_progress_header.py",
+        "app/modules/encyclopedia/widgets/guide_section_widget.py",
+    })),
+    (frozenset({"quests", "guides", "ui", "identity"}), frozenset({
+        "app/modules/encyclopedia/widgets/achievement_detail_widget.py",
+        "app/modules/encyclopedia/widgets/achievement_summary_widget.py",
+        "app/modules/encyclopedia/widgets/dashboard.py",
+        "app/modules/encyclopedia/widgets/detail_panel.py",
+        "app/modules/encyclopedia/widgets/progress_card.py",
+    })),
+    (frozenset({"startup", "identity", "quests", "guides", "data", "ui", "organizer"}), frozenset({
+        "app/network/application_coordinator.py",
+        "app/network/bootstrap.py",
+        "app/network/calibrated_mapping_install.py",
+        "app/network/character_resolver.py",
+        "app/network/contracts.py",
+        "app/network/correlated_identity_decoder.py",
+        "app/network/current_protocol_profile.py",
+        "app/network/deobfs_bundle.py",
+        "app/network/discovery.py",
+        "app/network/discovery_probe.py",
+        "app/network/known_session_recovery.py",
+        "app/network/mapped_decoder.py",
+        "app/network/normalizer.py",
+        "app/network/progress_bridge.py",
+        "app/network/protobuf_fields.py",
+        "app/network/protocol_calibration.py",
+        "app/network/protocol_extract.py",
+        "app/network/protocol_status.py",
+        "app/network/quest_completion_info_decoder.py",
+        "app/network/quest_final_step_filter.py",
+        "app/network/quest_journal_decoder.py",
+        "app/network/quest_snapshot_decoder.py",
+        "app/network/quest_snapshot_discovery.py",
+        "app/network/runtime.py",
+        "tests/test_network_application_coordinator.py",
+        "tests/test_network_bootstrap.py",
+        "tests/test_network_current_protocol_profile.py",
+        "tests/test_network_protocol_calibration.py",
+        "tests/test_network_protocol_extract.py",
+        "tests/test_network_sha256_shared_contract.py",
+    })),
+    (frozenset({"ui", "startup", "data"}), frozenset({
+        "app/services/almanax_service.py",
+        "tests/test_almanax_service.py",
+        "app/services/maps/cartography_asset_recovery.py",
+        "app/services/maps/map_cache_builder.py",
+        "app/services/maps/map_manifest.py",
+        "tests/test_cartography_recovery_security.py",
+    })),
+    (frozenset({"identity", "organizer", "quests", "guides", "ui", "startup", "data"}), frozenset({
+        "app/services/character_data_service.py",
+        "app/services/character_order_logic.py",
+        "app/services/character_order_service.py",
+        "app/services/guide_participant_service.py",
+    })),
+)
+PR365_REVIEWED_DOMAIN_OWNERS = {
+    path: domains
+    for domains, paths in PR365_REVIEWED_DOMAIN_GROUPS
+    for path in paths
+}
+
+
 def owners_for(path: str) -> frozenset[str]:
     """Static, independently checked closed-world owners (not PR title hints)."""
     if (not isinstance(path, str) or not path or path.startswith("/")
             or "\\" in path or ".." in path.split("/")):
         raise ValueError("Unsafe changed path")
+    if path in PR365_REVIEWED_DOMAIN_OWNERS:
+        return PR365_REVIEWED_DOMAIN_OWNERS[path]
     if path in REVIEWED_CI_INSTRUCTION_PATHS:
         return frozenset({"ci"})
     if path == "tests/test_doctor_ui_qt.py":

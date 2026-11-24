@@ -1149,6 +1149,21 @@ class ModularDomainRoutingTests(unittest.TestCase):
                     (path.name, element.attrib),
                 )
 
+    def test_pr365_reviewed_paths_keep_closed_world_ownership(self):
+        from tools.ci_domain_certification import PR365_REVIEWED_DOMAIN_OWNERS
+
+        self.assertEqual(len(PR365_REVIEWED_DOMAIN_OWNERS), 75)
+        for path, expected in PR365_REVIEWED_DOMAIN_OWNERS.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), expected)
+                self.assertTrue(expected)
+                adjacent = path.removesuffix(".py") + "_unreviewed.py"
+                self.assertEqual(owners_for(adjacent), frozenset())
+        plan = self.route(list(PR365_REVIEWED_DOMAIN_OWNERS))
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["merge_authorized"])
+        self.assertFalse(plan["full_suite_executed"])
+
     def test_unknown_owner_blocks_instead_of_launching_full(self):
         plan = self.route(["app/new_cross_domain_provider.py"])
         self.assertEqual(plan["status"], "BLOCKED")
