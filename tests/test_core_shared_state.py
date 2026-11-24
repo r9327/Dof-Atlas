@@ -18,6 +18,35 @@ class CoreSharedStateTests(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertEqual(QuestProgressService._safe_int(value), expected)
 
+    def test_external_quest_save_cannot_overwrite_newer_disk_snapshot(self) -> None:
+        import json
+        from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "quests.json"
+            service = QuestProgressService(path)
+            service.set_quest_completed("character:1", 42, True)
+            external = {"version": 1, "characters": {"character:1": {"done": {"42": True, "123": True}}}}
+            path.write_text(json.dumps(external), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "snapshot is stale"):
+                service.save()
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), external)
+            self.assertTrue(service.is_quest_completed("character:1", 123))
+
+    def test_scalar_and_batch_guide_progress_share_same_persistence(self) -> None:
+        from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "guide.json"
+            first, second = GuideProgressService(path), GuideProgressService(path)
+            self.assertTrue(first.set_manual_step_completed("character:1", "guide", "step", True))
+            self.assertFalse(second.set_manual_steps_for_characters(("character:1",), "guide", "step", True))
+            self.assertTrue(second.set_manual_steps_for_characters(("character:1", "character:2"), "guide", "step", True))
+            self.assertTrue(first.is_manual_step_completed("character:2", "guide", "step"))
+            self.assertTrue(first.set_manual_step_completed("character:1", "guide", "step", False))
+            self.assertFalse(second.is_manual_step_completed("character:1", "guide", "step"))
+            self.assertTrue(second.is_manual_step_completed("character:2", "guide", "step"))
+
     def test_progress_payload_is_fresh_and_versioned(self) -> None:
         first = empty_progress_payload()
         self.assertEqual(first, {"version": 1, "characters": {}})
