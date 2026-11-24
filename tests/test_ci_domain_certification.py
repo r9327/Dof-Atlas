@@ -97,6 +97,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(owners_for(path), entity_owners)
         network_paths = (
+            "app/core/network_presentation.py",
             "tests/test_network_home_status.py",
             "tests/test_home_page.py",
         )
@@ -117,6 +118,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         )
         # An adjacent unreviewed test cannot inherit these owners.
         for unreviewed in (
+            "app/core/network_presentation_unreviewed.py",
             "tests/test_network_home_status_unreviewed.py",
             "tests/test_home_page_unreviewed.py",
             "tests/test_entity_link_roles_unreviewed.py",

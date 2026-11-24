@@ -680,9 +680,9 @@ class HomePage(QWidget):
         # A failed stop/cleanup can leave a privileged capture helper alive:
         # never offer a second capture until the first one is truly stopped.
         reason = str(status.reason or "")
-        safe_to_retry = not any(
-            marker in reason for marker in ("stop_failed", "cleanup_failed")
-        )
+        from app.core.network_presentation import capture_retry_allowed
+
+        safe_to_retry = capture_retry_allowed(reason)
         self.network_retry.setText(
             "Activer" if reason == "capture_ready_waiting_context" else "Relancer"
         )
@@ -701,7 +701,9 @@ class HomePage(QWidget):
         """User-initiated retry; no expensive catalogue reload in the UI."""
         bridge = self.network_bridge
         reason = str(bridge.last_status.reason or "")
-        if any(marker in reason for marker in ("stop_failed", "cleanup_failed")):
+        from app.core.network_presentation import capture_retry_allowed
+
+        if not capture_retry_allowed(reason):
             self.network_status.setText("Arrêt à vérifier")
             self.network_status.setToolTip(
                 "Capture précédente non arrêtée : vérifier le processus avant toute relance."

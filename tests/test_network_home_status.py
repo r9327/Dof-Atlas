@@ -345,6 +345,7 @@ class NetworkHomeStatusTests(unittest.TestCase):
         bridge = self._new_network_bridge(coordinator)
         activations = []
         bridge.characterActivated.connect(activations.append)
+        coordinator.latest_status.return_value = self._status(running=True, reason="running")
         bridge.statusChanged.connect(
             lambda status: bridge.stop() if status.running else None
         )
@@ -354,6 +355,29 @@ class NetworkHomeStatusTests(unittest.TestCase):
             coordinator.drain_results.assert_not_called()
             self.assertEqual(activations, [])
             self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_ui_uses_current_status_even_with_older_queued_notifications(self) -> None:
+        from unittest.mock import Mock
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = [self._status(running=True, reason="running")]
+        coordinator.drain_results.return_value = []
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received = []
+        bridge.statusChanged.connect(received.append)
+        try:
+            latest = self._status(reason="runtime_stop_failed")
+            coordinator.latest_status.return_value = latest
+            bridge._poll()
+            bridge._poll()
+            self.assertEqual(received, [latest])
+            self.assertFalse(bridge.request_verified_runtime())
+            coordinator.request_start_compact_runtime.assert_not_called()
         finally:
             bridge.stop()
             bridge.deleteLater()

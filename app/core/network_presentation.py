@@ -55,3 +55,7 @@ def network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
         return "Actif", "active"
     return "Préparation…", "pending"
 
+
+def capture_retry_allowed(reason: object) -> bool:
+    """An unconfirmed shutdown must not be followed by another capture."""
+    return not any(marker in str(reason or "") for marker in ("stop_failed", "cleanup_failed"))

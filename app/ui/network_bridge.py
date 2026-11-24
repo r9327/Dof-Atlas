@@ -125,6 +125,10 @@ class NetworkUiBridge(QObject):
     def request_verified_runtime(self) -> bool:
         if self._stopped:
             return False
+        from app.core.network_presentation import capture_retry_allowed
+
+        if not capture_retry_allowed(self.coordinator.latest_status().reason):
+            return False
         # Explicit retry from Home is allowed before visiting Encyclopedia.
         # The coordinator resolves only its compact Quest context off-thread;
         # keep all Qt widgets out of catalogue loading.
@@ -166,8 +170,13 @@ class NetworkUiBridge(QObject):
             return
         statuses = self.coordinator.drain_statuses(50)
         if statuses:
-            self._last_status = statuses[-1]
-            self.statusChanged.emit(self._last_status)
+            # The queue is bounded per poll and concurrent publishers may
+            # enqueue old notifications after a newer state was committed.
+            # Render the authoritative snapshot, not an older queued badge.
+            latest = self.coordinator.latest_status()
+            if latest != self._last_status:
+                self._last_status = latest
+                self.statusChanged.emit(latest)
             # A direct Qt slot can stop the bridge during this emission.
             # Never consume or publish an older worker event afterwards.
             if self._stopped:

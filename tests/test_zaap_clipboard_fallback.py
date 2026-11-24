@@ -60,6 +60,15 @@ class ZaapClipboardFallbackTests(unittest.TestCase):
         self.assertEqual(QApplication.clipboard().text(), "saved user text")
         self.assertIn("en cours", messages[-1])
 
+    def test_failed_popup_cleanup_does_not_keep_launch_guard_locked(self) -> None:
+        callback = Mock(return_value=True)
+        panel, _messages = self._panel(callback)
+        panel.hide_suggestions.side_effect = RuntimeError("popup deleted")
+        with self.assertRaises(RuntimeError):
+            ZaapWidget.launch_zaap(panel, {"label": "Astrub [1,-2]"})
+        self.assertFalse(panel.launching_zaap)
+        callback.assert_not_called()
+
     def test_real_invalid_source_rows_never_launch_or_copy(self) -> None:
         callback = Mock(return_value=True)
         panel, messages = self._panel(callback)

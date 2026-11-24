@@ -1513,14 +1513,12 @@ class ZaapWidget(QWidget):
         if self.launching_zaap:
             return
         self.launching_zaap = True
-        label = self.suggestion_label(zaap)
-        coords = row_coordinate_pair(zaap)
-        # Close immediately, before callbacks can reload the runtime or
-        # activate another window. The popup must never stay over DOFUS.
-        # Suppress previously scheduled show_suggestions() QTimer callbacks.
-        self._suppress_autoshow_after_launch = True
-        self.hide_suggestions()
         try:
+            label = self.suggestion_label(zaap)
+            coords = row_coordinate_pair(zaap)
+            # Hide before callbacks can reload runtime or activate a window.
+            self._suppress_autoshow_after_launch = True
+            self.hide_suggestions()
             if coords is None:
                 LOGGER.warning("Auto zaap refuse: coordonnees absentes pour %s", label)
                 self.status_callback(f"Zaap invalide (coordonnees absentes) : {label}")
@@ -1563,7 +1561,11 @@ class ZaapWidget(QWidget):
                 # Legacy callbacks returning None do not prove acceptance.
                 self.status_callback(f"Auto zaap transmis (démarrage non confirmé) : {label}")
         finally:
-            self._schedule_owned_callback(0, self.reset_launch_guard)
+            try:
+                self._schedule_owned_callback(0, self.reset_launch_guard)
+            except RuntimeError:
+                # Qt may destroy the owning widget during a callback.
+                self.reset_launch_guard()
 
     def reset_launch_guard(self) -> None:
         self.launching_zaap = False
