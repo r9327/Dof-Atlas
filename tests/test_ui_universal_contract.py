@@ -625,7 +625,11 @@ class UiUniversalContractTests(unittest.TestCase):
             ),
             "app/modules/encyclopedia/views/shared_manual_guide_view.py": (
                 "apply_unity_panel_shadow(nav)",
-                "apply_unity_panel_shadow(header)",
+                "AtlasGuideReadingHeader(",
+                "AtlasGuideSheetHeader(",
+            ),
+            "app/ui/components.py": (
+                "apply_unity_panel_shadow(self)",
             ),
         }
         for path, calls in signatures.items():

@@ -355,26 +355,28 @@ class UnityPaletteTests(unittest.TestCase):
         for key, object_name in (("progress_primary", "GuideGlobalProgress"),
                                  ("progress_secondary", "GuideCompactPreparationProgress")):
             with self.subTest(token=key):
+                calls = [node for node in ast.walk(ast.parse(component))
+                         if isinstance(node, ast.Call)
+                         and isinstance(node.func, ast.Name)
+                         and node.func.id == "configure_unity_progress_bar"]
+                self.assertEqual(sum(
+                    {"height_role": key, "object_name": object_name, "expanding": True}.items()
+                    <= {kw.arg: kw.value.value for kw in call.keywords
+                        if isinstance(kw.value, ast.Constant)}.items()
+                    for call in calls
+                ), 1)
                 for consumer in (source, gallery):
-                    calls = [node for node in ast.walk(ast.parse(consumer))
-                             if isinstance(node, ast.Call)
-                             and isinstance(node.func, ast.Name)
-                             and node.func.id == "configure_unity_progress_bar"]
-                    self.assertTrue(any(
-                        {"height_role": key, "object_name": object_name, "expanding": True}.items()
-                        <= {kw.arg: kw.value.value for kw in call.keywords
-                            if isinstance(kw.value, ast.Constant)}.items()
-                        for call in calls
-                    ))
+                    self.assertIn("AtlasGuideReadingHeader(", consumer)
+                    self.assertNotIn(f'object_name="{object_name}"', consumer)
                 self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
         self.assertIn("bar.setFixedHeight(UNITY_CONTROL_SIZES_PX[height_role])", component)
         for key in ("progress_toggle_width", "progress_toggle_height"):
             self.assertIn(f'UNITY_CONTROL_SIZES_PX["{key}"]', component)
             self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
-        for consumer, names in ((source, ("self.global_details_button", "self.preparation_button")),
-                                (gallery, ("global_toggle", "prep_toggle"))):
-            for name in names:
-                self.assertIn(f"{name}.configure_compact()", consumer)
+        for name in ("self.global_details_button", "self.preparation_button"):
+            self.assertIn(f"{name}.configure_compact()", component)
+        for consumer in (source, gallery):
+            self.assertIn("AtlasGuideReadingHeader(", consumer)
         for consumer in (source, gallery):
             self.assertIn('UNITY_CONTROL_SIZES_PX["guide_validation_width"]', consumer)
         self.assertGreater(UNITY_CONTROL_SIZES_PX["guide_validation_width"], 0)

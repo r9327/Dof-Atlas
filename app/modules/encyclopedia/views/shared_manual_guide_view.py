@@ -883,9 +883,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
-        # Arrow is owned by the Preparation progress metric.
-        self.preparation_button.toggled.connect(self._preparation_toggled)
-
+        # The shared header owns visibility before the lazy renderer runs.
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
         panel_layout = QVBoxLayout(self.preparation_panel)
@@ -919,6 +917,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_panel.setVisible(False)
         apply_unity_panel_shadow(self.preparation_panel)
         self.reading_header.attach_preparation(self.preparation_panel)
+        self.preparation_button.toggled.connect(self._preparation_toggled)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
         header = AtlasGuideSheetHeader(total=len(self.service.cards))

@@ -1785,21 +1785,24 @@ class DevUiPageTests(unittest.TestCase):
                             return left, left + widget.width()
 
                         full = span(page.preview_header_global_progress)
-                        preparation = span(page.preview_header_metrics["Préparation"])
-                        self.assertGreaterEqual(preparation[0], full[0])
-                        self.assertLessEqual(preparation[1], full[1])
-                        self.assertGreater(preparation[1], preparation[0])
+                        self.assertGreater(full[1], full[0])
+                        # Qt defers geometry of hidden children. Assert the
+                        # collapsed state, then real alignment after showing.
+                        self.assertEqual(
+                            page.preview_header_panels["Progression globale"].isVisibleTo(
+                                page.preview_compact_header
+                            ), opened,
+                        )
+                        self.assertEqual(
+                            page.preview_header_panels["Préparation"].isVisibleTo(
+                                page.preview_compact_header
+                            ), opened,
+                        )
                         if opened:
-                            self.assertTrue(
-                                page.preview_header_panels["Progression globale"].isVisibleTo(
-                                    page.preview_compact_header
-                                )
-                            )
-                            self.assertTrue(
-                                page.preview_header_panels["Préparation"].isVisibleTo(
-                                    page.preview_compact_header
-                                )
-                            )
+                            preparation = span(page.preview_header_metrics["Préparation"])
+                            self.assertGreaterEqual(preparation[0], full[0])
+                            self.assertLessEqual(preparation[1], full[1])
+                            self.assertGreater(preparation[1], preparation[0])
             self.assertEqual(
                 page.preview_header_global_progress.height(),
                 UNITY_CONTROL_SIZES_PX["progress_primary"],
