@@ -210,8 +210,8 @@ class DoctorUiQtFaultTests(unittest.TestCase):
             :source.index("    for turn in range(1 if smoke else repeats):")
         ]
         self.assertIn("session.check(", verify_block)
-        self.assertIn("view.preparation_button.setChecked(True)", verify_block)
-        self.assertIn("view.global_details_button.setChecked(True)", verify_block)
+        self.assertIn("click_target(page, view.preparation_button)", verify_block)
+        self.assertIn("click_target(page, view.global_details_button)", verify_block)
         self.assertIn("view.global_details_panel.isVisible()", verify_block)
         self.assertNotIn("view.summary_button", source)
 

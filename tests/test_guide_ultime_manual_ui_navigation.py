@@ -323,7 +323,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         from app.ui.components import AtlasComboBox
         from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
 
-        _service, view = self._view()
+        service, view = self._view()
+        service.cards[0]["a_preparer"] = [{"name": "Potion de test", "quantity": 2}]
         try:
             self.assertIsInstance(view.preparation_filter, AtlasComboBox)
             self.assertEqual(view.preparation_filter.count(), 7)
@@ -492,16 +493,27 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             view.close()
 
     def test_global_and_preparation_drawers_remain_open_during_page_navigation(self) -> None:
-        _service, view = self._view()
+        service, view = self._view()
+        service.cards[0]["a_preparer"] = [{"name": "Potion de test", "quantity": 2}]
         try:
             view.show()
+            self.assertFalse(view.global_details_panel.isVisible())
+            self.assertFalse(view.preparation_button.isVisible())
+            self.assertFalse(view.reading_header.summary_button.isVisible())
+            view.global_details_button.click()
             view.preparation_button.click()
             view.reading_header.summary_button.click()
             QApplication.processEvents()
-            self.assertFalse(view.global_details_panel.isVisible())
             self.assertTrue(view.preparation_panel.isVisible())
             self.assertTrue(view.reading_header.summary_panel.isVisible())
             view.global_details_button.click()
+            QApplication.processEvents()
+            self.assertFalse(view.preparation_panel.isVisible())
+            self.assertFalse(view.reading_header.summary_panel.isVisible())
+            view.global_details_button.click()
+            QApplication.processEvents()
+            self.assertTrue(view.preparation_panel.isVisible())
+            self.assertTrue(view.reading_header.summary_panel.isVisible())
             view.reading_header.summary_panel.setCurrentRow(1)
             self.assertEqual(view.view_index, 1)
             self.assertTrue(view.global_details_button.isChecked())
@@ -518,10 +530,11 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         _service, view = self._view()
         try:
             nav = view.findChild(QFrame, "GuideManualNav")
-            validation = nav.findChild(QCheckBox, "GuideManualPageCheck")
-            if validation is None:
-                validation = nav.findChild(QToolButton, "GuideManualPageCheck")
-            self.assertIsNotNone(view.validation_host.findChild(QFrame) or view.validation_host)
+            from app.ui.components import AtlasGuideValidationButton, AtlasGuideReadingNav
+            self.assertIsInstance(nav, AtlasGuideReadingNav)
+            validation = nav.findChild(AtlasGuideValidationButton, "GuideManualPageCheck")
+            self.assertIsNotNone(validation)
+            self.assertIs(validation.parentWidget(), view.validation_host)
             self.assertIsNotNone(nav.findChild(QFrame, "GuideManualValidationHost"))
             self.assertIs(view.prev_button.parentWidget(), nav)
             self.assertIs(view.next_button.parentWidget(), nav)

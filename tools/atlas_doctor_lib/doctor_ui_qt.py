@@ -807,8 +807,13 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     # Exercise the real Preparation drawer in the verification campaign.
     # Historically only the Dev UI fiction was captured in CI, while the
     # production Guide drawer remained closed in every real route image.
-    view.global_details_button.setChecked(True)
-    view.preparation_button.setChecked(True)
+    parent_click = click_target(page, view.global_details_button)
+    settle()
+    preparation_click = (
+        click_target(page, view.preparation_button)
+        if view.preparation_button.isVisible() else
+        {"accessible": False, "reason": "NO_VISIBLE_PREPARATION_COMMAND"}
+    )
     settle()
     preparation_open = (
         view.global_details_panel.isVisible()
@@ -822,6 +827,8 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         "Production panel, scroll area and category selector are visibly mounted",
         {
             "open": preparation_open,
+            "parent_click": parent_click,
+            "preparation_click": preparation_click,
             "visible_categories": [
                 view.preparation_filter.itemText(i)
                 for i in range(view.preparation_filter.count())
@@ -830,7 +837,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             "drawer_max_height": view.preparation_scroll.maximumHeight(),
             "loaded_needs": len(view._preparation_needs),
         },
-        preparation_open
+        parent_click["accessible"] and preparation_click["accessible"]
+        and preparation_open
+        and bool(view._preparation_needs or view._preparation_preview)
         and 0 < view.preparation_scroll.height() <= view.preparation_scroll.maximumHeight(),
         page,
     )
@@ -896,10 +905,12 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         click = click_target(page, disclosure)
     settle()
     header = view.reading_header
-    nested_metrics = all(
-        column.parentWidget() is view.global_details_panel
-        and (column.isHidden() or column.isVisible())
-        for column in (header.preparation_column, header.summary_column)
+    nested_metrics = (
+        header.preparation_column.parentWidget() is view.global_details_panel
+        and header.summary_column.parentWidget() is view.global_details_panel
+        and header.summary_column.isVisible() == bool(view.service.cards)
+        and header.preparation_column.isVisible()
+        == bool(view._preparation_needs or view._preparation_preview)
     )
     expanded = disclosure.isChecked() and view.global_details_panel.isVisible() and nested_metrics
     session.check(
