@@ -86,6 +86,7 @@ if TYPE_CHECKING:
         DisplayReward,
         DisplaySolutionBlock,
         SolutionObjective,
+        SolutionStep,
     )
     from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
         GuideUltimeManualRuntimeService,
@@ -4133,6 +4134,7 @@ def solution_block_widget(block: DisplaySolutionBlock) -> QWidget:
 def quest_solution_document_widgets(
     quest, *, omit_first_image_path: str = "",
     source_blocks: tuple[DisplaySolutionBlock, ...] | None = None,
+    fallback_steps: tuple[SolutionStep, ...] | None = None,
 ) -> list[QWidget]:
     """Render a walkthrough as a small number of selectable document blocks."""
 
@@ -4140,8 +4142,12 @@ def quest_solution_document_widgets(
     # documentary fallback disclaimer is required. Reuse it instead of
     # applying the source filter twice during every detail repaint.
     blocks = list(source_blocks if source_blocks is not None else quest_solution_blocks(quest))
-    if not blocks:
-        for step in quest_solution_steps(quest):
+    if not _vm_call("quest_blocks_have_instructions", blocks):
+        steps = (
+            fallback_steps if fallback_steps is not None
+            else _vm_call("quest_fallback_instruction_steps", quest)
+        )
+        for step in steps:
             if step.title:
                 blocks.append(DisplaySolutionBlock("heading", step.title))
             if step.description:

@@ -28,6 +28,8 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     clean_requirement_line,
     clean_text,
     quest_activity_labels,
+    quest_blocks_have_instructions,
+    quest_fallback_instruction_steps,
     quest_items,
     quest_items_from_objectives,
     quest_rewards,
@@ -360,10 +362,13 @@ class QuestDetailView(QWidget):
             self.center_layout.addWidget(section)
 
         documentary_blocks = ui.quest_solution_blocks(quest)
-        if not documentary_blocks and getattr(quest, "source_solution_steps", None):
-            # A raw source array can contain only placeholders/technical data.
-            # Show the same fallback disclosure the actual reader uses, not
-            # a false "complete documentation" claim based on raw existence.
+        # Image-only or heading-only documents may coexist with genuine local
+        # objectives. Do not discard either source and do not call it complete.
+        fallback_steps = (
+            () if quest_blocks_have_instructions(documentary_blocks)
+            else quest_fallback_instruction_steps(quest)
+        )
+        if fallback_steps:
             self.center_layout.addWidget(
                 ui.text_label(
                     "Documentation locale complète indisponible — objectifs affichés à titre de repère.",
@@ -373,6 +378,7 @@ class QuestDetailView(QWidget):
         widgets = ui.quest_solution_document_widgets(
             quest, omit_first_image_path=start.map_image_path,
             source_blocks=documentary_blocks,
+            fallback_steps=fallback_steps,
         )
         if not widgets:
             self.center_layout.addWidget(

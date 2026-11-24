@@ -308,7 +308,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 {"description": "Qf>=20",
                  "objectives": [{"text": "Mini-carte L’aperçu de la carte sera affiché ici sur le site."}]},
             ]},
-            # A real image block already suppresses the source-steps fallback.
+            # Keep the illustration and the existing source instructions.
             "4": {
                 "solution_blocks": [
                     {"type": "image", "image_path": "illustration.webp"},
@@ -320,7 +320,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 "solution_blocks": [{"type": "heading", "content": "Étape 1"}],
                 "solution_steps": [{"description": "Avancer vers la sortie."}],
             },
-            # A genuine standalone heading is visible and suppresses fallback.
+            # Keep the genuine heading without suppressing the source fallback.
             "6": {
                 "solution_blocks": [{"type": "heading", "content": "Préparation"}],
                 "solution_steps": [{"description": "Texte de secours invisible."}],
@@ -341,11 +341,11 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         report = local_start_position_coverage(rows, range(1, 10))
         self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
         self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 8)
-        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 5)
-        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 4)
-        self.assertEqual(report["fallback_instruction_quest_ids"], [1, 2, 5, 7])
-        self.assertEqual(report["missing_instruction_quest_ids"], [3, 4, 6, 9])
-        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 4, 6, 9])
+        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 7)
+        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 2)
+        self.assertEqual(report["fallback_instruction_quest_ids"], [1, 2, 4, 5, 6, 7])
+        self.assertEqual(report["missing_instruction_quest_ids"], [3, 9])
+        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 9])
 
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]

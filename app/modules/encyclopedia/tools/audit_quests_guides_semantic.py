@@ -398,10 +398,9 @@ def sample_coverage(
 def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
     """Report written source blocks and the *actual* reader fallback separately.
 
-    The reader uses documentary blocks when any survives filtering. Only
-    when there are no displayable blocks does it render source solution_steps.
-    A heading or image alone is not a written instruction and suppresses the
-    fallback, so checking nonempty raw arrays is not sufficient.
+    The reader uses documentary instructions when present. When only
+    headings or illustrations survive filtering, existing source steps
+    remain visible alongside them. No game-native steps are inferred here.
     """
     if not isinstance(row, dict):
         return False, False
@@ -409,7 +408,8 @@ def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
 
     from app.quest_catalog import QuestObjective, QuestSolutionBlock, QuestStep
     from app.modules.encyclopedia.services.guide_quest_view_model import (
-        quest_solution_blocks, quest_solution_steps,
+        quest_solution_blocks, quest_blocks_have_instructions,
+        quest_fallback_instruction_steps,
     )
 
     raw_blocks = row.get("solution_blocks")
@@ -430,14 +430,8 @@ def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
         ))
     source = SimpleNamespace(solution_blocks=blocks)
     visible_blocks = quest_solution_blocks(source)
-    block_instruction = any(
-        (block.content or block.position) and block.block_type not in {
-            "image", "heading", "title", "subtitle", "section_heading",
-        }
-        for block in visible_blocks
-    )
-    if visible_blocks:
-        return bool(block_instruction), False
+    if quest_blocks_have_instructions(visible_blocks):
+        return True, False
 
     raw_steps = row.get("solution_steps")
     raw_steps = raw_steps if isinstance(raw_steps, list) else []
@@ -465,14 +459,10 @@ def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
         ))
     if not steps:
         return False, False
-    fallback = quest_solution_steps(
+    fallback = quest_fallback_instruction_steps(
         SimpleNamespace(source_solution_steps=steps, steps=[])
     )
-    has_fallback = any(
-        step.description or any(objective.text for objective in step.objectives)
-        for step in fallback
-    )
-    return False, bool(has_fallback)
+    return False, bool(fallback)
 
 
 def local_start_position_coverage(
@@ -520,8 +510,8 @@ def local_start_position_coverage(
         else:
             # Empty skeleton blocks are not documentary coverage.
             counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
-        # Mirror production: a readable source_solution_steps fallback is
-        # shown only when all explicit blocks were filtered out. Keep the
+        # Mirror production: source steps are visible when no explicit
+        # instruction survives, including image-only documents. Keep the
         # historical block-only counters for backward-compatible reporting.
         has_block_instruction, has_fallback_instruction = (
             _local_rendered_instruction_presence(row)

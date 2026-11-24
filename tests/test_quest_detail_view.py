@@ -768,6 +768,8 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             (QuestSolutionBlock(1, "text", "Qf>=20"), True),
             (QuestSolutionBlock(1, "text", "Parlez au chef."), False),
             (QuestSolutionBlock(1, "heading", "Étape 1"), True),
+            (QuestSolutionBlock(1, "heading", "Préparation"), True),
+            (QuestSolutionBlock(1, "image", image_path="missing.webp"), True),
         ):
             with self.subTest(block=raw_block.content):
                 provider = Mock()
@@ -793,9 +795,32 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                         if "Documentation locale complète indisponible" in label.text()
                     ]
                     self.assertEqual(bool(notices), expected_notice)
+                    texts = [label.text() for label in sheet.findChildren(QLabel)]
+                    self.assertEqual(any("Parler au capitaine" in text for text in texts),
+                                     expected_notice)
                 finally:
                     sheet.deleteLater()
                     self.app.processEvents()
+
+    def test_native_objectives_remain_visible_with_image_only_document(self) -> None:
+        from app.quest_catalog import QuestSolutionBlock
+        from app.modules.encyclopedia.views.guides_view import quest_solution_document_widgets
+
+        quest = QuestRecord(
+            id=925, name="Objectifs du jeu", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            solution_blocks=[QuestSolutionBlock(1, "image", image_path="missing.webp")],
+            steps=[QuestStep(id=1, name="Étape 1", description="",
+                             objectives=[QuestObjective(id=1, text="Parler au garde", type_id=1)])],
+        )
+        widgets = quest_solution_document_widgets(quest)
+        try:
+            texts = [widget.text() for widget in widgets if isinstance(widget, QLabel)]
+            self.assertTrue(any("Image locale indisponible" in text for text in texts))
+            self.assertTrue(any("Parler au garde" in text for text in texts))
+        finally:
+            for widget in widgets:
+                widget.deleteLater()
 
     def test_missing_documentary_image_has_explicit_fallback(self) -> None:
         from tempfile import TemporaryDirectory

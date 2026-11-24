@@ -818,6 +818,23 @@ def quest_solution_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
     return tuple(rows)
 
 
+def quest_blocks_have_instructions(blocks: Iterable[DisplaySolutionBlock]) -> bool:
+    """A heading or illustration alone must not conceal existing objectives."""
+    return any(
+        (block.content or block.position)
+        and block.block_type not in {"image", "heading", "title", "subtitle", "section_heading"}
+        for block in blocks
+    )
+
+
+def quest_fallback_instruction_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
+    """Reuse real local objectives; skip title-only and empty placeholders."""
+    return tuple(
+        step for step in quest_solution_steps(quest)
+        if step.description or any(objective.text for objective in step.objectives)
+    )
+
+
 def quest_solution_blocks(quest: QuestRecord) -> tuple[DisplaySolutionBlock, ...]:
     blocks = getattr(quest, "solution_blocks", None) or []
     rows: list[DisplaySolutionBlock] = []
