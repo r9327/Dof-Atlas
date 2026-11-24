@@ -25,8 +25,7 @@ from app.constants import (
     ZAAP_CLICK_Y,
     ZAAP_SHORTCUTS_FILE,
 )
-from app.core.json_store import read_json_resilient
-from app.core.zaap_shortcuts import zaap_ratios_from_payload
+from app.core.zaap_shortcuts import read_zaap_button_ratios as _read_zaap_button_ratios
 
 
 def default_profiles() -> dict[str, Any]:
@@ -75,8 +74,4 @@ def read_zaap_button_ratios(
     *,
     path: Path = ZAAP_SHORTCUTS_FILE,
 ) -> tuple[float, float] | None:
-    source = payload
-    if not isinstance(source, dict):
-        loaded = read_json_resilient(path, {})
-        source = loaded if isinstance(loaded, dict) else {}
-    return zaap_ratios_from_payload(source)
+    return _read_zaap_button_ratios(payload, path=path)
