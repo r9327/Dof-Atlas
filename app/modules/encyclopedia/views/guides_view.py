@@ -462,11 +462,10 @@ class GuideHomeCard(QFrame):
 
         bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideDofusHomeBar",
-            maximum=total if total else 1,
+            maximum=total if total else 1, height_role="progress_home_compact",
         )
         bar.setProperty("state", _tuple_progress_state(progress))
         bar.setValue(min(completed, total) if total else 0)
-        bar.setFixedHeight(5)
         bar.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(bar)
 
@@ -4059,9 +4058,9 @@ def progress_summary(completed: int, total: int) -> QWidget:
 
     bar = configure_unity_progress_bar(
         QProgressBar(), object_name="GuideTinyProgress", maximum=max(1, total),
+        height_role="progress_secondary",
     )
     bar.setValue(min(completed, total) if total else 0)
-    bar.setFixedHeight(7)
     layout.addWidget(bar, 1)
 
     label = QLabel(f"{completed} / {total}" if total else "0 / 0")
