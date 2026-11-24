@@ -64,6 +64,30 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
         panel.deleteLater()
         QCoreApplication.sendPostedEvents(panel, QEvent.DeferredDelete)
 
+    def test_canvas_reuses_geometry_for_hit_testing_and_resets_on_view_change(self):
+        from PySide6.QtCore import QPointF
+        from app.ui.map_canvas_widget import MapCanvasWidget
+        canvas = MapCanvasWidget()
+        row = {"x": 1, "y": -2, "rect_json": '{"x": 10, "y": 20, "w": 40, "h": 60}'}
+        link = {"from_x": 1, "from_y": -2}
+        bad = {"x": 2, "y": 3, "rect_json": '{"x": 0, "y": 0, "w": NaN, "h": 4}'}
+        try:
+            with patch.object(canvas, "_decode_map_rect", wraps=canvas._decode_map_rect) as decode:
+                canvas.set_view({"view_key": "world"}, QPixmap(100, 100), [row, bad], [link], "", False)
+                for _ in range(30):
+                    self.assertIs(canvas.map_at(QPointF(15, 25)), row)
+                    self.assertEqual(canvas.link_point(link), QPointF(30, 50))
+                    self.assertIs(canvas.link_at(QPointF(30, 50)), link)
+                    self.assertIsNone(canvas.rect_for_map(bad))
+                self.assertEqual(decode.call_count, 2)
+                canvas.set_view(None, QPixmap(), [], [], "", True)
+                self.assertFalse(canvas._map_rects)
+                self.assertFalse(canvas._link_points)
+                self.assertFalse(canvas._coord_rects)
+                self.assertIsNone(canvas.link_point(link))
+        finally:
+            canvas.deleteLater()
+
     def test_local_image_stats_initializes_cache_layout_once(self) -> None:
         import app.services.maps.map_cache_builder as builder
 
