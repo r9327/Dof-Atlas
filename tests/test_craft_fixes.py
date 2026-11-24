@@ -327,6 +327,23 @@ class CraftFixesTests(unittest.TestCase):
             current.accept()
             question.assert_not_called()
 
+    def test_image_fallback_treats_filename_as_literal_and_requires_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = root / "data" / "images" / "items" / "divers"
+            folder.mkdir(parents=True)
+            (folder / "7.png").write_bytes(b"fixture")
+            (folder / "directory.png").mkdir()
+            for name in ("[7].png", "directory.png"):
+                item = {"type": "Objet mystère", "image_path": f"data/images/items/{name}"}
+                self.assertIs(craft_image_item(item, root=root), item)
+            exact = folder / "[7].png"
+            exact.write_bytes(b"fixture")
+            # The cached miss belongs to the former filesystem snapshot.
+            # Use a distinct item family to exercise the exact-match branch.
+            item = {"type": "Autre objet", "image_path": "data/images/items/[7].png"}
+            self.assertEqual(Path(craft_image_item(item, root=root)["image_path"]), exact)
+
     def test_image_fallback_does_not_guess_between_duplicate_sprites(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
