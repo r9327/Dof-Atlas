@@ -958,6 +958,7 @@ class AtlasGuideReadingHeader(QFrame):
         self.title_row = title_row
         self.content_layout = right
         self._optional_sections = QWidget(self)
+        self._optional_sections.setObjectName("GuideHeaderSectionHost")
         self._optional_sections_layout = QVBoxLayout(self._optional_sections)
         self._optional_sections_layout.setContentsMargins(0, 0, 0, 0)
         self._optional_sections_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
@@ -1007,6 +1008,7 @@ class AtlasGuideReadingHeader(QFrame):
         metrics = QHBoxLayout()
         metrics.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
         self.preparation_column = QWidget()
+        self.preparation_column.setObjectName("GuideHeaderSectionHost")
         preparation_metric = QVBoxLayout(self.preparation_column)
         preparation_metric.setContentsMargins(0, 0, 0, 0)
         preparation_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
@@ -1048,6 +1050,7 @@ class AtlasGuideReadingHeader(QFrame):
         metrics.addWidget(self.preparation_column, 1)
 
         self.summary_column = QWidget()
+        self.summary_column.setObjectName("GuideHeaderSectionHost")
         summary_metric = QVBoxLayout(self.summary_column)
         summary_metric.setContentsMargins(0, 0, 0, 0)
         summary_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
@@ -1169,7 +1172,9 @@ class AtlasGuideReadingHeader(QFrame):
             commands.addWidget(button)
             self.optional_section_buttons[name] = button
             panel = configure_unity_scroll_area(QScrollArea(), borderless=True)
+            panel.setObjectName("GuideHeaderSectionScroll")
             content = QWidget()
+            content.setObjectName("GuideHeaderSectionHost")
             body = QVBoxLayout(content)
             body.setContentsMargins(0, 0, 0, 0)
             body.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])

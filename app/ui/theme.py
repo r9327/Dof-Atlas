@@ -3382,6 +3382,9 @@ QLabel#GuidePreparationRowStatus[ready="true"] {
 
 /* The preparation viewport must not paint native gray over the Unity panel. */
 QScrollArea#GuidePreparationScroll,
+QScrollArea#GuideHeaderSectionScroll,
+QScrollArea#GuideHeaderSectionScroll > QWidget#qt_scrollarea_viewport,
+QWidget#GuideHeaderSectionHost,
 QWidget#GuideGlobalCharacterProgress,
 QWidget#GuidePreparationContent,
 QScrollArea#GuidePreparationScroll > QWidget#qt_scrollarea_viewport {
