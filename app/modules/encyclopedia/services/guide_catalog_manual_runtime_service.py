@@ -9,17 +9,19 @@ import os
 import sys
 import sqlite3
 from collections import OrderedDict
-from functools import lru_cache
 from pathlib import Path
 from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
-from app.core import map_coordinates
-from app.core.map_coordinates import extract_bracketed_coordinates, extract_bracketed_position
+from app.core import file_stamp, map_coordinates
+from app.core.file_stamp import mtime_size_stamp_optional
+from app.core.map_coordinates import extract_bracketed_coordinates
 from app.quest_catalog import quest_catalog_cache_signature
-from app.modules.encyclopedia.services.guide_catalog_step_index import resolved_route_quests
+from app.modules.encyclopedia.services.guide_catalog_step_index import (
+    resolved_route_quests, route_position_key, route_positions_merge, route_positions_split,
+)
 from app.modules.encyclopedia.services.guide_release_signature import guide_step_identity_rows
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
@@ -46,18 +48,7 @@ from app.modules.encyclopedia.services.guide_ultime_player_policy import (
     line_acquires_resource,
     preparation_resource_name,
 )
-from app.core.text import normalize_key as normalize_text
 
-
-
-@lru_cache(maxsize=4096)
-def _position_key_short(text: str) -> str:
-    """Cache only short position labels shared by thousands of route objectives."""
-    return _position_key_uncached(text)
-
-
-def _position_key_uncached(text: str) -> str:
-    return extract_bracketed_position(text) or normalize_text(text)
 
 
 
@@ -87,6 +78,7 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
     steps = guide_step_identity_rows(service.catalog_guide)
     from app.modules.encyclopedia.services import (
         guide_catalog_route_store,
+        guide_catalog_step_index,
         guide_release_signature,
         guide_quest_view_model,
         guide_ultime_player_policy,
@@ -96,8 +88,10 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         Path(guide_quest_view_model.__file__),
         Path(guide_ultime_player_policy.__file__),
         Path(guide_catalog_route_store.__file__),
+        Path(guide_catalog_step_index.__file__),
         Path(guide_release_signature.__file__),
         Path(map_coordinates.__file__),
+        Path(file_stamp.__file__),
     )
     # Frozen bundles unpack sources to a different temporary path on each
     # launch. Bind cache validity to the durable executable version instead.
@@ -108,7 +102,7 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         source_stats = [("frozen_executable", meta.st_mtime_ns, meta.st_size)]
     else:
         source_stats = [
-            (str(path), path.stat().st_mtime_ns, path.stat().st_size)
+            (str(path), *mtime_size_stamp_optional(path, strict=True))
             for path in sources
         ]
     quest_sources = quest_catalog_cache_signature(data_dir)
@@ -542,7 +536,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                 ).strip()
                 # Resolve each coordinate once; preserve the original split rule.
                 objective_key = self._position_key(objective_position)
-                if objective_key and current_key and objective_key != current_key:
+                if route_positions_split(current_key, objective_key):
                     if finalize:
                         self._finalize_segment(current)
                     if self._segment_has_content(current):
@@ -632,7 +626,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         for raw in segments:
             segment = raw if consume else copy.deepcopy(raw)
             key = self._position_key(segment.get("position"))
-            if merged and key and key == previous_key:
+            if merged and route_positions_merge(previous_key, key):
                 # The source is private to this route only in consume mode.
                 self._merge_segment(
                     merged[-1], segment, finalize=False, consume=consume,
@@ -839,9 +833,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
 
     @staticmethod
     def _position_key(value: Any) -> str:
-        text = " ".join(str(value or "").split()).strip()
-        # No unbounded retention of long walkthroughs or unhashable input.
-        return _position_key_short(text) if len(text) <= 160 else _position_key_uncached(text)
+        return route_position_key(value)
 
     @staticmethod
     def _dedupe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

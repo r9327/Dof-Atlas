@@ -24,6 +24,7 @@ from app.constants import (
 )
 from app.core.character_identity import character_id_from_key
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.file_stamp import mtime_size_stamp_optional
 from app.core.doduda_rows import array_rows as array_value
 from app.core.numbers import optional_int as safe_int
 from app.core.text import normalize_key as normalize_text
@@ -532,11 +533,8 @@ def quest_catalog_cache_signature(data_dir: Path = RAW_QUEST_DATA_DIR) -> tuple[
 
 
 def _path_signature(label: str, path: Path) -> tuple[str, str, int | None, int | None]:
-    try:
-        stat = path.stat()
-    except OSError:
-        return (label, str(path), None, None)
-    return (label, str(path), stat.st_mtime_ns, stat.st_size)
+    stamp = mtime_size_stamp_optional(path)
+    return (label, str(path), *(stamp if stamp is not None else (None, None)))
 
 
 def _catalog_to_cache_payload(catalog: QuestCatalog, data_dir: Path) -> dict[str, Any]:

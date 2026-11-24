@@ -282,6 +282,21 @@ class CoreSharedStateTests(unittest.TestCase):
             finally:
                 cache.clear_quest_character_cache()
 
+    def test_optional_file_stamp_keeps_missing_and_strict_contracts(self) -> None:
+        from app.core.file_stamp import mtime_size_stamp_optional
+        from app.quest_catalog import _path_signature
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "source.json"
+            self.assertIsNone(mtime_size_stamp_optional(path))
+            self.assertEqual(_path_signature("source", path), ("source", str(path), None, None))
+            with self.assertRaises(FileNotFoundError):
+                mtime_size_stamp_optional(path, strict=True)
+            path.write_bytes(b"data")
+            stamp = mtime_size_stamp_optional(path)
+            self.assertEqual(stamp[1], 4)
+            self.assertEqual(_path_signature("source", path), ("source", str(path), *stamp))
+
     def test_file_stamps_match_existing_cache_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index.json"

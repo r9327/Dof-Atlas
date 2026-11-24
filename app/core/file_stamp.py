@@ -5,15 +5,22 @@ from collections.abc import Iterable
 from pathlib import Path
 
 
-def mtime_size_stamp(path: Path | None) -> tuple[int, int]:
-    """Use the same zero sentinel for absent/unreadable cache sources."""
+def mtime_size_stamp_optional(path: Path | None, *, strict: bool = False) -> tuple[int, int] | None:
+    """Return one stat result, preserving absence or a strict caller's error."""
     if path is None:
-        return (0, 0)
+        return None
     try:
         stat = Path(path).stat()
     except OSError:
-        return (0, 0)
+        if strict:
+            raise
+        return None
     return (int(stat.st_mtime_ns), int(stat.st_size))
+
+
+def mtime_size_stamp(path: Path | None) -> tuple[int, int]:
+    """Use the same zero sentinel for absent/unreadable cache sources."""
+    return mtime_size_stamp_optional(path) or (0, 0)
 
 
 def resolved_mtime_size_stamp(path: Path) -> tuple[str, int, int]:

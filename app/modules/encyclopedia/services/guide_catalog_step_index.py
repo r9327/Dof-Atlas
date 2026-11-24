@@ -6,9 +6,37 @@ seen; failed lookups can be retried by later source steps.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from functools import lru_cache
 from typing import Any
 
+from app.core.map_coordinates import extract_bracketed_position
 from app.core.numbers import optional_int
+from app.core.text import normalize_key
+
+
+def _route_position_key_uncached(text: str) -> str:
+    return extract_bracketed_position(text) or normalize_key(text)
+
+
+@lru_cache(maxsize=4096)
+def _route_position_key_short(text: str) -> str:
+    return _route_position_key_uncached(text)
+
+
+def route_position_key(value: object) -> str:
+    """Use the same bounded position cache for route sheets and their count."""
+    text = " ".join(str(value or "").split()).strip()
+    return _route_position_key_short(text) if len(text) <= 160 else _route_position_key_uncached(text)
+
+
+def route_positions_merge(previous: str, current: str) -> bool:
+    """Unknown positions never merge, even with another unknown position."""
+    return bool(current and current == previous)
+
+
+def route_positions_split(previous: str, current: str) -> bool:
+    """Only a known changed position starts another route sheet."""
+    return bool(previous and current and previous != current)
 
 
 def ordered_route_quest_steps(guide: object) -> Iterator[tuple[Any, int]]:

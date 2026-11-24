@@ -6,10 +6,19 @@ from types import SimpleNamespace
 
 from app.modules.encyclopedia.services.guide_catalog_step_index import (
     ordered_route_quest_steps, resolved_route_quests,
+    route_position_key, route_positions_merge, route_positions_split,
 )
 
 
 class OrderedRouteQuestStepsTests(unittest.TestCase):
+    def test_route_positions_use_one_renderer_policy(self):
+        self.assertEqual(route_position_key(" [ -01, 02 ] "), "-1,2")
+        self.assertEqual(route_position_key("  Forêt   d'Amakna "), "foret_d_amakna")
+        self.assertTrue(route_positions_merge("1,2", "1,2"))
+        self.assertFalse(route_positions_merge("", ""))
+        self.assertTrue(route_positions_split("1,2", "3,4"))
+        self.assertFalse(route_positions_split("", "3,4"))
+
     def test_orders_source_steps_and_keeps_provider_side_duplicate_semantics(self):
         def step(order, step_type, entity_id):
             return SimpleNamespace(order=order, step_type=step_type, entity_id=entity_id)
