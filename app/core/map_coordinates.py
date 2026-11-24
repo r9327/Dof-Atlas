@@ -81,3 +81,37 @@ def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]
     else:
         status = "LOCAL_START_DECLARED"
     return positions[0] or positions[1], status, (positions[0], positions[1])
+
+
+def explicit_coordinate_query(value: object) -> tuple[int, int] | None:
+    """Read a coordinate search, not arbitrary numbers inside a place name."""
+    text = str(value or "").strip()
+    match = BRACKETED_POSITION_RE.fullmatch(text) or re.fullmatch(
+        r"(-?\d+)(?:\s*,\s*|\s+)(-?\d+)", text,
+    )
+    if match is None:
+        return None
+    canonical = normalize_coordinate_pair(*match.groups())
+    return tuple(map(int, canonical.split(","))) if canonical is not None else None
+
+
+def declared_zaap_coordinates(row: object) -> tuple[int, int] | None:
+    """Use explicit local map data; refuse malformed or contradictory claims."""
+    if not isinstance(row, dict):
+        return None
+    label = str(row.get("label") or "")
+    matches = list(BRACKETED_POSITION_RE.finditer(label))
+    if len(matches) > 1:
+        return None
+    label_coords = explicit_coordinate_query(matches[0].group(0) if matches else label)
+    if matches and label_coords is None:
+        return None
+    if "posX" in row or "posY" in row:
+        parts = (row.get("posX"), row.get("posY"))
+        if any(type(part) not in (int, str) for part in parts):
+            return None
+        coords = explicit_coordinate_query(",".join(str(part).strip() for part in parts))
+        if coords is None or (label_coords is not None and coords != label_coords):
+            return None
+        return coords
+    return label_coords

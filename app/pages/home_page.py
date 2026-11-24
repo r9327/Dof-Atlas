@@ -764,53 +764,9 @@ class HomePage(QWidget):
 
     @staticmethod
     def _network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
-        reason = str(status.reason or "")
-        # A worker can still be running when stopping or capture fails.
-        # Never paint a green "Actif" badge over an explicit error.
-        if (
-            reason in {
-                "capture_elevation_cancelled",
-                "build_changed",
-                "quest_snapshot_missed",
-                "mapping_invalid",
-                "network_context_load_failed",
-            }
-            or reason.startswith("capture_helper")
-            or "admin" in reason
-            or "permission" in reason
-            or "failed" in reason
-            or "error" in reason
-            or "ambiguous" in reason
-        ):
-            return "Attention requise", "error"
-        if status.running:
-            return "Actif", "active"
-        if reason in {"waiting_context", "stopped"}:
-            # No verified capture is active. Never describe a disconnected
-            # network bridge as merely "preparing" indefinitely.
-            return "Hors ligne", "idle"
-        if status.calibrating or reason in {
-            "calibrating",
-            "awaiting_character_identity",
-            "awaiting_quest_journal",
-            "awaiting_distinct_quest_completions",
-            "mapping_installed_not_started",
-            "mapping_already_installed",
-            "mapping_already_ready",
-            "mapping_no_exact_match",
-            "mapping_missing_required_events",
-            "mapping_current_profile_noncanonical",
-        }:
-            return "Connexion…", "pending"
-        if reason == "network_context_loading":
-            return "Chargement Réseau…", "pending"
-        if reason == "capture_ready_waiting_context":
-            return "En attente de données", "pending"
-        if reason in {"no_window_handles", "build_fingerprint_unavailable"}:
-            # Both conditions mean the client cannot yet be identified.
-            # The coordinator retries fingerprinting when it appears.
-            return "En attente de Dofus", "idle"
-        return "Préparation…", "pending"
+        from app.core.network_presentation import network_summary
+
+        return network_summary(status)
 
     def _rebuild_guide_ultime_service(self) -> None:
         self.guide_ultime_service = None

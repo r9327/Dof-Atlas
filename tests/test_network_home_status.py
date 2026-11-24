@@ -65,6 +65,19 @@ class NetworkHomeStatusTests(unittest.TestCase):
             ("Actif", "active"),
         )
 
+    def test_running_flag_cannot_override_explicit_waiting_or_calibration(self) -> None:
+        for reason, expected in (
+            ("stopped", ("Hors ligne", "idle")),
+            ("waiting_context", ("Hors ligne", "idle")),
+            ("no_window_handles", ("En attente de Dofus", "idle")),
+            ("build_fingerprint_unavailable", ("En attente de Dofus", "idle")),
+            ("calibration_running", ("Connexion…", "pending")),
+            ("network_context_loading", ("Chargement Réseau…", "pending")),
+            ("capture_ready_waiting_context", ("En attente de données", "pending")),
+        ):
+            with self.subTest(reason=reason):
+                self.assertEqual(HomePage._network_summary(self._status(running=True, reason=reason)), expected)
+
     def test_calibration_details_are_reduced_to_connection_state(self) -> None:
         for reason in (
             "awaiting_character_identity",

@@ -69,6 +69,7 @@ from app.core.item_artwork import item_artwork_path
 from app.core.profile_settings import default_profiles, profile_bool, parse_zaap_click_position
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.zaap_shortcuts import parse_unit_ratio, update_zaap_shortcuts_field, zaap_ratios_from_payload
+from app.core.map_coordinates import explicit_coordinate_query, declared_zaap_coordinates
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
 from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
@@ -280,20 +281,11 @@ def is_subsequence(needle: str, haystack: str) -> bool:
 
 
 def coordinate_pair(value: Any) -> tuple[int, int] | None:
-    numbers = re.findall(r"-?\d+", str(value or ""))
-    if len(numbers) < 2:
-        return None
-    try:
-        return (int(numbers[0]), int(numbers[1]))
-    except ValueError:
-        return None
+    return explicit_coordinate_query(value)
 
 
 def row_coordinate_pair(row: dict[str, Any]) -> tuple[int, int] | None:
-    try:
-        return (int(row["posX"]), int(row["posY"]))
-    except (KeyError, TypeError, ValueError):
-        return coordinate_pair(row.get("label", ""))
+    return declared_zaap_coordinates(row)
 
 
 def flattened_text_values(value: Any) -> list[str]:

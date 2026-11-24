@@ -60,6 +60,20 @@ class ZaapClipboardFallbackTests(unittest.TestCase):
         self.assertEqual(QApplication.clipboard().text(), "saved user text")
         self.assertIn("en cours", messages[-1])
 
+    def test_real_invalid_source_rows_never_launch_or_copy(self) -> None:
+        callback = Mock(return_value=True)
+        panel, messages = self._panel(callback)
+        QApplication.clipboard().setText("keep")
+        for row in (
+            {"label": "Zone 1 niveau 50"},
+            {"label": "[1,2]", "posX": -2147483648, "posY": 0},
+            {"label": "[1,2]", "posX": 3, "posY": 4},
+        ):
+            ZaapWidget.launch_zaap(panel, row)
+        callback.assert_not_called()
+        self.assertEqual(QApplication.clipboard().text(), "keep")
+        self.assertFalse(panel.launching_zaap)
+
     def test_unverified_coordinates_never_change_clipboard(self) -> None:
         callback = Mock(return_value=True)
         panel, messages = self._panel(callback)

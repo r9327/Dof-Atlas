@@ -52,6 +52,26 @@ class NormalizeCoordinatePairTests(unittest.TestCase):
                 text = f"{expected[0]},{expected[1]}" if expected is not None else None
                 self.assertEqual(extract_bracketed_position(raw), text)
 
+    def test_zaap_coordinates_require_explicit_consistent_source_data(self):
+        from app.core.map_coordinates import declared_zaap_coordinates, explicit_coordinate_query
+
+        for raw in ("3,-6", "3 -6", "[ 003, -06 ]"):
+            self.assertEqual(explicit_coordinate_query(raw), (3, -6))
+        for raw in ("Zone 1 niveau 50", "1,2,3", "[-2147483648,0]", "1.5,2"):
+            self.assertIsNone(explicit_coordinate_query(raw))
+        for row in (
+            {"label": "Zone 1 niveau 50"},
+            {"posX": 1.5, "posY": 2},
+            {"posX": True, "posY": 2},
+            {"posX": "-2147483648", "posY": 0, "label": "[1,2]"},
+            {"posX": 1, "label": "[1,2]"},
+            {"posX": 1, "posY": 2, "label": "[3,4]"},
+            {"label": "[1,2] et [3,4]"},
+        ):
+            self.assertIsNone(declared_zaap_coordinates(row), row)
+        self.assertEqual(declared_zaap_coordinates({"label": "Astrub [1,-2]"}), (1,-2))
+        self.assertEqual(declared_zaap_coordinates({"posX": "01", "posY": -2, "label": "Astrub [1,-2]"}), (1,-2))
+
     def test_normalization_and_negative_values(self):
         self.assertEqual(normalize_coordinate_pair("003", "-06"), "3,-6")
         self.assertEqual(normalize_coordinate_pair("0", "2147483647"), "0,2147483647")
