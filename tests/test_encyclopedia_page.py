@@ -29,6 +29,36 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         self.addCleanup(tabs.deleteLater)
         return page
 
+    def test_released_encyclopedia_drops_queued_results_and_never_joins_worker(self):
+        from queue import Queue
+        from threading import Event
+        from unittest.mock import Mock
+        page = SimpleNamespace(
+            _runtime_released=Event(), _quest_load_timer=Mock(),
+            _quest_load_queue=Queue(), quest_page=Mock(),
+            _pending_lazy_tab="GUIDES", _pending_guide_id="test",
+            _pending_achievement_id=1, _pending_achievement_context_id=2,
+            status_callback=Mock(),
+        )
+        page._quest_load_queue.put(RuntimeError("old result"))
+        with patch("app.modules.encyclopedia.views.encyclopedia_page._join_runtime_threads") as join:
+            EncyclopediaPage.release_runtime(page)
+            self.assertTrue(page._runtime_released.is_set())
+            page._quest_load_timer.stop.assert_called_once()
+            page.quest_page.release_runtime.assert_called_once()
+            self.assertTrue(page._quest_load_queue.empty())
+            self.assertTrue(page._quest_load_abandoned)
+            EncyclopediaPage._collect_quest_runtime(page)
+            EncyclopediaPage.collect_related_preload(page, RuntimeError("stale"))
+            EncyclopediaPage._collect_achievement_runtime(page, RuntimeError("stale"))
+            EncyclopediaPage.request_quest_runtime(page)
+            EncyclopediaPage.request_related_preload(page)
+            EncyclopediaPage._start_achievement_stage(page, open_success=True)
+            EncyclopediaPage.release_runtime(page)
+            join.assert_not_called()
+            page.status_callback.assert_not_called()
+            page.quest_page.release_runtime.assert_called_once()
+
     def test_connection_change_refreshes_guide_without_reselecting_character(self):
         from unittest.mock import Mock
 

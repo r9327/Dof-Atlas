@@ -5,7 +5,7 @@ import logging
 import weakref
 from pathlib import Path
 from queue import Empty, Queue
-from threading import Thread, current_thread
+from threading import Event, Thread, current_thread
 from typing import TYPE_CHECKING, Callable
 
 from PySide6.QtCore import QTimer, Qt, Signal
@@ -560,6 +560,7 @@ class EncyclopediaPage(QWidget):
 
     def __init__(self, *args, **kwargs) -> None:
         self._runtime_threads: list[Thread] = []
+        self._runtime_released = Event()
         self._guide_runtime_ready = False
         self._success_runtime_requested = False
         self._full_guide_tab_requested = False
@@ -577,7 +578,8 @@ class EncyclopediaPage(QWidget):
         self._character_sources_signature: tuple[object, ...] | None = None
         self._initialize_encyclopedia_shell(*args, **kwargs)
         self.destroyed.connect(
-            lambda _obj=None, threads=self._runtime_threads: _join_runtime_threads(threads)
+            lambda _obj=None, threads=self._runtime_threads, released=self._runtime_released:
+                None if released.is_set() else _join_runtime_threads(threads)
         )
         # Loaded providers are not equivalent to a hydrated Guide widget.
         # Keep the gate idle until the actual Guide view is ready.
@@ -603,10 +605,30 @@ class EncyclopediaPage(QWidget):
             self._related_preload_gate.mark_ready()
         self._stabilize_header_geometry()
 
+    def release_runtime(self) -> None:
+        """Retire a reconstructible page without joining I/O on the Qt thread."""
+        if self._runtime_released.is_set():
+            return
+        self._runtime_released.set()
+        self._quest_load_timer.stop()
+        self._quest_load_abandoned = True
+        self._pending_lazy_tab = ""
+        self._pending_guide_id = ""
+        self._pending_achievement_id = None
+        self._pending_achievement_context_id = None
+        if self.quest_page is not None:
+            release = getattr(self.quest_page, "release_runtime", None)
+            if callable(release):
+                release()
+        # Workers hold only data and their captured cancellation event.
+        # Any already queued result is discarded by the retired receiver.
+        self._quest_load_queue = Queue(maxsize=1)
+
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
         if hasattr(self, "_quest_load_timer"):
             self._quest_load_timer.stop()
-        _join_runtime_threads(self._runtime_threads)
+        if not self._runtime_released.is_set():
+            _join_runtime_threads(self._runtime_threads)
         super().closeEvent(event)
 
     @property
@@ -747,7 +769,7 @@ class EncyclopediaPage(QWidget):
         self._catalog_context_published = True
 
     def request_quest_runtime(self) -> None:
-        if self.quest_page is not None:
+        if self._runtime_released.is_set() or self.quest_page is not None:
             return
         if self._quest_load_started:
             # A user who returned before the worker finished still wants it.
@@ -757,6 +779,7 @@ class EncyclopediaPage(QWidget):
         self._quest_load_started = True
         provider = self.quest_provider
         results = self._quest_load_queue
+        released = self._runtime_released
 
         def worker() -> None:
             with background_io_priority():
@@ -766,12 +789,20 @@ class EncyclopediaPage(QWidget):
                     result: object = _QuestRuntimePayload(graph)
                 except Exception as exc:
                     result = exc
-                results.put(result)
+                if not released.is_set():
+                    results.put(result)
 
-        _start_runtime_thread(self, worker, "DofusAtlasQuestIndex")
+        try:
+            _start_runtime_thread(self, worker, "DofusAtlasQuestIndex")
+        except RuntimeError as exc:
+            self._quest_load_started = False
+            self.status_callback(f"Chargement Quêtes impossible : {exc}")
+            return
         self._quest_load_timer.start()
 
     def _collect_quest_runtime(self) -> None:
+        if self._runtime_released.is_set():
+            return
         try:
             result = self._quest_load_queue.get_nowait()
         except Empty:
@@ -949,6 +980,8 @@ class EncyclopediaPage(QWidget):
         self.request_achievement_runtime()
 
     def request_related_preload(self, target_tab: str = "") -> None:
+        if self._runtime_released.is_set():
+            return
         if target_tab:
             self._pending_lazy_tab = str(target_tab)
         if self._guide_runtime_ready:
@@ -971,6 +1004,9 @@ class EncyclopediaPage(QWidget):
         character_key = str(self.current_character_key or "")
         quest_progress_path = self.quest_progress_path
         existing_graph = getattr(self, "_quest_graph", None)
+        released = self._runtime_released
+        page_ref = weakref.ref(self)
+        build_progress = type(self)._build_guide_progress_snapshot
 
         def worker() -> None:
             with background_io_priority():
@@ -1012,8 +1048,10 @@ class EncyclopediaPage(QWidget):
                         raise RuntimeError(
                             f"Aucun guide chargé depuis {catalog_path}{detail}"
                         )
+                    if released.is_set():
+                        return
                     try:
-                        progress = self._build_guide_progress_snapshot(
+                        progress = build_progress(
                             active_guide_provider,
                             character_key,
                             quest_progress_path,
@@ -1030,13 +1068,15 @@ class EncyclopediaPage(QWidget):
                 except Exception as exc:
                     LOGGER.exception("Chargement du runtime Guide impossible")
                     result = exc
-                try:
-                    self.guideRuntimeFinished.emit(result)
-                except RuntimeError:
-                    LOGGER.debug(
-                        "Guide runtime receiver deleted before worker completion.",
-                        exc_info=True,
-                    )
+                page = page_ref() if not released.is_set() else None
+                if page is not None:
+                    try:
+                        page.guideRuntimeFinished.emit(result)
+                    except RuntimeError:
+                        LOGGER.debug(
+                            "Guide runtime receiver deleted before worker completion.",
+                            exc_info=True,
+                        )
 
         try:
             _start_runtime_thread(self, worker, "DofusAtlasGuideStage")
@@ -1047,6 +1087,8 @@ class EncyclopediaPage(QWidget):
             self.status_callback(f"Chargement Guide impossible : {exc}")
 
     def collect_related_preload(self, result: object) -> None:
+        if self._runtime_released.is_set():
+            return
         self._related_preload_started = False
 
         if isinstance(result, Exception):
@@ -1110,6 +1152,8 @@ class EncyclopediaPage(QWidget):
         self._start_achievement_stage(open_success=False)
 
     def _start_achievement_stage(self, *, open_success: bool) -> None:
+        if self._runtime_released.is_set():
+            return
         if open_success:
             self._success_runtime_requested = True
             self._pending_lazy_tab = ACHIEVEMENTS_TAB
@@ -1140,6 +1184,7 @@ class EncyclopediaPage(QWidget):
             self.service.guide_provider if self._guide_runtime_ready else None
         )
         page_ref = weakref.ref(self)
+        released = self._runtime_released
 
         def worker() -> None:
             with background_io_priority():
@@ -1156,6 +1201,8 @@ class EncyclopediaPage(QWidget):
                             catalogue_only()
                         else:
                             achievement_provider.load_all()
+                    if released.is_set():
+                        return
                     if pending_detail_id is not None:
                         try:
                             # Refuse an unrelated/non-retained link before an
@@ -1186,6 +1233,8 @@ class EncyclopediaPage(QWidget):
                                 "Préparation du détail Succès %s impossible",
                                 pending_detail_id,
                             )
+                    if released.is_set():
+                        return
                     progress_synchronized = False
                     if is_character_key(character_key):
                         achievement_progress_service.sync_from_quest_progress(
@@ -1208,7 +1257,7 @@ class EncyclopediaPage(QWidget):
                 except Exception as exc:
                     LOGGER.exception("Chargement du runtime Succès impossible")
                     result = exc
-                page = page_ref()
+                page = page_ref() if not released.is_set() else None
                 if page is not None:
                     try:
                         page.achievementRuntimeFinished.emit(result)
@@ -1226,6 +1275,8 @@ class EncyclopediaPage(QWidget):
             return
 
     def _collect_achievement_runtime(self, result: object) -> None:
+        if self._runtime_released.is_set():
+            return
         self._achievement_load_started = False
 
         if isinstance(result, Exception):
