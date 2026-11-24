@@ -17,11 +17,9 @@ from app.pages._quests_page_impl import (
     quest_required_items,
 )
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QTreeWidgetItem
 
 
 _MIN_LAZY_QUESTS = 500
-_LAZY_POPULATED_ROLE = HIERARCHY_ID_ROLE + 1000
 _LARGE_CATALOG_SEARCH_DEBOUNCE_MS = 120
 
 __all__ = [
@@ -88,7 +86,6 @@ class QuestsPage(_EagerQuestsPage):
 
     def __init__(self, *args, **kwargs) -> None:
         self._quest_search_text_cache: dict[int, str] = {}
-        self._owned_items_file_signature: tuple[int, int] | None = None
         detail_view_defaulted = "defer_detail_view" not in kwargs
         kwargs.setdefault("defer_detail_view", True)
         if detail_view_defaulted:
@@ -120,116 +117,6 @@ class QuestsPage(_EagerQuestsPage):
             >= _MIN_LAZY_QUESTS
         )
 
-    def _completed_hierarchy_snapshot(self) -> set[int]:
-        return (
-            self.quest_progress_service.completed_quest_ids(self.current_character_key)
-            if self.current_character_key
-            else set()
-        )
-
-    def _refresh_materialized_hierarchy_labels(self) -> None:
-        completed = self._completed_hierarchy_snapshot()
-        for quest_id, items in tuple(self.quest_tree_items.items()):
-            quest = self.catalog.by_id.get(int(quest_id))
-            if quest is None:
-                continue
-            label = self.hierarchy_quest_label(quest, completed)
-            for item in tuple(items):
-                item.setText(0, label)
-
-    def _populate_hierarchy_series(self, series_item: QTreeWidgetItem) -> None:
-        if series_item.data(0, HIERARCHY_KIND_ROLE) != "series":
-            return
-        if bool(series_item.data(0, _LAZY_POPULATED_ROLE)):
-            return
-
-        series_id = str(series_item.data(0, HIERARCHY_ID_ROLE) or "")
-        series = self.hierarchy.series_by_id.get(series_id)
-        if series is None:
-            return
-
-        while series_item.childCount():
-            series_item.takeChild(0)
-
-        completed = self._completed_hierarchy_snapshot()
-        for quest_id in series.quest_ids:
-            quest = self.catalog.by_id.get(int(quest_id))
-            if quest is None:
-                continue
-            quest_item = QTreeWidgetItem(
-                [self.hierarchy_quest_label(quest, completed)]
-            )
-            quest_item.setData(0, HIERARCHY_KIND_ROLE, "quest")
-            quest_item.setData(0, HIERARCHY_ID_ROLE, int(quest.id))
-            quest_item.setToolTip(0, quest.name)
-            series_item.addChild(quest_item)
-            self.quest_tree_items.setdefault(int(quest.id), []).append(quest_item)
-        series_item.setData(0, _LAZY_POPULATED_ROLE, True)
-
-    def _on_hierarchy_item_expanded(self, item: QTreeWidgetItem) -> None:
-        if self._large_hierarchy_catalog():
-            self._populate_hierarchy_series(item)
-
-    def rebuild_hierarchy(self) -> None:
-        if not self._large_hierarchy_catalog():
-            super().rebuild_hierarchy()
-            return
-
-        selected_id = self.selected_quest_id
-        preferred_series = self.active_series_id
-        hierarchy_token = id(self.hierarchy)
-
-        if (
-            getattr(self, "_lazy_hierarchy_token", None) == hierarchy_token
-            and self.hierarchy_tree.topLevelItemCount() > 0
-        ):
-            self._refresh_materialized_hierarchy_labels()
-            if selected_id is not None:
-                self.sync_hierarchy_selection(selected_id, preferred_series)
-            self.render_breadcrumb()
-            return
-
-        tree = self.hierarchy_tree
-        tree.blockSignals(True)
-        tree.setUpdatesEnabled(False)
-        try:
-            tree.clear()
-            self.category_items.clear()
-            self.series_items.clear()
-            self.quest_tree_items.clear()
-            for category in self.hierarchy.categories:
-                category_item = QTreeWidgetItem([category.name])
-                category_item.setData(0, HIERARCHY_KIND_ROLE, "category")
-                category_item.setData(0, HIERARCHY_ID_ROLE, category.name)
-                category_item.setToolTip(0, f"{len(category.series)} suites")
-                tree.addTopLevelItem(category_item)
-                self.category_items[category.name] = category_item
-                for series in category.series:
-                    series_item = QTreeWidgetItem([series.name])
-                    series_item.setData(0, HIERARCHY_KIND_ROLE, "series")
-                    series_item.setData(0, HIERARCHY_ID_ROLE, series.id)
-                    series_item.setToolTip(0, f"{len(series.quest_ids)} quêtes")
-                    if series.quest_ids:
-                        placeholder = QTreeWidgetItem([""])
-                        placeholder.setData(0, HIERARCHY_KIND_ROLE, "lazy")
-                        series_item.addChild(placeholder)
-                    category_item.addChild(series_item)
-                    self.series_items[series.id] = series_item
-            self._lazy_hierarchy_token = hierarchy_token
-        finally:
-            tree.blockSignals(False)
-            tree.setUpdatesEnabled(True)
-
-        if not getattr(self, "_lazy_hierarchy_signal_installed", False):
-            tree.itemExpanded.connect(
-                lambda item, owner=self: owner._on_hierarchy_item_expanded(item)
-            )
-            self._lazy_hierarchy_signal_installed = True
-
-        if selected_id is not None:
-            self.sync_hierarchy_selection(selected_id, preferred_series)
-        self.render_breadcrumb()
-
     def restore_last_quest(self) -> None:
         """Keep construction cheap; history must not force a full quest render."""
 
@@ -242,42 +129,6 @@ class QuestsPage(_EagerQuestsPage):
         self.selected_quest_id = None
         self.active_series_id = ""
         self.render_breadcrumb()
-
-    def sync_hierarchy_selection(
-        self,
-        quest_id: int,
-        preferred_series_id: str = "",
-    ) -> QuestHierarchyPath | None:
-        if not self._large_hierarchy_catalog():
-            return super().sync_hierarchy_selection(quest_id, preferred_series_id)
-
-        path = self.hierarchy.path_for(int(quest_id), preferred_series_id)
-        if path is None:
-            self.active_series_id = ""
-            return None
-        self.active_series_id = path.series.id
-        series_item = self.series_items.get(path.series.id)
-        if series_item is None:
-            return path
-        self._populate_hierarchy_series(series_item)
-        parent = series_item.parent()
-        if parent is not None:
-            parent.setExpanded(True)
-        series_item.setExpanded(True)
-        quest_item = next(
-            (
-                item
-                for item in self.quest_tree_items.get(int(quest_id), ())
-                if item.parent() is series_item
-            ),
-            None,
-        )
-        if quest_item is not None:
-            self.hierarchy_tree.blockSignals(True)
-            self.hierarchy_tree.setCurrentItem(quest_item)
-            self.hierarchy_tree.scrollToItem(quest_item)
-            self.hierarchy_tree.blockSignals(False)
-        return path
 
     def _refresh_after_quest_progress_change(
         self,
@@ -324,23 +175,6 @@ class QuestsPage(_EagerQuestsPage):
             refresh_detail=True,
         )
 
-    def focus_hierarchy_series(self, series_id: str) -> None:
-        if not self._large_hierarchy_catalog():
-            super().focus_hierarchy_series(series_id)
-            return
-
-        item = self.series_items.get(str(series_id))
-        if item is None:
-            return
-        self._populate_hierarchy_series(item)
-        parent = item.parent()
-        if parent is not None:
-            parent.setExpanded(True)
-        item.setExpanded(True)
-        self.hierarchy_tree.setCurrentItem(item)
-        self.hierarchy_tree.scrollToItem(item)
-        self.hierarchy_tree.setFocus()
-
     def _on_search_text_changed(self, text: str) -> None:
         if not self._large_hierarchy_catalog() or len(str(text or "").strip()) < MIN_QUEST_SEARCH_CHARS:
             self._search_debounce_timer.stop()
@@ -362,18 +196,6 @@ class QuestsPage(_EagerQuestsPage):
     def update_related_context(self, *args, **kwargs) -> None:
         self._quest_search_text_cache.clear()
         super().update_related_context(*args, **kwargs)
-
-    def refresh_owned_items(self) -> None:
-        path = self.owned_items_path
-        try:
-            stat = path.stat()
-        except OSError:
-            return
-        signature = (int(stat.st_mtime_ns), int(stat.st_size))
-        if signature == self._owned_items_file_signature:
-            return
-        self.owned_items = load_owned_items(path)
-        self._owned_items_file_signature = signature
 
     def show_quest_detail(self, quest_id: int) -> None:
         quest = self.catalog.by_id.get(int(quest_id))

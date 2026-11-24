@@ -28,6 +28,8 @@ from app.core.character_identity import is_character_key
 from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
 from app.core.json_store import InvalidPersistentJsonError
+from app.core.file_stamp import mtime_ctime_size_stamp
+from app.pages.quest_character_cache import cached_load_quest_characters as load_quest_characters
 from app.core.craft_selection import (
     selection_item_id as owned_item_identifier, selection_quantities,
     persist_selection_quantity,
@@ -56,7 +58,6 @@ from app.quest_catalog import (
     QuestCatalog,
     QuestCharacter,
     QuestRecord,
-    load_quest_characters,
     normalize_text,
 )
 from app.storage import IconCache, read_json
@@ -228,6 +229,7 @@ class QuestsPage(QWidget):
         self.quest_progress_service = QuestProgressService(progress_path)
         self.progress = self.quest_progress_service.progress
         self.owned_items = normalize_owned_items(owned_items)
+        self._owned_items_file_signature: tuple[int, int, int] | None = None
         self.characters: list[QuestCharacter] = []
         self.current_character_key = ""
         self.selected_quest_id: int | None = None
@@ -240,6 +242,7 @@ class QuestsPage(QWidget):
         self._loaded_category_names: set[str] = set()
         self._loaded_series_ids: set[str] = set()
         self._hierarchy_completed_quest_ids: frozenset[int] = frozenset()
+        self._rendered_hierarchy = None
         self.current_mode = "TOUTES"
         self.refreshing = False
         self.object_rows_refreshing = False
@@ -507,6 +510,25 @@ class QuestsPage(QWidget):
             None,
         )
 
+    def ensure_category_series_loaded(self, category_name: str) -> QTreeWidgetItem | None:
+        item = self.category_items.get(str(category_name))
+        if item is not None:
+            self._materialize_hierarchy_category(item)
+        return item
+
+    def ensure_series_quests_loaded(self, series_id: str) -> QTreeWidgetItem | None:
+        series_id = str(series_id)
+        item = self.series_items.get(series_id)
+        if item is None:
+            category = next((category for category in self.hierarchy.categories
+                             if any(series.id == series_id for series in category.series)), None)
+            if category is not None:
+                self.ensure_category_series_loaded(category.name)
+                item = self.series_items.get(series_id)
+        if item is not None:
+            self._materialize_hierarchy_series(item)
+        return item
+
     def _materialize_hierarchy_category(self, item: QTreeWidgetItem) -> None:
         name = str(item.data(0, HIERARCHY_ID_ROLE) or "")
         if not name or name in self._loaded_category_names:
@@ -569,7 +591,20 @@ class QuestsPage(QWidget):
         self._hierarchy_completed_quest_ids = frozenset(
             int(value) for value in completed_quest_ids
         )
-        self.hierarchy_tree.blockSignals(True)
+        if self._rendered_hierarchy is self.hierarchy and self.hierarchy_tree.topLevelItemCount():
+            for quest_id, items in self.quest_tree_items.items():
+                quest = self.catalog.by_id.get(quest_id)
+                if quest is not None:
+                    label = self.hierarchy_quest_label(quest, self._hierarchy_completed_quest_ids)
+                    for item in items:
+                        if item.text(0) != label:
+                            item.setText(0, label)
+            if selected_id is not None:
+                self.sync_hierarchy_selection(selected_id, preferred_series)
+            self.render_breadcrumb()
+            return
+        previous_blocked = self.hierarchy_tree.blockSignals(True)
+        previous_updates = self.hierarchy_tree.updatesEnabled()
         self.hierarchy_tree.setUpdatesEnabled(False)
         try:
             self.hierarchy_tree.clear()
@@ -583,12 +618,14 @@ class QuestsPage(QWidget):
                 category_item.setData(0, HIERARCHY_KIND_ROLE, "category")
                 category_item.setData(0, HIERARCHY_ID_ROLE, category.name)
                 category_item.setToolTip(0, f"{len(category.series)} suites")
-                category_item.addChild(self._hierarchy_placeholder())
+                if category.series:
+                    category_item.addChild(self._hierarchy_placeholder())
                 self.hierarchy_tree.addTopLevelItem(category_item)
                 self.category_items[category.name] = category_item
+            self._rendered_hierarchy = self.hierarchy
         finally:
-            self.hierarchy_tree.blockSignals(False)
-            self.hierarchy_tree.setUpdatesEnabled(True)
+            self.hierarchy_tree.blockSignals(previous_blocked)
+            self.hierarchy_tree.setUpdatesEnabled(previous_updates)
         if selected_id is not None:
             self.sync_hierarchy_selection(selected_id, preferred_series)
         self.render_breadcrumb()
@@ -641,10 +678,12 @@ class QuestsPage(QWidget):
             None,
         )
         if quest_item is not None:
-            self.hierarchy_tree.blockSignals(True)
-            self.hierarchy_tree.setCurrentItem(quest_item)
-            self.hierarchy_tree.scrollToItem(quest_item)
-            self.hierarchy_tree.blockSignals(False)
+            previous_blocked = self.hierarchy_tree.blockSignals(True)
+            try:
+                self.hierarchy_tree.setCurrentItem(quest_item)
+                self.hierarchy_tree.scrollToItem(quest_item)
+            finally:
+                self.hierarchy_tree.blockSignals(previous_blocked)
         return path
 
     def render_breadcrumb(self) -> None:
@@ -690,7 +729,7 @@ class QuestsPage(QWidget):
             self.hierarchy_tree.setFocus()
 
     def focus_hierarchy_series(self, series_id: str) -> None:
-        item = self.series_items.get(str(series_id))
+        item = self.ensure_series_quests_loaded(series_id)
         if item is not None:
             item.parent().setExpanded(True)
             item.setExpanded(True)
@@ -944,9 +983,15 @@ class QuestsPage(QWidget):
         quest = self.catalog.by_id.get(int(quest_id))
         if quest is None:
             return
-        text = self.hierarchy_quest_label(quest)
+        completed = bool(self.current_character_key and self.is_quest_done(int(quest_id)))
+        if completed:
+            self._hierarchy_completed_quest_ids = self._hierarchy_completed_quest_ids | {int(quest_id)}
+        else:
+            self._hierarchy_completed_quest_ids = self._hierarchy_completed_quest_ids - {int(quest_id)}
+        text = self.hierarchy_quest_label(quest, self._hierarchy_completed_quest_ids)
         for item in self.quest_tree_items.get(int(quest_id), ()):
-            item.setText(0, text)
+            if item.text(0) != text:
+                item.setText(0, text)
 
     def set_quest_checked(self, quest_id: int, done: bool) -> None:
         self.quest_progress_service.set_quest_completed(
@@ -1015,8 +1060,13 @@ class QuestsPage(QWidget):
         self.status_callback("Lien externe désactivé dans Quêtes.")
 
     def refresh_owned_items(self) -> None:
-        if self.owned_items_path.exists():
-            self.owned_items = load_owned_items(self.owned_items_path)
+        signature = mtime_ctime_size_stamp(self.owned_items_path)
+        if signature == self._owned_items_file_signature:
+            return
+        # A disappeared file means an empty persisted selection, not stale
+        # quantities. Initial caller-supplied quantities remain a valid fallback.
+        self.owned_items = load_owned_items(self.owned_items_path) if signature is not None else {}
+        self._owned_items_file_signature = signature
 
     def set_copy_feedback(self, text: str) -> None:
         self.copy_feedback.setText(text)

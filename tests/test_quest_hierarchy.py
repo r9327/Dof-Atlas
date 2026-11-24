@@ -72,6 +72,56 @@ class QuestsPageHierarchyTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_all_quest_readers_use_one_hierarchy_materializer(self):
+        from app.pages._quests_page_impl import QuestsPage as Base
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        for view in (QuestsPage, LazyQuestsPage):
+            for name in ("on_hierarchy_item_expanded", "_materialize_hierarchy_category",
+                         "_materialize_hierarchy_series", "sync_hierarchy_selection",
+                         "ensure_series_quests_loaded", "focus_hierarchy_series", "refresh_owned_items"):
+                self.assertIs(getattr(view, name), getattr(Base, name))
+
+    def test_hierarchy_keeps_nodes_and_updates_unopened_series_after_progress_change(self):
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        from unittest.mock import patch
+        catalog = QuestCatalog(
+            [quest(101, "Première", "Frigost"), quest(102, "Deuxième", "Frigost")],
+            achievement_series=(QuestAchievementSeries(552, "Suite", "Frigost", 0, (101, 102)),),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for view in (QuestsPage, LazyQuestsPage):
+                with self.subTest(view=view.__name__):
+                    page = view(lambda _: None, catalog=catalog, progress_path=root/"progress.json",
+                                profile_path=root/"profile.json", client_index_path=root/"clients.json",
+                                achievement_progress_path=root/"success.json", owned_items_path=root/"items.json")
+                    try:
+                        category = page.category_items[page.hierarchy.path_for(101).category.name]
+                        page.current_character_key = "character:1"
+                        with patch.object(page, "is_quest_done", return_value=True):
+                            page.refresh_hierarchy_quest_state(101)
+                        series = page.ensure_series_quests_loaded("achievement:552")
+                        self.assertEqual(series.child(0).text(0), "✓ Première")
+                        leaf = series.child(0)
+                        page.on_hierarchy_item_expanded(series)
+                        self.assertIs(series.child(0), leaf)
+                        self.assertEqual(len(page.quest_tree_items[101]), 1)
+                        with patch.object(page.quest_progress_service, "completed_quest_ids", return_value={102}):
+                            page.rebuild_hierarchy()
+                        self.assertIs(page.category_items[category.text(0)], category)
+                        self.assertIs(series.child(0), leaf)
+                        self.assertEqual(leaf.text(0), "Première")
+                        self.assertEqual(series.child(1).text(0), "✓ Deuxième")
+                        page.owned_items_path.write_text('{"items":[{"item_id":8,"quantity":5}]}', encoding="utf-8")
+                        page.refresh_owned_items()
+                        self.assertEqual(page.owned_items, {8:5})
+                        page.owned_items_path.unlink()
+                        page.refresh_owned_items()
+                        self.assertEqual(page.owned_items, {})
+                    finally:
+                        page.deleteLater()
+                        self.app.processEvents()
+
     def test_tree_breadcrumb_and_next_navigation_stay_in_quests(self):
         catalog = QuestCatalog(
             [
