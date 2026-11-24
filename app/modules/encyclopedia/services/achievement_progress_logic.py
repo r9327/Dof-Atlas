@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
-from app.core.numbers import clamped_percent, optional_int as _safe_int, valid_int_ids
+from app.core.numbers import clamped_percent, optional_int as _safe_int, valid_list_int_ids
 
 
 
@@ -17,9 +17,7 @@ def derive_completion_state(
     """Merge manual and derived achievement completion into the runtime state."""
     completed: set[int] = set()
     for field in ("completed_achievements", "auto_completed_achievements"):
-        rows = character.get(field, [])
-        if isinstance(rows, list):
-            completed.update(valid_int_ids(rows))
+        completed.update(valid_list_int_ids(character.get(field, [])))
 
     objectives: dict[int, set[int]] = {}
     for field in ("completed_objectives", "auto_completed_objectives"):
@@ -30,8 +28,7 @@ def derive_completion_state(
             aid = _safe_int(achievement_id)
             if aid is None:
                 continue
-            rows = values if isinstance(values, list) else []
-            objectives.setdefault(aid, set()).update(valid_int_ids(rows))
+            objectives.setdefault(aid, set()).update(valid_list_int_ids(values))
 
     return (
         frozenset(completed),

@@ -6,7 +6,7 @@ from typing import Any, Iterable
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated
-from app.core.numbers import optional_int, valid_int_ids
+from app.core.numbers import optional_int, valid_list_int_ids, valid_truthy_int_ids
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
@@ -82,12 +82,7 @@ class QuestProgressService(CoordinatedProgressReader):
             return cached
         character = self._read_character(key)
         done = character.get("done", {})
-        if not isinstance(done, dict):
-            snapshot = frozenset()
-        else:
-            snapshot = valid_int_ids(
-                quest_id for quest_id, completed in done.items() if completed
-            )
+        snapshot = valid_truthy_int_ids(done)
         self._completed_quest_ids_cache[key] = snapshot
         return snapshot
 
@@ -193,10 +188,7 @@ class QuestProgressService(CoordinatedProgressReader):
         character = self._read_character(key[0])
         rows = character.get("completed_quest_objectives", {})
         values = rows.get(str(key[1]), []) if isinstance(rows, dict) else []
-        if not isinstance(values, list):
-            snapshot = frozenset()
-        else:
-            snapshot = valid_int_ids(values)
+        snapshot = valid_list_int_ids(values)
         self._completed_objective_ids_cache[key] = snapshot
         return snapshot
 
@@ -228,7 +220,7 @@ class QuestProgressService(CoordinatedProgressReader):
                 rows = {}
                 character["completed_quest_objectives"] = rows
             key = str(int(quest_id))
-            values = set(valid_int_ids(rows.get(key, [])))
+            values = set(valid_list_int_ids(rows.get(key, [])))
             previous = set(values)
             if completed:
                 values.add(int(objective_id))
@@ -260,12 +252,7 @@ class QuestProgressService(CoordinatedProgressReader):
         character = self._read_character(key[0])
         items = character.get("quest_items", {})
         quest_items = items.get(str(key[1]), {}) if isinstance(items, dict) else {}
-        if not isinstance(quest_items, dict):
-            snapshot = frozenset()
-        else:
-            snapshot = valid_int_ids(
-                item_id for item_id, completed in quest_items.items() if completed
-            )
+        snapshot = valid_truthy_int_ids(quest_items)
         self._completed_item_ids_cache[key] = snapshot
         return snapshot
 

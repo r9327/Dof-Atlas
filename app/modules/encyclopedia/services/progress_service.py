@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from app.constants import DATA_DIR
-from app.core.numbers import optional_int, valid_int_ids
+from app.core.numbers import optional_int, valid_list_int_ids
 from local_dofus_data.utils import now_iso, save_json_atomic
 from app.modules.encyclopedia.models.progress_state import ProgressState
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
@@ -60,7 +60,7 @@ class AchievementProgressService:
         if not str(character_key or "").strip():
             return
         character = self._character(character_key)
-        values = set(valid_int_ids(character.get("completed_achievements", [])))
+        values = set(valid_list_int_ids(character.get("completed_achievements", [])))
         if completed:
             values.add(int(achievement_id))
         else:
@@ -87,7 +87,7 @@ class AchievementProgressService:
             objectives = {}
             character["completed_objectives"] = objectives
         key = str(int(achievement_id))
-        values = set(valid_int_ids(objectives.get(key, [])))
+        values = set(valid_list_int_ids(objectives.get(key, [])))
         if completed:
             values.add(int(objective_id))
         else:
@@ -147,7 +147,7 @@ class AchievementProgressService:
             achievement_id = optional_int(raw_achievement_id)
             if achievement_id is None or not isinstance(values, list):
                 continue
-            normalized.append((achievement_id, tuple(sorted(valid_int_ids(values)))))
+            normalized.append((achievement_id, tuple(sorted(valid_list_int_ids(values)))))
         return tuple(sorted(normalized))
 
     @staticmethod
@@ -179,7 +179,7 @@ class AchievementProgressService:
         completed_quests = frozenset(quest_progress_service.completed_quest_ids(key))
         character = self._character(key)
         manual_achievements = set(
-            valid_int_ids(character.get("completed_achievements", []))
+            valid_list_int_ids(character.get("completed_achievements", []))
         )
         sync_signature: tuple[object, ...] = (
             id(achievement_provider),
@@ -277,7 +277,7 @@ class AchievementProgressService:
                 aid = self._safe_int(raw_aid)
                 if aid is None or not isinstance(values, list):
                     continue
-                manual_objectives[aid] = set(valid_int_ids(values))
+                manual_objectives[aid] = set(valid_list_int_ids(values))
 
         auto_objectives: dict[int, set[int]] = {}
         memo: dict[int, bool] = {}
@@ -437,7 +437,7 @@ class AchievementProgressService:
             if values
         }
         previous_achievements = sorted(
-            valid_int_ids(character.get("auto_completed_achievements", []))
+            valid_list_int_ids(character.get("auto_completed_achievements", []))
         )
         previous_objectives = character.get("auto_completed_objectives", {})
         next_achievements = sorted(auto_achievements)

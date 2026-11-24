@@ -39,6 +39,18 @@ def valid_int_ids(values: Iterable[object]) -> frozenset[int]:
     )
 
 
+def valid_list_int_ids(values: object) -> frozenset[int]:
+    """Decode persisted JSON ID lists; malformed containers never imply completion."""
+    return valid_int_ids(values) if isinstance(values, list) else frozenset()
+
+
+def valid_truthy_int_ids(values: object) -> frozenset[int]:
+    """Decode IDs from the persisted Quest boolean-map representation."""
+    if not isinstance(values, dict):
+        return frozenset()
+    return valid_int_ids(raw for raw, completed in values.items() if completed)
+
+
 def exact_native_integer(
     value: object, maximum: int, *, allow_zero: bool = False,
 ) -> int | None:

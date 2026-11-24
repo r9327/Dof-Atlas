@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.json_store import read_json_validated, write_json_atomic
-from app.core.numbers import valid_int_ids
+from app.core.numbers import valid_list_int_ids
 from app.core.character_identity import require_character_key
 from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
@@ -124,7 +124,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
         with self._coordinator.lock:
             self._replace_snapshot_locked(self._coordinator.generation)
             character = self._character(key)
-            values = valid_int_ids(character.get("completed_achievements", []))
+            values = valid_list_int_ids(character.get("completed_achievements", []))
             achievement_id = int(achievement_id)
             if (achievement_id in values) == bool(completed):
                 return False
@@ -144,7 +144,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
             character = self._character(key)
             rows = character.get("completed_objectives", {})
             values = rows.get(str(int(achievement_id)), []) if isinstance(rows, dict) else []
-            completed_ids = valid_int_ids(values) if isinstance(values, list) else frozenset()
+            completed_ids = valid_list_int_ids(values)
             objective_id = int(objective_id)
             if (objective_id in completed_ids) == bool(completed):
                 return False

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.numbers import clamped_percent, coerce_positive_int, exact_native_integer, format_grouped_int, optional_int, positive_int, valid_int_ids
+from app.core.numbers import clamped_percent, coerce_positive_int, exact_native_integer, format_grouped_int, optional_int, positive_int, valid_int_ids, valid_list_int_ids, valid_truthy_int_ids
 from app.core.item_identity import item_id
 
 
@@ -53,6 +53,16 @@ class ValidIntIdTests(unittest.TestCase):
             frozenset({42, 1, -3}),
         )
         self.assertEqual(valid_int_ids(()), frozenset())
+
+    def test_persisted_completion_decoders_reject_wrong_container_shapes(self):
+        self.assertEqual(valid_list_int_ids(["42", 42, "bad"]), frozenset({42}))
+        self.assertEqual(valid_truthy_int_ids({"42": True, "43": False, "bad": True}), frozenset({42}))
+        for raw in (None, "42", 42, ("42",), {"42": True}):
+            with self.subTest(raw=raw):
+                self.assertEqual(valid_list_int_ids(raw), frozenset())
+        for raw in (None, "42", 42, ["42"]):
+            with self.subTest(raw=raw):
+                self.assertEqual(valid_truthy_int_ids(raw), frozenset())
 
     def test_quest_objective_mutation_preserves_sorted_json_ids(self):
         from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
