@@ -49,6 +49,34 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             achievement_context_section([achievement], progress, []),
         )
 
+    def test_compatibility_html_is_lazy_and_releases_consumed_payload(self):
+        from unittest.mock import patch
+        from app.pages._quests_page_impl import NativeQuestDetailPanel
+        panel = NativeQuestDetailPanel()
+        try:
+            with patch("app.pages._quests_page_impl.quest_detail_html", return_value="<p>test</p>") as render:
+                panel.set_lazy_payload((object(), False, {}, (), (), None))
+                render.assert_not_called()
+                self.assertEqual(panel.toHtml(), "<p>test</p>")
+                self.assertIsNone(panel._lazy_payload)
+                self.assertEqual(panel.toHtml(), "<p>test</p>")
+                render.assert_called_once()
+                panel.set_lazy_payload((object(), False, {}, (), (), None))
+                panel.set_compat_html("vide")
+                self.assertEqual(panel.toHtml(), "vide")
+                render.assert_called_once()
+        finally:
+            panel.deleteLater()
+
+    def test_character_switch_can_defer_previous_quest_render(self):
+        from unittest.mock import Mock
+        view = SimpleNamespace(character_key="character:1", refresh=Mock())
+        QuestDetailView.set_character_key(view, "character:2", refresh=False)
+        view.refresh.assert_not_called()
+        self.assertEqual(view.character_key, "character:2")
+        QuestDetailView.set_character_key(view, "character:3")
+        view.refresh.assert_called_once_with()
+
     def test_quest_list_cleanup_preserves_parent_until_deferred_delete(self) -> None:
         from PySide6.QtWidgets import QWidget, QVBoxLayout
         from app.pages._quests_page_impl import clear_layout

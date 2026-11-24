@@ -116,11 +116,25 @@ class NativeQuestDetailPanel(DetailPanel):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._html = ""
+        self._lazy_payload = None
+
+    def set_lazy_payload(self, payload) -> None:
+        self._html = ""
+        self._lazy_payload = payload
 
     def set_compat_html(self, html: str) -> None:
+        self._lazy_payload = None
         self._html = html
 
     def toHtml(self) -> str:
+        """Legacy HTML is computed only by a caller that explicitly needs it."""
+        if self._lazy_payload is not None:
+            quest, done, owned, guides, achievements, state = self._lazy_payload
+            self._html = quest_detail_html(
+                quest, done, owned, related_guides=guides,
+                related_achievements=achievements, achievement_state=state,
+            )
+            self._lazy_payload = None
         return self._html
 
     def openLinks(self) -> bool:
@@ -970,13 +984,26 @@ class QuestsPage(QWidget):
         if self.quest_detail_view is not None:
             self.quest_detail_view.clear()
 
-    def on_shared_quest_progress_changed(self, quest_id: int) -> None:
-        quest_id = int(quest_id)
-        self.progress = self.quest_progress_service.reload()
+    def _refresh_after_quest_progress_change(
+        self, quest_id: int, *, reload_progress: bool,
+        refresh_list: bool, refresh_detail: bool,
+    ) -> None:
+        self.progress = (self.quest_progress_service.reload() if reload_progress
+                         else self.quest_progress_service.progress)
         self._sync_achievement_progress()
         self.refresh_hierarchy_quest_state(quest_id)
-        if len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS:
+        if refresh_list:
             self.refresh_quests()
+        if refresh_detail:
+            self.show_quest_detail(quest_id)
+
+    def on_shared_quest_progress_changed(self, quest_id: int) -> None:
+        quest_id = int(quest_id)
+        self._refresh_after_quest_progress_change(
+            quest_id, reload_progress=True,
+            refresh_list=len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS,
+            refresh_detail=False,
+        )
         self.selected_quest_id = quest_id
 
     def refresh_hierarchy_quest_state(self, quest_id: int) -> None:
@@ -999,11 +1026,9 @@ class QuestsPage(QWidget):
             int(quest_id),
             bool(done),
         )
-        self.progress = self.quest_progress_service.progress
-        self._sync_achievement_progress()
-        self.refresh_hierarchy_quest_state(int(quest_id))
-        self.refresh_quests()
-        self.show_quest_detail(int(quest_id))
+        self._refresh_after_quest_progress_change(
+            int(quest_id), reload_progress=False, refresh_list=True, refresh_detail=True,
+        )
 
     def show_quest_detail(self, quest_id: int) -> None:
         quest = self.catalog.by_id.get(int(quest_id))
@@ -1016,19 +1041,14 @@ class QuestsPage(QWidget):
         related_guides = self.guide_provider.get_guides_for_entity("quest", quest.id) if self.guide_provider is not None else []
         related_achievements = self.achievement_provider.get_by_quest(quest.id) if self.achievement_provider is not None else []
         achievement_state = self.achievement_progress_service.state_for(self.current_character_key)
-        self.detail.set_compat_html(
-            quest_detail_html(
-                quest,
-                done,
-                self.owned_items,
-                related_guides=related_guides,
-                related_achievements=related_achievements,
-                achievement_state=achievement_state,
-            )
-        )
+        self.detail.set_lazy_payload((
+            quest, done, dict(self.owned_items),
+            tuple(related_guides), tuple(related_achievements), achievement_state,
+        ))
         view = self._ensure_quest_detail_view()
         from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
 
+        view.set_character_key(self.current_character_key, refresh=False)
         active_series = self.hierarchy.series_by_id.get(self.active_series_id)
         view.show_quest(
             int(quest.id),

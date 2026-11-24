@@ -436,6 +436,34 @@ class QuestDetailsTests(unittest.TestCase):
 
 
 class DeferredQuestUiTests(unittest.TestCase):
+    def test_empty_search_index_is_a_completed_load_not_a_new_worker(self):
+        from unittest.mock import patch
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        from app.pages.quests_page import QuestsPage
+        with patch.object(QuestsPage, "matching_quests", return_value=[]) as match, \
+             patch("app.pages.lazy_quests_page.Thread") as thread:
+            # Bind the method to an actual instance for super() resolution.
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance() or QApplication([])
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                catalog = QuestDetailsTests().build(root)
+                catalog._prebuilt_quest_search_text = {}
+                actual = LazyQuestsPage(lambda _: None, catalog=catalog,
+                    progress_path=root/"progress.json", achievement_progress_path=root/"success.json",
+                    profile_path=root/"profile.json", client_index_path=root/"clients.json",
+                    owned_items_path=root/"items.json")
+                try:
+                    actual.search.blockSignals(True)
+                    actual.search.setText("quest")
+                    match.reset_mock()
+                    self.assertEqual(actual.matching_quests(), [])
+                    match.assert_called_once()
+                    thread.assert_not_called()
+                finally:
+                    actual.deleteLater()
+                    app.processEvents()
+
     def test_fast_selection_renders_only_latest_and_reuses_a(self):
         from PySide6.QtWidgets import QApplication
         from app.pages.lazy_quests_page import LazyQuestsPage

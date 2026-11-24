@@ -167,14 +167,13 @@ class QuestDetailView(QWidget):
         label.setWordWrap(True)
         return label
 
-    def set_character_key(self, character_key: str) -> None:
+    def set_character_key(self, character_key: str, *, refresh: bool = True) -> None:
         character_key = character_key or ""
         if character_key == self.character_key:
             return
         self.character_key = character_key
-        self.quest_progress_service.reload()
-        if self.current_quest_id is not None:
-            self.show_quest(self.current_quest_id, self.context)
+        if refresh:
+            self.refresh()
 
     def update_related_context(
         self,

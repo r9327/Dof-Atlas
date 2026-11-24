@@ -20,7 +20,6 @@ class LazyQuestsPage(QuestsPage):
     """Materialize the quest hierarchy only as each visible level is requested."""
 
     def __init__(self, *args, **kwargs) -> None:
-        self._quest_search_text_cache: dict[int, str] = {}
         self._quest_state_cache: dict[int, str] = {}
         self._repeatability_cache: dict[int, str] = {}
         self._character_sources_signature: tuple[object, ...] | None = None
@@ -230,7 +229,7 @@ class LazyQuestsPage(QuestsPage):
         if (
             getattr(self.catalog, "deferred_details", False)
             and len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS
-            and not getattr(self.catalog, "_prebuilt_quest_search_text", None)
+            and not isinstance(getattr(self.catalog, "_prebuilt_quest_search_text", None), dict)
         ):
             if self._search_worker is None:
                 catalog, results = self.catalog, self._search_results
