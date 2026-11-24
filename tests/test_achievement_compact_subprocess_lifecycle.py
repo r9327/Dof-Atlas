@@ -15,12 +15,39 @@ from app.modules.encyclopedia.providers.memory_bound_achievement_provider import
     MemoryBoundAchievementProvider,
     _achievement_from_dict,
     _dump_default_detail,
+    _dump_compact_default_catalogue,
     _build_compact_cache,
     _unique_cache_temporary_path,
 )
 
 
 class AchievementCompactSubprocessTests(unittest.TestCase):
+    def test_cold_catalogue_worker_reuses_one_pass_loader(self):
+        from app.modules.encyclopedia.models.achievement import AchievementCategory
+
+        provider = Mock()
+        provider._categories = {8: AchievementCategory(
+            id=8, name="Catégorie", parent_id=0, order=0, achievement_ids=(123,),
+        )}
+        provider._achievements = [_achievement_from_dict({
+            "id": 123, "category_id": 8, "name": "Succès de contrôle",
+        })]
+        output = io.StringIO()
+        with (
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.MemoryBoundAchievementProvider",
+                return_value=provider,
+            ),
+            redirect_stdout(output),
+        ):
+            self.assertEqual(_dump_compact_default_catalogue(), 0)
+        provider._load_disposable_worker_fast.assert_called_once_with()
+        provider._load_in_process.assert_not_called()
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([row["kind"] for row in rows], ["category", "achievement"])
+        self.assertEqual(rows[1]["value"]["id"], 123)
+        self.assertEqual(rows[1]["value"]["name"], "Succès de contrôle")
+
     def test_malformed_stream_kills_child_and_closes_stdout(self) -> None:
         process = Mock()
         process.stdout = io.StringIO("not json\\n")

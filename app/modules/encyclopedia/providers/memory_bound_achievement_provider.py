@@ -1010,6 +1010,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 encoding="utf-8",
                 errors="replace",
                 env=_utf8_subprocess_env(),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
             )
             try:
                 categories: dict[int, AchievementCategory] = {}
@@ -2245,7 +2246,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
 def _dump_compact_default_catalogue() -> int:
     provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
-    provider._load_in_process()
+    # This compatibility worker is disposable too. Reuse the one-pass loader
+    # used by the compact-cache builder and rich-detail worker, instead of
+    # scanning all text IDs before loading the same catalogue a second time.
+    provider._load_disposable_worker_fast()
     for category in provider._categories.values():
         print(
             json.dumps(
