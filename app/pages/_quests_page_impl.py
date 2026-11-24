@@ -29,7 +29,7 @@ from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, n
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
 from app.core.craft_selection import (
     selection_item_id as owned_item_identifier, selection_quantities,
-    replace_selection_quantity,
+    persist_selection_quantity,
 )
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -58,7 +58,7 @@ from app.quest_catalog import (
     load_quest_characters,
     normalize_text,
 )
-from app.storage import IconCache, read_json, write_json
+from app.storage import IconCache, read_json
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout, fit_unity_number_spinbox, configure_unity_tool_button
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
@@ -922,11 +922,8 @@ class QuestsPage(QWidget):
         return quest_id if quest_id > 0 else None
 
     def save_last_quest_id(self, quest_id: int) -> None:
-        payload = read_json(self.profile_path, {})
-        if not isinstance(payload, dict):
-            payload = {}
-        payload[KEY_LAST_SELECTED_QUEST_ID] = int(quest_id)
-        write_json(self.profile_path, payload)
+        from app.services.profile_settings_service import ProfileSettingsService
+        ProfileSettingsService(self.profile_path).set_value(KEY_LAST_SELECTED_QUEST_ID, int(quest_id))
 
     def clear_detail_columns(self) -> None:
         self.detail.set_compat_html("")
@@ -1283,10 +1280,9 @@ def load_owned_items(path: Path = CRAFT_SELECTION_FILE) -> dict[int, int]:
 
 
 def save_owned_item_quantity(item: dict[str, Any], quantity: int, path: Path = CRAFT_SELECTION_FILE) -> None:
-    payload = read_json(path, {"items": []})
-    write_json(path, replace_selection_quantity(
-        payload, int(item["item_id"]), str(item.get("name") or ""), int(quantity),
-    ))
+    persist_selection_quantity(
+        path, int(item["item_id"]), str(item.get("name") or ""), int(quantity),
+    )
 
 
 def clear_layout(layout: QVBoxLayout) -> None:

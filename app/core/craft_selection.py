@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from typing import Any
+from pathlib import Path
 
 from app.core.numbers import optional_int
 
@@ -74,7 +75,37 @@ def replace_selection_quantity(payload: object, item_id: int, name: str, quantit
         replaced = True
     if not replaced and quantity > 0:
         rows.append(selection_item_row(item_id, name, quantity))
-    return {"items": rows}
+    result = dict(payload) if isinstance(payload, dict) and isinstance(payload.get("items"), list) else {}
+    result["items"] = rows
+    return result
+
+
+def persist_selection_quantity(path: Path, item_id: int, name: str, quantity: int) -> None:
+    """Serialize a targeted edit against the latest shared Craft/Quest file."""
+    from app.core.json_store import read_json_validated, write_json_atomic
+    from app.core.progress_coordinator import coordinator_for
+
+    coordinator = coordinator_for(path)
+    with coordinator.lock:
+        payload = read_json_validated(
+            path, {"items": []},
+            lambda value: None if isinstance(value, dict) else "la sélection doit être un objet",
+        )
+        updated = replace_selection_quantity(payload, item_id, name, quantity)
+        if updated != payload:
+            write_json_atomic(path, updated)
+            coordinator.mark_changed()
+
+
+def clear_persisted_selection(path: Path) -> None:
+    """Only an explicit full clear replaces every saved row."""
+    from app.core.json_store import write_json_atomic
+    from app.core.progress_coordinator import coordinator_for
+
+    coordinator = coordinator_for(path)
+    with coordinator.lock:
+        write_json_atomic(path, {"items": []})
+        coordinator.mark_changed()
 
 
 def resolve_selection(payload: object, get_item, *, allow_legacy: bool = False) -> dict[int, dict[str, Any]]:

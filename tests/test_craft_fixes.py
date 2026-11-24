@@ -287,6 +287,24 @@ class CraftFixesTests(unittest.TestCase):
         generate.assert_not_called()
         self.assertIs(dialog.call_args.args[1], official)
 
+    def test_craft_edit_preserves_external_quest_selection(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from app.pages._quests_page_impl import save_owned_item_quantity
+        page = self.make_page()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            with patch("app.pages.craft_page.CRAFT_SELECTION_FILE", path):
+                page.add_item({"ankama_id": 42, "name": "Potion"}, 2)
+                save_owned_item_quantity({"item_id": 43, "name": "Fer"}, 7, path)
+                page.set_selection_quantity(42, 3)
+                saved = json.loads(path.read_text(encoding="utf-8"))
+                self.assertEqual({row["item_id"]: row["quantity"] for row in saved["items"]},
+                                 {42: 3, 43: 7})
+                page.remove_selection_item(42)
+                self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["items"][0]["item_id"], 43)
+
     def test_stale_preload_reuses_item_metadata_but_reads_latest_quantities(self):
         page = self.make_page()
         page.preload = {

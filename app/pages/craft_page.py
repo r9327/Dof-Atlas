@@ -36,6 +36,7 @@ from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.numbers import optional_int
 from app.core.craft_selection import (
     selection_item_row, resolve_selection, selection_editor_maximum,
+    persist_selection_quantity, clear_persisted_selection,
 )
 from app.constants import (
     CRAFT_SELECTION_FILE,
@@ -924,7 +925,7 @@ class CraftPage(QWidget):
         if ident not in self.selection:
             self.selection[ident] = {"item": item, "quantity": 0}
         self.selection[ident]["quantity"] = max(1, int(self.selection[ident]["quantity"]) + int(quantity or 1))
-        self.save_selection()
+        self.save_selection(ident)
         self.refresh_selection()
         self.status_callback(f"Ajoute: {item.get('name', 'Objet')}")
 
@@ -937,7 +938,7 @@ class CraftPage(QWidget):
 
     def remove_selection_item(self, ident: int) -> None:
         self.selection.pop(ident, None)
-        self.save_selection()
+        self.save_selection(ident)
         self.refresh_selection()
 
     def change_selection_quantity(self, ident: int, delta: int) -> None:
@@ -946,7 +947,7 @@ class CraftPage(QWidget):
             return
         current = int(row.get("quantity") or 1)
         row["quantity"] = max(1, min(selection_editor_maximum(current), current + delta))
-        self.save_selection()
+        self.save_selection(ident)
         self.refresh_selection()
 
     def set_selection_quantity(self, ident: int, value: int) -> None:
@@ -956,11 +957,11 @@ class CraftPage(QWidget):
         # The live editor already enforces its displayed range; do not
         # shrink it mid-edit when a bulk quantity crosses below 1000.
         row["quantity"] = max(1, min(2_147_483_647, int(value or 1)))
-        self.save_selection()
+        self.save_selection(ident)
 
     def clear_selection(self) -> None:
         self.selection.clear()
-        self.save_selection()
+        self.save_selection(clear=True)
         self.refresh_selection()
         self.status_callback("Sélection vidée.")
 
@@ -1006,7 +1007,19 @@ class CraftPage(QWidget):
             self.selection_list.setUpdatesEnabled(True)
         scrollbar.setValue(min(scroll_position, scrollbar.maximum()))
 
-    def save_selection(self) -> None:
+    def save_selection(self, ident: int | None = None, *, clear: bool = False) -> None:
+        if clear:
+            clear_persisted_selection(CRAFT_SELECTION_FILE)
+            return
+        if ident is not None:
+            row = self.selection.get(ident)
+            persist_selection_quantity(
+                CRAFT_SELECTION_FILE, ident,
+                str(row["item"].get("name") or "") if row else "",
+                int(row["quantity"]) if row else 0,
+            )
+            return
+        # Compatibility snapshot writer for explicit legacy callers.
         payload = {
             "items": [
                 selection_item_row(

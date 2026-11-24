@@ -43,6 +43,23 @@ class OwnedItemsNormalizationTests(unittest.TestCase):
                 {"item_id": 12, "quantity": 9},
             ]})
 
+    def test_targeted_selection_write_preserves_other_editor_and_root_metadata(self):
+        from app.core.craft_selection import persist_selection_quantity
+        from app.core.json_store import InvalidPersistentJsonError
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            path.write_text(json.dumps({"items": [], "version": 2}), encoding="utf-8")
+            persist_selection_quantity(path, 8, "Potion", 5)
+            persist_selection_quantity(path, 12, "Fer", 9)
+            persist_selection_quantity(path, 8, "Potion", 3)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["version"], 2)
+            self.assertEqual(normalize_owned_items(payload), {8: 3, 12: 9})
+            path.write_text("{broken", encoding="utf-8")
+            with self.assertRaises(InvalidPersistentJsonError):
+                persist_selection_quantity(path, 8, "Potion", 1)
+            self.assertEqual(path.read_text(encoding="utf-8"), "{broken")
+
     def test_preload_and_runtime_share_distinct_item_resolution(self):
         from unittest.mock import Mock
         from app.core.craft_selection import resolve_selection
