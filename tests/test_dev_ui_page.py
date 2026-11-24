@@ -1774,11 +1774,11 @@ class DevUiPageTests(unittest.TestCase):
                             expected["module_padding"],
                         )
                     self.assertEqual(tuple(page.gallery_family_widgets), original_order)
-                    # Nested Preparation uses the same horizontal reference
-                    # but stays inset under its own global disclosure.
+                    # Independent preparation and summary columns share the full
+                    # horizontal reference with the global progress.
                     page.gallery_scroll.ensureWidgetVisible(page.preview_compact_header)
                     for opened in (False, True):
-                        for name in ("Progression globale", "Préparation", "Personnages"):
+                        for name in ("Progression globale", "Préparation", "Sommaire", "Personnages"):
                             page.preview_header_controls[name].setChecked(opened)
                         self.app.processEvents()
 
@@ -1800,12 +1800,15 @@ class DevUiPageTests(unittest.TestCase):
                                 page.preview_compact_header
                             ), opened,
                         )
-                        if opened:
-                            preparation = span(page.preview_header_metrics["Préparation"])
-                            summary = span(page.preview_header_metrics["Sommaire"])
-                            self.assertEqual(preparation[0], full[0])
-                            self.assertEqual(summary[1], full[1])
-                            self.assertLess(preparation[1], summary[0])
+                        self.assertEqual(
+                            page.preview_header_panels["Sommaire"].isVisibleTo(page.preview_compact_header),
+                            opened,
+                        )
+                        preparation = span(page.preview_header_metrics["Préparation"])
+                        summary = span(page.preview_header_metrics["Sommaire"])
+                        self.assertEqual(preparation[0], full[0])
+                        self.assertEqual(summary[1], full[1])
+                        self.assertLess(preparation[1], summary[0])
             self.assertEqual(
                 page.preview_header_global_progress.height(),
                 UNITY_CONTROL_SIZES_PX["progress_primary"],

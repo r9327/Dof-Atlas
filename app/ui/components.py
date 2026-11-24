@@ -1065,11 +1065,8 @@ class AtlasGuideReadingHeader(QFrame):
         self.summary_panel.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
         self.summary_panel.setAccessibleName("Sommaire du guide")
         self.summary_panel.hide()
-        self.summary_panel.itemActivated.connect(
-            lambda item: self.summaryRequested.emit(self.summary_panel.row(item))
-        )
-        self.summary_panel.itemClicked.connect(
-            lambda item: self.summaryRequested.emit(self.summary_panel.row(item))
+        self.summary_panel.currentRowChanged.connect(
+            lambda index: self.summaryRequested.emit(index) if index >= 0 else None
         )
         self._summary_titles = ()
         self._summary_index = -1
@@ -1135,13 +1132,17 @@ class AtlasGuideReadingHeader(QFrame):
         if self._summary_provider is None:
             return
         titles = tuple(self._summary_provider())
-        if titles != self._summary_titles:
-            self._summary_titles = titles
-            self.summary_panel.clear()
-            self.summary_panel.addItems([
-                f"{index}. {title}" for index, title in enumerate(titles, 1)
-            ])
-        self.summary_panel.setCurrentRow(self._summary_index)
+        blocked = self.summary_panel.blockSignals(True)
+        try:
+            if titles != self._summary_titles:
+                self._summary_titles = titles
+                self.summary_panel.clear()
+                self.summary_panel.addItems([
+                    f"{index}. {title}" for index, title in enumerate(titles, 1)
+                ])
+            self.summary_panel.setCurrentRow(self._summary_index)
+        finally:
+            self.summary_panel.blockSignals(blocked)
 
     def _set_summary_open(self, opened: bool) -> None:
         if opened:

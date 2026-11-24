@@ -213,9 +213,11 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                          "ganymede_2205_step_0001")
         self.assertEqual(self.panel.title_label.text(), "Fiche 1")
         self.assertFalse(hasattr(self.panel, "summary"))
-        self.panel.next_button.click()
+        self.panel.compact_header.summary_button.click()
+        self.panel.compact_header.summary_panel.setCurrentRow(1)
         self.assertEqual(self.panel.navigation.position().viewed_step_id,
                          "ganymede_2205_step_0002")
+        self.assertTrue(self.panel.compact_header.summary_button.isChecked())
         self.panel.actual_button.click()
         self.assertEqual(self.panel.navigation.position().viewed_step_id,
                          "ganymede_2205_step_0001")

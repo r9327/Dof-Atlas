@@ -366,7 +366,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 UNITY_CONTROL_SIZES_PX["guide_page_jump_compact_max_width"],
             )
             self.assertEqual(view.page_jump.suffix(), "/2")
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
 
             view.resize(960, 640)
@@ -377,7 +377,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 view.page_jump.maximumWidth(),
                 UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
             )
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
         finally:
             view.close()
 
@@ -495,15 +495,18 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         _service, view = self._view()
         try:
             view.show()
-            view.global_details_button.click()
             view.preparation_button.click()
+            view.reading_header.summary_button.click()
             QApplication.processEvents()
-            self.assertTrue(view.global_details_panel.isVisible())
+            self.assertFalse(view.global_details_panel.isVisible())
             self.assertTrue(view.preparation_panel.isVisible())
-            view.navigate_relative(1)
+            self.assertTrue(view.reading_header.summary_panel.isVisible())
+            view.global_details_button.click()
+            view.reading_header.summary_panel.setCurrentRow(1)
             self.assertEqual(view.view_index, 1)
             self.assertTrue(view.global_details_button.isChecked())
             self.assertTrue(view.preparation_button.isChecked())
+            self.assertTrue(view.reading_header.summary_button.isChecked())
             view.navigate_relative(-1)
             self.assertEqual(view.view_index, 0)
             self.assertTrue(view.preparation_panel.isVisible())
