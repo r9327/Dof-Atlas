@@ -854,7 +854,12 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.startup_progress.format(), "%p %")
             self.assertEqual(page.guide_sample_summary.objectName(), "GuidePreparationSummary")
             self.assertEqual(page.guide_sample_row.objectName(), "GuidePreparationRow")
+            from app.ui.components import AtlasGuideReadingNav, AtlasGuideValidationButton
+            self.assertIsInstance(page.guide_manual_nav, AtlasGuideReadingNav)
             self.assertEqual(page.guide_manual_nav.objectName(), "GuideManualNav")
+            self.assertIsNotNone(page.guide_manual_nav.findChild(AtlasGuideValidationButton))
+            page.guide_manual_nav.next_button.click()
+            self.assertIn("Suivant", page.feedback.text())
             self.assertEqual(
                 page.guide_ultime_sample.objectName(), "GuideUltimeGeneratedView"
             )

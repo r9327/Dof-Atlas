@@ -1292,6 +1292,50 @@ def atlas_preparation_copy_button(name: str, display: str | None = None) -> Atla
     return button
 
 
+class AtlasGuidePreparationPanel(QFrame):
+    """The real bounded preparation drawer, independent of the item model."""
+
+    def __init__(self, categories: tuple[str, ...], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuidePreparationPanel")
+        panel_layout = QVBoxLayout(self)
+        panel_layout.setContentsMargins(
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+        )
+        panel_layout.setSpacing(UNITY_SPACING_PX["xs"])
+        self.category_filter = AtlasComboBox()
+        self.category_filter.setObjectName("GuidePreparationCategoryFilter")
+        self.category_filter.addItems(("Tout", *categories))
+        self.category_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
+        self.category_filter.setToolTip("Filtrer les besoins de préparation")
+        self.category_filter.setAccessibleName("Catégorie de préparation")
+        panel_layout.addWidget(self.category_filter, 0, Qt.AlignLeft)
+
+        self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
+        self.scroll.setObjectName("GuidePreparationScroll")
+        self.scroll.setMinimumHeight(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"])
+        self.scroll.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
+        self.content = QWidget()
+        self.content.setObjectName("GuidePreparationContent")
+        self.rows_layout = QVBoxLayout(self.content)
+        self.rows_layout.setContentsMargins(0, 0, 0, 0)
+        self.rows_layout.setSpacing(UNITY_SPACING_PX["xxs"])
+        self.scroll.setWidget(self.content)
+        panel_layout.addWidget(self.scroll)
+        apply_unity_panel_shadow(self)
+
+    def fit_content_height(self, *, scroll_position: int = 0) -> None:
+        self.rows_layout.activate()
+        natural = self.rows_layout.sizeHint().height() + UNITY_SPACING_PX["xs"]
+        self.scroll.setFixedHeight(min(
+            UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
+            max(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"], natural),
+        ))
+        self.content.adjustSize()
+        self.scroll.verticalScrollBar().setValue(scroll_position)
+
+
 class AtlasGuidePreparationRow(QFrame):
     """One preparation row for Dev UI and live Guides; the host owns persistence."""
 
@@ -1385,6 +1429,47 @@ class AtlasGuidePreparationRow(QFrame):
             finally:
                 counter.blockSignals(blocked)
         self._refresh_status()
+
+
+class AtlasGuideValidationButton(AtlasButton):
+    """Shared checkable page action; no progression writes in the widget."""
+
+    def __init__(self, text: str = "Valider", parent: QWidget | None = None) -> None:
+        super().__init__(text, parent)
+        self.set_style_name("GuideManualPageCheck")
+        self.setCheckable(True)
+
+
+class AtlasGuideReadingNav(QFrame):
+    """Actual three-action reading footer shared with the Dev UI gallery."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideManualNav")
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]
+        nav_layout = QHBoxLayout(self)
+        nav_layout.setContentsMargins(*geometry["footer_margins"])
+        nav_layout.setSpacing(geometry["footer_gap"])
+        icon_size = geometry["back_icon"]
+        self.previous_button = AtlasButton("Précédent")
+        self.previous_button.set_style_name("GuideManualPrev")
+        self.previous_button.setIcon(atlas_guide_arrow_icon("left"))
+        self.previous_button.setIconSize(QSize(icon_size, icon_size))
+        nav_layout.addWidget(self.previous_button)
+        nav_layout.addStretch(1)
+        self.validation_host = QFrame()
+        self.validation_host.setObjectName("GuideManualValidationHost")
+        self.validation_layout = QHBoxLayout(self.validation_host)
+        self.validation_layout.setContentsMargins(0, 0, 0, 0)
+        self.validation_layout.setSpacing(0)
+        nav_layout.addWidget(self.validation_host)
+        nav_layout.addStretch(1)
+        self.next_button = AtlasButton("Suivant")
+        self.next_button.set_style_name("GuideManualNextButton")
+        self.next_button.setIcon(atlas_guide_arrow_icon("right"))
+        self.next_button.setIconSize(QSize(icon_size, icon_size))
+        nav_layout.addWidget(self.next_button)
+        apply_unity_panel_shadow(self)
 
 
 class AtlasGuideSheetHeader(QFrame):

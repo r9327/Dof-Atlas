@@ -68,7 +68,8 @@ from app.ui.components import (
     AtlasGuideParticipantButton,
     fit_unity_number_spinbox,
     AtlasGuideCover, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
-    AtlasGuidePreparationRow,
+    AtlasGuidePreparationRow, AtlasGuidePreparationPanel,
+    AtlasGuideReadingNav, AtlasGuideValidationButton,
     AtlasStatusBadge,
     atlas_application_icon,
     apply_unity_calendar_weekdays,
@@ -592,32 +593,21 @@ class DevUiPage(QWidget):
             label.setObjectName("GuidePreparationParticipantNeed")
             header.global_details_layout.addWidget(label)
 
-        prep_panel = QFrame()
-        prep_panel.setObjectName("GuidePreparationPanel")
-        prep_layout = QVBoxLayout(prep_panel)
-        prep_layout.setContentsMargins(8, 5, 8, 5)
-        prep_layout.setSpacing(UNITY_SPACING_PX["xs"])
-        materials = QWidget()
-        materials.setObjectName("GuidePreparationContent")
-        materials_layout = QVBoxLayout(materials)
-        materials_layout.setContentsMargins(0, 0, 0, 0)
-        materials_layout.setSpacing(UNITY_SPACING_PX["xs"])
-        self.preview_header_filter = AtlasComboBox()
-        self.preview_header_filter.setObjectName("GuidePreparationCategoryFilter")
-        self.preview_header_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
-        self.preview_header_filter.addItems(("Tout", *PREPARATION_CATEGORIES))
-        self.preview_header_filter.setAccessibleName("Catégorie de préparation")
+        prep_panel = AtlasGuidePreparationPanel(PREPARATION_CATEGORIES)
+        materials = prep_panel.content
+        materials_layout = prep_panel.rows_layout
+        self.preview_header_filter = prep_panel.category_filter
         self.preview_header_preparation_examples = []
         def filter_preparation_example(category: str) -> None:
             for widget, item_category, item_name in self.preview_header_preparation_examples:
                 widget.setVisible(matches_preparation_category(
                     item_category, item_name, category,
                 ))
+            prep_panel.fit_content_height()
             self._report(f"Préparation · filtre {category} (aperçu)")
         self.preview_header_filter.currentTextChanged.connect(
             filter_preparation_example
         )
-        materials_layout.addWidget(self.preview_header_filter, 0, Qt.AlignLeft)
         self.preview_header_preparation_rows = []
         self.preview_header_preparation_names = []
         for category, name, quantity, done in (
@@ -649,7 +639,7 @@ class DevUiPage(QWidget):
             self.preview_header_preparation_examples.append((item, category, name))
             self.preview_header_preparation_rows.append((amount, checkbox))
             self.preview_header_preparation_names.append(copy_button)
-        prep_layout.addWidget(materials)
+        prep_panel.fit_content_height()
         self.preview_header_materials_host = materials
 
         header.attach_preparation(prep_panel)
@@ -1852,10 +1842,18 @@ class DevUiPage(QWidget):
         )
         section.addWidget(self.guide_sample_row)
 
-        self.guide_manual_nav = QFrame()
-        self.guide_manual_nav.setObjectName("GuideManualNav")
-        nav_layout = QHBoxLayout(self.guide_manual_nav)
-        nav_layout.addWidget(QLabel("Navigation du guide · fond partagé"))
+        self.guide_manual_nav = AtlasGuideReadingNav()
+        validation = AtlasGuideValidationButton()
+        self.guide_manual_nav.validation_layout.addWidget(validation)
+        self.guide_manual_nav.previous_button.clicked.connect(
+            lambda: self._report("Guide · Précédent (aperçu)")
+        )
+        self.guide_manual_nav.next_button.clicked.connect(
+            lambda: self._report("Guide · Suivant (aperçu)")
+        )
+        validation.toggled.connect(
+            lambda checked: self._report(f"Guide · fiche {'validée' if checked else 'non validée'} (aperçu)")
+        )
         section.addWidget(self.guide_manual_nav)
 
         # Preview the real guide reading surface, without a local stylesheet.

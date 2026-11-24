@@ -78,6 +78,8 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         quantity = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
         name = view.preparation_panel.findChild(QPushButton, "GuidePreparationItemCopy")
         ready = view.preparation_panel.findChild(QCheckBox, "GuidePreparationReady")
+        from app.ui.components import AtlasGuidePreparationPanel
+        self.assertIsInstance(view.preparation_panel, AtlasGuidePreparationPanel)
         self.assertIsNotNone(quantity)
         self.assertIsNotNone(name)
         self.assertIsNotNone(ready)

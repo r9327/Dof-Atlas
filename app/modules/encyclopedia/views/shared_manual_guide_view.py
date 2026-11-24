@@ -53,7 +53,8 @@ from app.ui.components import (
     atlas_guide_symbol_icon as _guide_symbol_icon,
     _cached_atlas_guide_symbol_icon as _cached_guide_symbol_icon,
     configure_unity_tool_button, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
-    AtlasGuidePreparationRow, atlas_preparation_copy_button,
+    AtlasGuidePreparationRow, AtlasGuidePreparationPanel,
+    AtlasGuideReadingNav, AtlasGuideValidationButton, atlas_preparation_copy_button,
 )
 
 
@@ -215,9 +216,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             label = "Valider"
         else:
             label = "Valider"
-        self.page_check = AtlasButton(label)
-        self.page_check.setObjectName("GuideManualPageCheck")
-        self.page_check.setCheckable(True)
+        self.page_check = AtlasGuideValidationButton(label)
         self.page_check.setChecked(bool((automatic or manual) and not blocking))
         self.page_check.setEnabled(not automatic and not blocking)
         if page_validation_callback is not None:
@@ -818,32 +817,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
 
-        nav = QFrame()
-        nav.setObjectName("GuideManualNav")
-        nav_layout = QHBoxLayout(nav)
-        nav_layout.setContentsMargins(8, 4, 8, 6)
-        nav_layout.setSpacing(8)
-        self.prev_button = AtlasButton("Précédent")
-        self.prev_button.setObjectName("GuideManualPrev")
-        self.prev_button.setIcon(atlas_guide_arrow_icon("left"))
-        self.prev_button.setIconSize(QSize(14, 14))
+        nav = AtlasGuideReadingNav()
+        self.prev_button = nav.previous_button
+        self.next_button = nav.next_button
+        self.validation_host = nav.validation_host
+        self.validation_layout = nav.validation_layout
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
-        nav_layout.addWidget(self.prev_button)
-        nav_layout.addStretch(1)
-        self.validation_host = QFrame()
-        self.validation_host.setObjectName("GuideManualValidationHost")
-        self.validation_layout = QHBoxLayout(self.validation_host)
-        self.validation_layout.setContentsMargins(0, 0, 0, 0)
-        self.validation_layout.setSpacing(0)
-        nav_layout.addWidget(self.validation_host)
-        nav_layout.addStretch(1)
-        self.next_button = AtlasButton("Suivant")
-        self.next_button.setObjectName("GuideManualNextButton")
-        self.next_button.setIcon(atlas_guide_arrow_icon("right"))
-        self.next_button.setIconSize(QSize(14, 14))
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
-        nav_layout.addWidget(self.next_button)
-        apply_unity_panel_shadow(nav)
         root.addWidget(nav)
 
         self.progress_details = QLabel()
@@ -894,39 +874,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
-        # The shared header owns visibility before the lazy renderer runs.
-        self.preparation_panel = QFrame()
-        self.preparation_panel.setObjectName("GuidePreparationPanel")
-        panel_layout = QVBoxLayout(self.preparation_panel)
-        panel_layout.setContentsMargins(
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
-        )
-        panel_layout.setSpacing(UNITY_SPACING_PX["xs"])
-        # Reuse the shared Unity combo instead of seven buttons competing
-        # with the two-column progress header on compact windows.
-        self.preparation_filter = AtlasComboBox()
-        self.preparation_filter.setObjectName("GuidePreparationCategoryFilter")
-        self.preparation_filter.addItems(("Tout", *PREPARATION_CATEGORIES))
-        self.preparation_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
-        self.preparation_filter.setToolTip("Filtrer les besoins de préparation")
-        self.preparation_filter.setAccessibleName("Catégorie de préparation")
+        # The same live drawer is used by Dev UI. Only the host's data and
+        # persistence callbacks differ.
+        self.preparation_panel = AtlasGuidePreparationPanel(PREPARATION_CATEGORIES)
+        self.preparation_filter = self.preparation_panel.category_filter
+        self.preparation_scroll = self.preparation_panel.scroll
+        self.preparation_content = self.preparation_panel.content
+        self.preparation_rows_layout = self.preparation_panel.rows_layout
         self.preparation_filter.currentTextChanged.connect(self._render_preparation)
-        panel_layout.addWidget(self.preparation_filter, 0, Qt.AlignLeft)
-
-        self.preparation_scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
-        self.preparation_scroll.setObjectName("GuidePreparationScroll")
-        self.preparation_scroll.setMinimumHeight(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"])
-        self.preparation_scroll.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
-        self.preparation_content = QWidget()
-        self.preparation_content.setObjectName("GuidePreparationContent")
-        self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
-        self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.preparation_rows_layout.setSpacing(UNITY_SPACING_PX["xxs"])
-        self.preparation_scroll.setWidget(self.preparation_content)
-        panel_layout.addWidget(self.preparation_scroll)
-        self.preparation_panel.setVisible(False)
-        apply_unity_panel_shadow(self.preparation_panel)
         self.reading_header.attach_preparation(self.preparation_panel)
         self.preparation_button.toggled.connect(self._preparation_toggled)
 
@@ -1269,20 +1224,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_rows_layout.addWidget(button, 0, Qt.AlignLeft)
 
     def _fit_preparation_scroll_height(self) -> None:
-        """Fit short preparation lists without losing scrolling for long ones."""
-        self.preparation_rows_layout.activate()
-        natural = (
-            self.preparation_rows_layout.sizeHint().height() + UNITY_SPACING_PX["xs"]
-        )
-        self.preparation_scroll.setFixedHeight(min(
-            UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
-            max(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"], natural),
-        ))
-        self.preparation_content.adjustSize()
-        # Checking a distant material must not jump back to the first item.
-        # Changing the category deliberately resets the new list to its top.
-        self.preparation_scroll.verticalScrollBar().setValue(
-            getattr(self, "_preparation_restore_position", 0)
+        self.preparation_panel.fit_content_height(
+            scroll_position=getattr(self, "_preparation_restore_position", 0),
         )
 
     def _render_preparation(self, selected_filter: str) -> None:
