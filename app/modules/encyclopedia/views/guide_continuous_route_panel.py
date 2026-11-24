@@ -258,15 +258,13 @@ class ContinuousGuideRoutePanel(QWidget):
         overall.addWidget(self.global_progress_value)
         self.global_progress_bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideGlobalProgress",
+            height_role="progress_primary", expanding=True,
         )
-        self.global_progress_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
-        self.global_progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.preparation_bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideCompactPreparationProgress", maximum=1,
+            height_role="progress_secondary", expanding=True,
         )
         self.preparation_bar.setValue(0)
-        self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
-        self.preparation_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.preparation_bar.setToolTip(
             "Préparation non certifiée : uniquement des références indicatives"
         )
