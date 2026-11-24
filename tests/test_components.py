@@ -108,6 +108,25 @@ class SharedUiComponentsTests(unittest.TestCase):
             header.deleteLater()
             sheet.deleteLater()
 
+    def test_guide_overview_uses_same_shell_without_invented_preparation(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide classique", overview=True)
+        try:
+            self.assertEqual(header.objectName(), "GuideHeader")
+            self.assertFalse(hasattr(header, "preparation_button"))
+            self.assertFalse(hasattr(header, "participants_button"))
+            header.set_overview_progress(2, 5)
+            self.assertEqual(header.global_progress_label.text(), "2/5")
+            self.assertEqual(header.global_progress_bar.value(), 2)
+            self.assertEqual(header.global_progress_bar.maximum(), 5)
+            header.set_overview_progress(0, 0)
+            self.assertEqual(header.global_progress_label.text(), "—")
+            header.set_overview_progress(2, 5, visible=False)
+            self.assertTrue(header.global_progress_bar.isHidden())
+            self.assertTrue(header.global_progress_label.isHidden())
+        finally:
+            header.deleteLater()
+
     def test_shared_dialog_add_header_preserves_single_indexed_widget(self) -> None:
         from app.ui.components import AtlasDialogHeader
 

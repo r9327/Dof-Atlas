@@ -865,11 +865,12 @@ class AtlasGuideReadingHeader(QFrame):
     """Shared UI shell for real Guide readers and the Dev UI, without game data."""
 
     def __init__(self, title: str, *, image_path: str | Path | None = None,
-                 category: str = "guide", parent: QWidget | None = None) -> None:
+                 category: str = "guide", overview: bool = False,
+                 parent: QWidget | None = None) -> None:
         super().__init__(parent)
         from app.ui.theme import PALETTE
 
-        self.setObjectName("GuideCompactHeader")
+        self.setObjectName("GuideHeader" if overview else "GuideCompactHeader")
         outer = QHBoxLayout(self)
         outer.setContentsMargins(
             UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
@@ -901,16 +902,44 @@ class AtlasGuideReadingHeader(QFrame):
         self.guide_title_label.setMinimumWidth(0)
         self.guide_title_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.guide_title_label.setToolTip(title)
-        title_row.addWidget(self.guide_title_label, 1)
+        if overview:
+            # Catalog and quest detail have no certified preparation model.
+            # Reuse the same title/progress shell, with only genuine actions.
+            geometry = UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]
+            guide_icon.setObjectName("GuideHeaderImage")
+            guide_icon.setFixedSize(geometry["overview_cover_box"], geometry["overview_cover_box"])
+            guide_icon.set_artwork(image_path, category=category)
+            self.guide_title_label.setObjectName("GuideHeaderTitle")
+            titles = QVBoxLayout()
+            titles.setContentsMargins(0, 0, 0, 0)
+            titles.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+            titles.addWidget(self.guide_title_label)
+            self.meta_label = QLabel()
+            self.meta_label.setObjectName("GuideHeaderMeta")
+            self.meta_label.hide()
+            titles.addWidget(self.meta_label)
+            title_row.addLayout(titles, 1)
+        else:
+            title_row.addWidget(self.guide_title_label, 1)
 
         right.addLayout(title_row)
         self.title_row = title_row
+        self.content_layout = right
 
         # Shared #363 layout: progress is global; preparation is inside details.
         overall_caption = QHBoxLayout()
         title = QLabel("Progression globale")
         title.setObjectName("GuideGlobalProgressTitle")
         overall_caption.addWidget(title)
+        self.global_progress_title = title
+        if overview:
+            overall_caption.addStretch(1)
+            overall_caption.addWidget(self.global_progress_label)
+            self.global_progress_label.setObjectName("GuideHeaderProgress")
+            right.addLayout(overall_caption)
+            right.addWidget(self.global_progress_bar)
+            apply_unity_panel_shadow(self)
+            return
         self.global_details_button = AtlasGuideDisclosure()
         self.global_details_button.configure_compact()
         self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
@@ -998,6 +1027,15 @@ class AtlasGuideReadingHeader(QFrame):
         self.participants_button.toggled.connect(self.participants_panel.setVisible)
         right.insertWidget(1, self.participants_panel)
         apply_unity_panel_shadow(self)
+
+    def set_overview_progress(self, completed: int, total: int, *, visible: bool = True) -> None:
+        """Present real catalogue counts only; unavailable totals stay unknown."""
+        self.global_progress_title.setVisible(visible)
+        self.global_progress_label.setVisible(visible)
+        self.global_progress_bar.setVisible(visible)
+        self.global_progress_bar.setRange(0, max(1, total))
+        self.global_progress_bar.setValue(max(0, min(completed, total)))
+        self.global_progress_label.setText(f"{completed}/{total}" if total > 0 else "—")
 
     def attach_preparation(self, panel: QWidget) -> None:
         self.preparation_drawer.addWidget(panel)

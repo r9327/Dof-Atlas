@@ -556,6 +556,7 @@ UNITY_MODULE_GEOMETRY_PX = {
         "sheet_margins": (10, 7, 10, 7), "sheet_gap": 6,
         "sheet_row_gap": 7, "sheet_title_gap": 1,
         "back_icon": 14, "back_max_width": 35,
+        "overview_cover_box": 44, "overview_cover_artwork": 38,
     },
     "guide_header": {
         "cover_box": (82, 82), "cover_artwork": 74,

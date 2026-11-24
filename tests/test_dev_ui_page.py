@@ -523,6 +523,8 @@ class DevUiPageTests(unittest.TestCase):
         try:
             from app.ui.components import AtlasGuideReadingHeader, AtlasGuideSheetHeader
             self.assertIsInstance(page.preview_compact_header, AtlasGuideReadingHeader)
+            self.assertIsInstance(page.preview_module_header, AtlasGuideReadingHeader)
+            self.assertFalse(hasattr(page.preview_module_header, "preparation_button"))
             self.assertIsInstance(page.preview_sheet_header, AtlasGuideSheetHeader)
             self.assertIn("headers", page.gallery_family_widgets)
             for name, role in (

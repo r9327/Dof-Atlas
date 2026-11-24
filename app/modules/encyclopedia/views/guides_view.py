@@ -65,7 +65,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasPanelToggle,
-    AtlasImagePopup, clear_unity_widget_layout,
+    AtlasImagePopup, AtlasGuideReadingHeader, clear_unity_widget_layout, configure_unity_tool_button,
     configure_unity_progress_bar, configure_unity_scroll_area,
     refresh_unity_widget_style, present_transient_dialog,
     set_unity_widget_property,
@@ -1402,38 +1402,16 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(6)
 
-        self.detail_header = QFrame()
-        self.detail_header.setObjectName("GuideHeader")
-        header_layout = QHBoxLayout(self.detail_header)
-        header_layout.setContentsMargins(8, 8, 10, 8)
-        header_layout.setSpacing(10)
-
-        self.detail_header_image = QLabel()
-        self.detail_header_image.setObjectName("GuideHeaderImage")
-        self.detail_header_image.setFixedSize(44, 44)
-        self.detail_header_image.setAlignment(Qt.AlignCenter)
-        header_layout.addWidget(self.detail_header_image)
-
-        header_text = QVBoxLayout()
-        header_text.setContentsMargins(0, 0, 0, 0)
-        header_text.setSpacing(2)
-        self.detail_header_title = QLabel()
-        self.detail_header_title.setObjectName("GuideHeaderTitle")
-        self.detail_header_title.setWordWrap(False)
-        header_text.addWidget(self.detail_header_title)
-        self.detail_header_meta = QLabel()
-        self.detail_header_meta.setObjectName("GuideHeaderMeta")
-        self.detail_header_meta.setWordWrap(False)
-        header_text.addWidget(self.detail_header_meta)
-        header_layout.addLayout(header_text, 1)
-        self.detail_header_progress = QLabel()
-        self.detail_header_progress.setObjectName("GuideHeaderProgress")
-        self.detail_header_progress.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        header_layout.addWidget(self.detail_header_progress, 0, Qt.AlignRight | Qt.AlignVCenter)
-        self.detail_header_done_button = QToolButton()
-        self.detail_header_done_button.setObjectName("GuideHeaderDoneButton")
-        self.detail_header_done_button.setCursor(Qt.PointingHandCursor)
-        self.detail_header_done_button.setFocusPolicy(Qt.NoFocus)
+        self.detail_header = AtlasGuideReadingHeader("", overview=True)
+        header_layout = self.detail_header.title_row
+        self.detail_header_image = self.detail_header.guide_icon_label
+        self.detail_header_title = self.detail_header.guide_title_label
+        self.detail_header_meta = self.detail_header.meta_label
+        self.detail_header_progress = self.detail_header.global_progress_label
+        self.detail_header_done_button = configure_unity_tool_button(
+            QToolButton(), object_name="GuideHeaderDoneButton",
+            pointing=True, focus_policy=Qt.NoFocus,
+        )
         self.detail_header_done_button.clicked.connect(self.toggle_current_quest_completed)
         header_layout.addWidget(self.detail_header_done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
         # The classical detail's right column can be collapsed without
@@ -1751,13 +1729,13 @@ class GuidesView(QWidget):
         self._right_panel_rendered_guide_id = (
             "" if guide.raw.get("replacement_status") == "TRUSTED_SOURCE_STEPS" else guide.id
         )
-        self.detail_header.setVisible(True)
-        self._render_header(guide)
         self._render_breadcrumb(guide)
         if guide.raw.get("replacement_status") == "TRUSTED_SOURCE_STEPS":
             self._render_continuous_source_guide(guide)
             self.stack.setCurrentWidget(self.detail_page)
             return
+        self.detail_header.setVisible(True)
+        self._render_header(guide)
         self._continuous_route_panel = None
         if self._guide_uses_steps_column(guide):
             self._populate_guide_left(guide)
@@ -2447,17 +2425,17 @@ class GuidesView(QWidget):
             else _display_guide_level_text(guide)
         )
         self.detail_header_title.setText(title)
+        self.detail_header_title.setToolTip(title)
         self.detail_header_meta.setText(level)
         self.detail_header_meta.setVisible(bool(level))
         progress = self.progress_calculator.guide_progress(
             guide,
             self.current_character_key,
         )
-        self.detail_header_progress.setText(
-            f"{progress.completed}/{progress.total}"
+        self.detail_header.set_overview_progress(
+            progress.completed, progress.total, visible=quest is None,
         )
         self.detail_header_progress.setToolTip("Quêtes terminées / quêtes du guide")
-        self.detail_header_progress.setVisible(quest is None)
         self.detail_header_done_button.setVisible(quest is not None)
         if quest is not None:
             done = self.quest_progress_service.is_quest_completed(self.current_character_key, int(quest.id)) or self.progress_calculator.quest_progress(quest, self.current_character_key).is_complete
@@ -2466,7 +2444,8 @@ class GuidesView(QWidget):
         pixmap = None if quest is not None else _guide_pixmap(guide)
         if pixmap is not None and not pixmap.isNull():
             self.detail_header_image.setText("")
-            self.detail_header_image.setPixmap(pixmap.scaled(38, 38, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            extent = UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]["overview_cover_artwork"]
+            self.detail_header_image.setPixmap(pixmap.scaled(extent, extent, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.detail_header_image.setVisible(True)
         else:
             self.detail_header_image.clear()
