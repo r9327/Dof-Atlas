@@ -144,19 +144,10 @@ class AchievementProgressService:
             return ()
         normalized: list[tuple[int, tuple[int, ...]]] = []
         for raw_achievement_id, values in rows.items():
-            try:
-                achievement_id = int(raw_achievement_id)
-            except (TypeError, ValueError):
+            achievement_id = optional_int(raw_achievement_id)
+            if achievement_id is None or not isinstance(values, list):
                 continue
-            if not isinstance(values, list):
-                continue
-            objective_ids: set[int] = set()
-            for raw_objective_id in values:
-                try:
-                    objective_ids.add(int(raw_objective_id))
-                except (TypeError, ValueError):
-                    continue
-            normalized.append((achievement_id, tuple(sorted(objective_ids))))
+            normalized.append((achievement_id, tuple(sorted(valid_int_ids(values)))))
         return tuple(sorted(normalized))
 
     @staticmethod
@@ -313,20 +304,14 @@ class AchievementProgressService:
 
         def ref_parts(ref: Any) -> tuple[str, int | None]:
             if isinstance(ref, (tuple, list)) and len(ref) == 2:
-                try:
-                    return str(ref[0] or ""), int(ref[1])
-                except (TypeError, ValueError):
-                    return str(ref[0] or ""), None
-            try:
-                return str(getattr(ref, "entity_type", "") or ""), int(getattr(ref, "entity_id"))
-            except (TypeError, ValueError):
-                return str(getattr(ref, "entity_type", "") or ""), None
+                return str(ref[0] or ""), optional_int(ref[1])
+            return str(getattr(ref, "entity_type", "") or ""), optional_int(getattr(ref, "entity_id", None))
 
         def ref_group_done(refs: Iterable[Any], entity_type: str, criterion: str) -> bool | None:
             matching = [
-                ref_parts(ref)[1]
-                for ref in refs
-                if ref_parts(ref)[0] == entity_type and ref_parts(ref)[1] is not None
+                entity_id
+                for kind, entity_id in map(ref_parts, refs)
+                if kind == entity_type and entity_id is not None
             ]
             if not matching:
                 return None
