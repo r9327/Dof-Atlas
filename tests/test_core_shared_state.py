@@ -260,6 +260,28 @@ class CoreSharedStateTests(unittest.TestCase):
             "quest_items['1'] doit être un objet",
         )
 
+    def test_character_cache_uses_one_order_snapshot_and_returns_detached_rows(self) -> None:
+        from unittest.mock import patch
+        from app.pages import quest_character_cache as cache
+        from app.quest_catalog import QuestCharacter
+
+        rows = [QuestCharacter("character:1", "Alpha", 1), QuestCharacter("character:2", "Beta", 2)]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            cache.clear_quest_character_cache()
+            try:
+                with patch.object(cache, "_semantic_session_order", return_value=("beta", "alpha")) as order:
+                    with patch.object(cache, "_ORIGINAL_LOAD_QUEST_CHARACTERS", return_value=rows) as load:
+                        first = cache.cached_load_quest_characters(path / "profile", path / "clients")
+                        self.assertEqual([row.label for row in first], ["Beta", "Alpha"])
+                        self.assertEqual(order.call_count, 1)
+                        first[0].label = "Changed"
+                        second = cache.cached_load_quest_characters(path / "profile", path / "clients")
+                        self.assertEqual([row.label for row in second], ["Beta", "Alpha"])
+                        self.assertEqual(load.call_count, 1)
+            finally:
+                cache.clear_quest_character_cache()
+
     def test_file_stamps_match_existing_cache_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index.json"

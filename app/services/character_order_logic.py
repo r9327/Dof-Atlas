@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import TypeVar
 
+from app.constants import KEY_SESSION_ORDER
 from app.core.text import normalize_key
 
 
@@ -21,6 +22,12 @@ def normalize_character_order(labels: Iterable[object]) -> tuple[str, ...]:
         seen.add(key)
         order.append(key)
     return tuple(order)
+
+
+def character_order_from_profile(payload: object) -> tuple[str, ...]:
+    """Decode a stored logical order without treating malformed data as labels."""
+    raw = payload.get(KEY_SESSION_ORDER, []) if isinstance(payload, Mapping) else []
+    return normalize_character_order(raw) if isinstance(raw, list) else ()
 
 
 def sort_character_rows(
@@ -44,4 +51,4 @@ def sort_character_rows(
     ))
 
 
-__all__ = ["normalize_character_order", "sort_character_rows"]
+__all__ = ["character_order_from_profile", "normalize_character_order", "sort_character_rows"]

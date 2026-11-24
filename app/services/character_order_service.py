@@ -6,7 +6,7 @@ from typing import TypeVar
 
 from app.constants import KEY_SESSION_ORDER, PROFILE_FILE
 from app.core.text import normalize_key
-from app.services.character_order_logic import normalize_character_order, sort_character_rows
+from app.services.character_order_logic import character_order_from_profile, normalize_character_order, sort_character_rows
 from app.services.profile_settings_service import ProfileSettingsService
 
 
@@ -27,11 +27,7 @@ class CharacterOrderService:
         self.profile_settings = ProfileSettingsService(self.profile_path)
 
     def load_order(self) -> tuple[str, ...]:
-        payload = self.profile_settings.load()
-        raw_order = payload.get(KEY_SESSION_ORDER, [])
-        if not isinstance(raw_order, list):
-            return ()
-        return normalize_character_order(raw_order)
+        return character_order_from_profile(self.profile_settings.load())
 
     def sort_rows(self, rows: Sequence[_T], *, label_getter) -> tuple[_T, ...]:
         """Use the same stable order policy as all non-persistent character views."""
