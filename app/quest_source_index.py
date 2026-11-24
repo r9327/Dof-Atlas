@@ -12,6 +12,7 @@ import re
 import sqlite3
 import tempfile
 import weakref
+import zlib
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from contextlib import closing
@@ -19,6 +20,7 @@ from pathlib import Path
 from threading import RLock
 
 from app.constants import LOGGER
+from app.core.numbers import optional_int
 
 _SPACE = re.compile(r'\s*')
 _OPTIONAL_SOURCE_FIELDS = frozenset({("quests_enriched.json", "quests")})
@@ -189,7 +191,7 @@ def build_image_index(images_root: Path) -> dict[str, str]:
             continue
         try:
             paths = sorted(
-                (path for path in folder.rglob("*") if path.suffix.casefold() in image_suffixes),
+                (path for path in folder.rglob("*") if path.suffix.casefold() in image_suffixes and path.is_file()),
                 key=lambda path: ("archive" in path.parts, len(path.parts), str(path).casefold()),
             )
         except OSError:
@@ -300,14 +302,15 @@ class JsonSourceMapping(Mapping):
                     offsets = json.load(stream)
                 valid_cache = isinstance(offsets, dict) and all(
                     isinstance(span, list) and len(span) == 2
-                    and all(isinstance(value, int) for value in span)
+                    and all(type(value) is int for value in span)
                     and 0 <= span[0] < span[1] <= stat.st_size
-                    for span in offsets.values()
+                    and (not self.doduda or optional_int(key) is not None)
+                    for key, span in offsets.items()
                 )
                 if not valid_cache:
                     LOGGER.warning("Cache d'index Quêtes invalide, reconstruction: %s", cache)
                     offsets = None
-            except (ValueError, OSError) as exc:
+            except (ValueError, OSError, EOFError, RecursionError, zlib.error) as exc:
                 LOGGER.warning(
                     "Cache d'index Quêtes illisible, reconstruction: %s (%s)",
                     cache,
@@ -579,10 +582,7 @@ class JsonSourceMapping(Mapping):
                 ).fetchone()
                 if row is None:
                     raise KeyError(key)
-                try:
-                    start, end = int(row[0]), int(row[1])
-                except (TypeError, ValueError, OverflowError):
-                    start, end = -1, -1
+                start, end = row if all(type(value) is int for value in row) else (-1, -1)
             else:
                 start, end = self._offsets[key]
             # A disk-backed index validates one representative span at open,
