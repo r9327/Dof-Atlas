@@ -7,6 +7,7 @@ families never receive an arbitrary icon when multiple candidates exist.
 from __future__ import annotations
 
 from functools import lru_cache
+from glob import escape
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -45,7 +46,7 @@ def _nested_artwork(directory: str, filename: str, family: str) -> Path | None:
                 return candidate
     # An unknown family may use a unique matching asset, never an arbitrary
     # sprite from a different category with the same numerical basename.
-    matches = tuple(root.glob("*/" + filename))
+    matches = tuple(path for path in root.glob("*/" + escape(filename)) if path.is_file())
     return matches[0] if len(matches) == 1 else None
 
 
