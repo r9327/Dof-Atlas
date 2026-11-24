@@ -161,12 +161,20 @@ def configure_unity_scroll_area(
 def configure_unity_progress_bar(
     bar: QProgressBar, *, object_name: str | None = None,
     maximum: int = 100, text_visible: bool = False,
+    height_role: str | None = None, expanding: bool = False,
+    display_format: str | None = None,
 ) -> QProgressBar:
-    """Set common Qt progress styling; preserve the caller's ownership and value."""
+    """Configure shared progress presentation; callers retain data and ownership."""
     if object_name is not None:
         bar.setObjectName(object_name)
     bar.setRange(0, maximum)
     bar.setTextVisible(text_visible)
+    if height_role is not None:
+        bar.setFixedHeight(UNITY_CONTROL_SIZES_PX[height_role])
+    if expanding:
+        bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    if display_format is not None:
+        bar.setFormat(display_format)
     return bar
 
 
