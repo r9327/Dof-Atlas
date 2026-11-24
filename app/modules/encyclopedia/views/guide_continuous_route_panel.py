@@ -272,17 +272,10 @@ class ContinuousGuideRoutePanel(QWidget):
         prep_label.setObjectName("GuideCompactMetricValue")
         self.preparation_toggle.setAccessibleName("Afficher Préparation")
         self.preparation_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        self.preparation_toggle.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
-        )
-        character_size = UNITY_CONTROL_SIZES_PX["guide_character_button"]
-        icon_size = UNITY_CONTROL_SIZES_PX["guide_character_icon"]
-        self.participants_button.setFixedSize(character_size, character_size)
-        self.participants_button.setIconSize(QSize(icon_size, icon_size))
+        self.preparation_toggle.configure_compact()
+        self.participants_button.configure_compact()
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        character_icon = atlas_guide_character_icon(icon_size)
+        character_icon = atlas_guide_character_icon(UNITY_CONTROL_SIZES_PX["guide_character_icon"])
         if character_icon.isNull():
             character_icon = _guide_symbol_icon(self.participants_button, "people")
         self.participants_button.setIcon(character_icon)
