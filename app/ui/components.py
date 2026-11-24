@@ -523,6 +523,14 @@ class AtlasGuideParticipantButton(QToolButton):
         super().__init__(parent)
         self.setObjectName("GuideParticipantsButton")
 
+    def configure_compact(self) -> None:
+        """Apply the shared title-row geometry, leaving menu/check behavior to the caller."""
+        size = UNITY_CONTROL_SIZES_PX["guide_character_button"]
+        icon_size = UNITY_CONTROL_SIZES_PX["guide_character_icon"]
+        self.setFixedSize(size, size)
+        self.setIconSize(QSize(icon_size, icon_size))
+        self.setToolButtonStyle(Qt.ToolButtonIconOnly)
+
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
         if self.isEnabled() or self.icon().isNull():
@@ -558,6 +566,13 @@ class AtlasGuideDisclosure(QToolButton):
         self.setIconSize(QSize(icon_size, icon_size))
         self.toggled.connect(self._sync_direction)
         self._sync_direction(False)
+
+    def configure_compact(self) -> None:
+        """Apply the one indexed metric disclosure geometry."""
+        self.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
 
     def _sync_direction(self, opened: bool) -> None:
         icon = atlas_guide_arrow_icon("up" if opened else "down")
