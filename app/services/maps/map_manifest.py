@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from app.constants import DATA_DIR, ROOT_DIR
 from app.core.numbers import optional_int
+from local_dofus_data.utils import load_json_safe, save_json_atomic
 
 MAP_CACHE_DIR = DATA_DIR / "cache" / "dofus_maps"
 MAP_MANIFEST_PATH = MAP_CACHE_DIR / "manifest.json"
@@ -159,17 +159,11 @@ def ensure_cache_dirs() -> None:
 
 
 def read_json(path: Path, default: Any) -> Any:
-    if not path.exists():
-        return default
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return default
+    return load_json_safe(path, default)
 
 
 def write_json(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    save_json_atomic(path, payload)
 
 
 def ensure_manifest_file() -> bool:
@@ -197,7 +191,9 @@ def ensure_cache_layout() -> None:
 
 
 def load_manifest() -> dict[str, Any]:
-    return read_json(MAP_MANIFEST_PATH, empty_manifest())
+    default = empty_manifest()
+    payload = read_json(MAP_MANIFEST_PATH, default)
+    return payload if isinstance(payload, dict) else default
 
 
 def load_map_entries() -> list[MapEntry]:
