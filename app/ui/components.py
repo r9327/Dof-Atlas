@@ -924,7 +924,8 @@ class AtlasGuideReadingHeader(QFrame):
         self.guide_icon_label = guide_icon
         if show_cover and not overview:
             guide_icon.set_artwork(image_path, category=category)
-        guide_icon.setVisible(show_cover)
+        if not show_cover:
+            guide_icon.hide()
         title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(title)
         self.guide_title_label.setObjectName("GuideCompactTitle")
