@@ -75,8 +75,11 @@ class NetworkHomeStatusTests(unittest.TestCase):
             ("network_context_loading", ("Chargement Réseau…", "pending")),
             ("capture_ready_waiting_context", ("En attente de données", "pending")),
         ):
-            with self.subTest(reason=reason):
-                self.assertEqual(HomePage._network_summary(self._status(running=True, reason=reason)), expected)
+            for calibrating in (False, True):
+                with self.subTest(reason=reason, calibrating=calibrating):
+                    self.assertEqual(HomePage._network_summary(
+                        self._status(running=True, calibrating=calibrating, reason=reason)
+                    ), expected)
 
     def test_calibration_details_are_reduced_to_connection_state(self) -> None:
         for reason in (

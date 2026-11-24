@@ -256,6 +256,36 @@ class NetworkDeferredJournalIdentityTests(unittest.TestCase):
 
 
 class NetworkApplicationCoordinatorTests(unittest.TestCase):
+    def test_cleanup_failure_blocks_queued_and_new_capture_requests(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        for reason in ("runtime_stop_failed", "runtime_start_cleanup_failed"):
+            with self.subTest(reason=reason):
+                coordinator._last_status = NetworkApplicationStatus(False, False, reason)
+                with (
+                    patch.object(coordinator, "start_worker") as worker,
+                    patch.object(coordinator, "_prepare_capture") as prepare,
+                    patch.object(coordinator, "_start_compact_runtime") as compact,
+                    patch.object(coordinator, "_start_calibration") as calibrate,
+                    patch.object(coordinator, "_start_runtime") as runtime,
+                ):
+                    self.assertFalse(coordinator.request_prepare_capture())
+                    self.assertFalse(coordinator.request_start_compact_runtime())
+                    self.assertFalse(coordinator.request_start_calibration())
+                    self.assertFalse(coordinator.request_start_verified_runtime())
+                    worker.assert_not_called()
+                    self.assertTrue(coordinator._commands.empty())
+                    for command in ("prepare_capture", "start_compact_runtime",
+                                    "start_calibration", "start_runtime"):
+                        coordinator._handle_command(command)
+                    coordinator._last_runtime = NetworkControllerStatus(
+                        False, "build_fingerprint_unavailable",
+                    )
+                    coordinator._retry_when_client_appears()
+                    for callback in (prepare, compact, calibrate, runtime):
+                        callback.assert_not_called()
+                    self.assertEqual(coordinator.latest_status().reason, reason)
+
     def test_cold_network_activation_only_queues_worker_command(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         with patch.object(coordinator, "start_worker", return_value=True):

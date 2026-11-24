@@ -8,6 +8,7 @@ from queue import Empty, Queue
 from time import monotonic
 from typing import Any, Callable, Iterable, TYPE_CHECKING
 
+from app.core.network_presentation import capture_retry_allowed
 from app.validation_log import record_validation
 
 if TYPE_CHECKING:
@@ -208,11 +209,14 @@ class NetworkApplicationCoordinator:
         """Atomically reject commands racing with explicit shutdown."""
 
         with self._lock:
-            if self._shutdown_requested or not self.start_worker():
+            if (self._shutdown_requested
+                    or not capture_retry_allowed(self._last_status.reason)
+                    or not self.start_worker()):
                 return False
             # start_worker() may be wrapped by a test or integration adapter
             # that synchronously triggers stop(). Never queue after that.
-            if self._shutdown_requested or self._stop_event.is_set():
+            if (self._shutdown_requested or self._stop_event.is_set()
+                    or not capture_retry_allowed(self._last_status.reason)):
                 return False
             self._commands.put(command)
             return True
@@ -220,6 +224,8 @@ class NetworkApplicationCoordinator:
     def request_start_calibration(self) -> bool:
         with self._lock:
             if self._shutdown_requested:
+                return False
+            if not capture_retry_allowed(self._last_status.reason):
                 return False
             if not self._context_ready:
                 self._publish_status(NetworkApplicationStatus(False, False, "waiting_context"))
@@ -355,7 +361,8 @@ class NetworkApplicationCoordinator:
         return True
 
     def _handle_command(self, command: str) -> None:
-        if self._stop_event.is_set():
+        if (self._stop_event.is_set()
+                or not capture_retry_allowed(self.latest_status().reason)):
             return
         if command == "prepare_capture":
             self._prepare_capture()
@@ -483,7 +490,9 @@ class NetworkApplicationCoordinator:
         with self._lock:
             ready = self._context_ready
             pending = self._calibration_pending
-        if not ready or pending or self.runtime.is_running or self.calibration.is_running:
+            retry_allowed = capture_retry_allowed(self._last_status.reason)
+        if (not retry_allowed or not ready or pending
+                or self.runtime.is_running or self.calibration.is_running):
             return
         if self._last_runtime.reason != "build_fingerprint_unavailable":
             return

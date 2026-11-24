@@ -33,6 +33,10 @@ def network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
         return "Hors ligne", "idle"
     if reason in {"no_window_handles", "build_fingerprint_unavailable"}:
         return "En attente de Dofus", "idle"
+    if reason == "network_context_loading":
+        return "Chargement Réseau…", "pending"
+    if reason == "capture_ready_waiting_context":
+        return "En attente de données", "pending"
     if status.calibrating or reason in {
         "calibrating",
         "calibration_running",
@@ -47,10 +51,6 @@ def network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
         "mapping_current_profile_noncanonical",
     }:
         return "Connexion…", "pending"
-    if reason == "network_context_loading":
-        return "Chargement Réseau…", "pending"
-    if reason == "capture_ready_waiting_context":
-        return "En attente de données", "pending"
     if status.running:
         return "Actif", "active"
     return "Préparation…", "pending"
