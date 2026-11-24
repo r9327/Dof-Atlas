@@ -445,6 +445,11 @@ class CraftPage(QWidget):
         self._pending_result_items: list[dict[str, Any]] = []
         self._result_generation = 0
         self._job_layout_signature: tuple[object, ...] | None = None
+        self._job_buttons_signature: tuple[object, ...] | None = None
+        self._pending_leveling_job: str | None = None
+        self.leveling_timer = QTimer(self)
+        self.leveling_timer.setSingleShot(True)
+        self.leveling_timer.timeout.connect(self._open_pending_leveling)
         self.search_timer = QTimer(self)
         self.search_timer.setSingleShot(True)
         self.search_timer.timeout.connect(self.refresh_results)
@@ -665,6 +670,7 @@ class CraftPage(QWidget):
             "result_batch_timer",
             "jobs_resize_timer",
             "layout_timer",
+            "leveling_timer",
         ):
             timer = getattr(self, timer_name, None)
             if timer is not None:
@@ -680,7 +686,11 @@ class CraftPage(QWidget):
             clear_icons()
         self.selection.clear()
         self.jobs.clear()
-        self.guides.clear()
+        # A preloaded guide dict is borrowed, not owned by this page.
+        self.guides = {}
+        self._pending_leveling_job = None
+        self.selected_job = ""
+        self._result_generation += 1
         self._pending_result_items.clear()
         # The Craft shell is reconstructible: release populated Qt lists and
         # job widgets before deleteLater(), not just their Python providers.
@@ -692,6 +702,7 @@ class CraftPage(QWidget):
         self.clear_layout(self.job_buttons_layout)
         self.clear_layout(self.job_actions_layout)
         self._job_layout_signature = None
+        self._job_buttons_signature = None
         self._runtime_ready = False
         self.preload = {}
         release = getattr(local_data_cache, "release_adapter", None)
@@ -1214,32 +1225,34 @@ class CraftPage(QWidget):
         if signature == self._job_layout_signature:
             return
         self._job_layout_signature = signature
-        self.clear_layout(self.job_buttons_layout)
         self.clear_layout(self.job_actions_layout)
         self.clear_layout(self.job_grid)
 
-        buttons = list(self.jobs)
-        button_columns = self.job_button_column_count()
-        for index, job in enumerate(buttons):
-            name = str(job.get("name") or "Métier")
-            key = normalize_key(name)
-            button = AtlasButton(name)
-            button.setMaximumHeight(28)
-            if key == normalize_key(self.selected_job):
-                button.set_variant("selected")
-            else:
-                button.set_variant("secondary")
-            # Keep the initial Craft surface independent from the local-data
-            # adapter. Resolving a decorative job icon used to open the whole
-            # SQLite/repository stack before the user had searched or selected
-            # anything, permanently raising the process high-water mark.
-            # Functional item/resource icons remain loaded on explicit demand.
-            button.clicked.connect(lambda _checked=False, target=name: self.set_job(target))
-            self.job_buttons_layout.addWidget(button, index // button_columns, index % button_columns)
-        for column in range(button_columns):
-            self.job_buttons_layout.setColumnStretch(column, 1)
-
         selected_key = normalize_key(self.selected_job)
+        names = tuple(str(job.get("name") or "Métier") for job in self.jobs)
+        button_columns = self.job_button_column_count()
+        button_signature = (button_columns, names)
+        if button_signature != self._job_buttons_signature:
+            self.clear_layout(self.job_buttons_layout)
+            self._job_buttons_signature = button_signature
+            for index, name in enumerate(names):
+                # Decorative icons must not open the local-data adapter.
+                button = AtlasButton(name, variant="secondary")
+                button.setMaximumHeight(28)
+                button.clicked.connect(lambda _checked=False, target=name: self.set_job(target))
+                self.job_buttons_layout.addWidget(
+                    button, index // button_columns, index % button_columns,
+                )
+            for column in range(button_columns):
+                self.job_buttons_layout.setColumnStretch(column, 1)
+        # Reuse the actual buttons on selection and resource-grid resize.
+        for index in range(self.job_buttons_layout.count()):
+            button = self.job_buttons_layout.itemAt(index).widget()
+            if isinstance(button, AtlasButton):
+                button.set_variant(
+                    "selected" if normalize_key(button.text()) == selected_key else "secondary"
+                )
+
         if not selected_key:
             self.job_grid.setAlignment(Qt.AlignTop | Qt.AlignLeft)
             self.job_grid.setRowStretch(0, 1)
@@ -1295,6 +1308,8 @@ class CraftPage(QWidget):
         self.job_grid.setRowStretch((tile_index // columns) + 1, 1)
 
     def set_job(self, job_name: str) -> None:
+        self.leveling_timer.stop()
+        self._pending_leveling_job = None
         self.selected_job = job_name
         self.refresh_jobs()
         # A job click opens its authored local guide only when it actually has
@@ -1303,15 +1318,15 @@ class CraftPage(QWidget):
         # still offer the existing catalogue-based fallback when requested.
         if not self.has_leveling_content(job_name):
             return
-        # Rebuilding the job grid destroys the sender. Defer the modal until
-        # Qt has finished dispatching the click, and ignore stale selections.
-        QTimer.singleShot(
-            20,
-            lambda selected=job_name: (
-                self.open_leveling_dialog(selected)
-                if self.selected_job == selected else None
-            ),
-        )
+        # Owned timer: coalesce repeated clicks and cancel on page release.
+        self._pending_leveling_job = job_name
+        self.leveling_timer.start(20)
+
+    def _open_pending_leveling(self) -> None:
+        selected = self._pending_leveling_job
+        self._pending_leveling_job = None
+        if selected is not None and self.selected_job == selected:
+            self.open_leveling_dialog(selected)
 
     def open_leveling_dialog(self, job_name: str) -> None:
         guide = self.guide_for_job(job_name)

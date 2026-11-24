@@ -167,6 +167,33 @@ class CraftFixesTests(unittest.TestCase):
             self.assertEqual(open_dialog.call_count, 2)
             page.close()
 
+    def test_job_selection_reuses_existing_buttons(self):
+        page = self.make_page()
+        page.jobs = [{"name": "Mineur"}, {"name": "Forgeron"}]
+        with patch.object(page, "find_job_resource", return_value={"name": "Fer"}):
+            page.refresh_jobs()
+            buttons = tuple(page.job_buttons_layout.itemAt(i).widget()
+                            for i in range(page.job_buttons_layout.count()))
+            page.set_job("Forgeron")
+            self.assertEqual(tuple(page.job_buttons_layout.itemAt(i).widget()
+                                   for i in range(page.job_buttons_layout.count())), buttons)
+            self.assertEqual(buttons[1].objectName(), "ActiveButton")
+
+    def test_release_cancels_leveling_and_preserves_borrowed_preload(self):
+        page = self.make_page()
+        borrowed = {"guides": {"Forgeron": {"entries": [{"craft": {"name": "Épée"}}]}}}
+        page.preload = {"guides": borrowed}
+        page.load_leveling_guides()
+        with patch.object(page, "open_leveling_dialog") as open_dialog:
+            page.set_job("Forgeron")
+            self.assertTrue(page.leveling_timer.isActive())
+            page.release_runtime()
+            self.assertFalse(page.leveling_timer.isActive())
+            QTest.qWait(40)
+            open_dialog.assert_not_called()
+        self.assertIn("Forgeron", borrowed["guides"])
+        self.assertEqual(page.guides, {})
+
     def test_empty_preload_uses_real_local_leveling_catalogue(self):
         page = self.make_page()
         on_disk = {"guides": {
