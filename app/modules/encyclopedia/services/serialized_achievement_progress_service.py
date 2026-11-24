@@ -118,10 +118,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
                 self._seen_generation != self._coordinator.generation
                 or self._disk_signature != self._current_disk_signature()
             ):
-                self.progress = self._load()
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._invalidate_runtime_caches()
+                self._replace_snapshot_locked(self._coordinator.generation)
                 raise RuntimeError(
                     "Achievement progress snapshot is stale; reload and apply the mutation again."
                 )
@@ -134,10 +131,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
     def set_achievement_completed(self, character_key: str, achievement_id: int, completed: bool) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
-            self.progress = self._load()
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
-            self._invalidate_runtime_caches()
+            self._replace_snapshot_locked(self._coordinator.generation)
             character = self._character(key)
             values = valid_int_ids(character.get("completed_achievements", []))
             achievement_id = int(achievement_id)
@@ -155,10 +149,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
     ) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
-            self.progress = self._load()
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
-            self._invalidate_runtime_caches()
+            self._replace_snapshot_locked(self._coordinator.generation)
             character = self._character(key)
             rows = character.get("completed_objectives", {})
             values = rows.get(str(int(achievement_id)), []) if isinstance(rows, dict) else []
@@ -180,10 +171,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
             raise ValueError(f"Ordre d'alignement inconnu : {order_name!r}")
         order_id = int(quest_ids[0])
         with self._coordinator.lock:
-            self.progress = self._load()
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
-            self._invalidate_runtime_caches()
+            self._replace_snapshot_locked(self._coordinator.generation)
             character = self._character(key)
             if self._alignment_order_signature(character) == (normalized_side, f"id:{order_id}"):
                 return False
@@ -197,10 +185,7 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
     def clear_alignment_order_choice(self, character_key: str) -> bool:
         key = require_character_key(character_key)
         with self._coordinator.lock:
-            self.progress = self._load()
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
-            self._invalidate_runtime_caches()
+            self._replace_snapshot_locked(self._coordinator.generation)
             character = self._character(key)
             if "alignment_order" not in character:
                 return False
