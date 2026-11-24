@@ -83,7 +83,7 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         header = self.compact_header
         header.set_summary_provider(lambda: tuple(
-            str(row.get("title") or "Fiche") for row in self.rows
+            self._sheet_title(index) for index in range(len(self.rows))
         ))
         header.summaryRequested.connect(lambda index: self.show_step(self.navigation.step_ids[index]))
         self.position_label = QLabel()
@@ -155,7 +155,7 @@ class ContinuousGuideRoutePanel(QWidget):
         # must not push step navigation out of the visible window.
         self.preparation_toggle = header.preparation_button
         self.preparation_toggle.setText("À préparer")
-        self.preparation_toggle.setToolTip(
+        header.set_preparation_description(
             "Références d'objets à vérifier — quantités et achats non certifiés"
         )
         self.preparation_scroll = configure_unity_scroll_area(QScrollArea())
@@ -220,6 +220,9 @@ class ContinuousGuideRoutePanel(QWidget):
         layout.addLayout(work, 1)
         self.navigation.show_actual()
         self.refresh()
+
+    def _sheet_title(self, index: int) -> str:
+        return str(self.rows[index].get("title") or "").strip() or f"Fiche {index + 1}"
 
     @staticmethod
     def _button(text: str, name: str) -> QToolButton:
@@ -457,7 +460,7 @@ class ContinuousGuideRoutePanel(QWidget):
         else:
             index = self.navigation.step_ids.index(current)
             row = self.rows[index]
-            self.title_label.setText(str(row.get("title") or f"Fiche {index + 1}"))
+            self.title_label.setText(self._sheet_title(index))
             self.body_label.setText(str(row.get("content") or
                                         "Actions de cette étape non renseignées."))
         references = (

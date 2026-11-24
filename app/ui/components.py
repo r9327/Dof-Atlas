@@ -1018,7 +1018,8 @@ class AtlasGuideReadingHeader(QFrame):
         caption.addWidget(self.preparation_progress_label)
         self.preparation_button = AtlasGuideDisclosure()
         self.preparation_button.configure_compact()
-        self.preparation_button.setToolTip("Ouvrir Préparation")
+        self._preparation_description = ""
+        self.preparation_button.setToolTip("Afficher Préparation")
         self.preparation_button.setAccessibleName("Afficher Préparation")
         caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
         preparation_metric.addLayout(caption)
@@ -1066,6 +1067,8 @@ class AtlasGuideReadingHeader(QFrame):
         self.summary_panel.setObjectName("GuideSummaryList")
         self.summary_panel.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
         self.summary_panel.setAccessibleName("Sommaire du guide")
+        self.summary_panel.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.summary_panel.setTextElideMode(Qt.ElideRight)
         self.summary_panel.hide()
         self.summary_panel.currentRowChanged.connect(self._request_summary_row)
         self._summary_titles = ()
@@ -1174,10 +1177,18 @@ class AtlasGuideReadingHeader(QFrame):
         self.preparation_button.toggled.connect(panel.setVisible)
         self.preparation_button.toggled.connect(self._set_preparation_open)
 
+    def set_preparation_description(self, description: str) -> None:
+        """Keep a reader's source/availability notice across drawer toggles."""
+        self._preparation_description = description
+        self._set_preparation_open(self.preparation_button.isChecked())
+
     def _set_preparation_open(self, opened: bool) -> None:
         action = "Masquer Préparation" if opened else "Afficher Préparation"
         self.preparation_button.setAccessibleName(action)
-        self.preparation_button.setToolTip(action)
+        description = self._preparation_description
+        self.preparation_button.setToolTip(
+            f"{action} — {description}" if description else action
+        )
 
 
 class AtlasGuideSheetHeader(QFrame):

@@ -81,6 +81,24 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             parent.deleteLater()
 
+    def test_shared_preparation_notice_survives_drawer_transitions(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide exemple")
+        panel = QWidget()
+        try:
+            header.attach_preparation(panel)
+            header.set_preparation_description("Quantités non certifiées")
+            self.assertEqual(header.preparation_button.toolTip(),
+                             "Afficher Préparation — Quantités non certifiées")
+            header.preparation_button.click()
+            self.assertEqual(header.preparation_button.toolTip(),
+                             "Masquer Préparation — Quantités non certifiées")
+            header.preparation_button.click()
+            self.assertEqual(header.preparation_button.toolTip(),
+                             "Afficher Préparation — Quantités non certifiées")
+        finally:
+            header.deleteLater()
+
     def test_shared_summary_refresh_escapes_source_and_ignores_invalid_rows(self) -> None:
         from app.ui.components import AtlasGuideReadingHeader
         header = AtlasGuideReadingHeader("Guide exemple")
@@ -121,6 +139,8 @@ class SharedUiComponentsTests(unittest.TestCase):
             header.summary_button.click()
             self.assertEqual(header.summary_panel.item(1).text(), "2. Seconde fiche")
             self.assertEqual(header.summary_panel.item(1).toolTip(), "<qt>2. Seconde fiche</qt>")
+            self.assertEqual(header.summary_panel.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(header.summary_panel.textElideMode(), Qt.ElideRight)
             self.assertEqual(header.summary_button.toolTip(), "Masquer Sommaire")
             requested = []
             header.summaryRequested.connect(requested.append)

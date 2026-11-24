@@ -214,7 +214,12 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(self.panel.title_label.text(), "Fiche 1")
         self.assertFalse(hasattr(self.panel, "summary"))
         self.panel.compact_header.summary_button.click()
+        self.assertEqual(self.panel.compact_header.summary_panel.item(0).text(),
+                         f"1. {self.panel.title_label.text()}")
+        self.assertIn("non certifiés", self.panel.preparation_toggle.toolTip())
         self.panel.compact_header.summary_panel.setCurrentRow(1)
+        self.assertEqual(self.panel.compact_header.summary_panel.item(1).text(),
+                         f"2. {self.panel.title_label.text()}")
         self.assertEqual(self.panel.navigation.position().viewed_step_id,
                          "ganymede_2205_step_0002")
         self.assertTrue(self.panel.compact_header.summary_button.isChecked())
