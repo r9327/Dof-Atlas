@@ -603,10 +603,7 @@ class DevUiPage(QWidget):
         title.setObjectName("GuideGlobalProgressTitle")
         overall_caption.addWidget(title)
         global_toggle = AtlasGuideDisclosure()
-        global_toggle.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
-        )
+        global_toggle.configure_compact()
         global_toggle.setToolTip("Afficher la progression et les préparatifs")
         global_toggle.setAccessibleName("Déplier la progression globale")
         overall_caption.addWidget(global_toggle, 0, Qt.AlignVCenter)
@@ -666,10 +663,7 @@ class DevUiPage(QWidget):
         prep_value.setObjectName("GuideCompactMetricValue")
         prep_caption.addWidget(prep_value)
         prep_toggle = AtlasGuideDisclosure()
-        prep_toggle.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
-        )
+        prep_toggle.configure_compact()
         prep_toggle.setToolTip("Ouvrir Préparation")
         prep_toggle.setAccessibleName("Afficher Préparation")
         prep_caption.insertWidget(2, prep_toggle, 0, Qt.AlignVCenter)
@@ -811,15 +805,7 @@ class DevUiPage(QWidget):
         if icon.isNull():
             icon = _guide_symbol_icon(character_toggle, "people")
         character_toggle.setIcon(icon)
-        character_toggle.setIconSize(QSize(
-            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
-            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
-        ))
-        character_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        character_toggle.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["guide_character_button"],
-            UNITY_CONTROL_SIZES_PX["guide_character_button"],
-        )
+        character_toggle.configure_compact()
         character_toggle.setToolTip("Personnages")
         character_toggle.setAccessibleName("Personnages")
         character_toggle.setCheckable(True)
