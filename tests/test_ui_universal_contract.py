@@ -33,20 +33,25 @@ class UiUniversalContractTests(unittest.TestCase):
         manual = (
             REPO_ROOT / "app/modules/encyclopedia/views/shared_manual_guide_view.py"
         ).read_text(encoding="utf-8")
-        for source in (dev, manual):
-            self.assertIn("configure_unity_progress_bar(", source)
-            self.assertIn('object_name="GuideGlobalProgress"', source)
-            self.assertIn('object_name="GuideCompactPreparationProgress"', source)
+        components = (REPO_ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        continuous = (
+            REPO_ROOT / "app/modules/encyclopedia/views/guide_continuous_route_panel.py"
+        ).read_text(encoding="utf-8")
+        for source in (dev, manual, continuous):
+            self.assertIn("AtlasGuideReadingHeader(", source)
+            self.assertNotIn('object_name="GuideGlobalProgress"', source)
+            self.assertNotIn('object_name="GuideCompactPreparationProgress"', source)
+        self.assertEqual(components.count('object_name="GuideGlobalProgress"'), 1)
+        self.assertEqual(components.count('object_name="GuideCompactPreparationProgress"'), 1)
         preload = (REPO_ROOT / "app/ui/preload_popup.py").read_text(encoding="utf-8")
         self.assertIn("configure_unity_progress_bar(", preload)
         self.assertIn("maximum=len(PRELOAD_TASK_ORDER), text_visible=True", preload)
         self.assertNotIn("self.progress.setRange(", preload)
-        self.assertEqual(dev.count("configure_unity_progress_bar("), 8)
-        self.assertEqual(dev.count("QProgressBar()"), 8)
+        self.assertEqual(dev.count("configure_unity_progress_bar("), dev.count("QProgressBar()"))
         self.assertIn("maximum=0, text_visible=True", dev)
         self.assertIn("maximum=3,", dev)
         self.assertIn('object_name="DevUiMotionProgress", text_visible=True', dev)
-        self.assertEqual(manual.count("configure_unity_progress_bar("), 2)
+        self.assertNotIn("configure_unity_progress_bar(", manual)
         self.assertNotIn("self.global_progress_bar.setTextVisible(False)", manual)
 
     def test_quests_breadcrumb_rebuild_shares_layout_cleanup_without_new_widget(self):
@@ -282,9 +287,14 @@ class UiUniversalContractTests(unittest.TestCase):
         for path in paths:
             with self.subTest(path=path.name):
                 source = path.read_text(encoding="utf-8")
-                self.assertIn("AtlasGuideParticipantButton()", source)
-                self.assertIn('setObjectName("GuideCompactPageJump")', source)
-                self.assertIn("fit_unity_number_spinbox(", source)
+                self.assertIn("AtlasGuideReadingHeader(", source)
+                self.assertIn("AtlasGuideSheetHeader(", source)
+                self.assertNotIn("AtlasGuideParticipantButton()", source)
+                self.assertNotIn('setObjectName("GuideCompactPageJump")', source)
+        components = (REPO_ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        self.assertEqual(components.count('setObjectName("GuideCompactPageJump")'), 1)
+        self.assertIn("AtlasGuideParticipantButton()", components)
+        self.assertIn("fit_unity_number_spinbox(self.page_jump)", components)
         theme = (REPO_ROOT / "app/ui/theme.py").read_text(encoding="utf-8")
         self.assertIn(
             "QToolButton#GuideParticipantsButton:focus,", theme,

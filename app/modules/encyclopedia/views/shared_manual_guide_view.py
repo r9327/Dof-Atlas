@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLayout,
-    QProgressBar,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -42,8 +41,8 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, fit_unity_number_spinbox, configure_unity_progress_bar, configure_unity_scroll_area, clear_unity_widget_layout
-from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
+from app.ui.components import AtlasButton, AtlasComboBox, atlas_guide_arrow_icon, fit_unity_number_spinbox, configure_unity_scroll_area, clear_unity_widget_layout
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
 from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -1025,9 +1024,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             if button is None:
                 continue
             progress = self._participant_progress(character.key)
-            if button.progress != progress:
-                button.progress = progress
-                button.update()
+            button.set_percent(progress)
             class_label = str(button.property("guideClassLabel") or "")
             button.setToolTip(self._participant_tooltip(character, class_label, progress))
 
@@ -1056,14 +1053,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         return clamped_percent(completed, total) if total > 0 else None
 
     def _global_details_toggled(self, opened: bool) -> None:
-        self.global_details_panel.setVisible(bool(opened))
-        self.global_details_button.setAccessibleName(
-            "Replier la progression globale" if opened else "Déplier la progression globale"
-        )
-        self.global_details_button.setToolTip(
-            "Masquer la progression et les préparatifs"
-            if opened else "Afficher la progression et les préparatifs"
-        )
         if opened:
             self._refresh_global_details()
             # The drawer may have been hidden when progress changed. Materialize
@@ -1094,7 +1083,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.global_details_layout.addWidget(label)
 
     def _preparation_toggled(self, opened: bool) -> None:
-        self.preparation_panel.setVisible(bool(opened))
         if not opened:
             return
         if not self._preparation_loaded:
@@ -1696,7 +1684,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         card = self.service.cards[index] if total_cards else {}
         title = str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
         self.sheet_title_label.setText(title)
-        self.nav_page_label.setText(f"{index + 1}/{total_cards}")
+        self.nav_page_label.setText(f"{index + 1 if total_cards else 0}/{total_cards}")
         self.sheet_header.set_page(index + 1, total_cards)
 
     def set_character_key(self, character_key: str) -> None:

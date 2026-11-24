@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 
-from PySide6.QtCore import Qt, Signal, QSize
-from PySide6.QtGui import QIcon, QPainter, QPen
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMenu, QScrollArea, QToolButton, QVBoxLayout, QWidget,
 )
@@ -27,50 +27,12 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.ui.components import (
-    AtlasGuideReadingHeader, configure_unity_scroll_area, configure_unity_tool_button,
+    AtlasGuideReadingHeader, AtlasGuideParticipantPortrait, configure_unity_scroll_area, configure_unity_tool_button,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 
 ROUTE_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_route"]
-
-
-class _GuideCharacterProgressButton(QToolButton):
-    """Lightweight circular progress over a normal, clickable class portrait."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.progress_checked = 0
-        self.progress_total = 0
-
-    def set_progress(self, completed: int, total: int) -> None:
-        if not (type(completed) is int and type(total) is int
-                and total >= 0 and 0 <= completed <= total):
-            raise ValueError("Invalid manual portrait progress")
-        if (completed, total) == (self.progress_checked, self.progress_total):
-            return
-        self.progress_checked, self.progress_total = completed, total
-        self.update()
-
-    def paintEvent(self, event) -> None:
-        super().paintEvent(event)
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        ring = self.rect().adjusted(2, 2, -3, -3)
-        pen = QPen(self.palette().mid().color())
-        pen.setWidthF(2.5)
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-        painter.drawEllipse(ring)
-        if self.progress_total and self.progress_checked:
-            pen.setColor(self.palette().highlight().color())
-            painter.setPen(pen)
-            painter.drawArc(
-                ring, 90 * 16,
-                -round(360 * 16 * self.progress_checked / self.progress_total),
-            )
-        painter.end()
 
 
 class ContinuousGuideRoutePanel(QWidget):
@@ -149,12 +111,7 @@ class ContinuousGuideRoutePanel(QWidget):
         for character in self.available_characters:
             if character.key in self.character_icon_buttons:
                 continue
-            button = _GuideCharacterProgressButton()
-            button.setObjectName("GuideContinuousCharacterPortrait")
-            button.setCheckable(True)
-            icon_box = ROUTE_GEOMETRY["route_icon_box"]
-            button.setFixedSize(icon_box, icon_box)
-            button.setCursor(Qt.PointingHandCursor)
+            button = AtlasGuideParticipantPortrait(character.key, progress=None)
             button.setToolTip(str(getattr(character, "label", "") or character.key))
             class_key = str(getattr(character, "class_key", "") or "").strip().lower()
             if class_key.isascii() and class_key.isalpha():
@@ -162,8 +119,6 @@ class ContinuousGuideRoutePanel(QWidget):
                 icon = QIcon(str(image_path))
                 if not icon.isNull():
                     button.setIcon(icon)
-                    artwork_size = ROUTE_GEOMETRY["route_icon_artwork"]
-                    button.setIconSize(QSize(artwork_size, artwork_size))
                     button.setToolButtonStyle(Qt.ToolButtonIconOnly)
             if button.icon().isNull():
                 button.setText(button.toolTip()[:1].upper() or "?")
@@ -279,9 +234,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_scroll.setVisible(
             opened and self.preparation_toggle.isEnabled()
         )
-        self.preparation_toggle.setAccessibleName(
-            "Masquer Préparation" if opened else "Afficher Préparation"
-        )
+        # Disclosure accessibility and direction are owned by the shared header.
 
     def set_characters(self, character_keys: Iterable[str]) -> None:
         previous = self.navigation.selected_character_keys

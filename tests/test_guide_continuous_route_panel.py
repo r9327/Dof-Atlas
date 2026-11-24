@@ -326,6 +326,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(extra.deleteLater)
         self.assertEqual(len(extra.character_icon_buttons), 2)
+        from app.ui.components import AtlasGuideParticipantPortrait
+        self.assertTrue(all(isinstance(button, AtlasGuideParticipantPortrait)
+                            for button in extra.character_icon_buttons.values()))
         self.assertTrue(extra.character_icon_buttons["character:1"].isChecked())
         self.assertEqual(extra.character_icon_buttons["character:2"].toolTip(), "Beta")
         received = []

@@ -713,12 +713,28 @@ class AtlasGuideParticipantPortrait(QToolButton):
         super().__init__(parent)
         self.character_key = str(character_key)
         self.progress = None if progress is None else max(0, min(100, int(progress)))
+        self.progress_checked = 0
+        self.progress_total = 0
         box = UNITY_CONTROL_SIZES_PX["guide_portrait_button"]
         configure_unity_tool_button(
             self, object_name="GuideParticipantPortrait", box=(box, box),
             icon_size=UNITY_CONTROL_SIZES_PX["guide_portrait_icon"], pointing=True,
         )
         self.setCheckable(True)
+
+    def set_percent(self, progress: int | None) -> None:
+        normalized = None if progress is None else max(0, min(100, int(progress)))
+        if normalized != self.progress:
+            self.progress = normalized
+            self.update()
+
+    def set_progress(self, completed: int, total: int) -> None:
+        """Retain exact source counts and use the same ring for every Guide."""
+        if not (type(completed) is int and type(total) is int
+                and total >= 0 and 0 <= completed <= total):
+            raise ValueError("Invalid manual portrait progress")
+        self.progress_checked, self.progress_total = completed, total
+        self.set_percent(round(completed * 100 / total) if total else None)
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().paintEvent(event)
@@ -1003,7 +1019,7 @@ class AtlasGuideReadingHeader(QFrame):
         preparation_metric.addLayout(drawer)
         details.addLayout(preparation_metric)
         self.global_details_panel.setVisible(False)
-        self.global_details_button.toggled.connect(self.global_details_panel.setVisible)
+        self.global_details_button.toggled.connect(self._set_global_details_open)
         right.addWidget(self.global_details_panel)
         self.content_layout = right
 
@@ -1028,6 +1044,16 @@ class AtlasGuideReadingHeader(QFrame):
         right.insertWidget(1, self.participants_panel)
         apply_unity_panel_shadow(self)
 
+    def _set_global_details_open(self, opened: bool) -> None:
+        self.global_details_panel.setVisible(opened)
+        self.global_details_button.setAccessibleName(
+            "Replier la progression globale" if opened else "Déplier la progression globale"
+        )
+        self.global_details_button.setToolTip(
+            "Masquer la progression et les préparatifs" if opened
+            else "Afficher la progression et les préparatifs"
+        )
+
     def set_overview_progress(self, completed: int, total: int, *, visible: bool = True) -> None:
         """Present real catalogue counts only; unavailable totals stay unknown."""
         self.global_progress_title.setVisible(visible)
@@ -1041,6 +1067,12 @@ class AtlasGuideReadingHeader(QFrame):
         self.preparation_drawer.addWidget(panel)
         panel.setVisible(self.preparation_button.isChecked())
         self.preparation_button.toggled.connect(panel.setVisible)
+        self.preparation_button.toggled.connect(self._set_preparation_open)
+
+    def _set_preparation_open(self, opened: bool) -> None:
+        self.preparation_button.setAccessibleName(
+            "Masquer Préparation" if opened else "Afficher Préparation"
+        )
 
 
 class AtlasGuideSheetHeader(QFrame):
@@ -1083,9 +1115,11 @@ class AtlasGuideSheetHeader(QFrame):
     def set_page(self, page: int, total: int) -> None:
         previous = self.page_jump.blockSignals(True)
         try:
-            self.page_jump.setRange(1, max(1, total))
+            total = max(0, int(total))
+            self.page_jump.setRange(1 if total else 0, total)
             self.page_jump.setSuffix(f"/{total}")
-            self.page_jump.setValue(max(1, min(page, max(1, total))))
+            self.page_jump.setValue(max(1, min(page, total)) if total else 0)
+            self.page_jump.setEnabled(total > 0)
             fit_unity_number_spinbox(self.page_jump)
         finally:
             self.page_jump.blockSignals(previous)

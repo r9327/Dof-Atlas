@@ -265,7 +265,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(hasattr(view, "route_bar"))
             self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
             self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
-            self.assertEqual(view.sheet_meta_label.text(), "ÉTAPE · CHAPITRE UN")
+            self.assertEqual(view.sheet_title_label.text(), "Première fiche")
+            self.assertIsNone(view.findChild(QLabel, "GuideSheetMeta"))
             self.assertEqual(view.nav_page_label.text(), "1/2")
         finally:
             view.close()
