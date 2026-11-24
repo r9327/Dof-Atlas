@@ -30,6 +30,7 @@ from app.constants import (
     ZAAP_CLICK_Y,
 )
 from app.core.json_store import read_json_resilient
+from app.core.numbers import optional_int
 from app.core.profile_settings import (
     default_profiles,
     parse_zaap_click_position,
@@ -245,10 +246,8 @@ def read_json_file(path: Path, default: Any) -> Any:
 
 
 def int_value(value: Any, default: int = 0) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError, OverflowError):
-        return default
+    parsed = optional_int(value)
+    return default if parsed is None else parsed
 
 
 def bool_value(value: Any, default: bool = False) -> bool:
