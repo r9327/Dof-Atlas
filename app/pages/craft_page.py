@@ -884,10 +884,15 @@ class CraftPage(QWidget):
         set_action = None
         if item and item.get("_craft_category") == "equipment":
             set_action = menu.addAction("Voir la panoplie")
-        action = menu.exec(self.results.viewport().mapToGlobal(position))
-        if action == add_action:
+        try:
+            action = menu.exec(self.results.viewport().mapToGlobal(position))
+            add_selected = action == add_action
+            set_selected = set_action is not None and action == set_action
+        finally:
+            menu.deleteLater()
+        if add_selected:
             self.add_item(item, 1)
-        elif set_action is not None and action == set_action:
+        elif set_selected:
             self.open_item_set(item)
 
     def open_item_set(self, item: dict[str, Any]) -> None:

@@ -167,6 +167,28 @@ class CraftFixesTests(unittest.TestCase):
             self.assertEqual(open_dialog.call_count, 2)
             page.close()
 
+    def test_result_context_menu_is_released_even_on_cancel(self):
+        from PySide6.QtCore import QPoint
+        from PySide6.QtWidgets import QListWidgetItem
+
+        page = self.make_page()
+        entry = QListWidgetItem("Objet")
+        entry.setData(Qt.UserRole, {"id": 1, "name": "Objet", "_craft_category": "equipment"})
+        menu = Mock()
+        menu.addAction.side_effect = [Mock(), Mock()]
+        menu.exec.return_value = None
+        with (
+            patch.object(page.results, "itemAt", return_value=entry),
+            patch.object(page.results, "setCurrentItem"),
+            patch("app.pages.craft_page.QMenu", return_value=menu),
+            patch.object(page, "add_item") as add,
+            patch.object(page, "open_item_set") as open_set,
+        ):
+            page.open_result_menu(QPoint(0, 0))
+        menu.deleteLater.assert_called_once_with()
+        add.assert_not_called()
+        open_set.assert_not_called()
+
     def test_job_selection_reuses_existing_buttons(self):
         page = self.make_page()
         page.jobs = [{"name": "Mineur"}, {"name": "Forgeron"}]
