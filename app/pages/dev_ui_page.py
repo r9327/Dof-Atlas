@@ -73,7 +73,7 @@ from app.ui.components import (
     atlas_application_icon,
     apply_unity_calendar_weekdays,
     fill_unity_navigation_menu,
-    release_transient_dialog, clear_current_dialog_reference,
+    present_transient_dialog,
     configure_unity_progress_bar, configure_unity_scroll_area,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
@@ -2791,18 +2791,10 @@ class DevUiPage(QWidget):
 
     def _present_preview_dialog(self, dialog: AtlasDialog, *, opened: str, closed: str) -> None:
         """Own one Dev UI preview at a time; release the old Qt window."""
-        current = self._preview_dialog
-        if current is not None and current is not dialog:
-            current.close()
-        self._preview_dialog = dialog
-
-        def finished(_result: int) -> None:
-            clear_current_dialog_reference(self, "_preview_dialog", dialog)
-            self._report(closed)
-
-        dialog.finished.connect(finished)
-        release_transient_dialog(dialog)
-        dialog.open()
+        present_transient_dialog(
+            self, "_preview_dialog", dialog, mode="open",
+            on_finished=lambda _result: self._report(closed),
+        )
         self._report(opened)
 
     def _open_craft_dialog_preview(self) -> None:

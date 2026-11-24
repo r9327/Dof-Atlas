@@ -59,8 +59,8 @@ from app.storage import (
 )
 from app.ui.components import (
     AtlasButton, AtlasDialog, AtlasPageTitle,
-    fit_unity_number_spinbox, release_transient_dialog,
-    clear_current_dialog_reference, clear_unity_widget_layout,
+    fit_unity_number_spinbox, present_transient_dialog, exec_transient_dialog,
+    clear_unity_widget_layout,
     configure_unity_scroll_area, configure_unity_tool_button,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
@@ -890,7 +890,7 @@ class CraftPage(QWidget):
             self.status_callback(f"Lecture panoplie impossible: {exc}")
             item_set = None
         dialog = ItemSetDialog(item_set, self.add_item, self)
-        dialog.exec()
+        exec_transient_dialog(dialog)
 
     def add_result_item(self, entry: QListWidgetItem | None) -> None:
         if not entry:
@@ -1332,7 +1332,7 @@ class CraftPage(QWidget):
             QMessageBox.warning(self, "Leveling indisponible", message)
             return
         dialog = LevelingDialog(job_name, guide, self.find_item_by_name, self.add_leveling_craft, self)
-        dialog.exec()
+        exec_transient_dialog(dialog)
 
     def add_leveling_craft(self, craft: dict[str, Any]) -> None:
         item = self.find_item_by_name((craft or {}).get("name", ""))
@@ -1343,7 +1343,7 @@ class CraftPage(QWidget):
 
     def show_route(self, job_name: str, item: dict[str, Any]) -> None:
         dialog = RouteDialog(canonical_job_name(job_name), item, self)
-        dialog.exec()
+        exec_transient_dialog(dialog)
 
     def show_resources(self) -> None:
         if not self.selection:
@@ -1375,19 +1375,9 @@ class CraftPage(QWidget):
                     entry["item"] = dict(ingredient)
                 if ingredient.get("image_path"):
                     entry["image_path"] = ingredient.get("image_path")
-        if self.resource_dialog is not None:
-            self.resource_dialog.close()
         dialog = CraftResourceDialog(resources, missing)
         dialog.setModal(False)
-        dialog.finished.connect(
-            lambda _result, current=dialog: clear_current_dialog_reference(
-                self, "resource_dialog", current,
-            )
-        )
-        self.resource_dialog = dialog
-        release_transient_dialog(dialog)
-        dialog.show()
-        dialog.raise_()
+        present_transient_dialog(self, "resource_dialog", dialog)
         message = f"{len(resources)} ressource(s) agregee(s)."
         if lookup_errors:
             message += f" {lookup_errors} recette(s) indisponible(s) (erreur de lecture)."

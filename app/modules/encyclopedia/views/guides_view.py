@@ -17,7 +17,6 @@ from PySide6.QtCore import QPoint
 from PySide6.QtGui import QColor, QIcon, QImage, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import (
     QApplication,
-    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -66,9 +65,9 @@ from app.modules.encyclopedia.widgets.guide_card import (
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasPanelToggle,
-    clear_current_dialog_reference, clear_unity_widget_layout,
+    AtlasImagePopup, clear_unity_widget_layout,
     configure_unity_progress_bar, configure_unity_scroll_area,
-    refresh_unity_widget_style, release_transient_dialog,
+    refresh_unity_widget_style, present_transient_dialog,
     set_unity_widget_property,
 )
 from app.ui.entity_link_roles import entity_link_markup
@@ -77,7 +76,6 @@ from app.ui.unity_palette import (
     UNITY_CONTROL_SIZES_PX,
     UNITY_GUIDE_READING_METRICS_PX,
     UNITY_MODULE_GEOMETRY_PX,
-    UNITY_WINDOW_PRESETS_PX,
 )
 
 GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
@@ -926,7 +924,7 @@ class SolutionImageLabel(QLabel):
         self._update_scheduled = False
         self._image_load_started = False
         self._image_load_future = None
-        self._image_popup: QDialog | None = None
+        self._image_popup: AtlasImagePopup | None = None
         self.setObjectName("QuestSolutionImage")
         self.setAlignment(Qt.AlignCenter)
         self.setMinimumWidth(1)
@@ -1040,61 +1038,8 @@ class SolutionImageLabel(QLabel):
                 event.accept()
                 return
 
-            dialog = QDialog(self, Qt.Popup)
-            dialog.setObjectName("AtlasDialog")
-            dialog.setWindowTitle(self.toolTip() or "Image de solution")
-            root = QVBoxLayout(dialog)
-            margin = UNITY_GUIDE_READING_METRICS_PX["zoom_margin"]
-            root.setContentsMargins(margin, margin, margin, margin)
-            root.setSpacing(0)
-
-            image = QLabel()
-            image.setObjectName("QuestSolutionImage")
-            image.setAlignment(Qt.AlignCenter)
-            screen = self.screen()
-            available = (
-                screen.availableGeometry().size() if screen is not None
-                else QSize(*UNITY_WINDOW_PRESETS_PX["standard"])
-            )
-            metrics = UNITY_GUIDE_READING_METRICS_PX
-            max_width = max(
-                metrics["zoom_min_width"],
-                min(
-                    metrics["zoom_dialog_width"],
-                    available.width() * metrics["zoom_screen_percent"] // 100,
-                ),
-            )
-            max_height = max(
-                metrics["zoom_min_height"],
-                min(
-                    metrics["zoom_dialog_height"],
-                    available.height() * metrics["zoom_screen_percent"] // 100,
-                ),
-            )
-            target = self.source.size()
-            target.scale(
-                max_width - metrics["zoom_content_inset"],
-                max_height - metrics["zoom_content_inset"],
-                Qt.KeepAspectRatio,
-            )
-            image.setPixmap(self.source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            root.addWidget(image)
-            dialog.resize(
-                target.width() + margin * 2,
-                target.height() + margin * 2,
-            )
-
-            center = self.mapToGlobal(self.rect().center())
-            dialog.move(center.x() - dialog.width() // 2, center.y() - dialog.height() // 2)
-            dialog.finished.connect(
-                lambda _result, current=dialog: clear_current_dialog_reference(
-                    self, "_image_popup", current,
-                )
-            )
-            release_transient_dialog(dialog)
-            self._image_popup = dialog
-            dialog.show()
-            dialog.raise_()
+            dialog = AtlasImagePopup(self.source, self, title=self.toolTip())
+            present_transient_dialog(self, "_image_popup", dialog)
             event.accept()
             return
         super().mouseReleaseEvent(event)

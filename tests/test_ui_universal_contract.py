@@ -367,11 +367,7 @@ class UiUniversalContractTests(unittest.TestCase):
         ))
         dialogs = by_label["Fenêtres et popups classiques"]
         self.assertIsInstance(dialogs["native_dialog_calls"], tuple)
-        self.assertEqual(
-            {path for path, _line in dialogs["native_dialog_calls"]},
-            {"app/modules/encyclopedia/views/guides_view.py"},
-        )
-        self.assertEqual(len(dialogs["native_dialog_calls"]), 1)
+        self.assertEqual(dialogs["native_dialog_calls"], ())
         checks = {
             "Boutons": "QPushButton",
             "Menus de sélection": "QComboBox",
@@ -515,6 +511,8 @@ class UiUniversalContractTests(unittest.TestCase):
         for name, sample in (
             ("Fenêtres et popups classiques", "dialog.add_action_row(close)"),
             ("Fenêtres et popups classiques", "dialog.add_scroll_rows()"),
+            ("Fenêtres et popups classiques", "AtlasImagePopup(source, parent)"),
+            ("Fenêtres et popups classiques", "present_transient_dialog(owner, slot, dialog)"),
             ("Titres et sous-titres", "dialog.add_header('Titre')"),
             ("Onglets et sous-menus", "fill_unity_navigation_menu(menu, entries, open_tab)"),
             ("Scrollbars et resize", "self.add_scroll_rows()"),

@@ -317,7 +317,7 @@ UI_MUTUALIZATION_TARGETS = (
     ("Sélecteurs numériques", "fields", "QSpinBox + fit_unity_number_spinbox",
      r"\b(?:QSpinBox|fit_unity_number_spinbox)\s*\("),
     ("Fenêtres et popups classiques", "dialogs", "AtlasDialog + composition partagée",
-     r"\bAtlasDialog\s*\(|\bclass\s+\w+\s*\(\s*AtlasDialog\s*\)|\.add_(?:header|scroll_rows|action_row)\s*\("),
+     r"\b(?:AtlasDialog|AtlasImagePopup|present_transient_dialog|exec_transient_dialog)\s*\(|\bclass\s+\w+\s*\(\s*AtlasDialog\s*\)|\.add_(?:header|scroll_rows|action_row)\s*\("),
     ("Cases à cocher", "fields", "QCheckBox + thème Unity", r"\bQCheckBox\s*\("),
     ("Champs de texte", "fields", "QLineEdit + thème Unity", r"\bQLineEdit\s*\("),
     ("Barres de progression", "statuses", "QProgressBar + thème Unity",

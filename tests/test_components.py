@@ -206,6 +206,45 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             menu.deleteLater()
 
+    def test_transient_presenter_replaces_and_releases_dialogs(self) -> None:
+        from types import SimpleNamespace
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+        from app.ui.components import present_transient_dialog
+
+        owner = SimpleNamespace(active=None)
+        first, second = QDialog(), QDialog()
+        present_transient_dialog(owner, "active", first)
+        present_transient_dialog(owner, "active", second)
+        self.assertIs(owner.active, second)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(first))
+        second.reject()
+        self.assertIsNone(owner.active)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(second))
+
+    def test_shared_image_popup_keeps_popup_flags_and_indexed_zoom(self) -> None:
+        from PySide6.QtGui import QPixmap
+        from PySide6.QtWidgets import QLabel
+        from app.ui.components import AtlasImagePopup
+        parent = QWidget()
+        source = QPixmap(200, 100)
+        source.fill(Qt.transparent)
+        dialog = AtlasImagePopup(source, parent, title="Agrandissement")
+        try:
+            self.assertEqual(dialog.windowType(), Qt.Popup)
+            self.assertEqual(dialog.objectName(), "AtlasDialog")
+            self.assertEqual(dialog.windowTitle(), "Agrandissement")
+            image = dialog.findChild(QLabel, "QuestSolutionImage")
+            self.assertIsNotNone(image)
+            self.assertFalse(image.pixmap().isNull())
+            self.assertEqual(image.pixmap().width(), 2 * image.pixmap().height())
+        finally:
+            dialog.deleteLater()
+            parent.deleteLater()
+
     def test_stale_dialog_never_clears_its_newer_replacement(self) -> None:
         from types import SimpleNamespace
         from PySide6.QtWidgets import QDialog

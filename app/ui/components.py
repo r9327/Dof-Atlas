@@ -30,7 +30,8 @@ from app.constants import APP_ICON_PATH
 from app.ui.unity_palette import (
     UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX,
     UNITY_PALETTE,
-    UNITY_SIZES_PX, UNITY_SPACING_PX,
+    UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_GUIDE_READING_METRICS_PX,
+    UNITY_WINDOW_PRESETS_PX,
 )
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.unity_skin import sprite_icon_path, unity_guide_chevron_path
@@ -539,7 +540,9 @@ def atlas_guide_symbol_icon(
     """Share tiny semantic Qt icons instead of repainting one per row."""
     # Retain the historical widget-taking API; this artwork is independent of
     # widget identity and must not pin deleted QObjects in a global cache.
-    return _cached_atlas_guide_symbol_icon(symbol, size, color or UNITY_PALETTE["TEXT_SOFT"])
+    from app.ui.theme import PALETTE
+
+    return _cached_atlas_guide_symbol_icon(symbol, size, color or PALETTE["TEXT_SOFT"])
 
 
 @lru_cache(maxsize=32)
@@ -697,8 +700,10 @@ class AtlasGuideParticipantPortrait(QToolButton):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         # Keep the ring in Unity accents; gray looks like a disabled portrait.
+        from app.ui.theme import PALETTE
+
         color = QColor(
-            UNITY_PALETTE["GREEN"] if self.isChecked() else UNITY_PALETTE["BORDER_STRONG"]
+            PALETTE["GREEN"] if self.isChecked() else PALETTE["BORDER_STRONG"]
         )
         pen = QPen(color, UNITY_CONTROL_SIZES_PX["guide_portrait_stroke"])
         pen.setCapStyle(Qt.RoundCap)
@@ -850,6 +855,84 @@ def clear_current_dialog_reference(owner: object, attribute: str, dialog: QDialo
 def release_transient_dialog(dialog: QDialog) -> None:
     """Dispose temporary Qt dialogs after they finish, never on show()."""
     dialog.finished.connect(dialog.deleteLater)
+
+
+def present_transient_dialog(
+    owner: object, attribute: str, dialog: QDialog, *,
+    mode: Literal["show", "open"] = "show",
+    on_finished: Callable[[int], None] | None = None,
+) -> None:
+    """One temporary window per owner slot; release safely on completion."""
+    if mode not in ("show", "open"):
+        raise ValueError(f"Unknown dialog presentation mode: {mode}")
+    current = getattr(owner, attribute, None)
+    if current is dialog:
+        return
+    if current is not None:
+        current.close()
+    setattr(owner, attribute, dialog)
+
+    def finished(result: int) -> None:
+        clear_current_dialog_reference(owner, attribute, dialog)
+        if on_finished is not None:
+            on_finished(result)
+
+    dialog.finished.connect(finished)
+    release_transient_dialog(dialog)
+    if mode == "open":
+        dialog.open()
+    else:
+        dialog.show()
+        dialog.raise_()
+
+
+def exec_transient_dialog(dialog: QDialog) -> int:
+    """Release one-shot modal dialogs after their nested event loop returns."""
+    try:
+        return dialog.exec()
+    finally:
+        dialog.deleteLater()
+
+
+class AtlasImagePopup(QDialog):
+    """Shared nonmodal image zoom for all document/Guide previews."""
+
+    def __init__(self, source: QPixmap, parent: QWidget, *, title: str = "") -> None:
+        super().__init__(parent, Qt.Popup)
+        self.setObjectName("AtlasDialog")
+        self.setWindowTitle(title or "Image de solution")
+        metrics = UNITY_GUIDE_READING_METRICS_PX
+        margin = metrics["zoom_margin"]
+        root = QVBoxLayout(self)
+        root.setContentsMargins(margin, margin, margin, margin)
+        root.setSpacing(0)
+        image = QLabel()
+        image.setObjectName("QuestSolutionImage")
+        image.setAlignment(Qt.AlignCenter)
+        screen = parent.screen()
+        available = (
+            screen.availableGeometry().size() if screen is not None
+            else QSize(*UNITY_WINDOW_PRESETS_PX["standard"])
+        )
+        max_width = max(
+            metrics["zoom_min_width"],
+            min(metrics["zoom_dialog_width"], available.width() * metrics["zoom_screen_percent"] // 100),
+        )
+        max_height = max(
+            metrics["zoom_min_height"],
+            min(metrics["zoom_dialog_height"], available.height() * metrics["zoom_screen_percent"] // 100),
+        )
+        target = source.size()
+        target.scale(
+            max_width - metrics["zoom_content_inset"],
+            max_height - metrics["zoom_content_inset"],
+            Qt.KeepAspectRatio,
+        )
+        image.setPixmap(source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        root.addWidget(image)
+        self.resize(target.width() + margin * 2, target.height() + margin * 2)
+        center = parent.mapToGlobal(parent.rect().center())
+        self.move(center.x() - self.width() // 2, center.y() - self.height() // 2)
 
 
 class AtlasDialog(QDialog):
