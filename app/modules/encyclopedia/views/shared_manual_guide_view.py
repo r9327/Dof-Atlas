@@ -934,12 +934,33 @@ class SharedGuideManualView(GuideUltimeManualView):
             binding_path=binding_path,
         )
 
-    def _refresh_participants_panel(self) -> None:
-        self._last_participant_source_signature = self._participant_source_signature()
-        clear_unity_widget_layout(self.participants_layout, detach_widgets=False)
+    @staticmethod
+    def _participant_roster_signature(characters) -> tuple:
+        return tuple(
+            (character.key, character.label, getattr(character, "class_key", ""))
+            for character in characters
+        )
+
+    def _refresh_participant_controls(self) -> None:
+        characters = tuple(self.participant_service.available_characters())
+        source = self._participant_source_signature()
+        roster = self._participant_roster_signature(characters)
+        if (source != getattr(self, "_last_participant_source_signature", None)
+                or roster != getattr(self, "_last_participant_roster_signature", None)):
+            self._refresh_participants_panel(characters=characters, source=source)
+        else:
+            self._refresh_participant_progress(characters=characters)
+
+    def _refresh_participants_panel(self, *, characters=None, source=None) -> None:
+        characters = (tuple(self.participant_service.available_characters())
+                      if characters is None else characters)
+        self._last_participant_source_signature = (
+            self._participant_source_signature() if source is None else source
+        )
+        self._last_participant_roster_signature = self._participant_roster_signature(characters)
+        clear_unity_widget_layout(self.participants_layout, detach_widgets=False, hide_widgets=True)
         self._participant_buttons.clear()
         selected = set(self.selected_participant_keys())
-        characters = tuple(self.participant_service.available_characters())
         for character in characters:
             progress = self._participant_progress(character.key)
             button = _ParticipantPortraitButton(
@@ -978,16 +999,29 @@ class SharedGuideManualView(GuideUltimeManualView):
             f"{progress_label} · {status}"
         )
 
-    def _refresh_participant_progress(self) -> None:
-        """Refresh external progress without rebuilding portrait widgets."""
-        for character in self.participant_service.available_characters():
+    def _refresh_participant_progress(self, *, characters=None) -> None:
+        """Refresh saved selection, status and progress without recreating portraits."""
+        if characters is None:
+            characters = self.participant_service.available_characters()
+        selected = set(self.selected_participant_keys())
+        for character in characters:
             button = self._participant_buttons.get(character.key)
             if button is None:
                 continue
+            checked = character.key in selected
+            if button.isChecked() != checked:
+                blocked = button.blockSignals(True)
+                try:
+                    button.setChecked(checked)
+                finally:
+                    button.blockSignals(blocked)
             progress = self._participant_progress(character.key)
             button.set_percent(progress)
             class_label = str(button.property("guideClassLabel") or "")
-            button.setToolTip(self._participant_tooltip(character, class_label, progress))
+            tooltip = self._participant_tooltip(character, class_label, progress)
+            if button.toolTip() != tooltip:
+                button.setToolTip(tooltip)
+        self._sync_compact_action_labels()
 
     def _participant_icon(self, character) -> tuple[str, str]:
         """Render portraits from the verified identity, never a window-name guess."""
@@ -1446,12 +1480,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def refresh(self, *, reset_to_active: bool = False) -> None:
         self.service.reload_progress()
-        if self._participant_source_signature() != getattr(
-            self, "_last_participant_source_signature", None
-        ):
-            self._refresh_participants_panel()
-        else:
-            self._refresh_participant_progress()
+        self._refresh_participant_controls()
         if not self.service.available:
             self.reading_header.set_metric_available("preparation", False)
             self.reading_header.set_metric_available("summary", False)
@@ -1486,10 +1515,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_needs = ()
         self._preparation_preview = ()
         actual_index = self._actual_index_for_participants()
+        self._refresh_participant_controls()
         if actual_index is None:
             # End-of-route and empty-selection transitions must replace the
             # live validation button, not keep its previous checked/label state.
-            self._refresh_participants_panel()
             self._refresh_header()
             self._render_window()
             return
@@ -1497,7 +1526,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         moved = self.view_index == previous and actual_index != previous
         if moved:
             self.view_index = actual_index
-        self._refresh_participants_panel()
         self._refresh_header()
         self._render_window(reset_scroll=moved)
 
@@ -1575,7 +1603,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._preparation_needs = ()
             self._preparation_preview = ()
         super().set_character_key(character_key)
-        self._refresh_participants_panel()
+        self._refresh_participant_controls()
 
     def _validation_status(self, card: dict[str, Any], index: int):
         keys = self._progress_participant_keys()

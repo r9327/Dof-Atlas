@@ -196,7 +196,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         import inspect
         source = inspect.getsource(SharedGuideManualView._refresh_participants_panel)
         self.assertIn(
-            "clear_unity_widget_layout(self.participants_layout, detach_widgets=False)",
+            "clear_unity_widget_layout(self.participants_layout, detach_widgets=False, hide_widgets=True)",
             source,
         )
 

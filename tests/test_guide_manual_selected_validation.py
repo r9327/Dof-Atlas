@@ -324,6 +324,24 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertEqual(portrait.progress, 50)
         self.assertIn("50 %", portrait.toolTip())
 
+    def test_live_validation_and_external_selection_reuse_existing_portraits(self) -> None:
+        self.participants.save_selected_keys(("character:1",))
+        self.view.refresh()
+        portrait = self.view._participant_buttons["character:1"]
+        other = self.view._participant_buttons["character:2"]
+        self.view._page_toggled_for_participants(self.service.cards[0], 0, True)
+        QApplication.processEvents()
+        self.assertIs(self.view._participant_buttons["character:1"], portrait)
+        self.assertEqual(portrait.progress, 50)
+        self.participants.save_selected_keys(("character:2",))
+        self.view.refresh()
+        self.assertIs(self.view._participant_buttons["character:1"], portrait)
+        self.assertIs(self.view._participant_buttons["character:2"], other)
+        self.assertFalse(portrait.isChecked())
+        self.assertTrue(other.isChecked())
+        self.assertTrue(self._check("character:1"))
+        self.assertFalse(self._check("character:2"))
+
     def test_team_progress_counts_shared_sheet_intersection(self) -> None:
         self.participants.save_selected_keys(("character:1", "character:2"))
         first, second = self.service.cards

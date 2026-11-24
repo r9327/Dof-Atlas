@@ -53,6 +53,30 @@ class GuideLibraryHomeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_optional_cover_metadata_missing_is_not_an_invalid_id_or_a_fake_item(self):
+        from unittest.mock import Mock
+        from app.quest_source_index import QuestSourceError
+        from app.modules.encyclopedia.providers.guide_provider import GuideProvider
+        items = Mock()
+        provider = GuideProvider(dofus_item_provider=items)
+        errors = []
+        items.get_by_id.side_effect = QuestSourceError("items.json indisponible")
+        self.assertIsNone(provider._optional_cover_item(42, "illustration_item_id", errors))
+        self.assertIn("non vérifiable", errors[0])
+        self.assertIn("42", errors[0])
+        self.assertNotIn("invalide", errors[0])
+        items.get_by_id.reset_mock()
+        self.assertIsNone(provider._optional_cover_item(None, "reward_item_id", errors))
+        items.get_by_id.assert_not_called()
+        items.get_by_id.side_effect = None
+        items.get_by_id.return_value = None
+        self.assertIsNone(provider._optional_cover_item(43, "reward_item_id", errors))
+        self.assertEqual(errors[-1], "reward_item_id invalide: 43")
+        # Required inventory is not treated as optional artwork.
+        items.get_by_id.side_effect = QuestSourceError("items.json indisponible")
+        with self.assertRaises(QuestSourceError):
+            provider._required_items([{"item_id": 42}])
+
     def test_95_unique_canonical_ids_are_classified_without_playable_routes(self):
         records = load_ganymede_listings()
         ids = [entry.source_id for entry in records]
