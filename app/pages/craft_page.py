@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 from app import local_data_cache
 from app.core.item_artwork import item_with_artwork
 from app.core.craft_selection import (
-    selection_item_id, selection_item_row, iter_selection_item_rows,
+    selection_item_row, selection_quantities,
 )
 from app.constants import (
     CRAFT_SELECTION_FILE,
@@ -1027,17 +1027,14 @@ class CraftPage(QWidget):
                     }
             return
         payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
-        for row in iter_selection_item_rows(payload):
-            ident = selection_item_id(row)
-            if ident is None:
-                continue
+        for ident, quantity in selection_quantities(payload).items():
             try:
                 item = local_data_cache.get_item(ident)
             except Exception:
                 item = None
             if not item:
                 continue
-            self.selection[ident] = {"item": item, "quantity": max(1, int(row.get("quantity") or 1))}
+            self.selection[ident] = {"item": item, "quantity": quantity}
 
     def load_leveling_guides(self) -> None:
         payload = self.preload.get("guides")

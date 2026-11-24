@@ -43,6 +43,23 @@ class OwnedItemsNormalizationTests(unittest.TestCase):
                 {"item_id": 12, "quantity": 9},
             ]})
 
+    def test_replacing_total_collapses_duplicate_rows_without_losing_other_items(self):
+        from app.core.craft_selection import replace_selection_quantity, selection_quantities
+        payload = {"items": [
+            {"item_id": 8, "quantity": 2, "custom": "keep"},
+            {"item_id": 12, "quantity": 9},
+            {"ankama_id": 8, "quantity": 3},
+        ]}
+        self.assertEqual(selection_quantities(payload), {8: 5, 12: 9})
+        updated = replace_selection_quantity(payload, 8, "Cawotte", 4)
+        self.assertEqual(selection_quantities(updated), {8: 4, 12: 9})
+        self.assertEqual(updated["items"][0]["custom"], "keep")
+        self.assertEqual(selection_quantities(
+            replace_selection_quantity(updated, 8, "", 0)), {12: 9})
+        legacy = replace_selection_quantity({"8": {"quantity": 2}, "12": {"quantity": 9}},
+                                            8, "Cawotte", 4)
+        self.assertEqual(selection_quantities(legacy), {8: 4, 12: 9})
+
     def test_shared_craft_saved_row_preserves_order_and_alias(self):
         self.assertEqual(
             selection_item_row(42, "Cawotte", 7),

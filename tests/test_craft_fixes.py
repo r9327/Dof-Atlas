@@ -287,6 +287,23 @@ class CraftFixesTests(unittest.TestCase):
         generate.assert_not_called()
         self.assertIs(dialog.call_args.args[1], official)
 
+    def test_craft_and_quest_read_duplicate_quantities_consistently(self):
+        page = self.make_page()
+        page.preload = {}
+        payload = {"items": [
+            {"item_id": 42, "quantity": 2},
+            {"ankama_id": 42, "quantity": 3},
+            {"item_id": 43, "quantity": "invalid"},
+        ]}
+        from app.core.craft_selection import selection_quantities
+        with patch("app.pages.craft_page.read_json", return_value=payload), \
+             patch("app.pages.craft_page.local_data_cache.get_item",
+                   return_value={"ankama_id": 42, "name": "Potion"}) as fetch:
+            page.load_selection()
+        fetch.assert_called_once_with(42)
+        self.assertEqual({key: row["quantity"] for key, row in page.selection.items()},
+                         selection_quantities(payload))
+
     def test_selection_order_and_scroll_survive_append(self):
         page = self.make_page()
         page.resize(1100, 670)

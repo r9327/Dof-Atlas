@@ -28,8 +28,8 @@ from app.core.character_identity import is_character_key
 from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
 from app.core.craft_selection import (
-    selection_item_id as owned_item_identifier, selection_item_row,
-    iter_selection_item_rows,
+    selection_item_id as owned_item_identifier, selection_quantities,
+    replace_selection_quantity,
 )
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -1275,13 +1275,7 @@ def local_image_url(path: str) -> str:
 
 
 def normalize_owned_items(payload: Any) -> dict[int, int]:
-    owned: dict[int, int] = {}
-    for row in iter_selection_item_rows(payload, allow_legacy=True):
-        ident = owned_item_identifier(row)
-        quantity = optional_int(row.get("quantity") or 0)
-        if ident is not None and quantity is not None and ident > 0 and quantity > 0:
-            owned[ident] = owned.get(ident, 0) + quantity
-    return owned
+    return selection_quantities(payload, allow_legacy=True)
 
 
 def load_owned_items(path: Path = CRAFT_SELECTION_FILE) -> dict[int, int]:
@@ -1290,32 +1284,9 @@ def load_owned_items(path: Path = CRAFT_SELECTION_FILE) -> dict[int, int]:
 
 def save_owned_item_quantity(item: dict[str, Any], quantity: int, path: Path = CRAFT_SELECTION_FILE) -> None:
     payload = read_json(path, {"items": []})
-    rows = iter_selection_item_rows(payload)
-    item_id_value = int(item["item_id"])
-    next_rows = []
-    replaced = False
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        ident = owned_item_identifier(row)
-        if ident is None:
-            next_rows.append(row)
-            continue
-        if ident != item_id_value:
-            next_rows.append(row)
-            continue
-        replaced = True
-        if quantity > 0:
-            updated = dict(row)
-            updated.update(selection_item_row(
-                item_id_value, str(item.get("name") or row.get("name") or ""), int(quantity),
-            ))
-            next_rows.append(updated)
-    if quantity > 0 and not replaced:
-        next_rows.append(selection_item_row(
-            item_id_value, str(item.get("name") or ""), int(quantity),
-        ))
-    write_json(path, {"items": next_rows})
+    write_json(path, replace_selection_quantity(
+        payload, int(item["item_id"]), str(item.get("name") or ""), int(quantity),
+    ))
 
 
 def clear_layout(layout: QVBoxLayout) -> None:
