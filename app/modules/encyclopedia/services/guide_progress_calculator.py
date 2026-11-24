@@ -45,32 +45,15 @@ class GuideProgressCalculator:
         character_key: str,
     ) -> ProgressCount:
         """Count the real, unique quest progress represented by a guide block."""
-        quest_steps: list[GuideStep] = []
-        seen: set[int] = set()
-        for step in steps:
-            if (
-                step.step_type != "quest"
-                or step.entity_id is None
-                or not step.counts_for_completion
-            ):
-                continue
-            quest_id = int(step.entity_id)
-            if quest_id in seen:
-                continue
-            seen.add(quest_id)
-            quest_steps.append(step)
-        completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
-        completed = sum(
-            1
-            for step in quest_steps
-            if self.step_completed(
-                guide,
-                step,
-                character_key,
-                completed_quest_ids=completed_quest_ids,
-            )
+        return self.quest_ids_progress(
+            guide.id,
+            (step.entity_id for step in steps if (
+                step.step_type == "quest"
+                and step.entity_id is not None
+                and step.counts_for_completion
+            )),
+            character_key,
         )
-        return ProgressCount(completed, len(quest_steps))
 
     def quest_ids_progress(
         self,
