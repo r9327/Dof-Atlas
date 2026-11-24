@@ -349,21 +349,37 @@ class UnityPaletteTests(unittest.TestCase):
             root / "app/modules/encyclopedia/views/shared_manual_guide_view.py"
         ).read_text(encoding="utf-8")
         gallery = (root / "app/pages/dev_ui_page.py").read_text(encoding="utf-8")
-        for key in (
-            "progress_primary", "progress_secondary",
-            "progress_toggle_width", "progress_toggle_height",
-            "guide_validation_width",
-        ):
-            with self.subTest(token=key):
-                usage = f'UNITY_CONTROL_SIZES_PX["{key}"]'
-                self.assertIn(usage, source)
-                self.assertIn(usage, gallery)
-                self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
-        # Quantity width is now calculated by one shared component,
-        # so neither page is allowed to implement its own fixed value.
         component = (
             root / "app/ui/components.py"
         ).read_text(encoding="utf-8")
+        for key, object_name in (("progress_primary", "GuideGlobalProgress"),
+                                 ("progress_secondary", "GuideCompactPreparationProgress")):
+            with self.subTest(token=key):
+                for consumer in (source, gallery):
+                    calls = [node for node in ast.walk(ast.parse(consumer))
+                             if isinstance(node, ast.Call)
+                             and isinstance(node.func, ast.Name)
+                             and node.func.id == "configure_unity_progress_bar"]
+                    self.assertTrue(any(
+                        {"height_role": key, "object_name": object_name, "expanding": True}.items()
+                        <= {kw.arg: kw.value.value for kw in call.keywords
+                            if isinstance(kw.value, ast.Constant)}.items()
+                        for call in calls
+                    ))
+                self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
+        self.assertIn("bar.setFixedHeight(UNITY_CONTROL_SIZES_PX[height_role])", component)
+        for key in ("progress_toggle_width", "progress_toggle_height"):
+            self.assertIn(f'UNITY_CONTROL_SIZES_PX["{key}"]', component)
+            self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
+        for consumer, names in ((source, ("self.global_details_button", "self.preparation_button")),
+                                (gallery, ("global_toggle", "prep_toggle"))):
+            for name in names:
+                self.assertIn(f"{name}.configure_compact()", consumer)
+        for consumer in (source, gallery):
+            self.assertIn('UNITY_CONTROL_SIZES_PX["guide_validation_width"]', consumer)
+        self.assertGreater(UNITY_CONTROL_SIZES_PX["guide_validation_width"], 0)
+        # Quantity width is now calculated by one shared component,
+        # so neither page is allowed to implement its own fixed value.
         self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_width"]', component)
         self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]', component)
         self.assertIn("fit_unity_number_spinbox(counter)", source)

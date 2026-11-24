@@ -5,6 +5,7 @@ Only validated widget states are treated as shared; prototypes are excluded.
 """
 from __future__ import annotations
 
+import ast
 import inspect
 import re
 import unittest
@@ -209,10 +210,17 @@ class UiUniversalContractTests(unittest.TestCase):
         source = (
             REPO_ROOT / "app/modules/encyclopedia/widgets/filter_panel.py"
         ).read_text(encoding="utf-8")
-        self.assertIn(
-            "from app.ui.components import AtlasComboBox, fit_unity_number_spinbox",
-            source,
-        )
+        imports = {
+            alias.name for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.ImportFrom) and node.module == "app.ui.components"
+            for alias in node.names
+        }
+        self.assertTrue({"AtlasComboBox", "fit_unity_number_spinbox",
+                         "configure_unity_progress_bar"} <= imports)
+        self.assertIn("bar = configure_unity_progress_bar(", source)
+        self.assertIn('object_name="EncyclopediaProgressBar"', source)
+        self.assertIn("bar.setValue(clamped_percent(completed, total))", source)
+        self.assertIn("percent = clamped_percent(completed, total)", source)
         self.assertIn("fit_unity_number_spinbox(self.min_level)", source)
         self.assertIn("fit_unity_number_spinbox(self.max_level)", source)
 

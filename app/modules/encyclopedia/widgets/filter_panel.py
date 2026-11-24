@@ -13,8 +13,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.models.achievement import AchievementCategory
-from app.ui.components import AtlasComboBox, configure_unity_scroll_area, fit_unity_number_spinbox
+from app.ui.components import (
+    AtlasComboBox, configure_unity_progress_bar, configure_unity_scroll_area,
+    fit_unity_number_spinbox,
+)
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 
@@ -108,11 +112,10 @@ class AchievementFilterPanel(QWidget):
             count.setObjectName("MutedLabel")
             row.addWidget(label, 1)
             row.addWidget(count)
-            bar = QProgressBar()
-            bar.setObjectName("EncyclopediaProgressBar")
-            bar.setTextVisible(False)
-            bar.setRange(0, 100)
-            bar.setValue(int(round((completed / total) * 100)) if total else 0)
+            bar = configure_unity_progress_bar(
+                QProgressBar(), object_name="EncyclopediaProgressBar",
+            )
+            bar.setValue(clamped_percent(completed, total))
             layout.addLayout(row)
             layout.addWidget(bar)
             self.category_layout.addWidget(card)
@@ -153,5 +156,5 @@ class AchievementFilterPanel(QWidget):
 
     @staticmethod
     def _progress_text(completed: int, total: int) -> str:
-        percent = int(round((completed / total) * 100)) if total else 0
+        percent = clamped_percent(completed, total)
         return f"{completed}/{total} · {percent}%"

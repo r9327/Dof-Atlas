@@ -1211,16 +1211,41 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertIn('full_suite_executed', enforce)
         self.assertIn('merge_authorized', enforce)
 
-    def test_draft_preflight_blocks_unknown_domain_before_windows(self):
+    def test_draft_preflight_reports_unknown_domain_without_certifying_it(self):
+        import contextlib
+        import io
+        import json
+        import os
+        import tempfile
+        import textwrap
         from pathlib import Path
+
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github/workflows/scoped-pr-ci.yml").read_text(encoding="utf-8")
         plan = workflow.index("--output artifacts/doctor_ci/plan.json --json")
-        closure = workflow.index("PR domain closure BLOCKED:")
-        report = workflow.index("python -m tools.ci_pr_audit")
-        self.assertLess(plan, closure)
-        self.assertLess(closure, report)
-        self.assertIn('domain.get("status") != "READY_TO_EXECUTE"', workflow)
+        start = workflow.index("python - <<'PYDOMAIN'", plan)
+        end = workflow.index("\n          PYDOMAIN", start)
+        report = workflow.index("python -m tools.ci_pr_audit", end)
+        self.assertLess(plan, start)
+        self.assertLess(end, report)
+        script = compile(textwrap.dedent(workflow[start:end].split("\n", 1)[1]),
+                         "<draft-domain-preflight>", "exec")
+        with tempfile.TemporaryDirectory() as directory:
+            summary = Path(directory) / "summary.md"
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}):
+                blocked = {"domain_plan": {"status": "BLOCKED", "unknown_paths": ["unknown.py"],
+                                           "reasons": ["unowned path"]}}
+                with patch.object(Path, "read_text", return_value=json.dumps(blocked)):
+                    with contextlib.redirect_stdout(io.StringIO()) as output:
+                        exec(script, {})
+                    self.assertIn("Draft domain review required", output.getvalue())
+                evidence = summary.read_text(encoding="utf-8")
+                self.assertIn("REVIEW_REQUIRED (not certified)", evidence)
+                self.assertIn("unknown.py", evidence)
+                self.assertIn("Must be resolved before Ready/certification", evidence)
+                with patch.object(Path, "read_text", return_value="{}"):
+                    with self.assertRaises(SystemExit):
+                        exec(script, {})
 
     def test_domain_executor_rejects_failed_skipped_and_missing_tests(self):
         import json

@@ -116,7 +116,10 @@ class LauncherBrandingTests(unittest.TestCase):
                   "app/ui/preload_popup.py").read_text(encoding="utf-8")
         for required in (
             "atlas_application_icon", 'QLabel("Dofus Atlas")',
-            'self.current_label = QLabel(', 'self.progress = QProgressBar()',
+            'self.current_label = QLabel(', 'self.progress = configure_unity_progress_bar(',
+            'QProgressBar(), object_name="PreloadPopupProgress"',
+            'maximum=len(PRELOAD_TASK_ORDER), text_visible=True',
+            'display_format="%p %"',
             "PRELOAD_TASK_ORDER", "self.progress.setValue(completed)",
             "readyForMainWindow.emit()",
         ):
