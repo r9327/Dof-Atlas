@@ -81,6 +81,22 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             parent.deleteLater()
 
+    def test_global_progress_details_reuse_labels_and_clear_removed_characters(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide exemple")
+        try:
+            header.set_global_detail_lines(("Alpha · 0 %", "Beta · 50 %"))
+            label = header.global_details_layout.itemAt(0).widget()
+            header.set_global_detail_lines(("Alpha · 100 %",))
+            self.assertIs(header.global_details_layout.itemAt(0).widget(), label)
+            self.assertEqual(label.text(), "Alpha · 100 %")
+            self.assertEqual(header.global_details_layout.count(), 1)
+            header.set_global_detail_lines(())
+            self.assertIs(header.global_details_layout.itemAt(0).widget(), label)
+            self.assertEqual(label.objectName(), "GuidePreparationEmpty")
+        finally:
+            header.deleteLater()
+
     def test_shared_preparation_notice_survives_drawer_transitions(self) -> None:
         from app.ui.components import AtlasGuideReadingHeader
         header = AtlasGuideReadingHeader("Guide exemple")

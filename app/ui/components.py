@@ -1152,6 +1152,30 @@ class AtlasGuideReadingHeader(QFrame):
         self.global_progress_bar.setValue(max(0, min(completed, total)))
         self.global_progress_label.setText(f"{completed}/{total}" if total > 0 else "—")
 
+    def set_global_detail_lines(self, lines: tuple[str, ...]) -> None:
+        """Reuse the same indexed character lines across progress updates."""
+        role = "GuidePreparationParticipantNeed" if lines else "GuidePreparationEmpty"
+        texts = lines or ("Sélectionne un personnage pour afficher sa progression.",)
+        layout = self.global_details_layout
+        for index, text in enumerate(texts):
+            item = layout.itemAt(index)
+            label = item.widget() if item is not None else None
+            if label is None:
+                label = QLabel()
+                label.setWordWrap(True)
+                layout.addWidget(label)
+            if label.objectName() != role:
+                label.setObjectName(role)
+                refresh_unity_widget_style(label)
+            if label.text() != text:
+                label.setText(text)
+        while layout.count() > len(texts):
+            item = layout.takeAt(layout.count() - 1)
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
+
     def set_optional_sections(
         self, sections: list[tuple[str, str, list[QWidget]]], *, preserve_open: bool = False,
     ) -> None:
@@ -1433,7 +1457,9 @@ class AtlasGuidePreparationRow(QFrame):
             self.status_label.setText(text)
         if self.status_label.toolTip() != tooltip:
             self.status_label.setToolTip(tooltip)
-        set_unity_widget_property(self.status_label, "ready", "true" if self._ready else "false")
+        ready_state = "true" if self._ready else "false"
+        set_unity_widget_property(self.status_label, "ready", ready_state)
+        set_unity_widget_property(self, "ready", ready_state)
 
     def attach_details(self, provider: Callable[[], tuple[str, ...]]) -> QToolButton:
         """Build participant details only on first expansion; preserve them on checks."""

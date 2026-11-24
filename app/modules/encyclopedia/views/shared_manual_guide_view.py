@@ -25,7 +25,7 @@ from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
 from app.modules.encyclopedia.services.guide_preparation_model import (
     PREPARATION_CATEGORIES, TeamPreparationNeed, aggregate_remaining,
-    aggregate_team_remaining, category_for, matches_preparation_category,
+    aggregate_route_team_remaining, category_for, matches_preparation_category,
     preparation_progress_item_key, preparation_ready_key,
     preparation_stock_presentation,
 )
@@ -1066,25 +1066,17 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._update_preparation_progress()
 
     def _refresh_global_details(self) -> None:
-        clear_unity_widget_layout(self.global_details_layout, hide_widgets=True)
         keys = self._progress_participant_keys()
-        if not keys:
-            label = QLabel("Sélectionne un personnage pour afficher sa progression.")
-            label.setObjectName("GuidePreparationEmpty")
-            label.setWordWrap(True)
-            self.global_details_layout.addWidget(label)
-            return
-        names = {row.key: row.label for row in self.participant_service.available_characters()}
+        names = {row.key: row.label for row in self.participant_service.available_characters()} if keys else {}
+        lines = []
         for key in keys:
             percent = self._participant_progress(key)
-            label = QLabel(
+            lines.append(
                 f"{names.get(key, key)} · {percent} %"
                 if percent is not None else
                 f"{names.get(key, key)} · progression inconnue"
             )
-            label.setObjectName("GuidePreparationParticipantNeed")
-            label.setWordWrap(True)
-            self.global_details_layout.addWidget(label)
+        self.reading_header.set_global_detail_lines(tuple(lines))
 
     def _preparation_toggled(self, opened: bool) -> None:
         if not opened or not self.global_details_button.isChecked():
@@ -1148,24 +1140,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_preview = ()
         sections_getter = getattr(self.service, "manual_sections_for_card", None)
 
-        def needs_for_character(character_key: str):
-            flags = self._completion_flags(character_key)
-            rows = ((card, bool(done)) for card, done in zip(self.service.cards, flags))
-            return aggregate_remaining(
-                rows,
-                sections_for_card=(
-                    lambda card, key=character_key: (
-                        None if "_manual_stage_payload" in card else
-                        card.get("manual_sections", {})
-                        if card.get("_catalog_route_detail_lazy") else
-                        sections_getter(key, card) if callable(sections_getter)
-                        else card.get("manual_sections", {})
-                    )
-                ),
-            )
-
-        self._preparation_needs = aggregate_team_remaining(
-            (key, needs_for_character(key)) for key in participant_keys
+        self._preparation_needs = aggregate_route_team_remaining(
+            self.service.cards,
+            ((key, self._completion_flags(key)) for key in participant_keys),
+            sections_for_character_card=sections_getter,
         )
         self._preparation_loaded = True
         self._update_preparation_progress()

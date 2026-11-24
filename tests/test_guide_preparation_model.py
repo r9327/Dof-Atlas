@@ -13,6 +13,44 @@ from app.modules.encyclopedia.services.guide_preparation_model import (
 
 
 class GuidePreparationModelTests(unittest.TestCase):
+    def test_static_team_preparation_groups_identical_routes_without_merging_identities(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.services import guide_preparation_model as model
+        cards = [
+            {"manual_stage_id": "a", "_catalog_route_detail_lazy": True,
+             "a_preparer": [{"item_id": 42, "name": "Potion", "quantity": 2}]},
+            {"manual_stage_id": "b", "_catalog_route_detail_lazy": True,
+             "a_preparer": [{"item_id": 43, "name": "Clef", "quantity": 1}]},
+        ]
+        def forbidden(*args):
+            self.fail("static route must not load character-dependent sections")
+        with patch.object(model, "aggregate_remaining", wraps=model.aggregate_remaining) as aggregate:
+            needs = model.aggregate_route_team_remaining(
+                cards, (("a", b"\x00\x00"), ("b", b"\x00\x00"), ("c", b"\x01\x00")),
+                sections_for_character_card=forbidden,
+            )
+        self.assertEqual(aggregate.call_count, 2)
+        by_id = {need.item_id: need for need in needs}
+        self.assertEqual(dict(by_id[42].required_by_character), {"a": 2, "b": 2})
+        self.assertEqual(by_id[43].required_total, 3)
+
+    def test_dynamic_preparation_stays_character_specific_despite_same_progress(self):
+        from app.modules.encyclopedia.services import guide_preparation_model as model
+        needs = model.aggregate_route_team_remaining(
+            [{"manual_stage_id": "a"}], (("a", b"\x00"), ("b", b"\x00")),
+            sections_for_character_card=lambda key, card: {"prepare": [
+                {"text": f"Prépare {2 if key == 'a' else 3} × Potion."},
+            ]},
+        )
+        self.assertEqual(dict(needs[0].required_by_character), {"a": 2, "b": 3})
+        self.assertEqual(needs[0].required_total, 5)
+
+    def test_stock_hint_does_not_ask_for_confirmation_after_ready(self):
+        from app.modules.encyclopedia.services.guide_preparation_model import preparation_stock_presentation
+        self.assertEqual(preparation_stock_presentation(2, 2, ready=True),
+                         ("Prêt", "Prêt confirmé"))
+        self.assertIn("brouillon", preparation_stock_presentation(2, 1, ready=True)[1])
+
     def test_normalized_item_names_share_accents_but_keep_unicode_identity(self):
         self.assertEqual(normalized_name("  PÔTION d’ÂME — Épée  "), "potion d ame epee")
         self.assertEqual(normalized_name("  Vœu  +  FÉCA  "), "vœu feca")

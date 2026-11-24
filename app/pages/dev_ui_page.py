@@ -588,10 +588,10 @@ class DevUiPage(QWidget):
         }
         self.preview_header_metrics = {"Préparation": header.preparation_bar, "Sommaire": header.summary_bar}
         self.preview_header_metric_icons = {"Préparation": header.preparation_icon, "Sommaire": header.summary_icon}
-        for index, percent in enumerate((35, 60, 10), start=1):
-            label = QLabel(f"Personnage fictif {index} · {percent} %")
-            label.setObjectName("GuidePreparationParticipantNeed")
-            header.global_details_layout.addWidget(label)
+        header.set_global_detail_lines(tuple(
+            f"Personnage fictif {index} · {percent} %"
+            for index, percent in enumerate((35, 60, 10), start=1)
+        ))
 
         prep_panel = AtlasGuidePreparationPanel(PREPARATION_CATEGORIES)
         materials = prep_panel.content

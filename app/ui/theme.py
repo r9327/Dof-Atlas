@@ -3376,6 +3376,10 @@ QFrame#GuidePreparationRow {
     border-radius: @RADIUS_XS;
 }
 
+QFrame#GuidePreparationRow[ready="true"] {
+    border-color: @GREEN_BORDER;
+}
+
 /* Shared Guide preparation typographic roles, also shown in Dev UI. */
 QLabel#GuidePreparationSummaryTitle {
     color: @GUIDE_PREPARATION_TEXT;

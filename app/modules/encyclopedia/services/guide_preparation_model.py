@@ -110,10 +110,13 @@ def preparation_stock_presentation(
         label = f"{confirmed}/{participants} prêts"
     else:
         label = "À valider"
-    hint = (
-        f"Encore {remaining} à obtenir" if remaining
-        else "Quantité atteinte · coche Prêt pour confirmer"
-    )
+    if ready:
+        hint = "Prêt confirmé"
+        if remaining:
+            hint += f" · brouillon : {remaining} restant(s)"
+    else:
+        hint = (f"Encore {remaining} à obtenir" if remaining
+                else "Quantité atteinte · coche Prêt pour confirmer")
     if participants > 1:
         hint += f" · {confirmed}/{participants} personnages prêts"
     return label, hint
@@ -462,10 +465,53 @@ def aggregate_team_remaining(
     )
 
 
+def aggregate_route_team_remaining(
+    cards, completion_by_character, *, sections_for_character_card=None,
+) -> tuple[TeamPreparationNeed, ...]:
+    """Share static authored preparation for identical remaining routes.
+
+    Character-dependent sections must still be resolved separately. For compact
+    and lazy authored cards, identical completion flags imply identical claims.
+    Keep only one aggregated group's needs alive at a time.
+    """
+    cards = tuple(cards)
+    static = not callable(sections_for_character_card) or all(
+        "_manual_stage_payload" in card or card.get("_catalog_route_detail_lazy")
+        for card in cards
+    )
+    def needs_for(key, flags):
+        if len(flags) != len(cards):
+            raise ValueError("completion flags must cover the entire route")
+        return aggregate_remaining(
+            ((card, bool(done)) for card, done in zip(cards, flags)),
+            sections_for_card=lambda card: (
+                None if "_manual_stage_payload" in card else
+                card.get("manual_sections", {}) if card.get("_catalog_route_detail_lazy") else
+                sections_for_character_card(key, card) if callable(sections_for_character_card) else
+                card.get("manual_sections", {})
+            ),
+        )
+
+    def per_character():
+        if not static:
+            for key, flags in completion_by_character:
+                yield key, needs_for(key, flags)
+            return
+        groups = {}
+        for key, flags in completion_by_character:
+            groups.setdefault(bytes(flags), []).append(key)
+        for flags, keys in groups.items():
+            needs = needs_for(keys[0], flags)
+            for key in keys:
+                yield key, needs
+
+    return aggregate_team_remaining(per_character())
+
+
 __all__ = [
     "PreparationClaim", "PreparationNeed", "card_claims", "aggregate_remaining",
     "PREPARATION_CATEGORIES", "category_for", "matches_preparation_category",
     "preparation_stock_presentation", "item_identity", "normalized_name",
     "TeamPreparationNeed", "preparation_progress_item_key", "preparation_ready_key",
-    "aggregate_team_remaining",
+    "aggregate_team_remaining", "aggregate_route_team_remaining",
 ]
