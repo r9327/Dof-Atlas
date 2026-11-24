@@ -20,7 +20,8 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     extract_dpln_page_v2,
     request_bytes,
 )
-from app.quest_catalog import SENTINEL_COORD, normalize_text, read_json_file, write_json_file
+from app.core.map_coordinates import declared_quest_start
+from app.quest_catalog import normalize_text, read_json_file, write_json_file
 from app.quest_source_index import QuestSources
 
 
@@ -392,7 +393,6 @@ def sample_coverage(
 
 
 
-_LOCAL_START_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]\Z")
 
 
 def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
@@ -502,32 +502,7 @@ def local_start_position_coverage(
             metadata = metadata if isinstance(metadata, dict) else {}
             first = str(launch.get("position") or "").strip()
             second = str(metadata.get("startCoords") or "").strip()
-            declared = [part for part in (first, second) if part]
-            parsed: list[tuple[int, int] | None] = []
-            for part in declared:
-                match = _LOCAL_START_COORD_RE.fullmatch(part)
-                if match is None or any(
-                    len(value.lstrip("-")) > 10 for value in match.groups()
-                ):
-                    parsed.append(None)
-                    continue
-                coordinates = tuple(int(value) for value in match.groups())
-                # The audit must agree with the runtime's game-map contract:
-                # signed 32-bit coordinates excluding the unknown sentinel.
-                parsed.append(
-                    coordinates if all(
-                        SENTINEL_COORD < value < 2**31 for value in coordinates
-                    ) else None
-                )
-            if not declared:
-                status = "NO_DECLARED_START"
-            elif any(coords is None for coords in parsed):
-                status = "INVALID_START_COORDINATES"
-            elif len(set(parsed)) > 1:
-                # Different zero-padding or whitespace is the same location.
-                status = "CONFLICTING_DECLARED_START"
-            else:
-                status = "LOCAL_START_DECLARED"
+            _primary, status, _positions = declared_quest_start(row)
         blocks = (
             row.get("solution_blocks")
             if isinstance(row, dict) and isinstance(row.get("solution_blocks"), list)

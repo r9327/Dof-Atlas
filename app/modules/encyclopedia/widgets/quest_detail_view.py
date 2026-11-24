@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.map_coordinates import declared_quest_start
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     ProgressCount,
@@ -311,25 +312,11 @@ class QuestDetailView(QWidget):
         """Do not mislabel an objective coordinate as a proven quest start."""
         if not position:
             return "Zone de quête"
-        info = quest.source_info if isinstance(quest.source_info, dict) else {}
-        launch = info.get("launch_position")
-        meta = info.get("source_meta")
-        declared = (
-            str(launch.get("position") or "").strip() if isinstance(launch, dict) else "",
-            str(meta.get("startCoords") or "").strip() if isinstance(meta, dict) else "",
-        )
+        _primary, status, source_positions = declared_quest_start(quest.source_info)
         shown = _canonical_source_coordinate(position)
-        source_positions = tuple(
-            _canonical_source_coordinate(value) for value in declared
-        )
         if not shown or shown not in source_positions:
             return "Position d'objectif (départ non confirmé)"
-        # Conflicting or malformed declarations are review evidence, not a
-        # certified quest start. Formatting differences are not conflicts.
-        if (
-            any(value and not source for value, source in zip(declared, source_positions))
-            or len({source for source in source_positions if source}) > 1
-        ):
+        if status != "LOCAL_START_DECLARED":
             return "Départ à vérifier (sources incohérentes)"
         return "Position de lancement (source locale)"
 

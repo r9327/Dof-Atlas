@@ -179,6 +179,27 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "Zone de quête",
         )
 
+    def test_legacy_quest_links_share_strict_bold_coordinate_contract(self) -> None:
+        from PySide6.QtCore import QUrl
+        from app.pages._quests_page_impl import linkify_travel_coordinates, travel_command_from_url
+        from app.core.map_coordinates import declared_quest_start
+
+        self.assertIn('<b><a class="coord" href="atlas-travel:3,-6">[3,-6]</a></b>',
+                      linkify_travel_coordinates("Aller [ 003, -06 ]"))
+        for invalid in ("[-2147483648,2]", "[2147483648,2]", "[" + "9" * 5000 + ",2]"):
+            self.assertNotIn("atlas-travel:", linkify_travel_coordinates(invalid))
+        for invalid in ("atlas-travel:-2147483648,2", "atlas-travel:3,4?other=5,6"):
+            self.assertEqual(travel_command_from_url(QUrl(invalid)), "")
+        self.assertEqual(travel_command_from_url(QUrl("atlas-travel:3,-6")), "/travel 3,-6")
+        self.assertEqual(declared_quest_start({
+            "launch_position": {"position": "[03,4]"},
+            "source_meta": {"startCoords": "[3, 4]"},
+        })[:2], ("[3,4]", "LOCAL_START_DECLARED"))
+        self.assertEqual(declared_quest_start({
+            "launch_position": {"position": "Position inconnue"},
+            "source_meta": {"startCoords": "[3, 4]"},
+        })[:2], ("[3,4]", "INVALID_START_COORDINATES"))
+
     def test_invalid_or_conflicting_local_starts_are_not_verified(self) -> None:
         from app.modules.encyclopedia.services.guide_quest_view_model import (
             quest_start_info,

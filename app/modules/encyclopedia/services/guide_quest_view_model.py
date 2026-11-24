@@ -10,7 +10,7 @@ from typing import Iterable
 from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
-from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, normalize_coordinate_pair
+from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, normalize_coordinate_pair, declared_quest_start
 from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
@@ -718,8 +718,6 @@ def quest_start_info(
     quest: QuestRecord, *, include_map_images: bool = True,
 ) -> QuestStartInfo:
     source_info = getattr(quest, "source_info", {}) or {}
-    launch = source_info.get("launch_position") if isinstance(source_info, dict) else {}
-    launch = launch if isinstance(launch, dict) else {}
     source_meta = source_info.get("source_meta") if isinstance(source_info, dict) else {}
     source_meta = source_meta if isinstance(source_meta, dict) else {}
 
@@ -727,10 +725,7 @@ def quest_start_info(
     # Normalize local source coordinates once: Guide copy links and /travel
     # expect [x,y], regardless of whitespace or zero-padding in the source.
     # A placeholder must not suppress a valid second source or objective hint.
-    position = (
-        _canonical_source_coordinate(launch.get("position"))
-        or _canonical_source_coordinate(source_meta.get("startCoords"))
-    )
+    position, _start_status, _declarations = declared_quest_start(source_info)
     source_zone = clean_text(source_meta.get("zone"))
     zone = next(
         (value for value in quest.zones if source_zone and normalize_text(source_zone) in normalize_text(value)),

@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
+from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
 from app.core.craft_selection import (
     selection_item_id as owned_item_identifier, selection_item_row,
@@ -99,8 +100,7 @@ def _quest_item_row(*args, **kwargs):
     return item_row(*args, **kwargs)
 
 
-TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
-TRAVEL_URL_RE = re.compile(r"(-?\d+)\s*,\s*(-?\d+)")
+TRAVEL_URL_RE = re.compile(r"atlas-travel:(-?\d+),(-?\d+)")
 QUEST_PANEL_ITEM_OBJECTIVE_TYPES = {2, 3, 17}
 KEY_LAST_SELECTED_QUEST_ID = "encyclopedia_last_quest_id"
 MIN_QUEST_SEARCH_CHARS = 5
@@ -1421,10 +1421,10 @@ def linkify_travel_coordinates(value: str) -> str:
     text = escape(str(value or ""))
 
     def replace(match: re.Match[str]) -> str:
-        x = int(match.group(1))
-        y = int(match.group(2))
-        label = escape(match.group(0))
-        return f'<a class="coord" href="atlas-travel:{x},{y}">{label}</a>'
+        coordinates = normalize_coordinate_pair(*match.groups())
+        if coordinates is None:
+            return match.group(0)
+        return f'<b><a class="coord" href="atlas-travel:{coordinates}">[{coordinates}]</a></b>'
 
     return TRAVEL_COORD_RE.sub(replace, text)
 
@@ -1433,7 +1433,8 @@ def travel_command_from_url(url: QUrl) -> str:
     text = url.toString()
     if url.scheme() != "atlas-travel":
         return ""
-    match = TRAVEL_URL_RE.search(text)
+    match = TRAVEL_URL_RE.fullmatch(text)
     if not match:
         return ""
-    return f"/travel {int(match.group(1))},{int(match.group(2))}"
+    coordinates = normalize_coordinate_pair(*match.groups())
+    return f"/travel {coordinates}" if coordinates is not None else ""

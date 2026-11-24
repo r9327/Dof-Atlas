@@ -32,7 +32,7 @@ class QuestSearchFieldsTests(unittest.TestCase):
         from app.pages._quests_page_impl import QuestsPage
         from unittest.mock import Mock
         page = SimpleNamespace(
-            search=SimpleNamespace(text=lambda: "test"),
+            search=SimpleNamespace(text=lambda: "quête test"),
             catalog=SimpleNamespace(quests=[SimpleNamespace(id=1)]),
             _matches_search_tokens=lambda quest, tokens: True,
             _matches_current_mode=lambda quest: True,
