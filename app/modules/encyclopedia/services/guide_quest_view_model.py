@@ -784,9 +784,11 @@ def _explicit_start_map_paths(source_meta: dict[str, object]) -> tuple[str, ...]
     return tuple(paths)
 
 
-def quest_solution_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
+def quest_solution_steps(
+    quest: QuestRecord, *, prefer_source: bool = True,
+) -> tuple[SolutionStep, ...]:
     rows: list[SolutionStep] = []
-    source_steps = getattr(quest, "source_solution_steps", None)
+    source_steps = getattr(quest, "source_solution_steps", None) if prefer_source else None
     source_to_local = _verified_source_objective_ids(quest) if source_steps else {}
     for step in source_steps or quest.steps:
         projected_rows = [
@@ -829,10 +831,18 @@ def quest_blocks_have_instructions(blocks: Iterable[DisplaySolutionBlock]) -> bo
 
 def quest_fallback_instruction_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
     """Reuse real local objectives; skip title-only and empty placeholders."""
-    return tuple(
-        step for step in quest_solution_steps(quest)
-        if step.description or any(objective.text for objective in step.objectives)
-    )
+    def meaningful(steps: Iterable[SolutionStep]) -> tuple[SolutionStep, ...]:
+        return tuple(
+            step for step in steps
+            if step.description or any(objective.text for objective in step.objectives)
+        )
+
+    steps = meaningful(quest_solution_steps(quest))
+    if not steps and getattr(quest, "source_solution_steps", None):
+        # An imported array containing only placeholders must not hide the
+        # actual native game objectives. Their IDs and text remain canonical.
+        return meaningful(quest_solution_steps(quest, prefer_source=False))
+    return steps
 
 
 def quest_solution_blocks(quest: QuestRecord) -> tuple[DisplaySolutionBlock, ...]:

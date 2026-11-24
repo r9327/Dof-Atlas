@@ -802,6 +802,21 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                     sheet.deleteLater()
                     self.app.processEvents()
 
+    def test_empty_imported_steps_do_not_hide_native_objectives(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_fallback_instruction_steps,
+        )
+        quest = QuestRecord(
+            id=926, name="Source partielle", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            source_solution_steps=[QuestStep(id=-1, name="Étape 1", description="Qf>=20")],
+            steps=[QuestStep(id=1, name="Étape 1", description="",
+                             objectives=[QuestObjective(id=77, text="Parler au garde", type_id=1)])],
+        )
+        steps = quest_fallback_instruction_steps(quest)
+        self.assertEqual(steps[0].objectives[0].text, "Parler au garde")
+        self.assertEqual(steps[0].objectives[0].objective_id, 77)
+
     def test_native_objectives_remain_visible_with_image_only_document(self) -> None:
         from app.quest_catalog import QuestSolutionBlock
         from app.modules.encyclopedia.views.guides_view import quest_solution_document_widgets
