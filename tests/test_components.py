@@ -474,6 +474,28 @@ class SharedUiComponentsTests(unittest.TestCase):
             root.close()
             root.deleteLater()
 
+    def test_compact_guide_controls_use_indexed_geometry(self) -> None:
+        from app.ui.components import AtlasGuideDisclosure, AtlasGuideParticipantButton
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX as sizes
+
+        participant = AtlasGuideParticipantButton()
+        disclosure = AtlasGuideDisclosure()
+        try:
+            participant.setCheckable(True)
+            participant.configure_compact()
+            disclosure.configure_compact()
+            self.assertTrue(participant.isCheckable())
+            self.assertTrue(disclosure.isCheckable())
+            self.assertEqual(participant.width(), sizes["guide_character_button"])
+            self.assertEqual(participant.height(), sizes["guide_character_button"])
+            self.assertEqual(participant.iconSize().width(), sizes["guide_character_icon"])
+            self.assertEqual(disclosure.width(), sizes["progress_toggle_width"])
+            self.assertEqual(disclosure.height(), sizes["progress_toggle_height"])
+            self.assertEqual(disclosure.iconSize().width(), sizes["progress_toggle_icon"])
+        finally:
+            participant.deleteLater()
+            disclosure.deleteLater()
+
     def test_guide_character_button_compatibility_with_importer(self) -> None:
         from app.ui.components import (
             AtlasGuideParticipantButton, AtlasGuideCharacterButton,
