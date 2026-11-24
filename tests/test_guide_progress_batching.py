@@ -48,6 +48,26 @@ class GuideProgressBatchingTests(unittest.TestCase):
         self.assertEqual(_local_trackable_objective_ids(quest), expected)
         self.assertEqual(GuideProgressCalculator.trackable_objective_ids(quest), expected)
 
+    def test_empty_progress_does_not_read_persistence(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        quest = QuestRecord(
+            id=303, name="Vide", category="Tests",
+            level_min=1, level_max=1, start_criterion="", steps=[],
+        )
+        probe = Mock()
+        calculator = GuideProgressCalculator(probe, Mock(), Mock(), {303: quest})
+        guide = SimpleNamespace(id="empty")
+        for result in (
+            calculator.quest_ids_progress("empty", (), "character:1"),
+            calculator.steps_progress(guide, (), "character:1"),
+            calculator.quest_steps_progress(guide, (), "character:1"),
+            calculator.quest_progress(quest, "character:1"),
+        ):
+            self.assertEqual((result.completed, result.total), (0, 0))
+        self.assertEqual(probe.mock_calls, [])
+
     def test_quest_progress_reads_completed_objectives_once(self) -> None:
         quest = QuestRecord(
             id=101,

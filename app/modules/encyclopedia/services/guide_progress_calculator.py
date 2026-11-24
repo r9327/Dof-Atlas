@@ -71,6 +71,8 @@ class GuideProgressCalculator:
                 continue
             seen.add(quest_id)
             ids.append(quest_id)
+        if not ids:
+            return ProgressCount(0, 0)
 
         completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
         completed = 0
@@ -90,6 +92,8 @@ class GuideProgressCalculator:
 
     def steps_progress(self, guide: Guide, steps: Iterable[GuideStep], character_key: str) -> ProgressCount:
         required = [step for step in steps if step.counts_for_completion]
+        if not required:
+            return ProgressCount(0, 0)
         completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
         completed = sum(
             1
@@ -111,6 +115,8 @@ class GuideProgressCalculator:
         quest_completed: bool | None = None,
     ) -> ProgressCount:
         objective_ids = self._trackable_ids_for(quest)
+        if not objective_ids:
+            return ProgressCount(0, 0)
         if quest_completed is None:
             quest_completed = self.quest_progress_service.is_quest_completed(character_key, quest.id)
         if quest_completed:

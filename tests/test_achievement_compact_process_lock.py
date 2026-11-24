@@ -84,6 +84,40 @@ class SharedSuccessCacheLockTests(unittest.TestCase):
             with _achievement_compact_write_lock(cache, timeout_seconds=1):
                 self.assertTrue(cache.with_suffix(".jsonl.lock").is_file())
 
+    def test_non_owner_release_cannot_unlock_shared_resource(self) -> None:
+        from threading import Thread
+        from app.core.progress_coordinator import (
+            InterProcessResourceLock, ProgressLockTimeoutError,
+        )
+
+        with tempfile.TemporaryDirectory(prefix="atlas-lock-owner-") as directory:
+            resource = Path(directory) / "progress.json"
+            lock = InterProcessResourceLock(resource, timeout=0.1)
+            errors = []
+
+            def invalid_release():
+                try:
+                    lock.release()
+                except RuntimeError as exc:
+                    errors.append(str(exc))
+
+            with lock:
+                with lock:
+                    worker = Thread(target=invalid_release)
+                    worker.start()
+                    worker.join(timeout=2)
+                    self.assertFalse(worker.is_alive())
+                    self.assertEqual(len(errors), 1)
+                    self.assertIn("another thread", errors[0])
+                    with self.assertRaises(ProgressLockTimeoutError):
+                        with InterProcessResourceLock(resource, timeout=0.1):
+                            self.fail("Non-owner released the OS lock")
+                with self.assertRaises(ProgressLockTimeoutError):
+                    with InterProcessResourceLock(resource, timeout=0.1):
+                        self.fail("Non-owner corrupted the reentrant lock depth")
+            with InterProcessResourceLock(resource, timeout=0.1):
+                self.assertTrue(lock.lock_path.is_file())
+
     def test_cache_and_progress_paths_share_exclusive_os_lock(self) -> None:
         from app.core.progress_coordinator import (
             InterProcessResourceLock, ProgressLockTimeoutError,

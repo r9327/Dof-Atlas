@@ -15,8 +15,11 @@ def derive_completion_state(
     character: Mapping[str, Any],
 ) -> tuple[frozenset[int], dict[int, frozenset[int]]]:
     """Merge manual and derived achievement completion into the runtime state."""
-    completed = set(valid_int_ids(character.get("completed_achievements", [])))
-    completed.update(valid_int_ids(character.get("auto_completed_achievements", [])))
+    completed: set[int] = set()
+    for field in ("completed_achievements", "auto_completed_achievements"):
+        rows = character.get(field, [])
+        if isinstance(rows, list):
+            completed.update(valid_int_ids(rows))
 
     objectives: dict[int, set[int]] = {}
     for field in ("completed_objectives", "auto_completed_objectives"):

@@ -34,6 +34,7 @@ class InterProcessResourceLock:
         self.timeout = float(timeout)
         self._thread_lock = threading.RLock()
         self._depth = 0
+        self._owner_thread_id: int | None = None
         self._handle: BinaryIO | None = None
 
     def __enter__(self) -> InterProcessResourceLock:
@@ -67,6 +68,7 @@ class InterProcessResourceLock:
                         raise self._timeout_error() from exc
                     sleep(min(LOCK_RETRY_SECONDS, max(0.0, deadline - monotonic())))
             self._handle = handle
+            self._owner_thread_id = threading.get_ident()
             self._depth = 1
         except BaseException:
             if handle is not None:
@@ -77,11 +79,14 @@ class InterProcessResourceLock:
     def release(self) -> None:
         if self._depth <= 0:
             raise RuntimeError("cannot release an un-acquired persistence lock")
+        if self._owner_thread_id != threading.get_ident():
+            raise RuntimeError("cannot release a persistence lock owned by another thread")
         self._depth -= 1
         try:
             if self._depth == 0:
                 handle = self._handle
                 self._handle = None
+                self._owner_thread_id = None
                 if handle is None:
                     raise RuntimeError("persistence lock handle is missing")
                 try:

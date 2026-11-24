@@ -111,6 +111,18 @@ class AchievementProgressLogicTests(unittest.TestCase):
         self.assertEqual(completed, frozenset({1, 10, 20}))
         self.assertEqual(objectives, {9: frozenset({1, 2})})
 
+    def test_invalid_completion_containers_do_not_create_ids_or_crash(self) -> None:
+        for invalid in (None, 42, "123", {"99": True}, True):
+            for field, valid_field in (
+                ("completed_achievements", "auto_completed_achievements"),
+                ("auto_completed_achievements", "completed_achievements"),
+            ):
+                with self.subTest(invalid=invalid, field=field):
+                    character = {field: invalid, valid_field: [7, "8"]}
+                    self.assertEqual(derive_completion_state(character),
+                                     (frozenset({7, 8}), {}))
+                    self.assertIs(character[field], invalid)
+
     def test_ignores_malformed_objective_containers_without_mutating_input(self) -> None:
         character = {
             "completed_achievements": [],
