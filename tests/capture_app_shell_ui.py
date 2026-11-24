@@ -44,6 +44,7 @@ def capture(output: Path) -> dict[str, object]:
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import QApplication, QCalendarWidget, QLabel
     from app.ui.unity_skin import register_unity_fonts
+    from app.services.almanax_service import AlmanaxDataService
     from app.quest_catalog import QuestCatalog
     from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
     from app.modules.encyclopedia.providers.guide_provider import GuideProvider
@@ -74,6 +75,12 @@ def capture(output: Path) -> dict[str, object]:
         ),
         "screenshots": [],
     }
+    def unavailable_almanax_day(service, day_key: str, *, refresh: bool = False) -> bool:
+        # Deliver a deterministic offline response through the real Qt signal.
+        # No network access, cache hits or invented offering data in captures.
+        service.dayUnavailable.emit(day_key, "offline capture fixture")
+        return True
+
     with tempfile.TemporaryDirectory() as tmp:
         # Scan Monde initializes a writable SQLite/WAL database. Redirect it
         # before constructing AtlasWindow so a visual fixture never mutates
@@ -102,6 +109,8 @@ def capture(output: Path) -> dict[str, object]:
         owned_items_path.write_text(json.dumps({"items": []}), encoding="utf-8")
         with (
             patch.object(atlas_main, "PROFILE_FILE", profile_path),
+            patch.object(AlmanaxDataService, "_load_cache", return_value=None),
+            patch.object(AlmanaxDataService, "request_day", autospec=True, side_effect=unavailable_almanax_day),
             patch.object(atlas_main.AtlasWindow, "start_startup_preload_sequence", return_value=None),
             patch.object(atlas_main.AtlasWindow, "_start_post_preload_services", return_value=None),
             patch.object(atlas_main.AtlasWindow, "setup_tray", return_value=None),
@@ -226,9 +235,11 @@ def capture(output: Path) -> dict[str, object]:
                                 QCalendarWidget, "AlmanaxCalendar"
                             )
                             label = page.findChild(QLabel, "AlmanaxSelectedDate")
-                            unavailable = page.findChild(QLabel, "AlmanaxUnavailable")
+                            detail = page.findChild(QLabel, "AlmanaxDayDetails")
+                            badge = page.findChild(QLabel, "StatusBadge")
+                            icon = page.findChild(QLabel, "AlmanaxOfferingIcon")
                             breadcrumb = page.findChild(QLabel, "GuideBreadcrumbCurrent")
-                            if not calendar or not label or not unavailable or not breadcrumb:
+                            if any(widget is None for widget in (calendar, label, detail, badge, icon, breadcrumb)):
                                 raise RuntimeError("Almanax calendar/breadcrumb missing")
                             future = QDate.currentDate().addDays(40)
                             calendar.setSelectedDate(future)
@@ -237,7 +248,11 @@ def capture(output: Path) -> dict[str, object]:
                                 raise RuntimeError("Almanax future-day selection failed")
                             if label.text() != future.toString("dddd d MMMM yyyy"):
                                 raise RuntimeError("Almanax selected date is stale")
-                            if "source locale Almanax" not in unavailable.text():
+                            if (
+                                badge.text() != "Données indisponibles"
+                                or "Aucune offrande ni bonus sourcé" not in detail.text()
+                                or not icon.isHidden()
+                            ):
                                 raise RuntimeError("Almanax claims unverified offering data")
                             record["fixture"] = "offline calendar, future selected, 0 game records"
                         if name == "Quetes":

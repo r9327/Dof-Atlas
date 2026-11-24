@@ -66,6 +66,9 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertIn('QDate.currentDate().addDays(40)', source)
         self.assertIn("Almanax future-day selection failed", source)
         self.assertIn("0 game records", source)
+        self.assertIn('QLabel, "AlmanaxDayDetails"', source)
+        self.assertIn("service.dayUnavailable.emit(day_key", source)
+        self.assertNotIn('QLabel, "AlmanaxUnavailable"', source)
 
     def test_real_module_geometry_reads_one_dev_ui_index(self):
         """Preserve original visual sizes while linking primary consumers."""

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 
 from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, configure_unity_progress_bar
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 
@@ -56,10 +56,10 @@ class FeaturedGuideCard(QFrame):
         self.subtitle.setObjectName("FeaturedSubtitle")
         self.subtitle.setWordWrap(False)
         layout.addWidget(self.subtitle)
-        self.progress = QProgressBar()
-        self.progress.setObjectName("GuideFeaturedProgress")
+        self.progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideFeaturedProgress",
+        )
         self.progress.setMaximumHeight(GUIDE_CARD_GEOMETRY["featured_compact_progress_max_height"])
-        self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
         self.open_button = AtlasButton("Ouvrir →")
         self.open_button.setObjectName("FeaturedGuideOpen")
