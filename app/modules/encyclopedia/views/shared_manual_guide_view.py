@@ -1039,11 +1039,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.donut_count_label.hide()
         self.global_progress_bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideGlobalProgress",
+            height_role="progress_primary", expanding=True,
         )
-        self.global_progress_bar.setFixedHeight(
-            UNITY_CONTROL_SIZES_PX["progress_primary"]
-        )
-        self.global_progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.global_progress_label = QLabel("—")
         self.global_progress_label.setObjectName("GuideCompactMetricValue")
         self._metric_columns: dict[str, QVBoxLayout] = {}
@@ -1150,9 +1147,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         preparation_metric.addLayout(caption)
         self.preparation_bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideCompactPreparationProgress",
+            height_role="progress_secondary", expanding=True,
         )
-        self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
-        self.preparation_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         preparation_metric.addWidget(self.preparation_bar)
         drawer = QVBoxLayout()
         drawer.setContentsMargins(0, 0, 0, 0)
