@@ -270,6 +270,9 @@ UNITY_CONTROL_SIZES_PX = {
     "guide_tree_state_width": 18,  # One marker column for every Guide state.
     "progress_primary": 11,
     "progress_secondary": 7,
+    "progress_home_compact": 5,
+    "progress_route": 6,
+    "progress_generated_route": 8,
     "progress_toggle_width": 18,
     "progress_toggle_height": 18,
     "progress_toggle_icon": 14,
