@@ -288,6 +288,36 @@ def _paired_success_comparison(current: dict[str, Any], baseline: dict[str, Any]
     }
 
 
+def _baseline_failure_detail(exc: BaseException) -> str:
+    detail = getattr(exc, "stderr", None)
+    if isinstance(detail, bytes):
+        detail = detail.decode("utf-8", errors="replace")
+    if isinstance(detail, str) and detail.strip():
+        return f"{exc}: {detail.strip()[-2000:]}"
+    return str(exc)
+
+
+def _remove_baseline_worktree(root: Path, base_root: Path, env: dict[str, str]) -> None:
+    """Allow transient Windows file locks to settle, without certifying a leak."""
+    failure: BaseException | None = None
+    for delay in (0.0, 0.25, 1.0, 2.0, 4.0):
+        if delay:
+            time.sleep(delay)
+        try:
+            subprocess.run(
+                ["git", "worktree", "remove", "--force", str(base_root)],
+                cwd=root, env=env, check=True, capture_output=True,
+                text=True, encoding="utf-8", errors="replace", timeout=120,
+            )
+            return
+        except (OSError, subprocess.SubprocessError) as exc:
+            failure = exc
+    assert failure is not None
+    raise ValueError(
+        f"Baseline worktree cleanup failed: {_baseline_failure_detail(failure)}"
+    ) from failure
+
+
 def _same_runner_baseline(root: Path, base_sha: str) -> dict[str, Any]:
     """Use a disposable exact-SHA checkout and the same pinned inputs/Qt."""
     env = _runtime_environment(root)
@@ -295,7 +325,9 @@ def _same_runner_baseline(root: Path, base_sha: str) -> dict[str, Any]:
     # The base subprocess must not import candidate modules via PYTHONPATH.
     env.pop("PYTHONPATH", None)
     env.pop("DOFUS_ATLAS_USER_ROOT", None)
-    with tempfile.TemporaryDirectory(prefix="atlas-perf-") as temp:
+    # Git owns worktree removal. Python's final best-effort temp cleanup must
+    # not replace the actual baseline/cleanup error with an unrelated WinError.
+    with tempfile.TemporaryDirectory(prefix="atlas-perf-", ignore_cleanup_errors=True) as temp:
         base_root = Path(temp) / "base"
         subprocess.run(["git", "worktree", "add", "--detach", str(base_root), base_sha],
                        cwd=root, env=env, check=True, capture_output=True, timeout=180)
@@ -340,10 +372,18 @@ def _same_runner_baseline(root: Path, base_sha: str) -> dict[str, Any]:
             benchmark = result.get("benchmark") or {}
             if result.get("status") != "PASS" or benchmark.get("environment", {}).get("git_head") != base_sha:
                 raise ValueError("Baseline runtime failed or returned a different SHA")
+        except (OSError, ValueError, subprocess.SubprocessError) as original:
+            try:
+                _remove_baseline_worktree(root, base_root, env)
+            except (OSError, ValueError, subprocess.SubprocessError) as cleanup:
+                raise ValueError(
+                    f"Baseline failed: {_baseline_failure_detail(original)}; "
+                    f"cleanup: {_baseline_failure_detail(cleanup)}"
+                ) from original
+            raise
+        else:
+            _remove_baseline_worktree(root, base_root, env)
             return benchmark
-        finally:
-            subprocess.run(["git", "worktree", "remove", "--force", str(base_root)],
-                           cwd=root, env=env, check=True, capture_output=True, timeout=120)
 
 
 def _local_quest_coverage(root: Path) -> dict[str, Any]:
@@ -375,7 +415,8 @@ def run_performance(root: Path, *, include_runtime: bool = True, save: bool = Tr
                 baseline = _same_runner_baseline(root, base_sha)
             except (OSError, ValueError, subprocess.SubprocessError) as exc:
                 payload["same_runner_success"] = {
-                    "status": "UNAVAILABLE", "baseline_sha": base_sha, "reason": str(exc),
+                    "status": "UNAVAILABLE", "baseline_sha": base_sha,
+                    "reason": _baseline_failure_detail(exc),
                 }
         payload['runtime'] = run_runtime_benchmark(root)
         if base_sha:

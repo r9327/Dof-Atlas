@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import subprocess
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -233,6 +235,28 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
 
         self.assertEqual(comparison["status"], "UNAVAILABLE")
         self.assertEqual(comparison["environment_mismatches"], ["platform"])
+
+    def test_baseline_worktree_cleanup_retries_transient_windows_lock(self):
+        from tools.atlas_doctor_lib import perf
+        failure = subprocess.CalledProcessError(
+            1, ["git", "worktree", "remove"], stderr="file is being used"
+        )
+        with patch.object(perf.subprocess, "run", side_effect=[failure, Mock()]) as run, \
+                patch.object(perf.time, "sleep") as sleep:
+            perf._remove_baseline_worktree(Path("candidate"), Path("base"), {})
+        self.assertEqual(run.call_count, 2)
+        sleep.assert_called_once_with(0.25)
+
+    def test_baseline_cleanup_failure_retains_git_diagnostic(self):
+        from tools.atlas_doctor_lib import perf
+        failure = subprocess.CalledProcessError(
+            1, ["git", "worktree", "remove"], stderr="file is being used"
+        )
+        with patch.object(perf.subprocess, "run", side_effect=failure) as run, \
+                patch.object(perf.time, "sleep"):
+            with self.assertRaisesRegex(ValueError, "file is being used"):
+                perf._remove_baseline_worktree(Path("candidate"), Path("base"), {})
+        self.assertEqual(run.call_count, 5)
 
     def test_same_runner_comparison_excludes_changed_detail_probe(self):
         from tools.atlas_doctor_lib.perf import _paired_success_comparison
