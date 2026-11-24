@@ -1001,7 +1001,7 @@ class AtlasGuideReadingHeader(QFrame):
 
     def attach_preparation(self, panel: QWidget) -> None:
         self.preparation_drawer.addWidget(panel)
-        panel.hide()
+        panel.setVisible(self.preparation_button.isChecked())
         self.preparation_button.toggled.connect(panel.setVisible)
 
 

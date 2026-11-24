@@ -1807,6 +1807,7 @@ class GuidesView(QWidget):
             keys,
             available_characters=characters,
             available_characters_provider=self.guide_participant_service.available_characters,
+            guide_title=guide.title, image_path=guide.image_path,
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
         # Keep verified route actions usable as copy-only instructions when
@@ -1815,6 +1816,9 @@ class GuidesView(QWidget):
         panel.travelRequested.connect(self._dispatch_continuous_route_travel)
         self.center_layout.addWidget(panel)
         self._continuous_route_panel = panel
+        # The source reader now owns the real shared title and progress header.
+        # Keep the breadcrumb, not a second copy of the guide title above it.
+        self.detail_header.hide()
         self.detail_header_progress.setVisible(False)
         self.detail_header_done_button.setVisible(False)
 

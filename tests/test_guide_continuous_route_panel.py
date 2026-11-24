@@ -11,8 +11,8 @@ from types import SimpleNamespace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QProgressBar
-from app.ui.components import AtlasGuideDisclosure, AtlasGuideParticipantButton
+from PySide6.QtWidgets import QApplication, QFrame, QProgressBar
+from app.ui.components import AtlasGuideDisclosure, AtlasGuideParticipantButton, AtlasGuideReadingHeader
 
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -167,7 +167,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                         return left, left + widget.width()
                     global_span = edges(self.panel.global_progress_bar)
                     prep_span = edges(self.panel.preparation_bar)
-                    self.assertLess(global_span[1], prep_span[0])
+                    self.assertLessEqual(global_span[0], prep_span[0])
+                    self.assertGreaterEqual(global_span[1], prep_span[1])
                     self.assertGreater(global_span[1] - global_span[0], 0)
                     self.assertGreater(prep_span[1] - prep_span[0], 0)
         finally:
@@ -224,24 +225,20 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         card = self.panel.title_label.parentWidget()
         self.assertEqual(card.objectName(), "GuideContinuousCard")
         header = self.panel.compact_header
-        self.assertIsInstance(header, QFrame)
+        self.assertIsInstance(header, AtlasGuideReadingHeader)
         self.assertEqual(header.objectName(), "GuideCompactHeader")
         self.assertIs(self.panel.position_label.parentWidget(), header)
         self.assertIs(self.panel.participants_button.parentWidget(), header)
-        self.assertIs(self.panel.preparation_toggle.parentWidget(), header)
+        self.assertIs(self.panel.preparation_toggle.parentWidget(), header.global_details_panel)
         self.assertEqual(self.panel.global_progress_bar.objectName(), "GuideGlobalProgress")
         self.assertEqual(self.panel.preparation_bar.objectName(), "GuideCompactPreparationProgress")
         self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
-        self.assertIsInstance(self.panel._metric_grid, QGridLayout)
+        self.assertIs(self.panel.global_progress_bar, header.global_progress_bar)
         self.assertIsInstance(self.panel.participants_button, AtlasGuideParticipantButton)
         self.assertIsNone(header.findChild(QProgressBar, "GuideContinuousRouteProgress"))
         self.assertFalse(hasattr(self.panel, "summary"))
-        grid = self.panel._metric_grid
-        self.assertIsNotNone(grid.itemAtPosition(0, 0).layout())
-        self.assertIsNotNone(grid.itemAtPosition(0, 1).layout())
-        self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
-                      self.panel.preparation_toggle)
-        self.assertIs(grid.itemAtPosition(2, 1).widget(), self.panel.preparation_scroll)
+        self.assertIs(header.preparation_drawer.itemAt(0).widget(), self.panel.preparation_scroll)
+        self.assertIs(self.panel.preparation_bar.parentWidget(), header.global_details_panel)
         self.assertEqual((self.panel.preparation_bar.value(), self.panel.preparation_bar.maximum()), (0, 1))
         self.assertEqual(self.panel.position_label.text(), "FICHE 1")
         self.assertFalse(self.panel._characters_menu.isVisible())
