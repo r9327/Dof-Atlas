@@ -1090,10 +1090,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         title.setObjectName("GuideGlobalProgressTitle")
         overall_caption.addWidget(title)
         self.global_details_button = AtlasGuideDisclosure()
-        self.global_details_button.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
-        )
+        self.global_details_button.configure_compact()
         self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
         self.global_details_button.setAccessibleName("Déplier la progression globale")
         overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
@@ -1137,10 +1134,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
         caption.addWidget(self.preparation_progress_label)
         self.preparation_button = AtlasGuideDisclosure()
-        self.preparation_button.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
-        )
+        self.preparation_button.configure_compact()
         self.preparation_button.setToolTip("Ouvrir Préparation")
         self.preparation_button.setAccessibleName("Afficher Préparation")
         caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
@@ -1237,16 +1231,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         if character_icon.isNull():
             character_icon = _guide_symbol_icon(self.participants_button, "people")
         self.participants_button.setIcon(character_icon)
-        self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.participants_button.configure_compact()
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["guide_character_button"],
-            UNITY_CONTROL_SIZES_PX["guide_character_button"],
-        )
-        self.participants_button.setIconSize(QSize(
-            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
-            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
-        ))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         # One row with Guide title / Overlay / Personnages / Paramètres.
