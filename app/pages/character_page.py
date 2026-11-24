@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -274,34 +272,8 @@ class CharacterPage(_CharacterPage):
     def _character_selector_text(self, character) -> str:
         return str(character.label or "Personnage")
 
-    def _rebuild_character_selector(self) -> None:
-        self.character_selector.blockSignals(True)
-        try:
-            self.character_selector.clear()
-            self.character_selector.setEnabled(bool(self.characters))
-            for character in self.characters:
-                icon_path = self._icon_path(character.label)
-                icon = QIcon(icon_path) if icon_path else QIcon()
-                self.character_selector.addItem(
-                    icon,
-                    self._character_selector_text(character),
-                    character.key,
-                )
-            self._sync_character_selector_selection()
-        finally:
-            self.character_selector.blockSignals(False)
-
-    def _refresh_character_selector_runtime_labels(self) -> None:
-        by_key = {character.key: character for character in self.characters}
-        self.character_selector.blockSignals(True)
-        try:
-            for index in range(self.character_selector.count()):
-                key = str(self.character_selector.itemData(index) or "")
-                character = by_key.get(key)
-                if character is not None:
-                    self.character_selector.setItemText(index, character.label)
-        finally:
-            self.character_selector.blockSignals(False)
+    def _selector_icon_path(self, label: str) -> str:
+        return self._icon_path(label)
 
     @staticmethod
     def _success_text(points) -> str:
@@ -312,66 +284,25 @@ class CharacterPage(_CharacterPage):
         except (TypeError, ValueError, OverflowError):
             return str(points)
 
-    def _render_identity(self, character) -> None:
-        snapshot = self.runtime_state_store.snapshot(self.active_character_key)
-        points = snapshot.achievement_points if snapshot is not None else None
-        level = snapshot.level if snapshot is not None else None
-        points_text = self._success_text(points)
+    def _achievement_text(self, points: int | None) -> str:
+        return self._success_text(points)
 
-        self.achievement_points.setText(points_text)
-        self.character_level.setText(f"Niveau {level}" if level is not None else "")
-        self._render_stats(snapshot)
+    def _stat_text(self, value: int) -> str:
+        return str(value)
 
-        if character is None:
-            self.character_name.setText("Aucun personnage sélectionné")
-            self._set_portrait("")
-            return
-
-        self.character_name.setText(character.label)
-        self._set_portrait(self._visual_path(character.label))
-
-    def _render_stats(self, snapshot) -> None:
-        values = dict(snapshot.stats) if snapshot is not None else {}
-        visible = 0
-        for stat_key, _label_text in CHARACTER_STAT_ROWS:
-            row = self.stat_rows[stat_key]
-            value_label = self.stat_value_labels[stat_key]
-            if stat_key not in values:
-                value_label.setText("")
-                row.hide()
-                continue
-            value_label.setText(str(values[stat_key]))
-            row.show()
-            visible += 1
-
+    def _render_stats(self, snapshot) -> int:
+        visible = super()._render_stats(snapshot)
         self.stats_empty_label.setVisible(visible == 0)
         self.stats_scroll.setVisible(visible > 0)
+        return visible
 
     def _visual_path(self, label: str) -> str:
         # The equipment centre is reserved for the real character skin. A class
         # icon belongs in the selector and must not masquerade as the skin.
         return self._skin_path(label)
 
-    def _set_portrait(self, icon_path: str) -> None:
-        path = Path(icon_path) if icon_path else None
-        if path is None or not path.exists():
-            self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("Skin du personnage\n(à venir)")
-            return
-        pixmap = QPixmap(str(path))
-        if pixmap.isNull():
-            self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("Skin du personnage\n(à venir)")
-            return
-        self.portrait.setText("")
-        self.portrait.setPixmap(
-            pixmap.scaled(
-                self.portrait.maximumWidth() - 12,
-                self.portrait.maximumHeight() - 12,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
-            )
-        )
+    def _portrait_placeholder(self) -> str:
+        return "Skin du personnage\n(à venir)"
 
 
 __all__ = ["CharacterPage"]

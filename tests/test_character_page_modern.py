@@ -29,6 +29,12 @@ class ModernCharacterPageTests(unittest.TestCase):
             path.write_text('{"characters": []}', encoding="utf-8")
             self.assertEqual(CharacterPage._file_stamp(path), resolved_mtime_size_stamp(path))
 
+    def test_live_character_projection_has_one_implementation(self) -> None:
+        from app.pages._character_page_impl import CharacterPage as Base
+        for method in ("_rebuild_character_selector", "_refresh_character_selector_runtime_labels",
+                       "_render_identity", "_set_portrait"):
+            self.assertIs(getattr(CharacterPage, method), getattr(Base, method))
+
     def test_success_point_format_preserves_grouping_and_fallback(self) -> None:
         self.assertEqual(CharacterPage._success_text(12345), "12 345")
         self.assertEqual(CharacterPage._success_text("1234567"), "1 234 567")

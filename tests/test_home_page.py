@@ -29,6 +29,21 @@ class HomeNetworkIndicatorTests(unittest.TestCase):
             path.unlink()
             self.assertEqual(HomePage._progress_file_stamp(path), (0, 0))
 
+    def test_home_uses_canonical_runtime_without_optional_legacy_provider(self) -> None:
+        from unittest.mock import patch
+        page = HomePage()
+        try:
+            page.character_key = "character:42"
+            page.catalog = object()
+            page.guide_provider = None
+            with patch.object(page, "_refresh_rich_progress") as rich, \
+                 patch("app.pages.home_page._persisted_manual_summary") as local:
+                page.refresh_progress()
+                rich.assert_called_once_with()
+                local.assert_not_called()
+        finally:
+            page.deleteLater()
+
     def test_home_tracking_key_preserves_accent_and_hyphen_matching(self) -> None:
         self.assertEqual(HomePage._plain_key("  ÉPÉE – Cawotte  "), "epee – cawotte")
         self.assertEqual(HomePage._plain_key(" Cité d’Astrub - Nord "), "cite d'astrub nord")

@@ -35,7 +35,8 @@ from app.network.character_runtime_state import (
 from app.core.file_stamp import resolved_mtime_size_stamp
 from app.core.numbers import format_grouped_int
 from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
-from app.quest_catalog import QuestCharacter, load_quest_characters
+from app.quest_catalog import QuestCharacter
+from app.pages.quest_character_cache import cached_load_quest_characters as load_quest_characters
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, read_json
 from app.ui.components import AtlasComboBox, configure_unity_scroll_area
@@ -140,6 +141,7 @@ class CharacterPage(QWidget):
         self.characters: tuple[QuestCharacter, ...] = ()
         self._character_list_signature: tuple[object, ...] | None = None
         self._runtime_generation = self.runtime_state_store.generation
+        self._portrait_signature: tuple[object, ...] | None = None
         self._rebuilding_character_order = False
 
         # Network facts arrive on the worker after the page may already be
@@ -400,10 +402,8 @@ class CharacterPage(QWidget):
         )
 
         signature = (
-            self.active_character_key,
             tuple((row.key, row.label, row.connected) for row in self.characters),
             self.character_order_service.load_order(),
-            self._file_stamp(self.profile_path),
             self._file_stamp(self.client_index_path),
             self._file_stamp(self.binding_path),
         )
@@ -441,13 +441,16 @@ class CharacterPage(QWidget):
         points_text = str(points) if points is not None else "—"
         return f"{character.label}  ·  {points_text} succès"
 
+    def _selector_icon_path(self, label: str) -> str:
+        return self._visual_path(label)
+
     def _rebuild_character_selector(self) -> None:
         self.character_selector.blockSignals(True)
         try:
             self.character_selector.clear()
             self.character_selector.setEnabled(bool(self.characters))
             for character in self.characters:
-                visual_path = self._visual_path(character.label)
+                visual_path = self._selector_icon_path(character.label)
                 icon = QIcon(visual_path) if visual_path else QIcon()
                 self.character_selector.addItem(
                     icon,
@@ -618,13 +621,14 @@ class CharacterPage(QWidget):
         if answer == QMessageBox.Yes:
             self.characterDeleteRequested.emit(str(character_key))
 
+    def _achievement_text(self, points: int | None) -> str:
+        return f"{format_grouped_int(points)} points de succès" if points is not None else "— points de succès"
+
     def _render_identity(self, character: QuestCharacter | None) -> None:
         snapshot = self.runtime_state_store.snapshot(self.active_character_key)
         points = snapshot.achievement_points if snapshot is not None else None
         level = snapshot.level if snapshot is not None else None
-        self.achievement_points.setText(
-            f"{format_grouped_int(points)} points de succès" if points is not None else "— points de succès"
-        )
+        self.achievement_points.setText(self._achievement_text(points))
         self.character_level.setText(f"Niveau {level}" if level is not None else "")
         self._render_stats(snapshot)
         if character is None:
@@ -634,8 +638,12 @@ class CharacterPage(QWidget):
         self.character_name.setText(character.label)
         self._set_portrait(self._visual_path(character.label))
 
-    def _render_stats(self, snapshot: CharacterRuntimeSnapshot | None) -> None:
+    def _stat_text(self, value: int) -> str:
+        return format_grouped_int(value)
+
+    def _render_stats(self, snapshot: CharacterRuntimeSnapshot | None) -> int:
         values = dict(snapshot.stats) if snapshot is not None else {}
+        visible = 0
         for stat_key, _label_text in CHARACTER_STAT_ROWS:
             row = self.stat_rows[stat_key]
             value_label = self.stat_value_labels[stat_key]
@@ -643,8 +651,10 @@ class CharacterPage(QWidget):
                 value_label.setText("")
                 row.hide()
                 continue
-            value_label.setText(format_grouped_int(values[stat_key]))
+            value_label.setText(self._stat_text(values[stat_key]))
             row.show()
+            visible += 1
+        return visible
 
     def _skin_path(self, label: str) -> str:
         if self.skin_resolver is None:
@@ -674,26 +684,24 @@ class CharacterPage(QWidget):
     def _visual_path(self, label: str) -> str:
         return self._skin_path(label) or self._icon_path(label)
 
+    def _portrait_placeholder(self) -> str:
+        return "◈"
+
     def _set_portrait(self, icon_path: str) -> None:
         path = Path(icon_path) if icon_path else None
-        if path is None or not path.exists():
-            self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("◈")
+        width = self.portrait.maximumWidth() - 12
+        height = self.portrait.maximumHeight() - 12
+        signature = (self._file_stamp(path) if path is not None else None, width, height)
+        if signature == self._portrait_signature:
             return
-        pixmap = QPixmap(str(path))
+        pixmap = QPixmap(str(path)) if path is not None and path.is_file() else QPixmap()
         if pixmap.isNull():
             self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("◈")
-            return
-        self.portrait.setText("")
-        self.portrait.setPixmap(
-            pixmap.scaled(
-                self.portrait.maximumWidth() - 12,
-                self.portrait.maximumHeight() - 12,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
-            )
-        )
+            self.portrait.setText(self._portrait_placeholder())
+        else:
+            self.portrait.setText("")
+            self.portrait.setPixmap(pixmap.scaled(width, height, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self._portrait_signature = signature
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
