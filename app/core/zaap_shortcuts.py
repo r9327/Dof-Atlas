@@ -50,13 +50,17 @@ def update_zaap_shortcuts_field(path: Path, field: str, value: Any) -> None:
             {},
             lambda raw: None if isinstance(raw, dict) else "Zaap settings root must be an object",
         )
+        if field in payload and payload[field] == value:
+            return
         payload[field] = value
         write_json_atomic(target, payload)
         coordinator.mark_changed()
 
 
-def read_zaap_button_ratios(payload: dict[str, Any] | None = None) -> tuple[float, float] | None:
-    """Preserve the storage reader's non-profile JSON and ratio semantics."""
+def read_zaap_button_ratios(
+    payload: dict[str, Any] | None = None, *, path: Path | None = None,
+) -> tuple[float, float] | None:
+    """Read the same shortcut JSON and ratios for runtime and profile settings."""
     if not isinstance(payload, dict):
-        payload = read_json_resilient(ZAAP_SHORTCUTS_FILE, {})
+        payload = read_json_resilient(ZAAP_SHORTCUTS_FILE if path is None else path, {})
     return zaap_ratios_from_payload(payload) if isinstance(payload, dict) else None
