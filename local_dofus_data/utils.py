@@ -95,10 +95,10 @@ def safe_int(value: Any, default: int | None = None) -> int | None:
         return default
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         try:
             return int(float(value))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return default
 
 
