@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Literal
 
-from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QObject, QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPen, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QCalendarWidget,
@@ -535,14 +535,15 @@ def atlas_guide_arrow_icon(direction: Literal["up", "down", "left", "right"]) ->
 
 
 def atlas_guide_symbol_icon(
-    widget: QWidget, symbol: str, *, size: int = 18, color: str | None = None
+    widget: QWidget, symbol: str, *, size: int | None = None, color: str | None = None
 ) -> QIcon:
     """Share tiny semantic Qt icons instead of repainting one per row."""
     # Retain the historical widget-taking API; this artwork is independent of
     # widget identity and must not pin deleted QObjects in a global cache.
     from app.ui.theme import PALETTE
 
-    return _cached_atlas_guide_symbol_icon(symbol, size, color or PALETTE["TEXT_SOFT"])
+    extent = max(1, int(size if size is not None else UNITY_CONTROL_SIZES_PX["guide_symbol_icon"]))
+    return _cached_atlas_guide_symbol_icon(symbol, extent, color or PALETTE["TEXT_SOFT"])
 
 
 @lru_cache(maxsize=32)
@@ -552,6 +553,7 @@ def _cached_atlas_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
+    painter.scale(size / 18.0, size / 18.0)
     pen = QPen(QColor(color), 1.6)
     pen.setCapStyle(Qt.RoundCap)
     pen.setJoinStyle(Qt.RoundJoin)
@@ -579,7 +581,7 @@ def _cached_atlas_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon
         painter.drawPolyline([QPointF(9, 4), QPointF(12, 2.5), QPointF(16, 3.5), QPointF(16, 14), QPointF(12, 13), QPointF(9, 15)])
         painter.drawLine(QPointF(9, 4), QPointF(9, 15))
     elif symbol == "settings":
-        center = QPointF(size / 2, size / 2)
+        center = QPointF(9, 9)
         painter.drawEllipse(center, 3.0, 3.0)
         painter.drawEllipse(center, 5.6, 5.6)
         for dx, dy in ((0, -7), (0, 7), (-7, 0), (7, 0), (-5, -5), (5, 5), (-5, 5), (5, -5)):
@@ -638,16 +640,18 @@ def _cached_atlas_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon
 def atlas_quest_shortcut_icon() -> QIcon:
     from app.ui.theme import PALETTE
 
-    return _cached_atlas_quest_shortcut_icon(PALETTE["TEXT_SOFT"])
+    size = max(1, int(UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_icon"]))
+    return _cached_atlas_quest_shortcut_icon(PALETTE["TEXT_SOFT"], size)
 
 
 @lru_cache(maxsize=8)
-def _cached_atlas_quest_shortcut_icon(color: str) -> QIcon:
+def _cached_atlas_quest_shortcut_icon(color: str, size: int) -> QIcon:
     """Draw a theme-coloured quest page instead of a platform file icon."""
-    pixmap = QPixmap(UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_icon"], UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_icon"])
+    pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
+    painter.scale(size / 18.0, size / 18.0)
     pen = QPen(QColor(color), 1.5)
     pen.setCapStyle(Qt.RoundCap)
     pen.setJoinStyle(Qt.RoundJoin)
@@ -899,6 +903,13 @@ def present_transient_dialog(
             on_finished(result)
 
     dialog.finished.connect(finished)
+    # Parentless windows (notably the always-on-top Craft resources) must
+    # retain their independent window flags but not outlive the owning page.
+    if isinstance(owner, QObject) and dialog.parent() is None:
+        owner.destroyed.connect(dialog.deleteLater)
+    dialog.destroyed.connect(
+        lambda *_args: clear_current_dialog_reference(owner, attribute, dialog)
+    )
     release_transient_dialog(dialog)
     if mode == "open":
         dialog.open()
@@ -931,29 +942,33 @@ class AtlasImagePopup(QDialog):
         image.setObjectName("QuestSolutionImage")
         image.setAlignment(Qt.AlignCenter)
         screen = parent.screen()
-        available = (
-            screen.availableGeometry().size() if screen is not None
-            else QSize(*UNITY_WINDOW_PRESETS_PX["standard"])
-        )
-        max_width = max(
+        bounds = screen.availableGeometry() if screen is not None else None
+        available = bounds.size() if bounds is not None else QSize(*UNITY_WINDOW_PRESETS_PX["standard"])
+        max_width = min(available.width(), max(
             metrics["zoom_min_width"],
             min(metrics["zoom_dialog_width"], available.width() * metrics["zoom_screen_percent"] // 100),
-        )
-        max_height = max(
+        ))
+        max_height = min(available.height(), max(
             metrics["zoom_min_height"],
             min(metrics["zoom_dialog_height"], available.height() * metrics["zoom_screen_percent"] // 100),
-        )
+        ))
+        inset = max(metrics["zoom_content_inset"], margin * 2)
         target = source.size()
         target.scale(
-            max_width - metrics["zoom_content_inset"],
-            max_height - metrics["zoom_content_inset"],
+            max(1, max_width - inset),
+            max(1, max_height - inset),
             Qt.KeepAspectRatio,
         )
         image.setPixmap(source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         root.addWidget(image)
         self.resize(target.width() + margin * 2, target.height() + margin * 2)
         center = parent.mapToGlobal(parent.rect().center())
-        self.move(center.x() - self.width() // 2, center.y() - self.height() // 2)
+        x = center.x() - self.width() // 2
+        y = center.y() - self.height() // 2
+        if bounds is not None:
+            x = max(bounds.left(), min(x, bounds.right() - self.width() + 1))
+            y = max(bounds.top(), min(y, bounds.bottom() - self.height() + 1))
+        self.move(x, y)
 
 
 class AtlasDialog(QDialog):

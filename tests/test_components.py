@@ -59,6 +59,28 @@ class SharedUiComponentsTests(unittest.TestCase):
             portrait.deleteLater()
             donut.deleteLater()
 
+    def test_shared_symbol_icons_scale_without_clipping(self) -> None:
+        from app.ui.components import atlas_guide_symbol_icon, atlas_quest_shortcut_icon
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        parent = QWidget()
+        try:
+            for size in (12, 18, 36):
+                pixmap = atlas_guide_symbol_icon(parent, "cube", size=size).pixmap(size, size)
+                image = pixmap.toImage()
+                self.assertEqual((image.width(), image.height()), (size, size))
+                # The icon should have artwork in both halves, not be clipped
+                # at the former fixed 18-pixel coordinates.
+                for left, right in ((0, size // 2), (size // 2, size)):
+                    self.assertTrue(any(
+                        image.pixelColor(x, y).alpha() > 0
+                        for x in range(left, right) for y in range(size)
+                    ))
+            with patch.dict(UNITY_CONTROL_SIZES_PX, {"guide_quest_shortcut_icon": 30}):
+                self.assertEqual(atlas_quest_shortcut_icon().availableSizes()[0].width(), 30)
+        finally:
+            parent.deleteLater()
+
     def test_shared_dialog_add_header_preserves_single_indexed_widget(self) -> None:
         from app.ui.components import AtlasDialogHeader
 
@@ -227,11 +249,29 @@ class SharedUiComponentsTests(unittest.TestCase):
         QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
         self.assertFalse(isValid(second))
 
+    def test_parentless_transient_is_disposed_with_its_owner(self) -> None:
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+        from app.ui.components import present_transient_dialog
+
+        owner = QWidget()
+        owner.active = None
+        dialog = QDialog()
+        present_transient_dialog(owner, "active", dialog)
+        owner.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(dialog))
+
     def test_shared_image_popup_keeps_popup_flags_and_indexed_zoom(self) -> None:
         from PySide6.QtGui import QPixmap
         from PySide6.QtWidgets import QLabel
         from app.ui.components import AtlasImagePopup
         parent = QWidget()
+        screen = parent.screen()
+        if screen is not None:
+            parent.move(screen.availableGeometry().bottomRight())
         source = QPixmap(200, 100)
         source.fill(Qt.transparent)
         dialog = AtlasImagePopup(source, parent, title="Agrandissement")
@@ -243,6 +283,8 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertIsNotNone(image)
             self.assertFalse(image.pixmap().isNull())
             self.assertLessEqual(abs(image.pixmap().width() - 2 * image.pixmap().height()), 1)
+            if screen is not None:
+                self.assertTrue(screen.availableGeometry().contains(dialog.geometry()))
         finally:
             dialog.deleteLater()
             parent.deleteLater()

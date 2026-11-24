@@ -6,8 +6,8 @@ import re
 from typing import Any
 from urllib.parse import quote, unquote
 
-from PySide6.QtCore import QSize, QTimer, Signal, Qt
-from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
