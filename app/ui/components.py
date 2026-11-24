@@ -957,6 +957,13 @@ class AtlasGuideReadingHeader(QFrame):
         right.addLayout(title_row)
         self.title_row = title_row
         self.content_layout = right
+        self._optional_sections = QWidget(self)
+        self._optional_sections_layout = QVBoxLayout(self._optional_sections)
+        self._optional_sections_layout.setContentsMargins(0, 0, 0, 0)
+        self._optional_sections_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        self._optional_sections.hide()
+        right.addWidget(self._optional_sections)
+        self.optional_section_buttons: dict[str, AtlasButton] = {}
 
         # Global progress spans the two independently expandable lower metrics.
         overall_caption = QHBoxLayout()
@@ -1131,6 +1138,62 @@ class AtlasGuideReadingHeader(QFrame):
         self.global_progress_bar.setRange(0, max(1, total))
         self.global_progress_bar.setValue(max(0, min(completed, total)))
         self.global_progress_label.setText(f"{completed}/{total}" if total > 0 else "—")
+
+    def set_optional_sections(
+        self, sections: list[tuple[str, str, list[QWidget]]], *, preserve_open: bool = False,
+    ) -> None:
+        """Shared independent header drawers. Empty content owns no command."""
+        opened = {
+            name for name, button in self.optional_section_buttons.items()
+            if preserve_open and button.isChecked()
+        }
+        clear_unity_widget_layout(self._optional_sections_layout, recursive=True)
+        self.optional_section_buttons.clear()
+        available = [(name, count, rows) for name, count, rows in sections if rows]
+        self._optional_sections.setVisible(bool(available))
+        if not available:
+            return
+        commands = QHBoxLayout()
+        commands.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+        self._optional_sections_layout.addLayout(commands)
+        for name, count, rows in available:
+            button = AtlasButton(f"{name}  {count}" if count else name)
+            button.setCheckable(True)
+            button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            button.setAccessibleName(name)
+            commands.addWidget(button)
+            self.optional_section_buttons[name] = button
+            panel = configure_unity_scroll_area(QScrollArea(), borderless=True)
+            content = QWidget()
+            body = QVBoxLayout(content)
+            body.setContentsMargins(0, 0, 0, 0)
+            body.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+            for row in rows:
+                body.addWidget(row)
+            panel.setWidget(content)
+            panel.setFixedHeight(min(
+                UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
+                max(UNITY_SIZES_PX["control_compact"], body.sizeHint().height()),
+            ))
+            self._optional_sections_layout.addWidget(panel)
+
+            def sync(checked: bool, control=button, drawer=panel, label=name) -> None:
+                control.setIcon(atlas_guide_arrow_icon("up" if checked else "down"))
+                control.setToolTip(("Masquer " if checked else "Afficher ") + label)
+                drawer.setVisible(checked)
+
+            button.toggled.connect(sync)
+            button.setChecked(name in opened)
+            sync(button.isChecked())
+        commands.addStretch(1)
+
+    def set_metric_available(self, metric: str, available: bool) -> None:
+        """Hide empty compact metrics and close their drawer before reusing it."""
+        column = getattr(self, f"{metric}_column")
+        button = getattr(self, f"{metric}_button")
+        if not available:
+            button.setChecked(False)
+        column.setVisible(available)
 
     def set_summary_provider(self, provider: Callable[[], tuple[str, ...]]) -> None:
         self._summary_provider = provider

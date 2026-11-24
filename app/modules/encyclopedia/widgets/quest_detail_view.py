@@ -38,7 +38,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton, AtlasGuideReadingHeader, AtlasPanelToggle, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasGuideReadingHeader, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
@@ -104,7 +104,6 @@ class QuestDetailView(QWidget):
         self.navigate_entity_callback = navigate_entity
         self.current_quest_id: int | None = None
         self.context = QuestViewContext()
-        self.prerequisite_expanded: dict[tuple[str, int], bool] = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(QUEST_DETAIL_GEOMETRY["root_spacing"])
@@ -120,27 +119,14 @@ class QuestDetailView(QWidget):
         )
         self.done_button.clicked.connect(self.toggle_completed)
         header_layout.addWidget(self.done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
-        # The same Unity control serves Quêtes and the shared Guide quest sheet.
-        self._right_panel_collapsed = False
-        self._right_panel_saved_width = QUEST_DETAIL_GEOMETRY["saved_right_width"]
-        self._right_panel_scroll_position = 0
-        self.right_panel_toggle = AtlasPanelToggle()
-        self.right_panel_toggle.clicked.connect(self.toggle_right_panel)
-        header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
         root.addWidget(self.header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
         self.splitter.setObjectName("QuestDetailSplitter")
         self.center_panel, self.center_scroll, self.center_layout = self._build_column("GuideCenterPanel")
-        self.right_panel, self.right_scroll, self.right_layout = self._build_column("GuideRightPanel")
         self.center_panel.setMinimumWidth(QUEST_DETAIL_GEOMETRY["center_min_width"])
-        self.right_panel.setMinimumWidth(QUEST_DETAIL_GEOMETRY["right_min_width"])
-        self.right_panel.setMaximumWidth(QUEST_DETAIL_GEOMETRY["right_max_width"])
         self.splitter.addWidget(self.center_panel)
-        self.splitter.addWidget(self.right_panel)
-        self.splitter.setStretchFactor(0, 70)
-        self.splitter.setStretchFactor(1, 30)
-        self.splitter.setSizes(list(QUEST_DETAIL_GEOMETRY["initial_splitter_sizes"]))
+        self.splitter.setStretchFactor(0, 1)
         root.addWidget(self.splitter, 1)
 
         # Keep the empty Quests screen lightweight. Importing the Guide view here
@@ -169,35 +155,6 @@ class QuestDetailView(QWidget):
         scroll.setWidget(content)
         panel_root.addWidget(scroll, 1)
         return panel, scroll, layout
-
-    def toggle_right_panel(self) -> None:
-        self.set_right_panel_collapsed(not self._right_panel_collapsed)
-
-    def set_right_panel_collapsed(self, collapsed: bool) -> None:
-        """Hide only the information panel, keeping the current quest and scroll."""
-        collapsed = bool(collapsed)
-        if collapsed == self._right_panel_collapsed:
-            return
-        if collapsed:
-            sizes = self.splitter.sizes()
-            if len(sizes) == 2 and sizes[1] >= self.right_panel.minimumWidth():
-                self._right_panel_saved_width = min(self.right_panel.maximumWidth(), sizes[1])
-            self._right_panel_scroll_position = self.right_scroll.verticalScrollBar().value()
-
-        self._right_panel_collapsed = collapsed
-        self.right_panel.setVisible(not collapsed)
-        self.right_panel_toggle.set_collapsed(collapsed)
-
-        if not collapsed:
-            width = max(self.splitter.width(), sum(self.splitter.sizes()))
-            right = max(
-                self.right_panel.minimumWidth(),
-                min(self.right_panel.maximumWidth(), self._right_panel_saved_width),
-            )
-            if width > 0:
-                self.splitter.setSizes([max(self.center_panel.minimumWidth(), width - right), right])
-            bar = self.right_scroll.verticalScrollBar()
-            bar.setValue(min(self._right_panel_scroll_position, bar.maximum()))
 
     @classmethod
     def _clear_layout(cls, layout) -> None:
@@ -249,15 +206,11 @@ class QuestDetailView(QWidget):
         achievements = self._related_achievements(quest.id)
         self._render_header(quest)
         self._render_solution(quest, step)
-        self._render_information(quest, guide, step, achievements)
+        self._render_header_sections(quest, guide, step, achievements,
+                                     preserve_open=previous_quest_id == int(quest.id))
         self.questChanged.emit(int(quest.id))
         if self.current_quest_id != previous_quest_id:
-            # A new quest always starts at its own top, even if info was hidden.
-            if self._right_panel_collapsed:
-                self._right_panel_scroll_position = 0
-            for scroll in (self.center_scroll, self.right_scroll):
-                bar = scroll.verticalScrollBar()
-                bar.setValue(bar.minimum())
+            self.center_scroll.verticalScrollBar().setValue(0)
         return True
 
     def refresh(self) -> None:
@@ -272,11 +225,10 @@ class QuestDetailView(QWidget):
         self.meta_label.setVisible(False)
         self.done_button.setVisible(False)
         self._clear_layout(self.center_layout)
-        self._clear_layout(self.right_layout)
+        self.header.set_optional_sections([])
         if message:
             self.center_layout.addWidget(self._muted_label(message))
         self.center_layout.addStretch(1)
-        self.right_layout.addStretch(1)
 
     def toggle_completed(self) -> None:
         if self.current_quest_id is None:
@@ -293,7 +245,7 @@ class QuestDetailView(QWidget):
         completed = self.quest_progress_service.is_quest_completed(self.character_key, int(quest.id))
         self.title_label.setText(quest.name)
         self.title_label.setToolTip(quest.name)
-        level = _guide_ui()._display_quest_level_text(quest)
+        level = _guide_ui()._display_quest_level_text(quest).replace("Niveau minimum", "Niveau recommandé")
         self.meta_label.setText(level)
         self.meta_label.setVisible(bool(level))
         self.done_button.setVisible(True)
@@ -311,7 +263,7 @@ class QuestDetailView(QWidget):
             return "Position d'objectif (départ non confirmé)"
         if status != "LOCAL_START_DECLARED":
             return "Départ à vérifier (sources incohérentes)"
-        return "Position de lancement (source locale)"
+        return "Position de lancement"
 
     def _render_solution(self, quest: QuestRecord, step: Any) -> None:
         ui = _guide_ui()
@@ -335,22 +287,6 @@ class QuestDetailView(QWidget):
                     "QuestLaunchPosition",
                 )
             )
-
-        prerequisite_rows, progress = self._prerequisite_rows(quest, step)
-        if prerequisite_rows:
-            key = (self.character_key, int(quest.id))
-            expanded = self.prerequisite_expanded.get(key)
-            if expanded is None:
-                expanded = not progress.is_complete if progress.total else True
-            section = ui.CollapsibleInfoSection(
-                "PRÉREQUIS",
-                ui._progress_count(progress.completed, progress.total) if progress.total else "",
-                ui._progress_state(progress),
-                expanded,
-                prerequisite_rows,
-            )
-            section.toggled.connect(lambda value, item_key=key: self.prerequisite_expanded.__setitem__(item_key, value))
-            self.center_layout.addWidget(section)
 
         documentary_blocks = ui.quest_solution_blocks(quest)
         # Image-only or heading-only documents may coexist with genuine local
@@ -404,64 +340,31 @@ class QuestDetailView(QWidget):
                 return previous, following
         return self.graph.reliable_neighbors(int(quest_id), guide_id=self.context.guide_id)
 
-    def _render_information(self, quest: QuestRecord, guide: Any, step: Any, achievements: tuple[Any, ...]) -> None:
+    def _render_header_sections(
+        self, quest: QuestRecord, guide: Any, step: Any, achievements: tuple[Any, ...],
+        *, preserve_open: bool = False,
+    ) -> None:
         ui = _guide_ui()
-        ui.clear_layout(self.right_layout)
-        self.right_layout.addWidget(ui.hidden_label("Informations de quête"))
+        prerequisite_rows, progress = self._prerequisite_rows(quest, step)
+        required_items = quest_items(guide, quest) if guide is not None else quest_items_from_objectives(quest)
+        preparation_rows = [self._item_row(quest.id, item) for item in required_items]
+        tracked = [item for item in required_items if item.item_id is not None]
+        ready = sum(
+            self.quest_progress_service.is_item_completed(self.character_key, int(quest.id), int(item.item_id))
+            for item in tracked
+        )
+        rewards = quest_rewards(quest, achievements)
+        self.header.set_optional_sections([
+            ("Prérequis", f"{progress.completed}/{progress.total}" if progress.total else "", prerequisite_rows),
+            ("Préparation", f"{ready}/{len(tracked)}" if tracked else "", preparation_rows),
+            ("Récompenses", "", [ui.reward_row(reward) for reward in rewards]),
+        ], preserve_open=preserve_open)
 
+        # Useful quest context remains in the reading column, without a
+        # duplicate linked-success section or a separate information panel.
         activities = quest_activity_labels(guide, quest, step)
         if activities:
-            self.right_layout.addWidget(ui.info_section("INFO QUÊTE", [ui.activity_chip_grid(activities)]))
-
-        if achievements:
-            buttons: list[QWidget] = []
-            for achievement in achievements[:6]:
-                button = AtlasButton(
-                    str(getattr(achievement, "name", "")), variant="guide_achievement_link"
-                )
-                button.clicked.connect(
-                    lambda _checked=False, achievement_id=int(getattr(achievement, "id", 0) or 0): self.open_entity(
-                        "achievement", achievement_id
-                    )
-                )
-                buttons.append(button)
-            self.right_layout.addWidget(ui.info_section("SUCCÈS LIÉS", buttons))
-
-        required_items = quest_items(guide, quest) if guide is not None else quest_items_from_objectives(quest)
-        if required_items:
-            self.right_layout.addWidget(
-                ui.info_section(
-                    "OBJETS NÉCESSAIRES",
-                    [self._item_row(quest.id, item) for item in required_items],
-                )
-            )
-
-        related_rows: list[QWidget] = []
-        catalog = self.quest_provider.get_catalog()
-        for label, quest_ids in (
-            ("Précédente", self.graph.previous_ids(int(quest.id))),
-            ("Suivante", self.graph.next_ids(int(quest.id))),
-        ):
-            for related_id in quest_ids:
-                record = catalog.by_id.get(int(related_id))
-                if record is None:
-                    continue
-                button = AtlasButton(
-                    f"{label} : {record.name}", variant="guide_quest_link"
-                )
-                button.clicked.connect(
-                    lambda _checked=False, target_id=int(record.id): self.open_related_quest(target_id)
-                )
-                related_rows.append(button)
-        if related_rows:
-            self.right_layout.addWidget(ui.info_section("QUÊTES LIÉES", related_rows))
-
-        rewards = quest_rewards(quest, achievements)
-        if rewards:
-            self.right_layout.addWidget(
-                ui.info_section("RÉCOMPENSES", [ui.reward_row(reward) for reward in rewards[:14]])
-            )
-        self.right_layout.addStretch(1)
+            self.center_layout.insertWidget(0, ui.info_section("Info quête", [ui.activity_chip_grid(activities)]))
 
     def _quest_context(self, quest: QuestRecord) -> tuple[Any | None, Any | None]:
         if self.guide_provider is None:

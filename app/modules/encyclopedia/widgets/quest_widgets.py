@@ -24,12 +24,7 @@ class QuestListModel(QAbstractListModel):
         quest = self.quests[index.row()]
         state = self.state_by_quest.get(quest.id, "Disponible")
         if role == Qt.DisplayRole:
-            level = f"Niveau {quest.level_min}" if quest.level_min else "Niveau ?"
-            return f"{quest.name}\n{level}"
-            marker = "✓" if state == "Terminée" else "🔒" if state == "Bloquée" else "↻" if state.startswith("Répétable") else "○"
-            zone = quest.zones[0] if quest.zones else "Zone inconnue"
-            level = f"Niveau {quest.level_min}" if quest.level_min else "Niveau ?"
-            return f"{marker} {quest.name}\n{zone} • {level} • {state}"
+            return quest.name
         if role == QUEST_ID_ROLE:
             return quest.id
         if role == QUEST_ROLE:
@@ -39,7 +34,7 @@ class QuestListModel(QAbstractListModel):
         if role == Qt.ToolTipRole:
             return quest.name
         if role == Qt.SizeHintRole:
-            return QSize(280, 54)
+            return QSize(280, 32)
         return None
 
     def set_quests(self, quests: list[QuestRecord], states: dict[int, str]) -> None:

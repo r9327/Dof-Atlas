@@ -1682,6 +1682,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.nav_page_label.setText(f"{index + 1 if total_cards else 0}/{total_cards}")
         self.sheet_header.set_page(index + 1, total_cards)
         self.reading_header.set_summary_position(index if total_cards else -1)
+        self.reading_header.set_metric_available("summary", bool(total_cards))
+        # Unknown preparation must remain reachable until its lazy data has
+        # been read. An empty known result never leaves a useless drawer.
+        preparation_available = bool(total_cards) and (
+            not self._preparation_loaded or bool(self._preparation_needs or self._preparation_preview)
+        )
+        self.reading_header.set_metric_available("preparation", preparation_available)
 
     def set_character_key(self, character_key: str) -> None:
         # The base setter invokes refresh() synchronously. Invalidate the

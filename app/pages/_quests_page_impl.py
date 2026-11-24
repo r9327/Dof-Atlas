@@ -346,9 +346,9 @@ class QuestsPage(QWidget):
         self.center_panel = view.center_panel
         self.center_scroll = view.center_scroll
         self.center_layout = view.center_layout
-        self.right_panel = view.right_panel
-        self.right_scroll = view.right_scroll
-        self.right_layout = view.right_layout
+        self.right_panel = None
+        self.right_scroll = None
+        self.right_layout = None
 
     def _ensure_quest_detail_view(self):
         if self.quest_detail_view is not None:
@@ -602,8 +602,7 @@ class QuestsPage(QWidget):
         else:
             completed = int(quest.id) in completed_quest_ids
         marker = "✓ " if completed else ""
-        level = f" · Niv. {quest.level_min}" if quest.level_min else ""
-        return f"{marker}{quest.name}{level}"
+        return f"{marker}{quest.name}"
 
     def on_hierarchy_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
         if item.data(0, HIERARCHY_KIND_ROLE) != "quest":
