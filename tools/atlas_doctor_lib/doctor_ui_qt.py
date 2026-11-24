@@ -895,7 +895,13 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     else:
         click = click_target(page, disclosure)
     settle()
-    expanded = disclosure.isChecked() and view.global_details_panel.isVisible()
+    header = view.reading_header
+    nested_metrics = all(
+        column.parentWidget() is view.global_details_panel
+        and (column.isHidden() or column.isVisible())
+        for column in (header.preparation_column, header.summary_column)
+    )
+    expanded = disclosure.isChecked() and view.global_details_panel.isVisible() and nested_metrics
     session.check(
         "global-open", "QTest déplier Progression globale",
         "Real indexed panel visible; accessible name updated; progress unchanged",
@@ -907,7 +913,12 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     )
     close_click = click_target(page, disclosure)
     settle()
-    collapsed = not disclosure.isChecked() and not view.global_details_panel.isVisible()
+    collapsed = (
+        not disclosure.isChecked() and not view.global_details_panel.isVisible()
+        and not header.preparation_column.isVisible()
+        and not header.summary_column.isVisible()
+        and view.global_progress_bar.isVisible()
+    )
     session.check(
         "global-close", "QTest replier Progression globale",
         "Panel hidden; control accessible name restored; progress unchanged",

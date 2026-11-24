@@ -982,13 +982,13 @@ class AtlasGuideReadingHeader(QFrame):
             return
         self.global_details_button = AtlasGuideDisclosure()
         self.global_details_button.configure_compact()
-        self.global_details_button.setToolTip("Afficher la progression des personnages")
+        self.global_details_button.setToolTip("Afficher Préparation et Sommaire")
         self.global_details_button.setAccessibleName("Déplier la progression globale")
         overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
-        # One visual progress block owns the global bar and both independent
-        # drawers. The title/participant row remains outside that block.
+        # Global progression is the parent disclosure. Its bar remains
+        # visible; both independent child drawers live inside its body.
         self.progress_group = QFrame()
         self.progress_group.setObjectName("GuideHeaderProgressGroup")
         progress_layout = QVBoxLayout(self.progress_group)
@@ -1002,10 +1002,7 @@ class AtlasGuideReadingHeader(QFrame):
         self.global_details_panel = QFrame()
         self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
         details = QVBoxLayout(self.global_details_panel)
-        details.setContentsMargins(
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["sm"],
-        )
+        details.setContentsMargins(0, 0, 0, 0)
         details.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
         self.global_details_rows = QWidget()
         self.global_details_rows.setObjectName("GuideGlobalCharacterProgress")
@@ -1105,7 +1102,7 @@ class AtlasGuideReadingHeader(QFrame):
         # Keep both progress bars at the same height regardless of open panels.
         metrics.setAlignment(self.preparation_column, Qt.AlignTop)
         metrics.setAlignment(self.summary_column, Qt.AlignTop)
-        progress_layout.addLayout(metrics)
+        details.insertLayout(0, metrics)
         self.global_details_panel.setVisible(False)
         self.global_details_button.toggled.connect(self._set_global_details_open)
         progress_layout.addWidget(self.global_details_panel)
@@ -1138,8 +1135,8 @@ class AtlasGuideReadingHeader(QFrame):
             "Replier la progression globale" if opened else "Déplier la progression globale"
         )
         self.global_details_button.setToolTip(
-            "Masquer la progression des personnages" if opened
-            else "Afficher la progression des personnages"
+            "Masquer Préparation et Sommaire" if opened
+            else "Afficher Préparation et Sommaire"
         )
 
     def set_overview_progress(self, completed: int, total: int, *, visible: bool = True) -> None:

@@ -675,6 +675,10 @@ class DevUiPageTests(unittest.TestCase):
             self.assertTrue(page.preview_header_panels["Sommaire"].isVisibleTo(page.preview_compact_header))
             global_button.click()
             self.assertFalse(page.preview_header_global_panel.isVisible())
+            self.assertFalse(preparation_button.isVisibleTo(page.preview_compact_header))
+            self.assertFalse(page.preview_header_controls["Sommaire"].isVisibleTo(page.preview_compact_header))
+            self.assertFalse(page.preview_header_panels["Préparation"].isVisibleTo(page.preview_compact_header))
+            self.assertFalse(page.preview_header_panels["Sommaire"].isVisibleTo(page.preview_compact_header))
             global_button.click()
             self.assertTrue(page.preview_header_panels["Préparation"].isVisibleTo(
                 page.preview_compact_header
@@ -1804,11 +1808,15 @@ class DevUiPageTests(unittest.TestCase):
                             page.preview_header_panels["Sommaire"].isVisibleTo(page.preview_compact_header),
                             opened,
                         )
-                        preparation = span(page.preview_header_metrics["Préparation"])
-                        summary = span(page.preview_header_metrics["Sommaire"])
-                        self.assertEqual(preparation[0], full[0])
-                        self.assertEqual(summary[1], full[1])
-                        self.assertLess(preparation[1], summary[0])
+                        if opened:
+                            preparation = span(page.preview_header_metrics["Préparation"])
+                            summary = span(page.preview_header_metrics["Sommaire"])
+                            self.assertEqual(preparation[0], full[0])
+                            self.assertEqual(summary[1], full[1])
+                            self.assertLess(preparation[1], summary[0])
+                        else:
+                            self.assertFalse(page.preview_header_metrics["Préparation"].isVisibleTo(page.preview_compact_header))
+                            self.assertFalse(page.preview_header_metrics["Sommaire"].isVisibleTo(page.preview_compact_header))
             self.assertEqual(
                 page.preview_header_global_progress.height(),
                 UNITY_CONTROL_SIZES_PX["progress_primary"],

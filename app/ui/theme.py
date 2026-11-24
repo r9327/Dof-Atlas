@@ -3075,13 +3075,18 @@ QToolButton#GuideManualProgressLock[state="locked"] {
 
 QFrame#GuideCompactHeader,
 QFrame#GuidePreparationPanel,
-QFrame#GuideGlobalDetailsPanel,
 QFrame#GuideSheetHeader {
     background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
         stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
     border: 1px solid @BORDER_SOFT;
     border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_MD;
+}
+
+/* The expanded body is part of the same parent progress surface. */
+QFrame#GuideGlobalDetailsPanel {
+    background: transparent;
+    border: none;
 }
 
 /* Group all three progress meters without another opaque layer of glass. */
@@ -3093,8 +3098,7 @@ QFrame#GuideHeaderProgressGroup {
 
 /* Expanded preparation must retain the blue Unity surface,
    not Qt's native gray scroll/panel background. */
-QFrame#GuidePreparationPanel,
-QFrame#GuideGlobalDetailsPanel {
+QFrame#GuidePreparationPanel {
     background: @GUIDE_COMPACT_SURFACE;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_MD;
