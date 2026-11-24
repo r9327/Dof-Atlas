@@ -1086,6 +1086,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         if not self._preparation_loaded:
             self._load_preparation_needs()
+        if not (self._preparation_needs or self._preparation_preview):
+            self._clear_preparation_rows()
+            self.reading_header.set_metric_available("preparation", False)
+            return
         self._render_preparation(self.preparation_filter.currentText())
 
     def _progress_participant_keys(self) -> tuple[str, ...]:
@@ -1579,6 +1583,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         else:
             self._refresh_participant_progress()
         if not self.service.available:
+            self.reading_header.set_metric_available("preparation", False)
+            self.reading_header.set_metric_available("summary", False)
             self._render_missing_data()
             return
         actual_index = self._actual_index_for_participants()

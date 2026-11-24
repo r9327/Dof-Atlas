@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QSize, Qt
 
 from app.quest_catalog import QuestRecord
+from app.ui.unity_palette import UNITY_SIZES_PX
 
 QUEST_ID_ROLE = Qt.UserRole + 31
 QUEST_ROLE = Qt.UserRole + 32
@@ -22,7 +23,6 @@ class QuestListModel(QAbstractListModel):
         if not index.isValid() or index.row() < 0 or index.row() >= len(self.quests):
             return None
         quest = self.quests[index.row()]
-        state = self.state_by_quest.get(quest.id, "Disponible")
         if role == Qt.DisplayRole:
             return quest.name
         if role == QUEST_ID_ROLE:
@@ -30,11 +30,11 @@ class QuestListModel(QAbstractListModel):
         if role == QUEST_ROLE:
             return quest
         if role == QUEST_STATE_ROLE:
-            return state
+            return self.state_by_quest.get(quest.id, "Disponible")
         if role == Qt.ToolTipRole:
             return quest.name
         if role == Qt.SizeHintRole:
-            return QSize(280, 32)
+            return QSize(280, UNITY_SIZES_PX["control_normal"])
         return None
 
     def set_quests(self, quests: list[QuestRecord], states: dict[int, str]) -> None:

@@ -302,6 +302,8 @@ def capture(output: Path) -> dict[str, object]:
                                 detail = page.quest_page.quest_detail_view
                                 if not isinstance(detail.header, AtlasGuideReadingHeader):
                                     raise RuntimeError("Quest header does not use the shared reader")
+                                if detail.splitter.count() != 1:
+                                    raise RuntimeError("Quest detail still contains a redundant third column")
                                 if (detail.title_label.text() != catalog.by_id[quest_id].name
                                         or detail.title_label.toolTip() != detail.title_label.text()
                                         or detail.header.global_progress_bar.isVisible()

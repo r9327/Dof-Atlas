@@ -196,6 +196,24 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             header.deleteLater()
 
+    def test_empty_guide_metric_closes_and_reappears_without_stale_drawer(self):
+        from app.ui.components import AtlasGuideReadingHeader
+
+        header = AtlasGuideReadingHeader("Guide exemple")
+        try:
+            header.summary_button.setChecked(True)
+            header.set_metric_available("summary", False)
+            self.assertTrue(header.summary_column.isHidden())
+            self.assertFalse(header.summary_button.isChecked())
+            self.assertTrue(header.summary_panel.isHidden())
+            header.set_metric_available("summary", True)
+            self.assertFalse(header.summary_column.isHidden())
+            self.assertFalse(header.summary_button.isChecked())
+            header.set_metric_available("preparation", False)
+            self.assertTrue(header.preparation_column.isHidden())
+        finally:
+            header.deleteLater()
+
     def test_shared_dialog_add_header_preserves_single_indexed_widget(self) -> None:
         from app.ui.components import AtlasDialogHeader
 

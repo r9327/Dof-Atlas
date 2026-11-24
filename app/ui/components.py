@@ -1147,7 +1147,7 @@ class AtlasGuideReadingHeader(QFrame):
             name for name, button in self.optional_section_buttons.items()
             if preserve_open and button.isChecked()
         }
-        clear_unity_widget_layout(self._optional_sections_layout, recursive=True)
+        clear_unity_widget_layout(self._optional_sections_layout, recursive=True, hide_widgets=True)
         self.optional_section_buttons.clear()
         available = [(name, count, rows) for name, count, rows in sections if rows]
         self._optional_sections.setVisible(bool(available))
@@ -1156,6 +1156,11 @@ class AtlasGuideReadingHeader(QFrame):
         commands = QHBoxLayout()
         commands.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
         self._optional_sections_layout.addLayout(commands)
+        # Keep simultaneously opened drawers on a single bounded row.
+        # Three long lists must not stack to fill the entire reader.
+        drawers = QHBoxLayout()
+        drawers.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
+        self._optional_sections_layout.addLayout(drawers)
         for name, count, rows in available:
             button = AtlasButton(f"{name}  {count}" if count else name)
             button.setCheckable(True)
@@ -1175,7 +1180,7 @@ class AtlasGuideReadingHeader(QFrame):
                 UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
                 max(UNITY_SIZES_PX["control_compact"], body.sizeHint().height()),
             ))
-            self._optional_sections_layout.addWidget(panel)
+            drawers.addWidget(panel, 1, Qt.AlignTop)
 
             def sync(checked: bool, control=button, drawer=panel, label=name) -> None:
                 control.setIcon(atlas_guide_arrow_icon("up" if checked else "down"))
