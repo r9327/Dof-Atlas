@@ -254,6 +254,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
+            from app.ui.components import AtlasGuideReadingHeader, AtlasGuideSheetHeader
+            self.assertIsInstance(view.reading_header, AtlasGuideReadingHeader)
+            self.assertIsInstance(view.sheet_header, AtlasGuideSheetHeader)
             self.assertEqual(view.global_progress_label.text(), "0 %")
             self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (0, 2))
             self.assertTrue(view.progress_donut.isHidden())

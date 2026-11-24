@@ -81,6 +81,33 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             parent.deleteLater()
 
+    def test_shared_guide_header_owns_controls_and_sheet_navigation(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader, AtlasGuideSheetHeader
+        header = AtlasGuideReadingHeader("Guide exemple")
+        sheet = AtlasGuideSheetHeader("Fiche exemple", total=20, page=4)
+        panel = QWidget()
+        header.attach_preparation(panel)
+        try:
+            self.assertIs(header.content_layout.itemAt(1).widget(), header.participants_panel)
+            self.assertIs(header.preparation_bar.parentWidget(), header.global_details_panel)
+            header.global_details_button.click()
+            header.preparation_button.click()
+            self.assertTrue(panel.isVisibleTo(header))
+            header.participants_button.click()
+            self.assertTrue(header.participants_panel.isVisibleTo(header))
+            self.assertTrue(panel.isVisibleTo(header))
+            seen = []
+            sheet.page_jump.valueChanged.connect(seen.append)
+            sheet.set_page(10, 20)
+            self.assertEqual(seen, [])
+            self.assertEqual(sheet.page_jump.value(), 10)
+            self.assertEqual(sheet.page_jump.suffix(), "/20")
+            sheet.page_jump.setValue(11)
+            self.assertEqual(seen, [11])
+        finally:
+            header.deleteLater()
+            sheet.deleteLater()
+
     def test_shared_dialog_add_header_preserves_single_indexed_widget(self) -> None:
         from app.ui.components import AtlasDialogHeader
 

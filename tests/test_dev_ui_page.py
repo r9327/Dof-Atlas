@@ -521,6 +521,9 @@ class DevUiPageTests(unittest.TestCase):
 
         page = DevUiPage(on_back=lambda: None)
         try:
+            from app.ui.components import AtlasGuideReadingHeader, AtlasGuideSheetHeader
+            self.assertIsInstance(page.preview_compact_header, AtlasGuideReadingHeader)
+            self.assertIsInstance(page.preview_sheet_header, AtlasGuideSheetHeader)
             self.assertIn("headers", page.gallery_family_widgets)
             for name, role in (
                 ("preview_page_header", "card"),
@@ -543,7 +546,7 @@ class DevUiPageTests(unittest.TestCase):
                 ),
             )
             self.assertEqual(page.preview_header_global_progress.value(), 35)
-            self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
+            self.assertEqual(page.preview_header_page_jump.suffix(), "/20")
             # The x/x selector is content-sized, not artificially fixed
             # to the old 110px cap. Short counts must remain compact.
             from app.ui.components import fit_unity_number_spinbox

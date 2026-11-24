@@ -53,7 +53,7 @@ from app.ui.components import (
     AtlasGuideParticipantPortrait as _ParticipantPortraitButton,
     atlas_guide_symbol_icon as _guide_symbol_icon,
     _cached_atlas_guide_symbol_icon as _cached_guide_symbol_icon,
-    configure_unity_tool_button,
+    configure_unity_tool_button, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
 )
 
 
@@ -847,145 +847,40 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.position_label.setVisible(False)
 
     def _build_compact_header(self, root: QVBoxLayout) -> None:
-        """One indexed global-progress disclosure with nested À préparer."""
-        header = QFrame()
-        header.setObjectName("GuideCompactHeader")
-        outer = QHBoxLayout(header)
-        outer.setContentsMargins(
-            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
-            UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
-            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
-            UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
-        )
-        outer.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_outer_spacing"])
-
-        right = QVBoxLayout()
-        right.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
-        outer.addLayout(right, 1)
-        # Retain the historical progress object for internal callers, but
-        # do not paint a second route indicator in the header.
-        self.progress_donut = _GuideProgressDonut()
-        self.progress_donut.hide()
-        self.donut_count_label = QLabel()
-        self.donut_count_label.hide()
-        self.global_progress_bar = configure_unity_progress_bar(
-            QProgressBar(), object_name="GuideGlobalProgress",
-            height_role="progress_primary", expanding=True,
-        )
-        self.global_progress_label = QLabel("—")
-        self.global_progress_label.setObjectName("GuideCompactMetricValue")
-        self._metric_columns: dict[str, QVBoxLayout] = {}
-
-        # Row 1: active guide, instant sheet selector and compact commands.
-        title_row = QHBoxLayout()
-        title_row.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
-        self.guide_button = AtlasButton("")
-        self.guide_button.setIcon(atlas_guide_arrow_icon("left"))
-        self.guide_button.setIconSize(QSize(14, 14))
-        self.guide_button.setObjectName("GuideManualGuideButton")
-        self.guide_button.setToolTip("Revenir à la fiche actuelle, puis au catalogue des guides")
-        self.guide_button.setAccessibleName("Fiche actuelle ou catalogue des guides")
-        self.guide_button.setMaximumWidth(35)
-        self.guide_button.clicked.connect(
-            lambda _checked=False: self._guide_button_clicked()
-        )
-        # Keep the back action available beside the sheet title, outside
-        # the three-row compact progress header agreed with the user.
-        guide_icon = AtlasGuideCover()
-        self.guide_icon_label = guide_icon
         guide_data = getattr(self.service, "guide", None)
-        guide_icon.set_artwork(
-            getattr(self.service, "image_path", None) or getattr(guide_data, "image_path", None),
-            category="dofus" if "dofus" in self._guide_title().casefold() else "guide",
+        title = self._guide_title()
+        header = AtlasGuideReadingHeader(
+            title, image_path=getattr(self.service, "image_path", None) or getattr(guide_data, "image_path", None),
+            category="dofus" if "dofus" in title.casefold() else "guide",
         )
-        title_row.addWidget(guide_icon)
-        self.guide_title_label = QLabel(self._guide_title())
-        self.guide_title_label.setObjectName("GuideCompactTitle")
-        self.guide_title_label.setMinimumWidth(0)
-        self.guide_title_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self.guide_title_label.setToolTip(self._guide_title())
-        title_row.addWidget(self.guide_title_label, 1)
-
-        # The sheet selector lives beside its stage title, not here.
+        self.reading_header = header
+        self.global_progress_bar = header.global_progress_bar
+        self.global_progress_label = header.global_progress_label
+        self.guide_icon_label = header.guide_icon_label
+        self.guide_title_label = header.guide_title_label
+        self.global_details_button = header.global_details_button
+        self.global_details_panel = header.global_details_panel
+        self.global_details_rows = header.global_details_rows
+        self.global_details_layout = header.global_details_layout
+        self.preparation_button = header.preparation_button
+        self.preparation_bar = header.preparation_bar
+        self.preparation_progress_label = header.preparation_progress_label
+        self._metric_columns = {"Préparation": header.preparation_drawer}
+        self._metric_caption_labels = {"Préparation": header.preparation_caption}
+        self._compact_title_row = header.title_row
+        self._header_content_layout = header.content_layout
+        self.participants_button = header.participants_button
+        self.participants_panel = header.participants_panel
+        self.participants_layout = header.participants_layout
+        self.global_details_button.toggled.connect(self._global_details_toggled)
+        # Compatibility counters stay hidden; do not add a second painted bar.
+        self.progress_donut = _GuideProgressDonut(self)
+        self.progress_donut.hide()
+        self.donut_count_label = QLabel(self)
+        self.donut_count_label.hide()
         self.nav_page_label = QLabel(self)
         self.nav_page_label.setObjectName("GuideManualNavPage")
-        self.nav_page_label.setVisible(False)
-        # No dead Overlay control in the compact title row: this runtime
-        # has no overlay handler to launch. Keep room for real actions only.
-        right.addLayout(title_row)
-        self._compact_title_row = title_row
-
-        # Shared #363 layout: progress is global; preparation is inside details.
-        overall_caption = QHBoxLayout()
-        title = QLabel("Progression globale")
-        title.setObjectName("GuideGlobalProgressTitle")
-        overall_caption.addWidget(title)
-        self.global_details_button = AtlasGuideDisclosure()
-        self.global_details_button.configure_compact()
-        self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
-        self.global_details_button.setAccessibleName("Déplier la progression globale")
-        overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
-        overall_caption.addStretch(1)
-        overall_caption.addWidget(self.global_progress_label)
-        right.addLayout(overall_caption)
-        right.addWidget(self.global_progress_bar)
-
-        self.global_details_panel = QFrame()
-        self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
-        details = QVBoxLayout(self.global_details_panel)
-        details.setContentsMargins(
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["sm"],
-        )
-        details.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
-        self.global_details_rows = QWidget()
-        self.global_details_rows.setObjectName("GuideGlobalCharacterProgress")
-        self.global_details_layout = QVBoxLayout(self.global_details_rows)
-        self.global_details_layout.setContentsMargins(0, 0, 0, 0)
-        self.global_details_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
-        details.addWidget(self.global_details_rows)
-
-        preparation_metric = QVBoxLayout()
-        preparation_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
-        caption = QHBoxLayout()
-        caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
-        icon = QLabel()
-        icon.setObjectName("GuideCompactMetricIconCube")
-        icon.setPixmap(
-            _guide_symbol_icon(icon, "cube", size=16, color=PALETTE["GREEN"]).pixmap(16, 16)
-        )
-        icon.setFixedSize(UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"])
-        caption.addWidget(icon)
-        caption_label = QLabel("À préparer")
-        caption_label.setToolTip("Préparation")
-        caption.addWidget(caption_label)
-        self._metric_caption_labels = {"Préparation": caption_label}
-        caption.addStretch(1)
-        self.preparation_progress_label = QLabel("—")
-        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
-        caption.addWidget(self.preparation_progress_label)
-        self.preparation_button = AtlasGuideDisclosure()
-        self.preparation_button.configure_compact()
-        self.preparation_button.setToolTip("Ouvrir Préparation")
-        self.preparation_button.setAccessibleName("Afficher Préparation")
-        caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
-        preparation_metric.addLayout(caption)
-        self.preparation_bar = configure_unity_progress_bar(
-            QProgressBar(), object_name="GuideCompactPreparationProgress",
-            height_role="progress_secondary", expanding=True,
-        )
-        preparation_metric.addWidget(self.preparation_bar)
-        drawer = QVBoxLayout()
-        drawer.setContentsMargins(0, 0, 0, 0)
-        self._metric_columns = {"Préparation": drawer}
-        preparation_metric.addLayout(drawer)
-        details.addLayout(preparation_metric)
-        self.global_details_panel.setVisible(False)
-        self.global_details_button.toggled.connect(self._global_details_toggled)
-        right.addWidget(self.global_details_panel)
-        self._header_content_layout = right
-
-        apply_unity_panel_shadow(header)
+        self.nav_page_label.hide()
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
@@ -1024,66 +919,16 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
         apply_unity_panel_shadow(self.preparation_panel)
-        self._metric_columns["Préparation"].addWidget(self.preparation_panel)
+        self.reading_header.attach_preparation(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
-        header = QFrame()
-        header.setObjectName("GuideSheetHeader")
-        layout = QVBoxLayout(header)
-        layout.setContentsMargins(10, 7, 10, 7)
-        layout.setSpacing(6)
-        top = QHBoxLayout()
-        top.setSpacing(7)
-        top.addWidget(self.guide_button, 0, Qt.AlignVCenter)
-        labels = QVBoxLayout()
-        labels.setSpacing(1)
-        self.sheet_title_label = QLabel()
-        self.sheet_title_label.setObjectName("GuideSheetTitle")
-        self.sheet_title_label.setWordWrap(True)
-        labels.addWidget(self.sheet_title_label)
-        top.addLayout(labels, 1)
-        self.page_jump = QSpinBox()
-        self.page_jump.setObjectName("GuideCompactPageJump")
-        self.page_jump.setRange(1, max(1, len(self.service.cards)))
-        self.page_jump.setSuffix(f"/{len(self.service.cards)}")
-        fit_unity_number_spinbox(self.page_jump)
-        self.page_jump.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
-        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
-        self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
-        self.page_jump.valueChanged.connect(
-            lambda value: self._show_index(value - 1)
-        )
-        top.addWidget(self.page_jump, 0, Qt.AlignTop)
-
-        self.participants_button = AtlasGuideParticipantButton()
-        self.participants_button.setObjectName("GuideParticipantsButton")
-        self.participants_button.setText("")
-        character_icon = atlas_guide_character_icon(UNITY_CONTROL_SIZES_PX["guide_character_icon"])
-        if character_icon.isNull():
-            character_icon = _guide_symbol_icon(self.participants_button, "people")
-        self.participants_button.setIcon(character_icon)
-        self.participants_button.configure_compact()
-        self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setCheckable(True)
-        self.participants_button.setCursor(Qt.PointingHandCursor)
-        # One row with Guide title / Overlay / Personnages / Paramètres.
-        self._compact_title_row.addWidget(
-            self.participants_button, 0, Qt.AlignVCenter,
-        )
-        layout.addLayout(top)
-
-        self.participants_panel = QFrame()
-        self.participants_panel.setObjectName("GuideParticipantsPanel")
-        self.participants_layout = QHBoxLayout(self.participants_panel)
-        self.participants_layout.setContentsMargins(7, 5, 7, 5)
-        self.participants_layout.setSpacing(5)
-        self.participants_panel.setVisible(False)
-        self.participants_button.toggled.connect(self.participants_panel.setVisible)
-        # Character dropdown unfolds immediately below the title/actions,
-        # above the global-progress caption and bar.
-        self._header_content_layout.insertWidget(1, self.participants_panel)
-
-        apply_unity_panel_shadow(header)
+        header = AtlasGuideSheetHeader(total=len(self.service.cards))
+        self.sheet_header = header
+        self.guide_button = header.back_button
+        self.guide_button.clicked.connect(lambda _checked=False: self._guide_button_clicked())
+        self.sheet_title_label = header.title_label
+        self.page_jump = header.page_jump
+        self.page_jump.valueChanged.connect(lambda value: self._show_index(value - 1))
         root.addWidget(header)
         self._refresh_participants_panel()
 
@@ -1852,12 +1697,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         title = str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
         self.sheet_title_label.setText(title)
         self.nav_page_label.setText(f"{index + 1}/{total_cards}")
-        self.page_jump.blockSignals(True)
-        self.page_jump.setRange(1, max(1, total_cards))
-        self.page_jump.setSuffix(f"/{total_cards}")
-        fit_unity_number_spinbox(self.page_jump)
-        self.page_jump.setValue(index + 1)
-        self.page_jump.blockSignals(False)
+        self.sheet_header.set_page(index + 1, total_cards)
 
     def set_character_key(self, character_key: str) -> None:
         # The base setter invokes refresh() synchronously. Invalidate the

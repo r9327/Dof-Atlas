@@ -31,10 +31,10 @@ from app.ui.unity_palette import (
     UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX,
     UNITY_PALETTE,
     UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_GUIDE_READING_METRICS_PX,
-    UNITY_WINDOW_PRESETS_PX,
+    UNITY_WINDOW_PRESETS_PX, UNITY_MODULE_GEOMETRY_PX,
 )
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.unity_skin import sprite_icon_path, unity_guide_chevron_path
+from app.ui.unity_skin import sprite_icon_path, unity_guide_chevron_path, apply_unity_panel_shadow
 
 
 # Compatibility names from #363 keep using one indexed widget and one
@@ -859,6 +859,198 @@ class AtlasPanelToggle(QToolButton):
         self.setToolTip(label)
         self.setAccessibleName(label)
         set_unity_widget_property(self, "collapsed", collapsed)
+
+
+class AtlasGuideReadingHeader(QFrame):
+    """Shared UI shell for real Guide readers and the Dev UI, without game data."""
+
+    def __init__(self, title: str, *, image_path: str | Path | None = None,
+                 category: str = "guide", parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        from app.ui.theme import PALETTE
+
+        self.setObjectName("GuideCompactHeader")
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
+        )
+        outer.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_outer_spacing"])
+
+        right = QVBoxLayout()
+        right.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
+        outer.addLayout(right, 1)
+        self.global_progress_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideGlobalProgress",
+            height_role="progress_primary", expanding=True,
+        )
+        self.global_progress_label = QLabel("—")
+        self.global_progress_label.setObjectName("GuideCompactMetricValue")
+
+        # Row 1: active guide, instant sheet selector and compact commands.
+        title_row = QHBoxLayout()
+        title_row.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
+        guide_icon = AtlasGuideCover()
+        self.guide_icon_label = guide_icon
+        guide_icon.set_artwork(image_path, category=category)
+        title_row.addWidget(guide_icon)
+        self.guide_title_label = QLabel(title)
+        self.guide_title_label.setObjectName("GuideCompactTitle")
+        self.guide_title_label.setMinimumWidth(0)
+        self.guide_title_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.guide_title_label.setToolTip(title)
+        title_row.addWidget(self.guide_title_label, 1)
+
+        right.addLayout(title_row)
+        self.title_row = title_row
+
+        # Shared #363 layout: progress is global; preparation is inside details.
+        overall_caption = QHBoxLayout()
+        title = QLabel("Progression globale")
+        title.setObjectName("GuideGlobalProgressTitle")
+        overall_caption.addWidget(title)
+        self.global_details_button = AtlasGuideDisclosure()
+        self.global_details_button.configure_compact()
+        self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
+        self.global_details_button.setAccessibleName("Déplier la progression globale")
+        overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
+        overall_caption.addStretch(1)
+        overall_caption.addWidget(self.global_progress_label)
+        right.addLayout(overall_caption)
+        right.addWidget(self.global_progress_bar)
+
+        self.global_details_panel = QFrame()
+        self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
+        details = QVBoxLayout(self.global_details_panel)
+        details.setContentsMargins(
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["sm"],
+        )
+        details.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        self.global_details_rows = QWidget()
+        self.global_details_rows.setObjectName("GuideGlobalCharacterProgress")
+        self.global_details_layout = QVBoxLayout(self.global_details_rows)
+        self.global_details_layout.setContentsMargins(0, 0, 0, 0)
+        self.global_details_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        details.addWidget(self.global_details_rows)
+
+        preparation_metric = QVBoxLayout()
+        preparation_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        caption = QHBoxLayout()
+        caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+        icon = QLabel()
+        icon.setObjectName("GuideCompactMetricIconCube")
+        icon_size = UNITY_SIZES_PX["icon_small"]
+        icon.setPixmap(
+            atlas_guide_symbol_icon(icon, "cube", size=icon_size, color=PALETTE["GREEN"]).pixmap(icon_size, icon_size)
+        )
+        icon.setFixedSize(UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"])
+        caption.addWidget(icon)
+        caption_label = QLabel("À préparer")
+        caption_label.setToolTip("Préparation")
+        caption.addWidget(caption_label)
+        self.preparation_caption = caption_label
+        self.preparation_icon = icon
+        caption.addStretch(1)
+        self.preparation_progress_label = QLabel("—")
+        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
+        caption.addWidget(self.preparation_progress_label)
+        self.preparation_button = AtlasGuideDisclosure()
+        self.preparation_button.configure_compact()
+        self.preparation_button.setToolTip("Ouvrir Préparation")
+        self.preparation_button.setAccessibleName("Afficher Préparation")
+        caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
+        preparation_metric.addLayout(caption)
+        self.preparation_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideCompactPreparationProgress",
+            height_role="progress_secondary", expanding=True,
+        )
+        preparation_metric.addWidget(self.preparation_bar)
+        drawer = QVBoxLayout()
+        drawer.setContentsMargins(0, 0, 0, 0)
+        self.preparation_drawer = drawer
+        preparation_metric.addLayout(drawer)
+        details.addLayout(preparation_metric)
+        self.global_details_panel.setVisible(False)
+        self.global_details_button.toggled.connect(self.global_details_panel.setVisible)
+        right.addWidget(self.global_details_panel)
+        self.content_layout = right
+
+        self.participants_button = AtlasGuideParticipantButton()
+        self.participants_button.configure_compact()
+        self.participants_button.setIcon(atlas_guide_character_icon(UNITY_CONTROL_SIZES_PX["guide_character_icon"]))
+        if self.participants_button.icon().isNull():
+            self.participants_button.setIcon(atlas_guide_symbol_icon(self.participants_button, "people"))
+        self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.participants_button.setCheckable(True)
+        self.participants_button.setCursor(Qt.PointingHandCursor)
+        self.participants_button.setToolTip("Personnages")
+        self.participants_button.setAccessibleName("Personnages")
+        title_row.addWidget(self.participants_button, 0, Qt.AlignVCenter)
+        self.participants_panel = QFrame()
+        self.participants_panel.setObjectName("GuideParticipantsPanel")
+        self.participants_layout = QHBoxLayout(self.participants_panel)
+        self.participants_layout.setContentsMargins(*UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]["participant_margins"])
+        self.participants_layout.setSpacing(UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]["participant_gap"])
+        self.participants_panel.hide()
+        self.participants_button.toggled.connect(self.participants_panel.setVisible)
+        right.insertWidget(1, self.participants_panel)
+        apply_unity_panel_shadow(self)
+
+    def attach_preparation(self, panel: QWidget) -> None:
+        self.preparation_drawer.addWidget(panel)
+        panel.hide()
+        self.preparation_button.toggled.connect(panel.setVisible)
+
+
+class AtlasGuideSheetHeader(QFrame):
+    """One authored sheet title, back action and content-sized page selector."""
+
+    def __init__(self, title: str = "", *, total: int, page: int = 1, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideSheetHeader")
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(*geometry["sheet_margins"])
+        layout.setSpacing(geometry["sheet_gap"])
+        top = QHBoxLayout()
+        top.setSpacing(geometry["sheet_row_gap"])
+        self.back_button = AtlasButton("")
+        self.back_button.setIcon(atlas_guide_arrow_icon("left"))
+        self.back_button.setIconSize(QSize(geometry["back_icon"], geometry["back_icon"]))
+        self.back_button.setObjectName("GuideManualGuideButton")
+        self.back_button.setToolTip("Revenir à la fiche actuelle, puis au catalogue des guides")
+        self.back_button.setAccessibleName("Fiche actuelle ou catalogue des guides")
+        self.back_button.setMaximumWidth(geometry["back_max_width"])
+        top.addWidget(self.back_button, 0, Qt.AlignVCenter)
+        labels = QVBoxLayout()
+        labels.setSpacing(geometry["sheet_title_gap"])
+        self.title_label = QLabel(title)
+        self.title_label.setObjectName("GuideSheetTitle")
+        self.title_label.setWordWrap(True)
+        labels.addWidget(self.title_label)
+        top.addLayout(labels, 1)
+        self.page_jump = QSpinBox()
+        self.page_jump.setObjectName("GuideCompactPageJump")
+        self.page_jump.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
+        self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
+        self.set_page(page, total)
+        top.addWidget(self.page_jump, 0, Qt.AlignTop)
+        layout.addLayout(top)
+        apply_unity_panel_shadow(self)
+
+    def set_page(self, page: int, total: int) -> None:
+        previous = self.page_jump.blockSignals(True)
+        try:
+            self.page_jump.setRange(1, max(1, total))
+            self.page_jump.setSuffix(f"/{total}")
+            self.page_jump.setValue(max(1, min(page, max(1, total))))
+            fit_unity_number_spinbox(self.page_jump)
+        finally:
+            self.page_jump.blockSignals(previous)
 
 
 class AtlasPageTitle(QLabel):
