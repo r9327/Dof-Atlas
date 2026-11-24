@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -76,19 +77,25 @@ def parse_protobuf_fields(payload: bytes, *, max_bytes: int = 4 * 1024 * 1024) -
     return {field_number: tuple(rows) for field_number, rows in values.items()}
 
 
+def _iter_packed_positive_varints(payload: bytes, *, limit: int | None = None) -> Iterator[int]:
+    offset = 0
+    count = 0
+    while offset < len(payload):
+        if limit is not None and count >= limit:
+            raise ProtobufDecodeError("packed ID list exceeds configured limit")
+        value, offset = decode_varint(payload, offset)
+        if value <= 0:
+            raise ProtobufDecodeError("packed IDs must be positive")
+        count += 1
+        yield int(value)
+
+
 def decode_packed_positive_varints(payload: bytes, *, limit: int | None = None) -> tuple[int, ...] | None:
     """Decode all positive packed wire IDs, rejecting malformed or excessive lists."""
-    values: list[int] = []
-    offset = 0
     try:
-        while offset < len(payload):
-            value, offset = decode_varint(payload, offset)
-            if value <= 0 or (limit is not None and len(values) >= limit):
-                return None
-            values.append(int(value))
-    except (IncompleteVarint, InvalidVarint):
+        return tuple(_iter_packed_positive_varints(payload, limit=limit))
+    except (IncompleteVarint, InvalidVarint, ProtobufDecodeError):
         return None
-    return tuple(values)
 
 
 def historical_quest_entry_id(raw_entry: object, *, finished: bool) -> int | None:
@@ -113,22 +120,34 @@ def historical_quest_entry_id(raw_entry: object, *, finished: bool) -> int | Non
     return int(quest_rows[0])
 
 
-def historical_reinitialized_ids(rows: tuple[object, ...]) -> tuple[int, ...] | None:
-    """Historical repeated/packed IDs, retaining the first occurrence order."""
-    values: dict[int, None] = {}
+def _iter_historical_reinitialized_ids(rows: tuple[object, ...]) -> Iterator[int]:
     for row in rows:
         if isinstance(row, int):
             if row <= 0:
-                return None
-            values[int(row)] = None
+                raise ProtobufDecodeError("reinitialized IDs must be positive")
+            yield int(row)
         elif isinstance(row, bytes):
-            decoded = decode_packed_positive_varints(row)
-            if decoded is None:
-                return None
-            values.update(dict.fromkeys(decoded))
+            yield from _iter_packed_positive_varints(row)
         else:
-            return None
-    return tuple(values)
+            raise ProtobufDecodeError("invalid reinitialized ID field")
+
+
+def historical_reinitialized_ids(rows: tuple[object, ...]) -> tuple[int, ...] | None:
+    """Historical repeated/packed IDs, retaining the first occurrence order."""
+    try:
+        return tuple(dict.fromkeys(_iter_historical_reinitialized_ids(rows)))
+    except (IncompleteVarint, InvalidVarint, ProtobufDecodeError):
+        return None
+
+
+def historical_reinitialized_rows_valid(rows: tuple[object, ...]) -> bool:
+    """Validate the same wire format without materializing unused IDs."""
+    try:
+        for _ in _iter_historical_reinitialized_ids(rows):
+            pass
+    except (IncompleteVarint, InvalidVarint, ProtobufDecodeError):
+        return False
+    return True
 
 
 def resolve_field_path(

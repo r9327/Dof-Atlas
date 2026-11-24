@@ -41,15 +41,18 @@ def keyed_rows(payload: object) -> dict[int, dict[str, Any]]:
     keys = array_rows(objects.get("m_keys"))
     values = array_rows(objects.get("m_values"))
     refs_by_rid = {
-        optional_int(ref.get("rid")): ref["data"]
+        rid: ref["data"]
         for ref in reference_rows(payload)
         if isinstance(ref, dict) and isinstance(ref.get("data"), dict)
+        and (rid := optional_int(ref.get("rid"))) is not None
     }
     rows: dict[int, dict[str, Any]] = {}
     for key, value in zip(keys, values):
         ident = optional_int(key)
         rid = optional_int(value.get("rid")) if isinstance(value, dict) else None
+        if ident is None or rid is None:
+            continue
         row = refs_by_rid.get(rid)
-        if ident is not None and isinstance(row, dict):
+        if isinstance(row, dict):
             rows[ident] = row
     return rows

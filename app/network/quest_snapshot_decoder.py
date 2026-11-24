@@ -13,7 +13,7 @@ from app.network.normalizer import DecodedClientMessage
 from app.network.protobuf_fields import (
     ProtobufDecodeError,
     ProtobufFields,
-    historical_quest_entry_id, historical_reinitialized_ids,
+    historical_quest_entry_id, historical_reinitialized_rows_valid,
     parse_protobuf_fields,
     resolve_field_path,
 )
@@ -189,7 +189,7 @@ class FinishedQuestsSnapshotDecoder:
 
     @staticmethod
     def _reinitialized_rows_are_valid(rows: tuple[object, ...]) -> bool:
-        return historical_reinitialized_ids(rows) is not None
+        return historical_reinitialized_rows_valid(rows)
 
     def session_closed(self, session_id: str) -> None:
         forward_decoder_session_closed(self.delegate, session_id)

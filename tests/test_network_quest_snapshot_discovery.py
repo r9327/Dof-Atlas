@@ -80,6 +80,12 @@ class QuestSnapshotDiscoveryTests(unittest.TestCase):
         self.assertIsNone(historical_reinitialized_ids((b"\x80",)))
         self.assertIsNone(decode_packed_positive_varints(b"\x01\x02", limit=1))
 
+    def test_validation_and_extraction_agree_for_reinitialized_rows(self) -> None:
+        from app.network.protobuf_fields import historical_reinitialized_ids, historical_reinitialized_rows_valid
+
+        for rows in ((), (1, b"\x02\x01"), (0,), (b"\x80",), (b"\x00",), (None,), (b"",)):
+            self.assertEqual(historical_reinitialized_rows_valid(rows), historical_reinitialized_ids(rows) is not None)
+
     def test_diagnostic_alias_is_only_exact_current_lowercase_three_letter_name(self) -> None:
         from app.network.contracts import is_current_ankama_alias
         from app.network.quest_snapshot_discovery import _is_current_type_url

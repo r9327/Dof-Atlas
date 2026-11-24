@@ -19,6 +19,16 @@ class DodudaRowsTests(unittest.TestCase):
         self.assertEqual(rows_by_id({"references": None}), {})
         self.assertEqual(rows_by_id({"references": {"RefIds": None}}), {})
 
+    def test_keyed_rows_never_join_invalid_reference_ids(self):
+        payload = {
+            "references": {"RefIds": [
+                {"data": {"id": 7}}, {"rid": "bad", "data": {"id": 8}},
+                {"rid": 3, "data": {"id": 9}},
+            ]},
+            "objectsById": {"m_keys": [1, 2, 3], "m_values": [{}, {"rid": "bad"}, {"rid": 3}]},
+        }
+        self.assertEqual(keyed_rows(payload), {3: {"id": 9}})
+
     def test_unwraps_only_list_payloads(self):
         examples = (
             ({"Array": [1, 2]}, [1, 2]),
