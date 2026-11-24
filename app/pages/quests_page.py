@@ -92,6 +92,10 @@ class QuestsPage(_EagerQuestsPage):
     def _flush_search_refresh(self) -> None:
         super().refresh_quests()
 
+    def close_search_results(self) -> None:
+        self._search_debounce_timer.stop()
+        super().close_search_results()
+
     def quest_search_text(self, quest: QuestRecord) -> str:
         quest_id = int(quest.id)
         cached = self._quest_search_text_cache.get(quest_id)

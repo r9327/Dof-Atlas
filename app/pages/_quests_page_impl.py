@@ -904,8 +904,16 @@ class QuestsPage(QWidget):
             (guide.title for guide in guides), document=document,
         )
 
+    def _clear_search_projection(self) -> None:
+        self.quest_model.set_quests([], {})
+        self.quest_list.clearSelection()
+        self.quest_list.setVisible(False)
+
     def refresh_quests(self) -> None:
-        if not self.current_character_key:
+        if not self.current_character_key or len(self.search.text().strip()) < MIN_QUEST_SEARCH_CHARS:
+            # The search list is independent of the selected hierarchy sheet.
+            # A closed or incomplete search must not erase that sheet.
+            self._clear_search_projection()
             return
         current_id = self.selected_quest_id
         matches = self.matching_quests()
@@ -920,16 +928,16 @@ class QuestsPage(QWidget):
             if row >= 0:
                 index = self.quest_model.index(row, 0)
                 self.quest_list.setCurrentIndex(index)
-            else:
+            elif getattr(self, "_search_worker", None) is None:
                 self.render_empty_detail("Quête masquée par le filtre.")
 
     def close_search_results(self) -> None:
-        self.search.blockSignals(True)
-        self.search.clear()
-        self.search.blockSignals(False)
-        self.quest_model.set_quests([], {})
-        self.quest_list.clearSelection()
-        self.quest_list.setVisible(False)
+        blocked = self.search.blockSignals(True)
+        try:
+            self.search.clear()
+        finally:
+            self.search.blockSignals(blocked)
+        self._clear_search_projection()
 
     def select_quest_from_search(self, quest_id: int) -> None:
         self.close_search_results()

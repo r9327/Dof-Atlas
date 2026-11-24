@@ -72,6 +72,33 @@ class QuestsPageHierarchyTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_closed_search_never_clears_the_selected_quest_sheet(self):
+        from unittest.mock import patch
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        catalog = QuestCatalog([quest(101, "Première", "Frigost")])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            page = LazyQuestsPage(lambda _: None, catalog=catalog, progress_path=root/"progress.json",
+                profile_path=root/"profile.json", client_index_path=root/"clients.json",
+                achievement_progress_path=root/"success.json", owned_items_path=root/"items.json")
+            try:
+                page.current_character_key = "character:1"
+                page.select_quest(101, persist=False)
+                page.search.blockSignals(True)
+                page.search.setText("Première")
+                page._search_debounce_timer.start()
+                with patch.object(page, "render_empty_detail") as clear:
+                    page.close_search_results()
+                    self.assertFalse(page._search_debounce_timer.isActive())
+                    self.assertTrue(page.search.signalsBlocked())
+                    page._flush_search_refresh()
+                    clear.assert_not_called()
+                    self.assertEqual(page.quest_detail_view.current_quest_id, 101)
+                    self.assertFalse(page.quest_list.isVisible())
+            finally:
+                page.deleteLater()
+                self.app.processEvents()
+
     def test_global_and_standalone_character_changes_share_one_pipeline(self):
         from types import SimpleNamespace
         from unittest.mock import Mock
