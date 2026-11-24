@@ -895,6 +895,7 @@ class AtlasGuideReadingHeader(QFrame):
 
     def __init__(self, title: str, *, image_path: str | Path | None = None,
                  category: str = "guide", overview: bool = False,
+                 show_cover: bool = True,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
         from app.ui.theme import PALETTE
@@ -921,7 +922,9 @@ class AtlasGuideReadingHeader(QFrame):
         title_row.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
         guide_icon = AtlasGuideCover()
         self.guide_icon_label = guide_icon
-        guide_icon.set_artwork(image_path, category=category)
+        if show_cover and not overview:
+            guide_icon.set_artwork(image_path, category=category)
+        guide_icon.setVisible(show_cover)
         title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(title)
         self.guide_title_label.setObjectName("GuideCompactTitle")
@@ -934,8 +937,10 @@ class AtlasGuideReadingHeader(QFrame):
             geometry = UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]
             guide_icon.setObjectName("GuideHeaderImage")
             guide_icon.setFixedSize(geometry["overview_cover_box"], geometry["overview_cover_box"])
-            guide_icon.set_artwork(image_path, category=category)
+            if show_cover:
+                guide_icon.set_artwork(image_path, category=category)
             self.guide_title_label.setObjectName("GuideHeaderTitle")
+            self.guide_title_label.setWordWrap(True)
             titles = QVBoxLayout()
             titles.setContentsMargins(0, 0, 0, 0)
             titles.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])

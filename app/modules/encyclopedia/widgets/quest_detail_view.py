@@ -38,7 +38,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton, AtlasPanelToggle, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasGuideReadingHeader, AtlasPanelToggle, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
@@ -109,22 +109,11 @@ class QuestDetailView(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(QUEST_DETAIL_GEOMETRY["root_spacing"])
 
-        self.header = QFrame()
-        self.header.setObjectName("GuideHeader")
-        header_layout = QHBoxLayout(self.header)
-        header_layout.setContentsMargins(*QUEST_DETAIL_GEOMETRY["header_margins"])
-        header_layout.setSpacing(QUEST_DETAIL_GEOMETRY["header_spacing"])
-        title_layout = QVBoxLayout()
-        title_layout.setContentsMargins(0, 0, 0, 0)
-        title_layout.setSpacing(QUEST_DETAIL_GEOMETRY["title_spacing"])
-        self.title_label = QLabel()
-        self.title_label.setObjectName("GuideHeaderTitle")
-        self.title_label.setWordWrap(True)
-        self.meta_label = QLabel()
-        self.meta_label.setObjectName("GuideHeaderMeta")
-        title_layout.addWidget(self.title_label)
-        title_layout.addWidget(self.meta_label)
-        header_layout.addLayout(title_layout, 1)
+        self.header = AtlasGuideReadingHeader("", overview=True, show_cover=False)
+        self.header.set_overview_progress(0, 0, visible=False)
+        header_layout = self.header.title_row
+        self.title_label = self.header.guide_title_label
+        self.meta_label = self.header.meta_label
         self.done_button = configure_unity_tool_button(
             QToolButton(), object_name="QuestGlobalDoneButton",
             pointing=True, focus_policy=Qt.NoFocus,
@@ -278,6 +267,7 @@ class QuestDetailView(QWidget):
     def clear(self, message: str = "") -> None:
         self.current_quest_id = None
         self.title_label.setText("Quêtes")
+        self.title_label.setToolTip("Quêtes")
         self.meta_label.clear()
         self.meta_label.setVisible(False)
         self.done_button.setVisible(False)
@@ -302,6 +292,7 @@ class QuestDetailView(QWidget):
     def _render_header(self, quest: QuestRecord) -> None:
         completed = self.quest_progress_service.is_quest_completed(self.character_key, int(quest.id))
         self.title_label.setText(quest.name)
+        self.title_label.setToolTip(quest.name)
         level = _guide_ui()._display_quest_level_text(quest)
         self.meta_label.setText(level)
         self.meta_label.setVisible(bool(level))

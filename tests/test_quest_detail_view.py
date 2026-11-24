@@ -112,7 +112,8 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             panel.deleteLater()
 
     def test_detail_geometry_is_shared_with_dev_ui(self) -> None:
-        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+        from app.ui.components import AtlasGuideReadingHeader
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_LAYOUT_SIZES_PX
 
         geom = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
         sheet = QuestDetailView(object(), object(), object())
@@ -125,8 +126,18 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                              geom["right_min_width"])
             self.assertEqual(sheet.right_panel.maximumWidth(),
                              geom["right_max_width"])
-            self.assertEqual(sheet.header.layout().getContentsMargins(),
-                             geom["header_margins"])
+            self.assertIsInstance(sheet.header, AtlasGuideReadingHeader)
+            sizes = UNITY_LAYOUT_SIZES_PX
+            self.assertEqual(sheet.header.layout().getContentsMargins(), (
+                sizes["guide_header_margin_x"], sizes["guide_header_margin_top"],
+                sizes["guide_header_margin_x"], sizes["guide_header_margin_bottom"],
+            ))
+            self.assertIs(sheet.title_label, sheet.header.guide_title_label)
+            self.assertIs(sheet.meta_label, sheet.header.meta_label)
+            self.assertTrue(sheet.title_label.wordWrap())
+            self.assertTrue(sheet.header.guide_icon_label.isHidden())
+            self.assertTrue(sheet.header.global_progress_bar.isHidden())
+            self.assertTrue(sheet.header.global_progress_title.isHidden())
             prerequisite = sheet._prerequisite_row("Quête précédente", False, 42)
             try:
                 layout = prerequisite.layout()

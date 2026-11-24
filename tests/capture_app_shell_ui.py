@@ -298,6 +298,15 @@ def capture(output: Path) -> dict[str, object]:
                                     )
                                 if page.quest_page.body_splitter.count() != 2:
                                     raise RuntimeError("Quest columns are incomplete")
+                                from app.ui.components import AtlasGuideReadingHeader
+                                detail = page.quest_page.quest_detail_view
+                                if not isinstance(detail.header, AtlasGuideReadingHeader):
+                                    raise RuntimeError("Quest header does not use the shared reader")
+                                if (detail.title_label.text() != catalog.by_id[quest_id].name
+                                        or detail.title_label.toolTip() != detail.title_label.text()
+                                        or detail.header.global_progress_bar.isVisible()
+                                        or detail.header.guide_icon_label.isVisible()):
+                                    raise RuntimeError("Quest header contains stale or unrelated data")
                                 record.update(
                                     fixture=f"real local Quest catalogue; selected {quest_id}",
                                     record_count=len(catalog.quests),
