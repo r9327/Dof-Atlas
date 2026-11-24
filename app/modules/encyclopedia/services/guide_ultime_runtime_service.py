@@ -92,33 +92,43 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         self.set_manual_checked(character_key, legacy_key, False)
         return True
 
-    def route_sheet_progress(self, character_key: str) -> tuple[int, int]:
-        """Return completion of the route units actually rendered to the player."""
+    def _remember_route_result(self, attribute: str, key: tuple, value: Any) -> None:
+        """Keep at most eight characters of the current route/revision only."""
+        cache = getattr(self, attribute, {})
+        current = {k: v for k, v in cache.items() if k[1:] == key[1:]}
+        current.pop(key, None)
+        current[key] = value
+        while len(current) > 8:
+            current.pop(next(iter(current)))
+        setattr(self, attribute, current)
+
+    def _cached_completion(self, key: tuple) -> bytes | None:
+        return getattr(self, "_route_completion_cache", {}).get(key)
+
+    def route_completion_flags(self, character_key: str) -> bytes:
+        """One compact, revision-scoped completion result per route sheet."""
         self.reload_progress()
-        cache_key = self._route_cache_key(character_key)
-        cache = getattr(self, "_route_sheet_progress_cache", None)
-        if isinstance(cache, dict) and cache_key in cache:
-            return cache[cache_key]
-
-        total = len(self.cards)
+        key = self._route_cache_key(character_key)
+        cached = self._cached_completion(key)
+        if cached is not None:
+            return cached
         completed_quests = self.quest_progress.completed_quest_ids(character_key)
-        completed = sum(
-            1
+        flags = bytes(
+            bool(self.card_state(
+                character_key, card, index, completed_quests=completed_quests,
+            ).complete)
             for index, card in enumerate(self.cards)
-            if self.card_state(
-                character_key,
-                card,
-                index,
-                completed_quests=completed_quests,
-            ).complete
         )
-        result = (completed, total)
+        # Never publish a scan under a different revision. Legacy-key migration
+        # or a concurrent progress writer may have changed it during evaluation.
+        if self._route_cache_key(character_key) == key:
+            self._remember_route_result("_route_completion_cache", key, flags)
+        return flags
 
-        # A lazy legacy-key migration may have published a new guide generation
-        # while card_state() was evaluated. Store under the final revision so the
-        # immediately following header/navigation read can reuse the result.
-        self._route_sheet_progress_cache = {self._route_cache_key(character_key): result}
-        return result
+    def route_sheet_progress(self, character_key: str) -> tuple[int, int]:
+        """Return completion of the same sheets used by team and preparation."""
+        flags = self.route_completion_flags(character_key)
+        return flags.count(1), len(flags)
 
     def active_route_card(self, character_key: str) -> tuple[int, dict[str, Any] | None]:
         """Return the canonical current sheet, or no card when the route is empty."""
@@ -254,5 +264,6 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
                 result = index
                 break
 
-        self._first_incomplete_cache = {self._route_cache_key(character_key): result}
+        if self._route_cache_key(character_key) == cache_key:
+            self._remember_route_result("_first_incomplete_cache", cache_key, result)
         return result

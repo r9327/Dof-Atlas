@@ -342,6 +342,23 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertTrue(self._check("character:1"))
         self.assertFalse(self._check("character:2"))
 
+    def test_team_progress_reuses_same_sheet_flags_for_preparation(self):
+        from unittest.mock import Mock
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        self.service.route_completion_flags = Mock(side_effect=lambda key:
+            b"\x01\x00" if key == "character:1" else b"\x00\x01")
+        self.service.route_sheet_progress = lambda key: (1, 2)
+        self.service.cards[0]["a_preparer"] = [
+            {"item_id": 1, "name": "Potion", "quantity": 2},
+        ]
+        self.view.refresh()
+        self.assertEqual(self.view.global_progress_bar.value(), 0)
+        self.view.global_details_button.setChecked(True)
+        self.view.preparation_button.setChecked(True)
+        self.assertEqual(len(self.view._preparation_needs), 1)
+        self.assertEqual(dict(self.view._preparation_needs[0].required_by_character),
+                         {"character:2": 2})
+
     def test_team_progress_counts_shared_sheet_intersection(self) -> None:
         self.participants.save_selected_keys(("character:1", "character:2"))
         first, second = self.service.cards

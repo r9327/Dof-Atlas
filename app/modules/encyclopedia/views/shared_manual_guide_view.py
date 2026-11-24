@@ -1119,6 +1119,17 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     _preparation_item_key = staticmethod(preparation_progress_item_key)
 
+    def _completion_flags(self, character_key: str) -> bytes:
+        getter = getattr(self.service, "route_completion_flags", None)
+        if callable(getter):
+            flags = getter(character_key)
+            if len(flags) == len(self.service.cards):
+                return flags
+        return bytes(
+            self._card_complete(character_key, card, index)
+            for index, card in enumerate(self.service.cards)
+        )
+
     def _load_preparation_needs(self) -> None:
         # A browsing character is never consent for Prêt. The no-selection
         # state remains readable without manufacturing an inventory/progress ID.
@@ -1138,10 +1149,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         sections_getter = getattr(self.service, "manual_sections_for_card", None)
 
         def needs_for_character(character_key: str):
-            rows = (
-                (card, self._card_complete(character_key, card, index))
-                for index, card in enumerate(self.service.cards)
-            )
+            flags = self._completion_flags(character_key)
+            rows = ((card, bool(done)) for card, done in zip(self.service.cards, flags))
             return aggregate_remaining(
                 rows,
                 sections_for_card=(
@@ -1321,19 +1330,15 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
 
         if selected_filter == "Tout":
-            categories = PREPARATION_CATEGORIES
+            grouped = {category: [] for category in PREPARATION_CATEGORIES}
+            for need in self._preparation_needs:
+                grouped[category_for(need.name, need.category)].append(need)
             if not self._preparation_needs:
                 empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
                 empty.setObjectName("GuidePreparationEmpty")
                 self.preparation_rows_layout.addWidget(empty)
             rendered_count = 0
-            for category in categories:
-                matching = [
-                    need for need in self._preparation_needs
-                    if matches_preparation_category(
-                        need.category, need.name, category,
-                    )
-                ]
+            for category, matching in grouped.items():
                 if not matching:
                     continue
                 ready_count = sum(1 for need in matching if self._need_ready(need))
@@ -1551,9 +1556,12 @@ class SharedGuideManualView(GuideUltimeManualView):
             # Common progress is the intersection of completed sheet IDs.
             # The minimum of two counts is not evidence of shared completion.
             if len(keys) > 1:
-                completed = self._common_sheet_count(
-                    keys, self.service.cards, self._card_complete,
-                )
+                if callable(getattr(self.service, "route_completion_flags", None)):
+                    completed = sum(
+                        all(flags) for flags in zip(*(self._completion_flags(key) for key in keys))
+                    )
+                else:
+                    completed = self._common_sheet_count(keys, self.service.cards, self._card_complete)
             else:
                 completed = min(done for done, _total in progress_rows)
             percent = clamped_percent(completed, total)

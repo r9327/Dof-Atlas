@@ -20,6 +20,51 @@ class GuideManualStructuredRuntimeTests(unittest.TestCase):
         }
         return service
 
+    def test_route_completion_cache_reuses_eight_characters_and_current_revision(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        service = self._service()
+        service.cards = [{}, {}, {}]
+        service.reload_progress = Mock()
+        service.quest_progress = SimpleNamespace(completed_quest_ids=lambda key: set())
+        revision = [0]
+        service._route_cache_key = lambda key: (key, id(service.cards), len(service.cards), revision[0])
+        service.card_state = Mock(side_effect=lambda key, card, index, **kw:
+                                  SimpleNamespace(complete=index != int(key) % 3))
+        keys = tuple(str(i) for i in range(8))
+        for key in keys:
+            self.assertEqual(service.route_sheet_progress(key), (2, 3))
+        self.assertEqual(service.card_state.call_count, 24)
+        for key in reversed(keys):
+            self.assertEqual(service.first_incomplete_index(key), int(key) % 3)
+            self.assertEqual(service.route_sheet_progress(key), (2, 3))
+        self.assertEqual(service.card_state.call_count, 24)
+        self.assertEqual(len(service._route_completion_cache), 8)
+        service.route_sheet_progress("8")
+        self.assertEqual(len(service._route_completion_cache), 8)
+        revision[0] += 1
+        service.route_sheet_progress("1")
+        self.assertEqual(service.card_state.call_count, 30)
+        self.assertEqual(len(service._route_completion_cache), 1)
+
+    def test_route_completion_scan_is_not_cached_if_revision_changes_mid_scan(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        service = self._service()
+        service.cards = [{}]
+        service.reload_progress = Mock()
+        service.quest_progress = SimpleNamespace(completed_quest_ids=lambda key: set())
+        revision = [0]
+        service._route_cache_key = lambda key: (key, id(service.cards), len(service.cards), revision[0])
+        def changing_state(*args, **kwargs):
+            revision[0] += 1
+            return SimpleNamespace(complete=False)
+        service.card_state = Mock(side_effect=changing_state)
+        self.assertEqual(service.route_completion_flags("1"), b"\x00")
+        self.assertFalse(getattr(service, "_route_completion_cache", {}))
+        self.assertEqual(service.route_completion_flags("1"), b"\x00")
+        self.assertEqual(service.card_state.call_count, 2)
+
     def test_manual_runtime_integer_adapter_keeps_existing_conversion(self) -> None:
         for source, expected in (("12", 12), (True, 1), (-8, -8), (None, None), ("bad", None)):
             with self.subTest(source=source):
