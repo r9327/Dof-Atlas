@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -49,6 +48,12 @@ from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+from app.ui.components import (
+    AtlasGuideProgressDonut as _GuideProgressDonut,
+    AtlasGuideParticipantPortrait as _ParticipantPortraitButton,
+    atlas_guide_symbol_icon as _guide_symbol_icon,
+    _cached_atlas_guide_symbol_icon as _cached_guide_symbol_icon,
+)
 
 
 _COMBAT_STOP_WORDS = {
@@ -72,184 +77,9 @@ _COMBAT_STOP_WORDS = {
     "vaincre",
 }
 
-def _guide_symbol_icon(
-    widget: QWidget, symbol: str, *, size: int = 18, color: str | None = None
-) -> QIcon:
-    """Share tiny semantic Qt icons instead of repainting one per row."""
-    # Retain the historical widget-taking API; this artwork is independent of
-    # widget identity and must not pin deleted QObjects in a global cache.
-    return _cached_guide_symbol_icon(symbol, size, color or PALETTE["TEXT_SOFT"])
-
-
-@lru_cache(maxsize=32)
-def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
-    """Build at most 32 lightweight icon rasters, on the Qt GUI thread."""
-    pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(color), 1.6)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-    if symbol == "target":
-        painter.drawEllipse(QPointF(9, 9), 5.3, 5.3)
-        painter.drawEllipse(QPointF(9, 9), 2.2, 2.2)
-        painter.drawLine(QPointF(9, 1), QPointF(9, 5))
-        painter.drawLine(QPointF(9, 13), QPointF(9, 17))
-        painter.drawLine(QPointF(1, 9), QPointF(5, 9))
-        painter.drawLine(QPointF(13, 9), QPointF(17, 9))
-    elif symbol == "cube":
-        painter.drawPolyline([QPointF(9, 2), QPointF(16, 5.5), QPointF(9, 9), QPointF(2, 5.5), QPointF(9, 2)])
-        painter.drawPolyline([QPointF(2, 5.5), QPointF(2, 13), QPointF(9, 17), QPointF(16, 13), QPointF(16, 5.5)])
-        painter.drawLine(QPointF(9, 9), QPointF(9, 17))
-    elif symbol == "trophy":
-        painter.drawRoundedRect(QRectF(5, 2, 8, 9), 2, 2)
-        painter.drawArc(QRectF(1.5, 2.5, 6.5, 8), 125 * 16, 205 * 16)
-        painter.drawArc(QRectF(10, 2.5, 6.5, 8), 210 * 16, 205 * 16)
-        painter.drawLine(QPointF(9, 11), QPointF(9, 15))
-        painter.drawLine(QPointF(5, 16), QPointF(13, 16))
-    elif symbol == "guide":
-        painter.drawPolyline([QPointF(9, 4), QPointF(6, 2.5), QPointF(2, 3.5), QPointF(2, 14), QPointF(6, 13), QPointF(9, 15)])
-        painter.drawPolyline([QPointF(9, 4), QPointF(12, 2.5), QPointF(16, 3.5), QPointF(16, 14), QPointF(12, 13), QPointF(9, 15)])
-        painter.drawLine(QPointF(9, 4), QPointF(9, 15))
-    elif symbol == "settings":
-        center = QPointF(size / 2, size / 2)
-        painter.drawEllipse(center, 3.0, 3.0)
-        painter.drawEllipse(center, 5.6, 5.6)
-        for dx, dy in ((0, -7), (0, 7), (-7, 0), (7, 0), (-5, -5), (5, 5), (-5, 5), (5, -5)):
-            start = QPointF(center.x() + dx * 0.72, center.y() + dy * 0.72)
-            end = QPointF(center.x() + dx, center.y() + dy)
-            painter.drawLine(start, end)
-    elif symbol == "map":
-        painter.drawPolyline(
-            [QPointF(2, 4), QPointF(6.5, 2), QPointF(11.5, 4), QPointF(16, 2)]
-        )
-        painter.drawPolyline(
-            [QPointF(2, 4), QPointF(2, 15), QPointF(6.5, 13), QPointF(11.5, 15), QPointF(16, 13), QPointF(16, 2)]
-        )
-        painter.drawLine(QPointF(6.5, 2), QPointF(6.5, 13))
-        painter.drawLine(QPointF(11.5, 4), QPointF(11.5, 15))
-    elif symbol == "location":
-        painter.drawEllipse(QPointF(9, 6.5), 4.2, 4.2)
-        painter.drawEllipse(QPointF(9, 6.5), 1.2, 1.2)
-        painter.drawLine(QPointF(6.2, 9.7), QPointF(9, 16))
-        painter.drawLine(QPointF(11.8, 9.7), QPointF(9, 16))
-    elif symbol == "clipboard":
-        painter.drawRoundedRect(QRectF(3, 3, 12, 13), 1.5, 1.5)
-        painter.drawRoundedRect(QRectF(6, 1.5, 6, 4), 1.2, 1.2)
-        painter.drawLine(QPointF(6, 9), QPointF(12, 9))
-        painter.drawLine(QPointF(6, 12), QPointF(12, 12))
-    elif symbol == "people":
-        painter.drawEllipse(QPointF(6.2, 6), 2.6, 2.6)
-        painter.drawEllipse(QPointF(12.2, 7), 2.2, 2.2)
-        painter.drawArc(QRectF(1.5, 8.5, 9.5, 7), 20 * 16, 140 * 16)
-        painter.drawArc(QRectF(8, 10, 8, 5), 20 * 16, 140 * 16)
-    elif symbol == "summary":
-        for y in (4, 9, 14):
-            painter.drawEllipse(QPointF(3, y), 0.8, 0.8)
-            painter.drawLine(QPointF(6, y), QPointF(16, y))
-    elif symbol == "current":
-        painter.drawArc(QRectF(3, 3, 11, 11), 35 * 16, 285 * 16)
-        painter.drawLine(QPointF(3, 4), QPointF(3, 9))
-        painter.drawLine(QPointF(3, 4), QPointF(8, 4))
-    elif symbol == "lock":
-        painter.drawRoundedRect(QRectF(4, 8, 10, 8), 1.5, 1.5)
-        painter.drawArc(QRectF(6, 2, 6, 9), 0, 180 * 16)
-    elif symbol == "unlock":
-        painter.drawRoundedRect(QRectF(4, 8, 10, 8), 1.5, 1.5)
-        painter.drawArc(QRectF(8, 2, 6, 9), 0, 180 * 16)
-    elif symbol == "back":
-        painter.drawLine(QPointF(13, 9), QPointF(3, 9))
-        painter.drawLine(QPointF(8, 4), QPointF(3, 9))
-        painter.drawLine(QPointF(3, 9), QPointF(8, 14))
-    elif symbol == "check":
-        painter.drawLine(QPointF(3, 9), QPointF(7, 13))
-        painter.drawLine(QPointF(7, 13), QPointF(15, 4))
-    painter.end()
-    return QIcon(pixmap)
 
 
 _PreparationNeed = TeamPreparationNeed
-
-
-class _GuideProgressDonut(QWidget):
-    """Small palette-aware route progress indicator used in the fixed header."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._percent: int | None = None
-        self.setObjectName("GuideCompactDonut")
-        self.setFixedSize(66, 66)
-
-    def set_percent(self, value: int | None) -> None:
-        value = None if value is None else max(0, min(100, int(value)))
-        if value == self._percent:
-            return
-        self._percent = value
-        self.update()
-
-    def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
-        del event
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        ring = self.rect().adjusted(7, 7, -7, -7)
-        pen = QPen(self.palette().mid().color(), 6)
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        painter.drawArc(ring, 0, 360 * 16)
-        pen.setColor(self.palette().highlight().color())
-        painter.setPen(pen)
-        if self._percent is not None:
-            painter.drawArc(ring, 90 * 16, -round(360 * 16 * self._percent / 100))
-        painter.setPen(self.palette().text().color())
-        painter.drawText(self.rect(), Qt.AlignCenter,
-                         f"{self._percent} %" if self._percent is not None else "—")
-
-
-class _ParticipantPortraitButton(QToolButton):
-    """Real class portrait button with a compact individual progress ring."""
-
-    def __init__(
-        self,
-        character_key: str,
-        *,
-        progress: int | None,
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(parent)
-        self.character_key = str(character_key)
-        self.progress = None if progress is None else max(0, min(100, int(progress)))
-        self.setObjectName("GuideParticipantPortrait")
-        self.setCheckable(True)
-        self.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["guide_portrait_button"],
-            UNITY_CONTROL_SIZES_PX["guide_portrait_button"],
-        )
-        self.setIconSize(QSize(
-            UNITY_CONTROL_SIZES_PX["guide_portrait_icon"],
-            UNITY_CONTROL_SIZES_PX["guide_portrait_icon"],
-        ))
-        self.setCursor(Qt.PointingHandCursor)
-
-    def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
-        super().paintEvent(event)
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        # Keep the ring in Unity accents; gray looks like a disabled portrait.
-        color = QColor(
-            PALETTE["GREEN"] if self.isChecked() else PALETTE["BORDER_STRONG"]
-        )
-        pen = QPen(color, 3)
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        if self.progress is not None:
-            painter.drawArc(
-                self.rect().adjusted(2, 2, -2, -2),
-                90 * 16,
-                -round(360 * 16 * self.progress / 100),
-            )
 
 
 class SharedGuideManualCard(GuideUltimeManualCard):

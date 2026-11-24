@@ -281,6 +281,11 @@ UNITY_CONTROL_SIZES_PX = {
     # Guide portrait rings and sheet selector are shared with Dev UI previews.
     "guide_portrait_button": 42,
     "guide_portrait_icon": 32,
+    "guide_portrait_stroke": 3,
+    "guide_portrait_inset": 2,
+    "guide_donut_box": 66,
+    "guide_donut_inset": 7,
+    "guide_donut_stroke": 6,
     "guide_page_jump_compact_max_width": 90,
     "guide_page_jump_normal_max_width": 110,
     "dialog_min_width": 400,

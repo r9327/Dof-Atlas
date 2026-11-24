@@ -26,7 +26,7 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
     visible_object_references,
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
-from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
+from app.ui.components import atlas_guide_symbol_icon as _guide_symbol_icon
 from app.ui.components import (
     AtlasGuideDisclosure, AtlasGuideParticipantButton, atlas_guide_character_icon,
     configure_unity_progress_bar, configure_unity_scroll_area, configure_unity_tool_button,

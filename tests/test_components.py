@@ -36,6 +36,27 @@ class SharedUiComponentsTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_shared_guide_portrait_donut_and_symbol_geometry(self) -> None:
+        from app.ui.components import (
+            AtlasGuideParticipantPortrait, AtlasGuideProgressDonut, atlas_guide_symbol_icon,
+        )
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+        portrait = AtlasGuideParticipantPortrait("character:1", progress=150)
+        donut = AtlasGuideProgressDonut()
+        try:
+            self.assertEqual(portrait.progress, 100)
+            self.assertEqual(portrait.width(), UNITY_CONTROL_SIZES_PX["guide_portrait_button"])
+            self.assertEqual(donut.width(), UNITY_CONTROL_SIZES_PX["guide_donut_box"])
+            donut.set_percent(-5)
+            self.assertEqual(donut._percent, 0)
+            first = atlas_guide_symbol_icon(portrait, "people")
+            second = atlas_guide_symbol_icon(donut, "people")
+            self.assertFalse(first.isNull())
+            self.assertEqual(first.cacheKey(), second.cacheKey())
+        finally:
+            portrait.deleteLater()
+            donut.deleteLater()
+
     def test_shared_dialog_add_header_preserves_single_indexed_widget(self) -> None:
         from app.ui.components import AtlasDialogHeader
 

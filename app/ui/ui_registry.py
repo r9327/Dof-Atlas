@@ -331,7 +331,7 @@ UI_MUTUALIZATION_TARGETS = (
     ("Glass et ombres", "panels", "Tokens et helper Unity",
      r"\b(?:apply_unity_panel_shadow|apply_unity_shadow)\s*\("),
     ("Icônes et logos", "assets", "Assets Unity existants",
-     r"\b(?:unity_original_preview_icon|atlas_application_icon)\s*\("),
+     r"\b(?:unity_original_preview_icon|atlas_application_icon|atlas_guide_symbol_icon|_guide_symbol_icon)\s*\("),
     ("Navigation et fil d'Ariane", "breadcrumbs", "AtlasBreadcrumb / AtlasPageNavigator",
      r"\b(?:AtlasBreadcrumb|AtlasPageNavigator)\s*\("),
     ("Onglets et sous-menus", "navigation", "QTabWidget / QMenu / AtlasPanelToggle",

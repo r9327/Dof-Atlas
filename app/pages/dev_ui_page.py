@@ -519,9 +519,9 @@ class DevUiPage(QWidget):
 
     def _build_headers(self, parent: QVBoxLayout) -> None:
         """Show real shared Guide header parts without a second UI skin or runtime."""
-        # Import only when the developer-only page is explicitly opened.
-        from app.modules.encyclopedia.views.shared_manual_guide_view import (
-            _ParticipantPortraitButton, _guide_symbol_icon,
+        from app.ui.components import (
+            AtlasGuideParticipantPortrait as _ParticipantPortraitButton,
+            atlas_guide_symbol_icon as _guide_symbol_icon,
         )
 
         section = self._section(parent, "headers")
