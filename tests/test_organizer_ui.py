@@ -58,6 +58,36 @@ class OrganizerUiSharedStyleTests(unittest.TestCase):
             speed.deleteLater()
             mode.deleteLater()
 
+    def test_repeated_selected_state_does_not_restart_slider_animation(self):
+        speed = OrganizerSpeedSelector(QPushButton("Normal"), QPushButton("Rapide"), QPushButton("Instant"))
+        mode = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))
+        try:
+            speed.show()
+            mode.show()
+            self.app.processEvents()
+            speed.set_selected("normal")
+            mode.set_selected(False)
+            with patch.object(speed, "_position_highlight", wraps=speed._position_highlight) as move_speed, \
+                 patch.object(mode, "_sync_highlight", wraps=mode._sync_highlight) as move_mode:
+                speed.set_selected("rapide")
+                mode.set_selected(True)
+                speed.set_selected("rapide")
+                mode.set_selected(True, armed=True)
+                move_speed.assert_called_once_with(animated=True)
+                move_mode.assert_called_once_with(animate=True)
+                self.assertEqual(mode.highlight.objectName(), "OrganizerModeHighlightArmed")
+        finally:
+            speed.close()
+            mode.close()
+            speed.deleteLater()
+            mode.deleteLater()
+
+    def test_static_organizer_icons_reuse_bounded_pixmaps(self):
+        from app.pages.organizer.organizer_ui import _organizer_grip_icon, _organizer_favorite_icon
+        self.assertEqual(_organizer_grip_icon().cacheKey(), _organizer_grip_icon().cacheKey())
+        self.assertEqual(_organizer_favorite_icon(True).cacheKey(), _organizer_favorite_icon(True).cacheKey())
+        self.assertNotEqual(_organizer_favorite_icon(True).cacheKey(), _organizer_favorite_icon(False).cacheKey())
+
     def test_drag_row_repolishes_only_when_visual_role_changes(self):
         row = QWidget()
         try:

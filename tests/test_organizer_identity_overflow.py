@@ -107,6 +107,21 @@ class OrganizerIdentityOverflowTests(unittest.TestCase):
         record.assert_called_once()
         owner.status_callback.assert_called_once()
 
+    def test_both_identity_paths_reject_duplicate_live_name_and_class(self):
+        owner = CharacterSessionsMixin()
+        owner.sessions = [{"nom": "Witsis", "hwnd": 101, "pid": 42},
+                          {"nom": "Witsis", "hwnd": 102, "pid": 43}]
+        owner._verified_character_rows = Mock(return_value=(
+            (101, {"pid": 42, "name": "Witsis", "class_key": "panda"}),
+        ))
+        with patch("app.pages.organizer.character_sessions.session_is_detected", return_value=True), \
+             patch("app.pages.organizer.character_sessions.dofus_class_key_from_window_name", return_value="panda"):
+            self.assertEqual(owner.verified_character_token_for_session(owner.sessions[0]), "")
+            self.assertEqual(owner.fallback_primary_token_for_session(owner.sessions[0]), "")
+            owner._verified_character_rows.assert_not_called()
+            owner.sessions.pop()
+            self.assertEqual(owner.verified_character_token_for_session(owner.sessions[0]), "character:101")
+
     def test_verified_identity_still_matches_unique_name_when_pid_overflows(self):
         owner = CharacterSessionsMixin()
         owner.sessions = [{"nom": "Witsis", "hwnd": 101, "pid": 42}]

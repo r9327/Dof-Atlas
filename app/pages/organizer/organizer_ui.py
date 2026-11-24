@@ -36,6 +36,7 @@ from app.constants import (
     KEY_SWITCH_MOVEMENT,
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
+from app.core.file_stamp import resolved_mtime_size_stamp
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.components import AtlasButton, clear_unity_widget_layout, refresh_unity_widget_style, set_unity_widget_object_name, set_unity_widget_property, configure_unity_scroll_area
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
@@ -64,9 +65,14 @@ from .common import (
 ORGANIZER_GEOMETRY = UNITY_ORGANIZER_METRICS_PX
 
 
-@lru_cache(maxsize=48)
 def _organizer_class_pixmap(path: str) -> QPixmap:
-    """Remove only edge-connected near-black icon backgrounds, once per file."""
+    """Refresh the cleaned portrait whenever its source file changes."""
+    from pathlib import Path
+    return _organizer_class_pixmap_cached(path, resolved_mtime_size_stamp(Path(path)))
+
+
+@lru_cache(maxsize=48)
+def _organizer_class_pixmap_cached(path: str, stamp: tuple) -> QPixmap:
     pixmap = QPixmap(path)
     if pixmap.isNull():
         return pixmap
@@ -76,6 +82,7 @@ def _organizer_class_pixmap(path: str) -> QPixmap:
     )
 
 
+@lru_cache(maxsize=1)
 def _organizer_grip_icon() -> QIcon:
     pixmap = QPixmap(20, 24)
     pixmap.fill(Qt.transparent)
@@ -90,6 +97,7 @@ def _organizer_grip_icon() -> QIcon:
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=2)
 def _organizer_favorite_icon(selected: bool) -> QIcon:
     pixmap = QPixmap(24, 24)
     pixmap.fill(Qt.transparent)
@@ -109,6 +117,7 @@ def _organizer_favorite_icon(selected: bool) -> QIcon:
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=1)
 def _organizer_warning_icon() -> QIcon:
     """Draw the warning mark rather than relying on missing Unicode glyphs."""
     pixmap = QPixmap(26, 26)
@@ -127,6 +136,7 @@ def _organizer_warning_icon() -> QIcon:
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=1)
 def _organizer_refresh_icon() -> QIcon:
     """Antialiased refresh arrow visible with all fonts and DPI settings."""
     pixmap = QPixmap(28, 28)
@@ -141,6 +151,7 @@ def _organizer_refresh_icon() -> QIcon:
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=24)
 def _organizer_action_icon(kind: str) -> QIcon:
     """Compact antialiased icons; no platform-font glyph dependencies."""
     pixmap = QPixmap(32, 32)
@@ -453,7 +464,8 @@ class OrganizerSpeedSelector(QFrame):
                 "OrganizerSpeedChoiceSelected" if self._selected == index
                 else "OrganizerSpeedChoice",
             )
-        self._position_highlight(animated=previous is not None and previous != self._selected)
+        if previous != self._selected or (self._selected is not None and self.highlight.isHidden()):
+            self._position_highlight(animated=previous is not None and previous != self._selected)
 
     def _position_highlight(self, *, animated: bool = False) -> None:
         self._motion.stop()
@@ -503,14 +515,16 @@ class OrganizerModeSwitch(QFrame):
 
     def set_selected(self, mirror: bool, *, armed: bool = False) -> None:
         new = 1 if mirror else 0
-        changed = self._selected >= 0 and self._selected != new
+        previous = self._selected
+        changed = previous >= 0 and previous != new
         self._selected = new
         set_unity_widget_object_name(
             self.highlight,
             "OrganizerModeHighlightArmed" if mirror and armed
             else "OrganizerModeHighlight",
         )
-        self._sync_highlight(animate=changed)
+        if previous != new or self.highlight.isHidden():
+            self._sync_highlight(animate=changed)
 
     def _sync_highlight(self, *, animate: bool = False) -> None:
         self._animation.stop()
