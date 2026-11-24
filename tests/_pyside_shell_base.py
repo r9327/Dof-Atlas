@@ -838,6 +838,26 @@ class PySideShellTests(unittest.TestCase):
             window.close()
             app.processEvents()
 
+    def test_placeholder_navigation_cancels_previous_pending_factory(self):
+        app = QApplication.instance() or QApplication([])
+        window = AtlasWindow()
+        window.preload_started = True
+        calls = []
+        try:
+            window.page_factories["Craft"] = lambda: (calls.append("loaded") or QLabel("Craft"))
+            window.show_page("Craft")
+            self.assertEqual(window.pending_page_name, "Craft")
+            window.show_placeholder("Ocre", "En travaux", "Outils")
+            self.assertEqual(window.pending_page_name, "")
+            app.processEvents()
+            self.assertEqual(calls, [])
+            self.assertEqual(window.active_page_name(), "Placeholder::Ocre")
+            self.assertIn("Craft", window.page_factories)
+        finally:
+            window.quit_requested = True
+            window.close()
+            app.processEvents()
+
     def test_atlas_window_keeps_current_page_until_existing_target_is_ready(self):
         app = QApplication.instance() or QApplication([])
         window = AtlasWindow()

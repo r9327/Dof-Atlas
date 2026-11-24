@@ -1878,7 +1878,9 @@ class AtlasWindow(QMainWindow):
         if name not in self.page_widgets:
             self.register_page(name, self.placeholder_page(title, message, badge="En travaux"))
         self.page_nav_group[name] = group
-        self.switch_to_page(name)
+        # Use the same navigation entry point as real modules: a pending
+        # lazy factory must not steal focus after an explicit placeholder click.
+        self.show_page(name)
 
     def placeholder_page(self, title: str, message: str, badge: str = "") -> QWidget:
         return AtlasUnavailablePage(title, message, badge=badge)
