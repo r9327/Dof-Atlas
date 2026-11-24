@@ -830,7 +830,11 @@ class HomePage(QWidget):
 
     def refresh_progress(self) -> None:
         character_key = str(self.character_key or "").strip()
-        if character_key and self.catalog is None:
+        if character_key and (
+            self.catalog is None or (
+                self.guide_provider is None and not self._guide_ultime_runtime_allowed
+            )
+        ):
             summary = _persisted_manual_summary(character_key)
             _apply_saved_progress(self, summary)
             return

@@ -55,6 +55,20 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
             EncyclopediaPage.sync_tab_accent(page, "GUIDES")
             refresh.assert_called_once_with(tab_bar)
 
+    def test_navigation_group_uses_canonical_tab_ids_and_preserves_order(self):
+        from app.modules.encyclopedia.constants import (
+            ENCYCLOPEDIA_TABS, GUIDE_TABS, BESTIARY_TABS,
+            encyclopedia_tab_group, encyclopedia_visible_tabs,
+        )
+        for label in GUIDE_TABS:
+            self.assertEqual(encyclopedia_tab_group(label), "Encyclopédie")
+            self.assertEqual(encyclopedia_visible_tabs(label, ENCYCLOPEDIA_TABS), GUIDE_TABS)
+        for label in BESTIARY_TABS:
+            self.assertEqual(encyclopedia_tab_group(label), "Bestiaire")
+            self.assertEqual(encyclopedia_visible_tabs(label, ENCYCLOPEDIA_TABS), BESTIARY_TABS)
+        self.assertEqual(encyclopedia_tab_group("unknown"), "")
+        self.assertEqual(encyclopedia_visible_tabs("unknown", ENCYCLOPEDIA_TABS), ENCYCLOPEDIA_TABS)
+
     def test_bestiary_unavailable_title_uses_shared_page_component(self):
         from app.ui.components import AtlasPageTitle
 

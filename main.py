@@ -58,7 +58,10 @@ from app.constants import (
 )
 from app.logging_setup import configure_logging
 from app.validation_log import record_validation
-from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
+from app.modules.encyclopedia.constants import (
+    ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB, BESTIARY_TABS, DUNGEONS_TAB,
+    encyclopedia_tab_group, encyclopedia_visible_tabs,
+)
 from app.pages.home_page import HomePage
 from app.preload import PreloadTask, StartupPreloader
 from app.distribution.startup_trace import record_startup_event
@@ -1088,15 +1091,13 @@ class AtlasWindow(QMainWindow):
 
         bestiary_menu = fill_unity_navigation_menu(
             QMenu(nav),
-            (("Donjons", "DONJONS"), ("Monstres", "MONSTRES"),
-             ("Archimonstres", "ARCHIMONSTRES"),
-             ("Avis de recherche", "AVIS DE RECHERCHE")),
+            tuple((label.capitalize(), label) for label in BESTIARY_TABS),
             self.open_encyclopedia_tab,
         )
 
         bestiary = HoverMenuButton("Bestiaire")
         bestiary.set_hover_menu(bestiary_menu)
-        bestiary.clicked.connect(lambda: self.open_encyclopedia_tab("DONJONS"))
+        bestiary.clicked.connect(lambda: self.open_encyclopedia_tab(DUNGEONS_TAB))
         layout.addWidget(bestiary)
         self.nav_buttons.append((bestiary, "Bestiaire"))
 
@@ -1652,22 +1653,9 @@ class AtlasWindow(QMainWindow):
     def open_encyclopedia_tab(self, tab_label: str) -> None:
         label = str(tab_label or QUESTS_TAB)
 
-        guide_tabs = {
-            GUIDES_TAB,
-            QUESTS_TAB,
-            ACHIEVEMENTS_TAB,
-        }
-        bestiary_tabs = {
-            "DONJONS",
-            "MONSTRES",
-            "ARCHIMONSTRES",
-            "AVIS DE RECHERCHE",
-        }
-
-        if label in guide_tabs:
-            self.page_nav_group["Quetes"] = "Encyclopédie"
-        elif label in bestiary_tabs:
-            self.page_nav_group["Quetes"] = "Bestiaire"
+        group = encyclopedia_tab_group(label)
+        if group:
+            self.page_nav_group["Quetes"] = group
 
         self.pending_encyclopedia_tab = label
         page = self.page_widgets.get("Quetes")
@@ -1695,26 +1683,9 @@ class AtlasWindow(QMainWindow):
             self.pending_encyclopedia_tab = ""
             return
 
-        guide_tabs = {
-            GUIDES_TAB,
-            QUESTS_TAB,
-            ACHIEVEMENTS_TAB,
-        }
-
-        bestiary_tabs = {
-            "DONJONS",
-            "MONSTRES",
-            "ARCHIMONSTRES",
-            "AVIS DE RECHERCHE",
-        }
-
         target_index = labels.index(label)
         tab_bar = page.tabs.tabBar()
-        allowed_tabs = (
-            guide_tabs if label in guide_tabs
-            else bestiary_tabs if label in bestiary_tabs
-            else set(labels)
-        )
+        allowed_tabs = encyclopedia_visible_tabs(label, tuple(labels))
 
         def restore_tab_group_visibility() -> None:
             # Reuse one visibility rule before and after lazy tab hydration.

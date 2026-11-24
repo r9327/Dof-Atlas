@@ -16,7 +16,7 @@ from app.core.character_identity import is_character_key
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB, ARCHMONSTERS_TAB, DEFAULT_TAB, DUNGEONS_TAB,
-    ENCYCLOPEDIA_TABS, GUIDES_TAB, MONSTERS_TAB, QUESTS_TAB, WANTED_TAB,
+    ENCYCLOPEDIA_TABS, GUIDES_TAB, MONSTERS_TAB, QUESTS_TAB, WANTED_TAB, BESTIARY_TABS,
 )
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 
 LOGGER = logging.getLogger(__name__)
 GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
-_BESTIARY_TABS = frozenset({DUNGEONS_TAB, MONSTERS_TAB, ARCHMONSTERS_TAB, WANTED_TAB})
+_BESTIARY_TABS = frozenset(BESTIARY_TABS)
 
 _ACHIEVEMENTS_VIEW_TYPE: type | None = None
 _GUIDE_CATALOG_VIEW_TYPE: type | None = None

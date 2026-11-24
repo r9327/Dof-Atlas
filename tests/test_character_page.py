@@ -89,6 +89,23 @@ class CharacterPageTests(unittest.TestCase):
             for row in range(page.character_order_list.count())
         ]
 
+    def test_selecting_existing_character_does_not_rebuild_roster(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = self.build_files(Path(temporary))
+            page = self.build_page(paths)
+            try:
+                with patch.object(page, "_rebuild_character_selector",
+                                  wraps=page._rebuild_character_selector) as combo, \
+                     patch.object(page, "_rebuild_character_order_list",
+                                  wraps=page._rebuild_character_order_list) as order:
+                    page.refresh_from_sources("character:84")
+                    combo.assert_not_called()
+                    order.assert_not_called()
+                self.assertEqual(page.character_selector.currentData(), "character:84")
+                self.assertEqual(page.character_name.text(), "Beta")
+            finally:
+                page.deleteLater()
+
     def test_legacy_stats_scroll_uses_shared_ui_policy(self):
         from PySide6.QtWidgets import QFrame
 

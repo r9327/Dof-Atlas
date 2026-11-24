@@ -36,11 +36,18 @@ class HomeNetworkIndicatorTests(unittest.TestCase):
             page.character_key = "character:42"
             page.catalog = object()
             page.guide_provider = None
+            page._guide_ultime_runtime_allowed = True
             with patch.object(page, "_refresh_rich_progress") as rich, \
                  patch("app.pages.home_page._persisted_manual_summary") as local:
                 page.refresh_progress()
                 rich.assert_called_once_with()
                 local.assert_not_called()
+            page._guide_ultime_runtime_allowed = False
+            with patch.object(page, "_refresh_rich_progress") as rich, \
+                 patch("app.pages.home_page._persisted_manual_summary", return_value={}) as local:
+                page.refresh_progress()
+                local.assert_called_once_with("character:42")
+                rich.assert_not_called()
         finally:
             page.deleteLater()
 
