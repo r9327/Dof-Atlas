@@ -2192,7 +2192,8 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
 }
 
 #SettingsPage,
-#PlaceholderPage {
+#PlaceholderPage,
+#EncyclopediaUnavailableBestiary {
     background: transparent;
 }
 

@@ -1614,6 +1614,32 @@ class AtlasPageTitle(QLabel):
         self.setObjectName("PageTitle")
 
 
+class AtlasUnavailablePage(QWidget):
+    """Shared honest unavailable-module surface; no business runtime loaded."""
+
+    def __init__(
+        self, title: str, message: str, *, badge: str = "",
+        object_name: str = "PlaceholderPage", message_role: str = "CompactLabel",
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName(object_name)
+        geometry = UNITY_MODULE_GEOMETRY_PX["unavailable_page"]
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(*geometry["margins"])
+        layout.setSpacing(geometry["spacing"])
+        self.heading = AtlasPageTitle(title)
+        layout.addWidget(self.heading)
+        self.badge = AtlasStatusBadge(badge, state="blocked") if badge else None
+        if self.badge is not None:
+            layout.addWidget(self.badge, 0, Qt.AlignLeft)
+        self.message_label = QLabel(message)
+        self.message_label.setObjectName(message_role)
+        self.message_label.setWordWrap(True)
+        layout.addWidget(self.message_label)
+        layout.addStretch(1)
+
+
 def clear_current_dialog_reference(owner: object, attribute: str, dialog: QDialog) -> bool:
     """Never let a closed older popup clear its newer replacement."""
     if getattr(owner, attribute, None) is not dialog:

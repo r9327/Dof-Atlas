@@ -529,7 +529,9 @@ class UnityPaletteTests(unittest.TestCase):
                 self.assertEqual(
                     unity_painted_ui_color(role, {token: "#123456"}), "#123456",
                 )
-        self.assertIn('AtlasStatusBadge(badge, state="blocked")', shell)
+        components = (root / "app/ui/components.py").read_text(encoding="utf-8")
+        self.assertIn('AtlasStatusBadge(badge, state="blocked")', components)
+        self.assertIn("return AtlasUnavailablePage(title, message, badge=badge)", shell)
         self.assertNotIn('setObjectName("HomePlaceholderBadge")', shell)
 
     def test_shared_button_consumers_use_canonical_variants(self) -> None:

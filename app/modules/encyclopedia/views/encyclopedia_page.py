@@ -37,7 +37,7 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadState,
 )
 from app.pages.quest_character_cache import quest_character_source_signature
-from app.ui.components import AtlasComboBox, AtlasPageTitle, set_unity_widget_property
+from app.ui.components import AtlasComboBox, AtlasPageTitle, AtlasUnavailablePage, set_unity_widget_property
 from app.quest_catalog import QuestCharacter, load_quest_characters
 
 if TYPE_CHECKING:
@@ -291,20 +291,14 @@ class EncyclopediaPage(QWidget):
             if self._lazy_slots.get(label) is widget:
                 # No Bestiary business view is available yet. Never expose
                 # an empty lazy slot or imply the section has loaded.
-                page = QWidget()
-                page.setObjectName("EncyclopediaUnavailableBestiary")
-                layout = QVBoxLayout(page)
-                layout.setContentsMargins(24, 24, 24, 24)
-                title = AtlasPageTitle(label.title())
-                layout.addWidget(title)
-                message = QLabel(
+                page = AtlasUnavailablePage(
+                    label.title(),
                     "Module en préparation : ce volet du Bestiaire n'est pas encore "
-                    "disponible. Revenez à Quêtes, Succès ou Guides."
+                    "disponible. Revenez à Quêtes, Succès ou Guides.",
+                    badge="En travaux",
+                    object_name="EncyclopediaUnavailableBestiary",
+                    message_role="EncyclopediaUnavailableMessage",
                 )
-                message.setObjectName("EncyclopediaUnavailableMessage")
-                message.setWordWrap(True)
-                layout.addWidget(message)
-                layout.addStretch(1)
                 self.replace_tab_widget(label, page)
                 return page
             return widget

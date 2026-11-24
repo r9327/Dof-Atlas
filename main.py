@@ -70,7 +70,7 @@ from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasDialog, AtlasPageTitle,
-    AtlasStatusBadge, apply_unity_calendar_weekdays, atlas_application_icon,
+    AtlasStatusBadge, AtlasUnavailablePage, apply_unity_calendar_weekdays, atlas_application_icon,
     refresh_unity_widget_style, fill_unity_navigation_menu,
 )
 from app.ui.preload_popup import PreloadProgressPopup
@@ -1881,22 +1881,7 @@ class AtlasWindow(QMainWindow):
         self.switch_to_page(name)
 
     def placeholder_page(self, title: str, message: str, badge: str = "") -> QWidget:
-        page = QWidget()
-        page.setObjectName("PlaceholderPage")
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(10)
-        heading = AtlasPageTitle(title)
-        layout.addWidget(heading)
-        if badge:
-            state = AtlasStatusBadge(badge, state="blocked")
-            layout.addWidget(state, 0, Qt.AlignLeft)
-        text = QLabel(message)
-        text.setObjectName("CompactLabel")
-        text.setWordWrap(True)
-        layout.addWidget(text)
-        layout.addStretch(1)
-        return page
+        return AtlasUnavailablePage(title, message, badge=badge)
 
     def _ensure_almanax_service(self):
         if self._almanax_service is None:

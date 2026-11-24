@@ -70,7 +70,7 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         self.assertEqual(encyclopedia_visible_tabs("unknown", ENCYCLOPEDIA_TABS), ENCYCLOPEDIA_TABS)
 
     def test_bestiary_unavailable_title_uses_shared_page_component(self):
-        from app.ui.components import AtlasPageTitle
+        from app.ui.components import AtlasPageTitle, AtlasUnavailablePage
 
         page = self.make_page()
         page._lazy_slots["DONJONS"] = page.tabs.widget(3)
@@ -81,6 +81,9 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         title = unavailable.findChild(AtlasPageTitle, "PageTitle")
         self.assertIsNotNone(title)
         self.assertEqual(title.text(), "Donjons")
+        self.assertIsInstance(unavailable, AtlasUnavailablePage)
+        self.assertEqual(unavailable.badge.text(), "En travaux")
+        self.assertEqual(unavailable.message_label.objectName(), "EncyclopediaUnavailableMessage")
         self.assertIs(page.tabs.widget(3), unavailable)
 
     def test_current_bestiary_tab_replacement_preserves_all_hidden_siblings(self):

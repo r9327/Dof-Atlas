@@ -60,7 +60,7 @@ from app.ui.components import (
     AtlasPageNavigator,
     AtlasDialog, AtlasImagePopup,
     AtlasDialogHeader,
-    AtlasPageTitle,
+    AtlasPageTitle, AtlasUnavailablePage,
     AtlasPanelToggle,
     AtlasGuideDisclosure,
     atlas_guide_arrow_icon,
@@ -1323,6 +1323,11 @@ class DevUiPage(QWidget):
             self.preview_cards[role] = card
             cards.addWidget(card, 1)
         section.addLayout(cards)
+        self.preview_unavailable_page = AtlasUnavailablePage(
+            "Module indisponible", "Exemple de module non encore implémenté.",
+            badge="En travaux",
+        )
+        section.addWidget(self.preview_unavailable_page)
 
         # Real World Scan shells + read-only value chips. The canvas isn't
         # copied: its own painter is deliberately left untouched.
