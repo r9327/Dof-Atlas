@@ -59,7 +59,7 @@ from app.ui.components import (
     BUTTON_OBJECT_NAMES,
     AtlasComboBox,
     AtlasPageNavigator,
-    AtlasDialog,
+    AtlasDialog, AtlasImagePopup,
     AtlasDialogHeader,
     AtlasPageTitle,
     AtlasPanelToggle,
@@ -74,7 +74,8 @@ from app.ui.components import (
     apply_unity_calendar_weekdays,
     fill_unity_navigation_menu,
     present_transient_dialog,
-    configure_unity_progress_bar, configure_unity_scroll_area,
+    configure_unity_progress_bar, configure_unity_scroll_area, configure_unity_tool_button,
+    atlas_guide_symbol_icon,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
 from app.ui.entity_link_roles import entity_link_markup
@@ -120,7 +121,7 @@ class DevUiPage(QWidget):
         super().__init__(parent)
         self.setObjectName("DevUiPage")
         self.setProperty("atlasUnityPage", True)
-        self._preview_dialog: AtlasDialog | None = None
+        self._preview_dialog: AtlasDialog | AtlasImagePopup | None = None
         self._click_count = 0
         self.gallery_sections: list[QGroupBox] = []
         self._gallery_section_layouts: list[QVBoxLayout] = []
@@ -921,9 +922,9 @@ class DevUiPage(QWidget):
         layout = QVBoxLayout(self.preview_sidebar)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
-        self.preview_burger = QToolButton()
-        self.preview_burger.setObjectName("MenuButton")
-        self.preview_burger.setText("Menu")
+        self.preview_burger = configure_unity_tool_button(
+            QToolButton(), object_name="MenuButton", text="Menu",
+        )
         self.preview_burger.setToolTip("Replier / déplier le menu")
         self.preview_burger.clicked.connect(self._toggle_preview_sidebar)
         layout.addWidget(self.preview_burger)
@@ -1366,9 +1367,9 @@ class DevUiPage(QWidget):
         section.addWidget(hint)
 
         state_row = QHBoxLayout()
-        self.preview_toggle = QToolButton()
-        self.preview_toggle.setObjectName("GuideSummaryButton")
-        self.preview_toggle.setText("Commutateur")
+        self.preview_toggle = configure_unity_tool_button(
+            QToolButton(), object_name="GuideSummaryButton", text="Commutateur",
+        )
         self.preview_toggle.setCheckable(True)
         self.preview_toggle.setChecked(True)
         self.preview_toggle.setAccessibleName("Commutateur de démonstration")
@@ -2614,8 +2615,8 @@ class DevUiPage(QWidget):
         family_note = QLabel(
             "Un seul conteneur AtlasDialog pour les fenêtres classiques : "
             "en-tête, contenu et actions changent selon l'utilisation. "
-            "Les menus, suggestions, images zoomées et overlays gardent "
-            "leurs widgets Qt ou métier, avec les styles Unity communs. "
+            "Le zoom Quêtes/Guides réutilise AtlasImagePopup ; les menus, "
+            "suggestions et overlays conservent leur comportement spécialisé. "
             "La largeur du dialogue suit son contenu et les limites partagées."
         )
         family_note.setObjectName("MutedLabel")
@@ -2625,6 +2626,9 @@ class DevUiPage(QWidget):
         self.dialog_button = AtlasButton("Ouvrir une fenêtre", variant="primary")
         self.dialog_button.clicked.connect(self._open_preview_dialog)
         row.addWidget(self.dialog_button)
+        self.preview_image_zoom = AtlasButton("Aperçu du zoom image", variant="secondary")
+        self.preview_image_zoom.clicked.connect(self._open_image_zoom_preview)
+        row.addWidget(self.preview_image_zoom)
         row.addStretch(1)
         section.addLayout(row)
         variants_row = QHBoxLayout()
@@ -2840,6 +2844,18 @@ class DevUiPage(QWidget):
             opened=f"Fenêtre Craft réelle : {self.preview_craft_dialog_choice.currentText()}",
             closed="Fenêtre Craft refermée",
         )
+
+    def _open_image_zoom_preview(self) -> None:
+        icon = unity_original_preview_icon("guide")
+        if icon.isNull():
+            icon = atlas_guide_symbol_icon(self.preview_image_zoom, "guide")
+        source = icon.pixmap(160, 160)
+        dialog = AtlasImagePopup(source, self.preview_image_zoom, title="Zoom image · aperçu Dev UI")
+        present_transient_dialog(
+            self, "_preview_dialog", dialog,
+            on_finished=lambda _result: self._report("Zoom image refermé"),
+        )
+        self._report("Zoom image partagé Quêtes / Guides")
 
     def _open_preview_dialog(self) -> None:
         self._open_preview_dialog_variant("info")

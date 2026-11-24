@@ -58,7 +58,7 @@ from app.quest_catalog import (
     normalize_text,
 )
 from app.storage import IconCache, read_json, write_json
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout, fit_unity_number_spinbox
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout, fit_unity_number_spinbox, configure_unity_tool_button
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -399,12 +399,11 @@ class QuestsPage(QWidget):
         hierarchy_title = QLabel("CATÉGORIES ET SUITES")
         hierarchy_title.setObjectName("GuideSectionTitle")
         hierarchy_header_layout.addWidget(hierarchy_title, 1)
-        self.hierarchy_collapse_button = QToolButton()
-        self.hierarchy_collapse_button.setObjectName("GuideStepsCollapseButton")
-        self.hierarchy_collapse_button.setText("\u2039")
         collapse_box = QUEST_GEOMETRY["collapse_button_box"]
-        self.hierarchy_collapse_button.setFixedSize(collapse_box, collapse_box)
-        self.hierarchy_collapse_button.setFocusPolicy(Qt.NoFocus)
+        self.hierarchy_collapse_button = configure_unity_tool_button(
+            QToolButton(), object_name="GuideStepsCollapseButton",
+            text="\u2039", box=(collapse_box, collapse_box), focus_policy=Qt.NoFocus,
+        )
         self.hierarchy_collapse_button.setToolTip("Réduire la colonne")
         self.hierarchy_collapse_button.clicked.connect(lambda: self.set_hierarchy_collapsed(True))
         hierarchy_header_layout.addWidget(self.hierarchy_collapse_button)

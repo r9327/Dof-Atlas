@@ -635,6 +635,32 @@ def _cached_atlas_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon
     return QIcon(pixmap)
 
 
+def atlas_quest_shortcut_icon() -> QIcon:
+    from app.ui.theme import PALETTE
+
+    return _cached_atlas_quest_shortcut_icon(PALETTE["TEXT_SOFT"])
+
+
+@lru_cache(maxsize=8)
+def _cached_atlas_quest_shortcut_icon(color: str) -> QIcon:
+    """Draw a theme-coloured quest page instead of a platform file icon."""
+    pixmap = QPixmap(UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_icon"], UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_icon"])
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor(color), 1.5)
+    pen.setCapStyle(Qt.RoundCap)
+    pen.setJoinStyle(Qt.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.NoBrush)
+    painter.drawRoundedRect(3, 1, 12, 16, 2, 2)
+    painter.drawLine(6, 6, 12, 6)
+    painter.drawLine(6, 9, 12, 9)
+    painter.drawLine(6, 12, 10, 12)
+    painter.end()
+    return QIcon(pixmap)
+
+
 class AtlasGuideProgressDonut(QWidget):
     """Small palette-aware route progress indicator used in the fixed header."""
 
@@ -683,17 +709,12 @@ class AtlasGuideParticipantPortrait(QToolButton):
         super().__init__(parent)
         self.character_key = str(character_key)
         self.progress = None if progress is None else max(0, min(100, int(progress)))
-        self.setObjectName("GuideParticipantPortrait")
-        self.setCheckable(True)
-        self.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["guide_portrait_button"],
-            UNITY_CONTROL_SIZES_PX["guide_portrait_button"],
+        box = UNITY_CONTROL_SIZES_PX["guide_portrait_button"]
+        configure_unity_tool_button(
+            self, object_name="GuideParticipantPortrait", box=(box, box),
+            icon_size=UNITY_CONTROL_SIZES_PX["guide_portrait_icon"], pointing=True,
         )
-        self.setIconSize(QSize(
-            UNITY_CONTROL_SIZES_PX["guide_portrait_icon"],
-            UNITY_CONTROL_SIZES_PX["guide_portrait_icon"],
-        ))
-        self.setCursor(Qt.PointingHandCursor)
+        self.setCheckable(True)
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().paintEvent(event)

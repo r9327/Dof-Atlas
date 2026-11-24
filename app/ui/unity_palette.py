@@ -286,6 +286,8 @@ UNITY_CONTROL_SIZES_PX = {
     "guide_donut_box": 66,
     "guide_donut_inset": 7,
     "guide_donut_stroke": 6,
+    "guide_quest_shortcut_icon": 18,
+    "guide_quest_shortcut_box": 30,
     "guide_page_jump_compact_max_width": 90,
     "guide_page_jump_normal_max_width": 110,
     "dialog_min_width": 400,
@@ -888,7 +890,7 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "assets": {
         "title": "Icônes · raccourcis · tooltips",
-        "components": ("UNITY_ICON_NAMES", "UNITY_ICON_PENDING", "unity_original_preview_icon", "InlineShortcutButton", "QToolTip"),
+        "components": ("UNITY_ICON_NAMES", "UNITY_ICON_PENDING", "unity_original_preview_icon", "atlas_guide_symbol_icon", "atlas_quest_shortcut_icon", "InlineShortcutButton", "QToolTip"),
         "style_owner": "app/ui/unity_palette.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
@@ -906,7 +908,7 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "dialogs": {
         "title": "Dialogues · icônes · typographie",
-        "components": ("AtlasDialog", "AtlasDialogHeader", "AtlasPageTitle", "MutedLabel", "unity_original_preview_icon"),
+        "components": ("AtlasDialog", "AtlasDialogHeader", "AtlasImagePopup", "present_transient_dialog", "exec_transient_dialog", "AtlasPageTitle", "MutedLabel", "unity_original_preview_icon"),
         "style_owner": "app/ui/components.py + app/ui/theme.py",
         "scope": "shared",
     },

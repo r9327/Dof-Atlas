@@ -53,6 +53,7 @@ from app.ui.components import (
     AtlasGuideParticipantPortrait as _ParticipantPortraitButton,
     atlas_guide_symbol_icon as _guide_symbol_icon,
     _cached_atlas_guide_symbol_icon as _cached_guide_symbol_icon,
+    configure_unity_tool_button,
 )
 
 
@@ -1647,8 +1648,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             top.addWidget(missing_quantity, 0, Qt.AlignVCenter)
         top.addWidget(item_button, 1, Qt.AlignVCenter)
         top.addWidget(status_label, 0, Qt.AlignVCenter)
-        details_button = QToolButton()
-        details_button.setObjectName("GuidePreparationDetailsButton")
+        details_button = configure_unity_tool_button(
+            QToolButton(), object_name="GuidePreparationDetailsButton",
+        )
         details_button.setArrowType(Qt.RightArrow)
         details_button.setCheckable(True)
         top.addWidget(details_button)

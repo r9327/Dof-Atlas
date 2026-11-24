@@ -31,7 +31,11 @@ from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
-from app.ui.components import AtlasButton, clear_unity_widget_layout, set_unity_widget_property
+from app.ui.components import (
+    AtlasButton, clear_unity_widget_layout, set_unity_widget_property,
+    atlas_quest_shortcut_icon as _quest_shortcut_icon, configure_unity_tool_button,
+)
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -48,23 +52,6 @@ _RESOURCE_STOP_WORDS = {"de", "du", "des", "la", "le", "les", "d", "l", "à", "a
 _NPC_CONNECTORS = {"de", "des", "du", "d'", "d’", "of", "le", "la", "l'", "l’"}
 
 
-def _quest_shortcut_icon() -> QIcon:
-    """Draw a theme-coloured quest page instead of a platform file icon."""
-    pixmap = QPixmap(18, 18)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(PALETTE["TEXT_SOFT"]), 1.5)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-    painter.drawRoundedRect(3, 1, 12, 16, 2, 2)
-    painter.drawLine(6, 6, 12, 6)
-    painter.drawLine(6, 9, 12, 9)
-    painter.drawLine(6, 12, 10, 12)
-    painter.end()
-    return QIcon(pixmap)
 
 
 class _QuestShortcutButton(QToolButton):
@@ -145,12 +132,12 @@ class GuideUltimeManualCard(QFrame):
         title.setObjectName("GuideManualLegendTitle")
         heading.addWidget(title)
         heading.addStretch(1)
-        toggle = QToolButton()
-        toggle.setObjectName("GuideManualLegendToggle")
-        toggle.setText("Afficher l’aide")
+        toggle = configure_unity_tool_button(
+            QToolButton(), object_name="GuideManualLegendToggle",
+            text="Afficher l’aide", pointing=True,
+        )
         toggle.setCheckable(True)
         toggle.setArrowType(Qt.RightArrow)
-        toggle.setCursor(Qt.PointingHandCursor)
         heading.addWidget(toggle)
         layout.addLayout(heading)
         details = QWidget()
@@ -322,14 +309,14 @@ class GuideUltimeManualCard(QFrame):
             if not name:
                 continue
             self._shown_quest_ids.add(int(quest_id))
-            button = _QuestShortcutButton()
-            button.setObjectName("GuideManualQuestInlineButton")
+            box = UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_box"]
+            button = configure_unity_tool_button(
+                _QuestShortcutButton(), object_name="GuideManualQuestInlineButton",
+                box=(box, box), icon_size=UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_icon"],
+                pointing=True, focus_policy=Qt.StrongFocus,
+            )
             button.setIcon(_quest_shortcut_icon())
-            button.setIconSize(QSize(18, 18))
             button.setAutoRaise(True)
-            button.setCursor(Qt.PointingHandCursor)
-            button.setFocusPolicy(Qt.StrongFocus)
-            button.setFixedSize(30, 30)
             button.setToolTip(name)
             button.setAccessibleName(name)
             button.clicked.connect(

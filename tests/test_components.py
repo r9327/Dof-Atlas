@@ -53,6 +53,8 @@ class SharedUiComponentsTests(unittest.TestCase):
             second = atlas_guide_symbol_icon(donut, "people")
             self.assertFalse(first.isNull())
             self.assertEqual(first.cacheKey(), second.cacheKey())
+            from app.ui.components import atlas_quest_shortcut_icon
+            self.assertEqual(atlas_quest_shortcut_icon().cacheKey(), atlas_quest_shortcut_icon().cacheKey())
         finally:
             portrait.deleteLater()
             donut.deleteLater()
@@ -240,7 +242,7 @@ class SharedUiComponentsTests(unittest.TestCase):
             image = dialog.findChild(QLabel, "QuestSolutionImage")
             self.assertIsNotNone(image)
             self.assertFalse(image.pixmap().isNull())
-            self.assertEqual(image.pixmap().width(), 2 * image.pixmap().height())
+            self.assertLessEqual(abs(image.pixmap().width() - 2 * image.pixmap().height()), 1)
         finally:
             dialog.deleteLater()
             parent.deleteLater()

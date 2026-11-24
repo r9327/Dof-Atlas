@@ -226,6 +226,21 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_dev_ui_reuses_the_production_image_zoom_popup(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.components import AtlasImagePopup
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.preview_image_zoom.click()
+            self.assertIsInstance(page._preview_dialog, AtlasImagePopup)
+            self.assertIn("Zoom image partagé", page.feedback.text())
+            page._preview_dialog.reject()
+            self.assertIsNone(page._preview_dialog)
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_shared_menu_retains_checkable_and_nested_actions(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 
