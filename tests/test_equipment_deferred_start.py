@@ -50,14 +50,20 @@ class EquipmentDeferredStartTests(unittest.TestCase):
 
     def test_webengine_start_is_deferred_after_page_can_paint(self) -> None:
         page = EquipmentPage(lambda _text: None)
-        with patch("app.pages.equipment_page.QTimer.singleShot") as single_shot:
+        try:
             page.schedule_web_start()
-            single_shot.assert_called_once()
-            delay_ms, callback = single_shot.call_args.args
-            self.assertEqual(delay_ms, WEBENGINE_START_DELAY_MS)
-            self.assertEqual(callback, page._start_scheduled_web)
+            timer = page._web_start_timer
+            self.assertIs(timer.parent(), page)
+            self.assertEqual(timer.interval(), WEBENGINE_START_DELAY_MS)
+            self.assertTrue(timer.isActive())
+            page.schedule_web_start()
+            self.assertIs(page._web_start_timer, timer)
             self.assertTrue(page._web_start_scheduled)
-        page.deleteLater()
+            page.release_runtime()
+            self.assertFalse(timer.isActive())
+            self.assertFalse(page._web_start_scheduled)
+        finally:
+            page.deleteLater()
 
     def test_deferred_start_only_builds_webengine_while_visible(self) -> None:
         page = EquipmentPage(lambda _text: None)

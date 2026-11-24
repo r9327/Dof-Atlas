@@ -107,7 +107,14 @@ def dofus_class_key_for_character_name(value: Any) -> str | None:
     character_key = normalize_key(value)
     if not character_key:
         return None
-    payload = read_json(CLIENT_INDEX_JSON, {"clients": []})
+    return class_key_from_client_index(value, read_json(CLIENT_INDEX_JSON, {"clients": []}))
+
+
+def class_key_from_client_index(value: Any, payload: object) -> str | None:
+    """Resolve only unambiguous class metadata from an explicit index."""
+    character_key = normalize_key(value)
+    if not character_key:
+        return None
     clients = payload.get("clients", []) if isinstance(payload, dict) else []
     if not isinstance(clients, list):
         return None
@@ -131,7 +138,11 @@ def dofus_class_key_for_character_name(value: Any) -> str | None:
     return next(iter(matches))
 
 
-def class_icon_candidates(class_key: str) -> list[Path]:
+def class_icon_candidates(
+    class_key: str, *, directories=None, extensions=None,
+) -> list[Path]:
+    directories = CLASS_ICON_DIRS if directories is None else directories
+    extensions = CLASS_ICON_EXTENSIONS if extensions is None else extensions
     definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
     if not definition:
         return []
@@ -143,9 +154,9 @@ def class_icon_candidates(class_key: str) -> list[Path]:
             stems.append(key)
     stems.extend([f"symbol_{class_id}", f"logo_transparent_{class_id}", f"class_{class_key}"])
     candidates: list[Path] = []
-    for directory in CLASS_ICON_DIRS:
+    for directory in directories:
         for stem in stems:
-            for extension in CLASS_ICON_EXTENSIONS:
+            for extension in extensions:
                 candidates.append(directory / f"{stem}{extension}")
     return candidates
 

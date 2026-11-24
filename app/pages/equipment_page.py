@@ -49,6 +49,9 @@ class EquipmentPage(QWidget):
         setattr(self, "web_loaded", False)
         setattr(self, "web_unavailable", False)
         self._web_start_scheduled = False
+        self._web_start_timer = QTimer(self)
+        self._web_start_timer.setSingleShot(True)
+        self._web_start_timer.timeout.connect(self._start_scheduled_web)
         self._legacy_view = None
 
         root = QVBoxLayout(self)
@@ -125,7 +128,21 @@ class EquipmentPage(QWidget):
         ):
             return
         self._web_start_scheduled = True
-        QTimer.singleShot(WEBENGINE_START_DELAY_MS, self._start_scheduled_web)
+        self._web_start_timer.start(WEBENGINE_START_DELAY_MS)
+
+    def hideEvent(self, event) -> None:
+        self._web_start_timer.stop()
+        self._web_start_scheduled = False
+        super().hideEvent(event)
+
+    def release_runtime(self) -> None:
+        self._web_start_timer.stop()
+        self._web_start_scheduled = False
+        view = self._legacy_view
+        self._legacy_view = None
+        if isinstance(view, QWidget):
+            view.close()
+            view.deleteLater()
 
     def _start_scheduled_web(self) -> None:
         self._web_start_scheduled = False
@@ -140,6 +157,7 @@ class EquipmentPage(QWidget):
     def ensure_web_loaded(self) -> None:
         """Compatibility-only fake loader; production never imports WebEngine."""
 
+        self._web_start_timer.stop()
         self._web_start_scheduled = False
         if bool(getattr(self, "web_loaded", False)) or bool(
             getattr(self, "web_unavailable", False)

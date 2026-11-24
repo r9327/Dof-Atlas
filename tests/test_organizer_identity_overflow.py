@@ -107,6 +107,24 @@ class OrganizerIdentityOverflowTests(unittest.TestCase):
         record.assert_called_once()
         owner.status_callback.assert_called_once()
 
+    def test_compatibility_class_lookup_delegates_to_the_same_metadata_rule(self):
+        from app.pages.organizer import common
+        from app.pages import organizer_page
+        payload = {"clients": [
+            {"character_name": "Witsis", "class_key": "pandawa"},
+            {"character_name": "Witsis", "class_key": "cra"},
+        ]}
+        self.assertIsNone(common.class_key_from_client_index("Witsis", payload))
+        with patch.object(organizer_page, "read_json", return_value=payload):
+            self.assertIsNone(organizer_page.dofus_class_key_for_character_name("Witsis"))
+            payload["clients"].pop()
+            self.assertEqual(organizer_page.dofus_class_key_for_character_name("Witsis"), "pandawa")
+        with tempfile.TemporaryDirectory() as directory:
+            dirs = (Path(directory),)
+            with patch.object(organizer_page, "CLASS_ICON_DIRS", dirs):
+                self.assertEqual(organizer_page.class_icon_candidates("pandawa"),
+                                 common.class_icon_candidates("pandawa", directories=dirs))
+
     def test_both_identity_paths_reject_duplicate_live_name_and_class(self):
         owner = CharacterSessionsMixin()
         owner.sessions = [{"nom": "Witsis", "hwnd": 101, "pid": 42},
