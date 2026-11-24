@@ -2602,11 +2602,11 @@ class DevUiPage(QWidget):
 
     def _present_preview_dialog(self, dialog: AtlasDialog, *, opened: str, closed: str) -> None:
         """Own one Dev UI preview at a time; release the old Qt window."""
-        present_transient_dialog(
+        if present_transient_dialog(
             self, "_preview_dialog", dialog, mode="open",
             on_finished=lambda _result: self._report(closed),
-        )
-        self._report(opened)
+        ):
+            self._report(opened)
 
     def _open_craft_dialog_preview(self) -> None:
         """Open an existing Craft dialog with harmless, local demonstration data."""
@@ -2658,11 +2658,11 @@ class DevUiPage(QWidget):
             icon = atlas_guide_symbol_icon(self.preview_image_zoom, "guide")
         source = icon.pixmap(160, 160)
         dialog = AtlasImagePopup(source, self.preview_image_zoom, title="Zoom image · aperçu Dev UI")
-        present_transient_dialog(
+        if present_transient_dialog(
             self, "_preview_dialog", dialog,
             on_finished=lambda _result: self._report("Zoom image refermé"),
-        )
-        self._report("Zoom image partagé Quêtes / Guides")
+        ):
+            self._report("Zoom image partagé Quêtes / Guides")
 
     def _open_preview_dialog(self) -> None:
         self._open_preview_dialog_variant("info")

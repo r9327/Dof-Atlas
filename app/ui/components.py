@@ -1657,15 +1657,18 @@ def present_transient_dialog(
     owner: object, attribute: str, dialog: QDialog, *,
     mode: Literal["show", "open"] = "show",
     on_finished: Callable[[int], None] | None = None,
-) -> None:
-    """One temporary window per owner slot; release safely on completion."""
+) -> bool:
+    """Present at most one dialog per slot, respecting a refused close."""
     if mode not in ("show", "open"):
         raise ValueError(f"Unknown dialog presentation mode: {mode}")
     current = getattr(owner, attribute, None)
     if current is dialog:
-        return
-    if current is not None:
-        current.close()
+        return True
+    if current is not None and not current.close():
+        # In particular Craft can refuse to close while resources are in
+        # progress. Do not orphan it or report the new dialog as presented.
+        dialog.deleteLater()
+        return False
     setattr(owner, attribute, dialog)
 
     def finished(result: int) -> None:
@@ -1687,6 +1690,7 @@ def present_transient_dialog(
     else:
         dialog.show()
         dialog.raise_()
+    return True
 
 
 def exec_transient_dialog(dialog: QDialog) -> int:

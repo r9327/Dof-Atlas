@@ -424,6 +424,37 @@ class SharedUiComponentsTests(unittest.TestCase):
         QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
         self.assertFalse(isValid(second))
 
+    def test_transient_presenter_respects_refused_close_and_does_not_orphan_dialog(self) -> None:
+        from types import SimpleNamespace
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+        from app.ui.components import present_transient_dialog
+
+        class RefusingDialog(QDialog):
+            refuse_close = True
+
+            def closeEvent(self, event):
+                if self.refuse_close:
+                    event.ignore()
+                else:
+                    super().closeEvent(event)
+
+        owner = SimpleNamespace(active=None)
+        first, second = RefusingDialog(), QDialog()
+        self.assertTrue(present_transient_dialog(owner, "active", first))
+        self.assertFalse(present_transient_dialog(owner, "active", second))
+        self.assertIs(owner.active, first)
+        self.assertTrue(first.isVisible())
+        self.assertFalse(second.isVisible())
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(second))
+        first.refuse_close = False
+        first.close()
+        self.assertIsNone(owner.active)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(first))
+
     def test_parentless_transient_is_disposed_with_its_owner(self) -> None:
         from PySide6.QtCore import QCoreApplication, QEvent
         from PySide6.QtWidgets import QDialog

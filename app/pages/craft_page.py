@@ -1405,7 +1405,9 @@ class CraftPage(QWidget):
                     entry["image_path"] = ingredient.get("image_path")
         dialog = CraftResourceDialog(resources, missing)
         dialog.setModal(False)
-        present_transient_dialog(self, "resource_dialog", dialog)
+        if not present_transient_dialog(self, "resource_dialog", dialog):
+            self.status_callback("La fenêtre de ressources actuelle reste ouverte.")
+            return
         message = f"{len(resources)} ressource(s) agregee(s)."
         if lookup_errors:
             message += f" {lookup_errors} recette(s) indisponible(s) (erreur de lecture)."
