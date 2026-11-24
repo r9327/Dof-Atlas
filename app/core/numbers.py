@@ -39,6 +39,13 @@ def valid_int_ids(values: Iterable[object]) -> frozenset[int]:
     )
 
 
+def ordered_int_ids(values: Iterable[object]) -> tuple[int, ...]:
+    """Decode once, deduplicate in source order and avoid quadratic list scans."""
+    return tuple(dict.fromkeys(
+        parsed for raw in values if (parsed := optional_int(raw)) is not None
+    ))
+
+
 def valid_list_int_ids(values: object) -> frozenset[int]:
     """Decode persisted JSON ID lists; malformed containers never imply completion."""
     return valid_int_ids(values) if isinstance(values, list) else frozenset()

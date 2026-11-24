@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 from app.core.numbers import optional_int as _safe_int
 from app.core.text import normalize_words as _norm
-from app.core.doduda_rows import array_rows as _array
+from app.core.doduda_rows import array_rows as _array, rows_by_id
 
 from app.modules.encyclopedia.services.adventure_route_engine import (
     ItemRequirement,
@@ -128,16 +128,7 @@ def _doduda_rows(path: Path) -> dict[int, dict[str, Any]]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return {}
-    refs = payload.get("references", {}).get("RefIds", []) if isinstance(payload, dict) else []
-    result: dict[int, dict[str, Any]] = {}
-    for ref in refs:
-        data = ref.get("data") if isinstance(ref, dict) else None
-        if not isinstance(data, dict):
-            continue
-        ident = _safe_int(data.get("id"))
-        if ident is not None:
-            result[ident] = data
-    return result
+    return rows_by_id(payload)
 
 
 @dataclass(frozen=True, slots=True)

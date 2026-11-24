@@ -54,6 +54,11 @@ class ValidIntIdTests(unittest.TestCase):
         )
         self.assertEqual(valid_int_ids(()), frozenset())
 
+    def test_ordered_int_ids_preserve_first_occurrence_and_legacy_coercion(self):
+        from app.core.numbers import ordered_int_ids
+
+        self.assertEqual(ordered_int_ids(["7", 2, 7, None, "bad", -1, True, float("inf")]), (7, 2, -1, 1))
+
     def test_persisted_completion_decoders_reject_wrong_container_shapes(self):
         self.assertEqual(valid_list_int_ids(["42", 42, "bad"]), frozenset({42}))
         self.assertEqual(valid_truthy_int_ids({"42": True, "43": False, "bad": True}), frozenset({42}))

@@ -3,10 +3,22 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.doduda_rows import array_rows
+from app.core.doduda_rows import array_rows, rows_by_id, keyed_rows
 
 
 class DodudaRowsTests(unittest.TestCase):
+    def test_reference_and_keyed_rows_share_source_decoding(self):
+        first = {"id": "7", "name": "first"}
+        last = {"id": 7, "name": "last"}
+        payload = {"references": {"RefIds": [
+            {"rid": 1, "data": first}, {"rid": 2, "data": last},
+            {"data": None}, {"data": {"id": "bad"}},
+        ]}, "objectsById": {"m_keys": {"Array": [10, 11]}, "m_values": {"Array": [{"rid": 1}, {"rid": 2}]}}}
+        self.assertEqual(rows_by_id(payload), {7: last})
+        self.assertEqual(keyed_rows(payload), {10: first, 11: last})
+        self.assertEqual(rows_by_id({"references": None}), {})
+        self.assertEqual(rows_by_id({"references": {"RefIds": None}}), {})
+
     def test_unwraps_only_list_payloads(self):
         examples = (
             ({"Array": [1, 2]}, [1, 2]),

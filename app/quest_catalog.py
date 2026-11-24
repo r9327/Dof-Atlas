@@ -25,7 +25,7 @@ from app.constants import (
 from app.core.character_identity import character_id_from_key
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.file_stamp import mtime_size_stamp_optional
-from app.core.doduda_rows import array_rows as array_value
+from app.core.doduda_rows import array_rows as array_value, rows_by_id, keyed_rows
 from app.core.numbers import optional_int as safe_int
 from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
@@ -81,43 +81,11 @@ def write_json_file(path: Path, payload: Any) -> None:
 
 
 def doduda_rows(path: Path) -> dict[int, dict[str, Any]]:
-    payload = read_json_file(path, {})
-    refs = payload.get("references", {}).get("RefIds", []) if isinstance(payload, dict) else []
-    rows: dict[int, dict[str, Any]] = {}
-    for ref in refs:
-        data = ref.get("data") if isinstance(ref, dict) else None
-        if not isinstance(data, dict):
-            continue
-        ident = safe_int(data.get("id"))
-        if ident is None:
-            continue
-        rows[ident] = data
-    return rows
+    return rows_by_id(read_json_file(path, {}))
 
 
 def doduda_keyed_rows(path: Path) -> dict[int, dict[str, Any]]:
-    payload = read_json_file(path, {})
-    if not isinstance(payload, dict):
-        return {}
-    objects = payload.get("objectsById")
-    if not isinstance(objects, dict):
-        return {}
-    keys = array_value(objects.get("m_keys"))
-    values = array_value(objects.get("m_values"))
-    refs = payload.get("references", {}).get("RefIds", [])
-    refs_by_rid = {
-        safe_int(ref.get("rid")): ref.get("data")
-        for ref in refs
-        if isinstance(ref, dict) and isinstance(ref.get("data"), dict)
-    }
-    rows: dict[int, dict[str, Any]] = {}
-    for key, value in zip(keys, values):
-        ident = safe_int(key)
-        rid = safe_int(value.get("rid")) if isinstance(value, dict) else None
-        row = refs_by_rid.get(rid)
-        if ident is not None and isinstance(row, dict):
-            rows[ident] = row
-    return rows
+    return keyed_rows(read_json_file(path, {}))
 
 
 def text_for(entries: dict[str, Any], ident: Any, fallback: str = "") -> str:

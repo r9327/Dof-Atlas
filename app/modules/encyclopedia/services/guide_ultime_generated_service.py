@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
-from app.core.numbers import optional_int as _safe_int
+from app.core.numbers import optional_int as _safe_int, ordered_int_ids
 from app.core.text import normalize_words as _norm
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
@@ -169,32 +169,26 @@ class GuideUltimeGeneratedService:
     ) -> None:
         self.set_manual_checked(character_key, self.page_key(card, fallback_index), checked)
 
-    def card_quest_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
-        ids: list[int] = []
-        for section in ("a_prendre", "a_faire_ici"):
+    @staticmethod
+    def _section_ids(card: dict[str, Any], sections: tuple[str, ...], field: str):
+        for section in sections:
             for row in card.get(section, []) or []:
-                if not isinstance(row, dict):
-                    continue
-                qid = _safe_int(row.get("quest_id"))
-                if qid is not None and qid not in ids:
-                    ids.append(qid)
+                if isinstance(row, dict):
+                    yield row.get(field)
+
+    def card_quest_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
+        from itertools import chain
+
         progress = card.get("progresse_aussi") if isinstance(card.get("progresse_aussi"), dict) else {}
-        for raw in progress.get("quest_ids", []) or []:
-            qid = _safe_int(raw)
-            if qid is not None and qid not in ids:
-                ids.append(qid)
-        return tuple(ids)
+        return ordered_int_ids(chain(
+            self._section_ids(card, ("a_prendre", "a_faire_ici"), "quest_id"),
+            progress.get("quest_ids", []) or [],
+        ))
 
     def card_success_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
-        ids: list[int] = []
-        for section in ("succes_monstres_a_faire", "succes_donjon_a_faire"):
-            for row in card.get(section, []) or []:
-                if not isinstance(row, dict):
-                    continue
-                aid = _safe_int(row.get("achievement_id"))
-                if aid is not None and aid not in ids:
-                    ids.append(aid)
-        return tuple(ids)
+        return ordered_int_ids(self._section_ids(
+            card, ("succes_monstres_a_faire", "succes_donjon_a_faire"), "achievement_id",
+        ))
 
     def action_completed(self, character_key: str, row: dict[str, Any]) -> bool:
         qid = _safe_int(row.get("quest_id"))
@@ -375,33 +369,21 @@ class GuideUltimeGeneratedService:
         return tuple(ids)
 
     def _collect_common_quest_ids(self) -> tuple[int, ...]:
-        result: list[int] = []
-        for card in self.cards:
-            for qid in self.card_quest_ids(card):
-                if qid not in result:
-                    result.append(qid)
-        return tuple(result)
+        return tuple(dict.fromkeys(qid for card in self.cards for qid in self.card_quest_ids(card)))
 
     def _collect_full_success_ids(self) -> tuple[int, ...]:
+        from itertools import chain
+
         full = self.route.get("full_success_cards") if isinstance(self.route.get("full_success_cards"), dict) else {}
-        result: list[int] = []
-        for row in full.get("monster_success_cards", []) or []:
-            if isinstance(row, dict):
-                aid = _safe_int(row.get("achievement_id"))
-                if aid is not None and aid not in result:
-                    result.append(aid)
-        for row in full.get("dungeon_success_cards", []) or []:
-            if not isinstance(row, dict):
-                continue
-            for achievement in row.get("achievements", []) or []:
-                if not isinstance(achievement, dict):
-                    continue
-                aid = _safe_int(achievement.get("achievement_id"))
-                if aid is not None and aid not in result:
-                    result.append(aid)
-        for row in full.get("dungeon_meta_success_cards", []) or []:
-            if isinstance(row, dict):
-                aid = _safe_int(row.get("achievement_id"))
-                if aid is not None and aid not in result:
-                    result.append(aid)
-        return tuple(result)
+        dungeon_ids = (
+            achievement.get("achievement_id")
+            for row in full.get("dungeon_success_cards", []) or []
+            if isinstance(row, dict)
+            for achievement in row.get("achievements", []) or []
+            if isinstance(achievement, dict)
+        )
+        return ordered_int_ids(chain(
+            self._section_ids(full, ("monster_success_cards",), "achievement_id"),
+            dungeon_ids,
+            self._section_ids(full, ("dungeon_meta_success_cards",), "achievement_id"),
+        ))

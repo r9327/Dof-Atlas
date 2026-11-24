@@ -22,7 +22,7 @@ from app.modules.encyclopedia.services.guide_ultime_manual_route import (
 from app.modules.encyclopedia.services.guide_ultime_runtime_service import GuideUltimeRuntimeService
 from app.core.json_store import decode_compact_json, encode_compact_json
 from app.core.map_coordinates import extract_bracketed_coordinates
-from app.core.numbers import optional_int
+from app.core.numbers import optional_int, ordered_int_ids
 from app.core.text import normalize_key as normalize_text
 
 
@@ -1202,15 +1202,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
 
     def card_quest_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
         if card.get("manual_source"):
-            result: list[int] = []
-            for raw in card.get("manual_quest_ids", []) or []:
-                try:
-                    qid = int(raw)
-                except (TypeError, ValueError):
-                    continue
-                if qid not in result:
-                    result.append(qid)
-            return tuple(result)
+            return ordered_int_ids(card.get("manual_quest_ids", []) or [])
         return super().card_quest_ids(card)
 
     def _stage_lines(
