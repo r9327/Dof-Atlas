@@ -234,6 +234,24 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertEqual(comparison["status"], "UNAVAILABLE")
         self.assertEqual(comparison["environment_mismatches"], ["platform"])
 
+    def test_same_runner_comparison_excludes_changed_detail_probe(self):
+        from tools.atlas_doctor_lib.perf import _paired_success_comparison
+        env = {"platform": "Windows", "python": "3.13", "pyside": "6.12", "qt_qpa_platform": "offscreen"}
+        def report(sha, opening, detail):
+            return {"samples": [{"environment": {**env, "git_head": sha},
+                "metrics": {"achievements_open_ms": opening,
+                            "achievements_open_max_ui_block_ms": 12,
+                            "rss_after_achievements_mb": 90,
+                            "first_achievement_detail_ms": detail}}]}
+        paired = _paired_success_comparison(report("new", 50, 2000), report("old", 100, 10))
+        self.assertEqual(paired["scope"], "SUCCESS_FIRST_VIEW_ONLY")
+        self.assertEqual(paired["baseline_sha"], "old")
+        self.assertEqual(paired["candidate_sha"], "new")
+        metrics = {row["metric"]: row for row in paired["comparison"]["metrics"]}
+        self.assertEqual(metrics["achievements_open_ms"]["delta_percent"], -50)
+        self.assertNotIn("first_achievement_detail_ms", metrics)
+        self.assertEqual(paired["comparison"]["status"], "PASS")
+
     def test_attach_baseline_keeps_reproducible_baseline_snapshot(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=100.0, rss_mb=100.0)]

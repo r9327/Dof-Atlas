@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shutil
+import tempfile
 import subprocess
 import sys
 import time
@@ -230,6 +233,131 @@ def run_runtime_benchmark(
     }
 
 
+_COMPARABLE_SUCCESS_METRICS = (
+    "achievements_open_ms", "achievements_open_max_ui_block_ms",
+    "rss_after_achievements_mb",
+)
+_PAIRED_INPUT_LOCKS = (
+    "requirements-pyside.txt",
+    "scripts/windows/quest_assets_lock.json",
+    "scripts/windows/craft_assets_lock.json",
+)
+
+
+def _on_demand_baseline_sha(root: Path) -> str | None:
+    """Only the explicit, existing remote Windows benchmark requests a pair."""
+    if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("MODE") != "bench-runtime":
+        return None
+    base, head = os.environ.get("BASE_SHA", ""), os.environ.get("HEAD_SHA", "")
+    if (not re.fullmatch(r"[0-9a-f]{40}", base)
+            or not re.fullmatch(r"[0-9a-f]{40}", head)
+            or base == head or git_state(root)["head"] != head):
+        return None
+    return base
+
+
+def _paired_success_comparison(current: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
+    from .runtime_benchmark import aggregate_samples, compare_to_baseline
+
+    # The old detail probe did not await actual asynchronous detail rendering.
+    # Compare only the unchanged first-view timing and its associated costs.
+    # Never claim a detail speedup from different measurement semantics.
+    before = aggregate_samples(baseline["samples"])
+    after = aggregate_samples(current["samples"])
+    def comparable(report):
+        return {
+            "environment": report["environment"],
+            "medians": {key: report["medians"][key] for key in _COMPARABLE_SUCCESS_METRICS
+                        if key in report["medians"]},
+        }
+    comparison = compare_to_baseline(comparable(after), comparable(before))
+    if len(comparison.get("metrics", [])) != len(_COMPARABLE_SUCCESS_METRICS):
+        comparison["status"] = "UNAVAILABLE"
+        comparison["reason"] = "Missing comparable Success first-view metrics"
+    return {
+        "scope": "SUCCESS_FIRST_VIEW_ONLY",
+        "run_id": os.environ.get("GITHUB_RUN_ID", "local"),
+        "same_runner": True,
+        "baseline_sha": before["environment"]["git_head"],
+        "candidate_sha": after["environment"]["git_head"],
+        "baseline_sample_count": before["sample_count"],
+        "candidate_sample_count": after["sample_count"],
+        "baseline_distributions": before["distributions"],
+        "candidate_distributions": after["distributions"],
+        "comparison": comparison,
+    }
+
+
+def _same_runner_baseline(root: Path, base_sha: str) -> dict[str, Any]:
+    """Use a disposable exact-SHA checkout and the same pinned inputs/Qt."""
+    env = _runtime_environment(root)
+    env["GIT_LFS_SKIP_SMUDGE"] = "1"
+    # The base subprocess must not import candidate modules via PYTHONPATH.
+    env.pop("PYTHONPATH", None)
+    env.pop("DOFUS_ATLAS_USER_ROOT", None)
+    with tempfile.TemporaryDirectory(prefix="atlas-perf-") as temp:
+        base_root = Path(temp) / "base"
+        subprocess.run(["git", "worktree", "add", "--detach", str(base_root), base_sha],
+                       cwd=root, env=env, check=True, capture_output=True, timeout=180)
+        try:
+            for relative in _PAIRED_INPUT_LOCKS:
+                if (root / relative).read_bytes() != (base_root / relative).read_bytes():
+                    raise ValueError(f"Paired benchmark input lock differs: {relative}")
+            # Reuse only the already materialized, pinned files. No unverified
+            # alternative downloads; the baseline's canonical commands verify
+            # the exact source inventory and rebuild its own Craft seed.
+            raw = Path("data/cache/dofus_maps/raw/doduda_cli")
+            names = set()
+            for lock in _PAIRED_INPUT_LOCKS[1:]:
+                names.update(json.loads((root / lock).read_text(encoding="utf-8"))["assets"])
+            for name in sorted(names):
+                target = base_root / raw / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(root / raw / name, target)
+            env["PYTHONPATH"] = str(base_root)
+            def run(*args: str, timeout: int = 120):
+                return subprocess.run(
+                    [sys.executable, *args], cwd=base_root, env=env,
+                    check=True, capture_output=True, text=True, encoding="utf-8",
+                    errors="replace", timeout=timeout,
+                )
+            run("-m", "scripts.windows.quest_assets")
+            run("-m", "scripts.windows.craft_seed")
+            run("-c", "from pathlib import Path; from shutil import copy2; "
+                "from scripts.windows.craft_seed import validate_seed; "
+                "from local_dofus_data.config import DEFAULT_CONFIG; "
+                "from app.craft_preload import build_compact_craft_preload; "
+                "from app.quest_catalog import QuestCatalog; "
+                "seed=Path('data/bootstrap/craft_seed.sqlite'); validate_seed(seed); "
+                "target=DEFAULT_CONFIG.sqlite_path; target.parent.mkdir(parents=True, exist_ok=True); "
+                "copy2(seed,target); validate_seed(target); craft=build_compact_craft_preload(); "
+                "assert craft.get('_prepared') is True and not craft.get('errors'); "
+                "assert len(QuestCatalog.load().quests) >= 1900")
+            output = run("-c", "import json; from pathlib import Path; "
+                         "from tools.atlas_doctor_lib.perf import run_runtime_benchmark; "
+                         "print(json.dumps(run_runtime_benchmark(Path.cwd())))", timeout=420)
+            result = json.loads(output.stdout.strip().splitlines()[-1])
+            benchmark = result.get("benchmark") or {}
+            if result.get("status") != "PASS" or benchmark.get("environment", {}).get("git_head") != base_sha:
+                raise ValueError("Baseline runtime failed or returned a different SHA")
+            return benchmark
+        finally:
+            subprocess.run(["git", "worktree", "remove", "--force", str(base_root)],
+                           cwd=root, env=env, check=True, capture_output=True, timeout=120)
+
+
+def _local_quest_coverage(root: Path) -> dict[str, Any]:
+    """The full local enrichment is too large for API reads; use its canonical audit."""
+    with tempfile.TemporaryDirectory(prefix="atlas-quest-coverage-") as temp:
+        output = Path(temp) / "coverage.json"
+        subprocess.run(
+            [sys.executable, "-m", "app.modules.encyclopedia.tools.audit_quests_guides_semantic",
+             "--local-coverage-only", "--json-output", str(output)],
+            cwd=root, env=_runtime_environment(root), check=True, capture_output=True, timeout=90,
+        )
+        return json.loads(output.read_text(encoding="utf-8"))
+
+
 def run_performance(root: Path, *, include_runtime: bool = True, save: bool = True) -> dict[str, Any]:
     started = time.perf_counter()
     payload: dict[str, Any] = {
@@ -240,7 +368,29 @@ def run_performance(root: Path, *, include_runtime: bool = True, save: bool = Tr
         'file_profile': profile_data_files(root),
     }
     if include_runtime:
+        base_sha = _on_demand_baseline_sha(root)
+        baseline = None
+        if base_sha:
+            try:
+                baseline = _same_runner_baseline(root, base_sha)
+            except (OSError, ValueError, subprocess.SubprocessError) as exc:
+                payload["same_runner_success"] = {
+                    "status": "UNAVAILABLE", "baseline_sha": base_sha, "reason": str(exc),
+                }
         payload['runtime'] = run_runtime_benchmark(root)
+        if base_sha:
+            if baseline and payload["runtime"].get("status") == "PASS":
+                payload["same_runner_success"] = _paired_success_comparison(
+                    payload["runtime"]["benchmark"], baseline,
+                )
+            elif baseline:
+                payload["same_runner_success"] = {"status": "UNAVAILABLE", "reason": "Candidate runtime failed"}
+            # Coverage runs AFTER measurement so its 80 MB source reads never
+            # pollute the timed sample or retained runtime memory figures.
+            try:
+                payload["quest_local_coverage"] = _local_quest_coverage(root)
+            except (OSError, ValueError, subprocess.SubprocessError) as exc:
+                payload["quest_local_coverage"] = {"status": "UNAVAILABLE", "reason": str(exc)}
     payload['duration_ms'] = milliseconds(started)
     if save:
         write_json(root, 'latest_perf', payload, rotate=True)
