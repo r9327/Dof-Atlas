@@ -619,14 +619,9 @@ class DevUiPage(QWidget):
         metric.addLayout(overall_caption)
         self.preview_header_global_progress = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideGlobalProgress",
+            height_role="progress_primary", expanding=True,
         )
         self.preview_header_global_progress.setValue(35)
-        self.preview_header_global_progress.setFixedHeight(
-            UNITY_CONTROL_SIZES_PX["progress_primary"]
-        )
-        self.preview_header_global_progress.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Fixed
-        )
         metric.addWidget(self.preview_header_global_progress)
         right.addLayout(metric)
 
@@ -681,10 +676,9 @@ class DevUiPage(QWidget):
         prep_metric.addLayout(prep_caption)
         prep_bar = configure_unity_progress_bar(
             QProgressBar(), object_name="GuideCompactPreparationProgress",
+            height_role="progress_secondary", expanding=True,
         )
         prep_bar.setValue(60)
-        prep_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
-        prep_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         prep_metric.addWidget(prep_bar)
         self.preview_header_metrics = {"Préparation": prep_bar}
         self.preview_header_metric_icons = {"Préparation": prep_icon}
@@ -1828,9 +1822,9 @@ class DevUiPage(QWidget):
             if index == 0:
                 progress = configure_unity_progress_bar(
                     QProgressBar(), object_name="GuideGlobalProgress",
+                    height_role="progress_primary",
                 )
                 progress.setValue(45)
-                progress.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
                 content.addWidget(progress)
             elif index == 1:
                 selector = AtlasComboBox()
@@ -1994,9 +1988,8 @@ class DevUiPage(QWidget):
 
         self.startup_progress = configure_unity_progress_bar(
             QProgressBar(), object_name="PreloadPopupProgress", maximum=3,
-            text_visible=True,
+            text_visible=True, display_format="%p %",
         )
-        self.startup_progress.setFormat("%p %")
         self.startup_progress.setValue(2)
         section.addWidget(self.startup_progress)
 
