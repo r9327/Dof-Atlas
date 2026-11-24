@@ -564,6 +564,9 @@ class DevUiPage(QWidget):
         header.global_progress_label.setText("35 %")
         header.preparation_bar.setValue(60)
         header.preparation_progress_label.setText("60 %")
+        header.set_summary_provider(lambda: ("Parler au PNJ", "Récupérer les objets", "Retour au village"))
+        header.set_summary_position(0)
+        header.summaryRequested.connect(lambda index: self._report(f"Sommaire · fiche {index + 1} (aperçu)"))
         global_toggle = header.global_details_button
         prep_toggle = header.preparation_button
         character_toggle = header.participants_button
@@ -574,14 +577,16 @@ class DevUiPage(QWidget):
         self.preview_header_controls = {
             "Progression globale": global_toggle,
             "Préparation": prep_toggle,
+            "Sommaire": header.summary_button,
             "Personnages": character_toggle,
         }
         self.preview_header_panels = {
             "Progression globale": global_panel,
+            "Sommaire": header.summary_panel,
             "Personnages": characters,
         }
-        self.preview_header_metrics = {"Préparation": header.preparation_bar}
-        self.preview_header_metric_icons = {"Préparation": header.preparation_icon}
+        self.preview_header_metrics = {"Préparation": header.preparation_bar, "Sommaire": header.summary_bar}
+        self.preview_header_metric_icons = {"Préparation": header.preparation_icon, "Sommaire": header.summary_icon}
         for index, percent in enumerate((35, 60, 10), start=1):
             label = QLabel(f"Personnage fictif {index} · {percent} %")
             label.setObjectName("GuidePreparationParticipantNeed")

@@ -42,7 +42,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "QLabel#GuideSheetTitle", "#GuideManualProgress",
         "QToolButton#GuideMetricDropdown", "QToolButton#GuideParticipantsButton",
         "QSpinBox#GuideCompactPageJump", "QScrollArea#GuideManualScroll",
-        "QProgressBar#GuideCompactPreparationProgress",
+        "QProgressBar#GuideCompactPreparationProgress", "QProgressBar#GuideCompactSummaryProgress",
         "QPushButton#GuidePreparationModeTab",
         "#GuideCompactDonutHeading", "#GuideCompactDonutCount",
         "#DialogHeader",

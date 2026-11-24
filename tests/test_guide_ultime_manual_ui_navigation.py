@@ -295,8 +295,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 view._metric_columns["Préparation"].itemAt(0).widget(),
                 view.preparation_panel,
             )
-            self.assertIs(view.preparation_bar.parentWidget(), view.global_details_panel)
-            self.assertFalse(hasattr(view, "summary_panel"))
+            self.assertIs(view.preparation_bar.parentWidget(), view.reading_header.preparation_column)
+            self.assertTrue(hasattr(view.reading_header, "summary_panel"))
             self.assertFalse(hasattr(view, "route_bar"))
             self.assertTrue(view.preparation_bar.isEnabled())
             self.assertEqual(view.prev_button.text(), "Précédent")

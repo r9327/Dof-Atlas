@@ -853,6 +853,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             category="dofus" if "dofus" in title.casefold() else "guide",
         )
         self.reading_header = header
+        header.set_summary_provider(lambda: tuple(
+            str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
+            for card in self.service.cards
+        ))
+        header.summaryRequested.connect(self._show_index)
         self.global_progress_bar = header.global_progress_bar
         self.global_progress_label = header.global_progress_label
         self.guide_icon_label = header.guide_icon_label
@@ -944,7 +949,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
         for name, label in getattr(self, "_metric_caption_labels", {}).items():
-            label.setText("À préparer" if name == "Préparation" else name)
+            label.setText(name)
         self.participants_button.setAccessibleName(full_label)
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
@@ -1054,11 +1059,6 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _global_details_toggled(self, opened: bool) -> None:
         if opened:
             self._refresh_global_details()
-            # The drawer may have been hidden when progress changed. Materialize
-            # its latest needs only when the user reopens the parent.
-            if self.preparation_button.isChecked() and not self._preparation_loaded:
-                self._load_preparation_needs()
-                self._render_preparation(self.preparation_filter.currentText())
 
     def _refresh_global_details(self) -> None:
         clear_unity_widget_layout(self.global_details_layout, hide_widgets=True)
@@ -1666,11 +1666,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # An already open preparation drawer must be refreshed alongside its
         # progress bar after a quest, participant or external progress change.
         # Otherwise the header displays 0 while stale prepared rows remain.
-        if (
-            self.global_details_button.isChecked()
-            and self.preparation_button.isChecked()
-            and not self._preparation_loaded
-        ):
+        if self.preparation_button.isChecked() and not self._preparation_loaded:
             self._load_preparation_needs()
             self._render_preparation(self.preparation_filter.currentText())
         else:
@@ -1685,6 +1681,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.sheet_title_label.setText(title)
         self.nav_page_label.setText(f"{index + 1 if total_cards else 0}/{total_cards}")
         self.sheet_header.set_page(index + 1, total_cards)
+        self.reading_header.set_summary_position(index if total_cards else -1)
 
     def set_character_key(self, character_key: str) -> None:
         # The base setter invokes refresh() synchronously. Invalidate the

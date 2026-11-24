@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLayout,
+    QListWidget,
     QMenu,
     QProgressBar,
     QScrollArea,
@@ -888,6 +889,8 @@ def atlas_guide_global_progress_bar() -> QProgressBar:
 class AtlasGuideReadingHeader(QFrame):
     """Shared UI shell for real Guide readers and the Dev UI, without game data."""
 
+    summaryRequested = Signal(int)
+
     def __init__(self, title: str, *, image_path: str | Path | None = None,
                  category: str = "guide", overview: bool = False,
                  parent: QWidget | None = None) -> None:
@@ -947,7 +950,7 @@ class AtlasGuideReadingHeader(QFrame):
         self.title_row = title_row
         self.content_layout = right
 
-        # Shared #363 layout: progress is global; preparation is inside details.
+        # Global progress spans the two independently expandable lower metrics.
         overall_caption = QHBoxLayout()
         title = QLabel("Progression globale")
         title.setObjectName("GuideGlobalProgressTitle")
@@ -963,7 +966,7 @@ class AtlasGuideReadingHeader(QFrame):
             return
         self.global_details_button = AtlasGuideDisclosure()
         self.global_details_button.configure_compact()
-        self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
+        self.global_details_button.setToolTip("Afficher la progression des personnages")
         self.global_details_button.setAccessibleName("Déplier la progression globale")
         overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
         overall_caption.addStretch(1)
@@ -986,7 +989,11 @@ class AtlasGuideReadingHeader(QFrame):
         self.global_details_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
         details.addWidget(self.global_details_rows)
 
-        preparation_metric = QVBoxLayout()
+        metrics = QHBoxLayout()
+        metrics.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
+        self.preparation_column = QWidget()
+        preparation_metric = QVBoxLayout(self.preparation_column)
+        preparation_metric.setContentsMargins(0, 0, 0, 0)
         preparation_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
         caption = QHBoxLayout()
         caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
@@ -998,7 +1005,7 @@ class AtlasGuideReadingHeader(QFrame):
         )
         icon.setFixedSize(UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"])
         caption.addWidget(icon)
-        caption_label = QLabel("À préparer")
+        caption_label = QLabel("Préparation")
         caption_label.setToolTip("Préparation")
         caption.addWidget(caption_label)
         self.preparation_caption = caption_label
@@ -1022,7 +1029,58 @@ class AtlasGuideReadingHeader(QFrame):
         drawer.setContentsMargins(0, 0, 0, 0)
         self.preparation_drawer = drawer
         preparation_metric.addLayout(drawer)
-        details.addLayout(preparation_metric)
+        metrics.addWidget(self.preparation_column, 1)
+
+        self.summary_column = QWidget()
+        summary_metric = QVBoxLayout(self.summary_column)
+        summary_metric.setContentsMargins(0, 0, 0, 0)
+        summary_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        summary_caption = QHBoxLayout()
+        summary_caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+        self.summary_icon = QLabel()
+        self.summary_icon.setPixmap(
+            atlas_guide_symbol_icon(self.summary_icon, "summary", size=icon_size,
+                                    color=PALETTE["GREEN"]).pixmap(icon_size, icon_size)
+        )
+        self.summary_icon.setFixedSize(icon_size, icon_size)
+        summary_caption.addWidget(self.summary_icon)
+        summary_caption.addWidget(QLabel("Sommaire"))
+        self.summary_button = AtlasGuideDisclosure()
+        self.summary_button.configure_compact()
+        self.summary_button.setAccessibleName("Afficher Sommaire")
+        self.summary_button.setToolTip("Ouvrir Sommaire")
+        summary_caption.addWidget(self.summary_button)
+        summary_caption.addStretch(1)
+        self.summary_progress_label = QLabel("—")
+        self.summary_progress_label.setObjectName("GuideCompactMetricValue")
+        summary_caption.addWidget(self.summary_progress_label)
+        summary_metric.addLayout(summary_caption)
+        self.summary_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideCompactSummaryProgress",
+            height_role="progress_secondary", expanding=True,
+        )
+        summary_metric.addWidget(self.summary_bar)
+        self.summary_panel = QListWidget()
+        self.summary_panel.setObjectName("GuideSummaryList")
+        self.summary_panel.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
+        self.summary_panel.setAccessibleName("Sommaire du guide")
+        self.summary_panel.hide()
+        self.summary_panel.itemActivated.connect(
+            lambda item: self.summaryRequested.emit(self.summary_panel.row(item))
+        )
+        self.summary_panel.itemClicked.connect(
+            lambda item: self.summaryRequested.emit(self.summary_panel.row(item))
+        )
+        self._summary_titles = ()
+        self._summary_index = -1
+        self._summary_provider = None
+        self.summary_button.toggled.connect(self._set_summary_open)
+        summary_metric.addWidget(self.summary_panel)
+        metrics.addWidget(self.summary_column, 1)
+        # Keep both progress bars at the same height regardless of open panels.
+        metrics.setAlignment(self.preparation_column, Qt.AlignTop)
+        metrics.setAlignment(self.summary_column, Qt.AlignTop)
+        right.addLayout(metrics)
         self.global_details_panel.setVisible(False)
         self.global_details_button.toggled.connect(self._set_global_details_open)
         right.addWidget(self.global_details_panel)
@@ -1055,8 +1113,8 @@ class AtlasGuideReadingHeader(QFrame):
             "Replier la progression globale" if opened else "Déplier la progression globale"
         )
         self.global_details_button.setToolTip(
-            "Masquer la progression et les préparatifs" if opened
-            else "Afficher la progression et les préparatifs"
+            "Masquer la progression des personnages" if opened
+            else "Afficher la progression des personnages"
         )
 
     def set_overview_progress(self, completed: int, total: int, *, visible: bool = True) -> None:
@@ -1067,6 +1125,39 @@ class AtlasGuideReadingHeader(QFrame):
         self.global_progress_bar.setRange(0, max(1, total))
         self.global_progress_bar.setValue(max(0, min(completed, total)))
         self.global_progress_label.setText(f"{completed}/{total}" if total > 0 else "—")
+
+    def set_summary_provider(self, provider: Callable[[], tuple[str, ...]]) -> None:
+        self._summary_provider = provider
+        if self.summary_button.isChecked():
+            self._refresh_summary_rows()
+
+    def _refresh_summary_rows(self) -> None:
+        if self._summary_provider is None:
+            return
+        titles = tuple(self._summary_provider())
+        if titles != self._summary_titles:
+            self._summary_titles = titles
+            self.summary_panel.clear()
+            self.summary_panel.addItems([
+                f"{index}. {title}" for index, title in enumerate(titles, 1)
+            ])
+        self.summary_panel.setCurrentRow(self._summary_index)
+
+    def _set_summary_open(self, opened: bool) -> None:
+        if opened:
+            self._refresh_summary_rows()
+        self.summary_panel.setVisible(opened)
+        self.summary_button.setAccessibleName(
+            "Masquer Sommaire" if opened else "Afficher Sommaire"
+        )
+
+    def set_summary_position(self, index: int) -> None:
+        self._summary_index = index
+        self.summary_bar.setRange(self.global_progress_bar.minimum(), self.global_progress_bar.maximum())
+        self.summary_bar.setValue(self.global_progress_bar.value())
+        self.summary_progress_label.setText(self.global_progress_label.text())
+        if self.summary_button.isChecked():
+            self._refresh_summary_rows()
 
     def attach_preparation(self, panel: QWidget) -> None:
         self.preparation_drawer.addWidget(panel)

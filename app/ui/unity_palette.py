@@ -772,7 +772,7 @@ UNITY_UI_FAMILY_INDEX = {
             "AtlasPageTitle", "PageTitle", "PanelTitle", "GuideHeader",
             "GuideHeaderTitle", "GuideHeaderMeta", "GuideCompactHeader",
             "GuideCompactTitle", "GuideCompactPageJump",
-            "GuideManualProgress", "GuideCompactPreparationProgress",
+            "GuideManualProgress", "GuideCompactPreparationProgress", "GuideCompactSummaryProgress", "GuideSummaryList",
             "GuideCompactDonutHeading", "GuideCompactDonutCount",
             "GuideSheetHeader", "AtlasGuideReadingHeader", "AtlasGuideSheetHeader",
             "GuideSheetMeta", "GuideSheetTitle", "AtlasDialogHeader",

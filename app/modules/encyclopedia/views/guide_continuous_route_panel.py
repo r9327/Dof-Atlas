@@ -82,6 +82,10 @@ class ContinuousGuideRoutePanel(QWidget):
             title, image_path=image_path, category="dofus" if "dofus" in title.casefold() else "guide",
         )
         header = self.compact_header
+        header.set_summary_provider(lambda: tuple(
+            str(row.get("title") or "Fiche") for row in self.rows
+        ))
+        header.summaryRequested.connect(lambda index: self.show_step(self.navigation.step_ids[index]))
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideContinuousPosition")
         self.position_label.setTextFormat(Qt.PlainText)
@@ -209,11 +213,9 @@ class ContinuousGuideRoutePanel(QWidget):
         self.participants_button.setToolTip("Sélectionner les personnages")
         self.participants_button.setAccessibleName("Personnages")
         header.global_details_rows.hide()
+        header.global_details_button.hide()
         header.attach_preparation(self.preparation_scroll)
         self.preparation_toggle.toggled.connect(self._on_preparation_toggled)
-        # Read-only source references were visible by default; keep them
-        # reachable without changing the existing source preparation policy.
-        header.global_details_button.setChecked(True)
         layout.insertWidget(0, header)
         layout.addLayout(work, 1)
         self.navigation.show_actual()
@@ -462,7 +464,7 @@ class ContinuousGuideRoutePanel(QWidget):
             visible_object_references(self.route, current) if current else ()
         )
         self.preparation_toggle.setText(f"À préparer ({len(references)})")
-        self.compact_header.preparation_caption.setText(self.preparation_toggle.text())
+        self.compact_header.preparation_caption.setText(f"Préparation ({len(references)})")
         self.preparation_toggle.setEnabled(bool(references))
         if not references and self.preparation_toggle.isChecked():
             # A new source step without references must not leave an invisible
@@ -484,6 +486,7 @@ class ContinuousGuideRoutePanel(QWidget):
             f"FICHE {index + 1}" if index >= 0
             else "PARCOURS CONTINU"
         )
+        self.compact_header.set_summary_position(index)
         self.previous_button.setEnabled(index > 0)
         self.next_button.setEnabled(index < position.total_steps - 1)
         self.progress_label.setText(

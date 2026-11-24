@@ -567,12 +567,12 @@ class DevUiPageTests(unittest.TestCase):
                           page.preview_sheet_header)
             self.assertEqual(
                 {name: bar.objectName() for name, bar in page.preview_header_metrics.items()},
-                {"Préparation": "GuideCompactPreparationProgress"},
+                {"Préparation": "GuideCompactPreparationProgress", "Sommaire": "GuideCompactSummaryProgress"},
             )
-            self.assertEqual(set(page.preview_header_metric_icons), {"Préparation"})
+            self.assertEqual(set(page.preview_header_metric_icons), {"Préparation", "Sommaire"})
             self.assertEqual(
                 set(page.preview_header_controls),
-                {"Progression globale", "Préparation", "Personnages"},
+                {"Progression globale", "Préparation", "Sommaire", "Personnages"},
             )
             self.assertEqual(page.preview_header_global_panel.objectName(),
                              "GuideGlobalDetailsPanel")
@@ -622,7 +622,7 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIsNone(page.preview_compact_header.findChild(
                 QWidget, "GuideManualProgress"
             ))
-            for name in ("Progression globale", "Préparation"):
+            for name in ("Progression globale", "Préparation", "Sommaire"):
                 button = page.preview_header_controls[name]
                 self.assertEqual(button.objectName(), "GuideMetricDropdown")
                 self.assertFalse(button.icon().isNull())
@@ -669,8 +669,10 @@ class DevUiPageTests(unittest.TestCase):
             ))
             self.assertIs(
                 page.preview_header_panels["Préparation"].parentWidget(),
-                page.preview_header_global_panel,
+                page.preview_compact_header.preparation_column,
             )
+            page.preview_header_controls["Sommaire"].click()
+            self.assertTrue(page.preview_header_panels["Sommaire"].isVisibleTo(page.preview_compact_header))
             global_button.click()
             self.assertFalse(page.preview_header_global_panel.isVisible())
             global_button.click()
@@ -1800,9 +1802,10 @@ class DevUiPageTests(unittest.TestCase):
                         )
                         if opened:
                             preparation = span(page.preview_header_metrics["Préparation"])
-                            self.assertGreaterEqual(preparation[0], full[0])
-                            self.assertLessEqual(preparation[1], full[1])
-                            self.assertGreater(preparation[1], preparation[0])
+                            summary = span(page.preview_header_metrics["Sommaire"])
+                            self.assertEqual(preparation[0], full[0])
+                            self.assertEqual(summary[1], full[1])
+                            self.assertLess(preparation[1], summary[0])
             self.assertEqual(
                 page.preview_header_global_progress.height(),
                 UNITY_CONTROL_SIZES_PX["progress_primary"],

@@ -3138,12 +3138,14 @@ QLabel#GuideCompactMetricValue {
     min-width: 52px;
 }
 
+QProgressBar#GuideCompactSummaryProgress,
 QProgressBar#GuideCompactPreparationProgress {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     border-radius: 3px;
 }
 
+QProgressBar#GuideCompactSummaryProgress::chunk,
 QProgressBar#GuideCompactPreparationProgress::chunk {
     background: @GREEN;
     border-radius: 2px;

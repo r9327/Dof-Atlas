@@ -171,6 +171,10 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                     self.assertGreaterEqual(global_span[1], prep_span[1])
                     self.assertGreater(global_span[1] - global_span[0], 0)
                     self.assertGreater(prep_span[1] - prep_span[0], 0)
+                    summary_span = edges(self.panel.compact_header.summary_bar)
+                    self.assertEqual(prep_span[0], global_span[0])
+                    self.assertEqual(summary_span[1], global_span[1])
+                    self.assertLess(prep_span[1], summary_span[0])
         finally:
             self.panel.hide()
 
@@ -229,7 +233,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(header.objectName(), "GuideCompactHeader")
         self.assertIs(self.panel.position_label.parentWidget(), header)
         self.assertIs(self.panel.participants_button.parentWidget(), header)
-        self.assertIs(self.panel.preparation_toggle.parentWidget(), header.global_details_panel)
+        self.assertIs(self.panel.preparation_toggle.parentWidget(), header.preparation_column)
         self.assertEqual(self.panel.global_progress_bar.objectName(), "GuideGlobalProgress")
         self.assertEqual(self.panel.preparation_bar.objectName(), "GuideCompactPreparationProgress")
         self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
@@ -238,7 +242,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertIsNone(header.findChild(QProgressBar, "GuideContinuousRouteProgress"))
         self.assertFalse(hasattr(self.panel, "summary"))
         self.assertIs(header.preparation_drawer.itemAt(0).widget(), self.panel.preparation_scroll)
-        self.assertIs(self.panel.preparation_bar.parentWidget(), header.global_details_panel)
+        self.assertIs(self.panel.preparation_bar.parentWidget(), header.preparation_column)
         self.assertEqual((self.panel.preparation_bar.value(), self.panel.preparation_bar.maximum()), (0, 1))
         self.assertEqual(self.panel.position_label.text(), "FICHE 1")
         self.assertFalse(self.panel._characters_menu.isVisible())
