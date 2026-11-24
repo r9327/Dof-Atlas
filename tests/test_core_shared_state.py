@@ -89,6 +89,45 @@ class CoreSharedStateTests(unittest.TestCase):
                 map_manifest.write_json(path, {"maps": [], "name": "Éliotrope"})
                 self.assertEqual(map_manifest.load_manifest()["name"], "Éliotrope")
 
+    def test_organizer_settings_and_zaap_readers_share_existing_numeric_contracts(self) -> None:
+        from app.core.settings import int_value
+        from app.core.profile_settings import read_zaap_button_ratios as profile_reader
+        from app.core.zaap_shortcuts import read_zaap_button_ratios, update_zaap_shortcuts_field
+        from app.core.progress_coordinator import coordinator_for
+
+        self.assertEqual(int_value("42", 7), 42)
+        self.assertEqual(int_value(float("inf"), 7), 7)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "zaap.json"
+            value = {"x_ratio": 0.25, "y_ratio": 0.75}
+            update_zaap_shortcuts_field(path, "zaap_button", value)
+            self.assertEqual(profile_reader(path=path), (0.25, 0.75))
+            self.assertEqual(read_zaap_button_ratios(path=path), (0.25, 0.75))
+            generation = coordinator_for(path).generation
+            update_zaap_shortcuts_field(path, "zaap_button", value)
+            self.assertEqual(coordinator_for(path).generation, generation)
+
+    def test_quest_offset_cache_is_rebuilt_if_gzip_is_truncated(self) -> None:
+        from app.quest_source_index import JsonSourceMapping
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "source.json"
+            path.write_text('{"entries": {"a": {"name": "test"}}}', encoding="utf-8")
+            cache_root = root / "cache"
+            first = JsonSourceMapping(path, cache_root, "entries")
+            try:
+                self.assertEqual(first["a"], {"name": "test"})
+            finally:
+                first.close()
+            cache, = cache_root.glob("source_*.json.gz")
+            cache.write_bytes(cache.read_bytes()[:-8])
+            second = JsonSourceMapping(path, cache_root, "entries")
+            try:
+                self.assertEqual(second["a"], {"name": "test"})
+            finally:
+                second.close()
+
     def test_progress_payload_is_fresh_and_versioned(self) -> None:
         first = empty_progress_payload()
         self.assertEqual(first, {"version": 1, "characters": {}})
