@@ -2445,9 +2445,12 @@ class DevUiPage(QWidget):
                         detail = ()
                     item.setToolTip(
                         "Références statiques du registre (pas un verdict de doublon) : "
-                        + (", ".join(detail) or
-                           "Aucun appel direct trouvé pour ce contrôle, "
-                           "ou famille pas encore auditée")
+                        + (", ".join(detail) or (
+                            "Aucun QDialog natif dans les consommateurs audités."
+                            if record["native_dialog_calls"] is not None and not unreadable
+                            else "Aucun appel direct trouvé pour ce contrôle, "
+                                 "ou famille pas encore auditée"
+                        ))
                     )
                 self.preview_mutualization_matrix.setItem(index, column, item)
         self.preview_mutualization_matrix.setToolTip(

@@ -1114,8 +1114,16 @@ class DevUiPageTests(unittest.TestCase):
                 audits["Fenêtres et popups classiques"].text(),
             )
             self.assertIn(
-                "guides_view.py",
+                "0 QDialog natif(s) à qualifier",
+                audits["Fenêtres et popups classiques"].text(),
+            )
+            self.assertIn(
+                "Aucun QDialog natif dans les consommateurs audités",
                 audits["Fenêtres et popups classiques"].toolTip(),
+            )
+            self.assertIn(
+                "Guides",
+                page.preview_mutualization_matrix.item(dialog_rows[0], 3).toolTip(),
             )
             self.assertEqual(page.preview_secondary_surfaces.rowCount(), 15)
             unique_cases = {
