@@ -327,6 +327,22 @@ class SharedUiComponentsTests(unittest.TestCase):
             root.close()
             root.deleteLater()
 
+    def test_number_selector_uses_polished_font_before_first_show(self) -> None:
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        selector = QSpinBox()
+        try:
+            selector.setRange(0, 999999)
+            selector.setSuffix(" unités")
+            selector.setStyleSheet("QSpinBox { font-size: 24px; }")
+            width = fit_unity_number_spinbox(selector)
+            expected = selector.fontMetrics().horizontalAdvance("999999 unités")
+            self.assertGreaterEqual(width, expected +
+                                    UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"])
+            self.assertEqual(selector.minimumWidth(), selector.maximumWidth())
+        finally:
+            selector.deleteLater()
+
     def test_guide_page_number_reserves_left_text_inset_without_widening_quantities(self) -> None:
         from app.ui.unity_palette import (
             UNITY_CONTROL_SIZES_PX, UNITY_SPACING_PX,
