@@ -953,8 +953,9 @@ class CraftPage(QWidget):
         row = self.selection.get(ident)
         if not row:
             return
-        current = int(row.get("quantity") or 1)
-        row["quantity"] = max(1, min(selection_editor_maximum(current), int(value or 1)))
+        # The live editor already enforces its displayed range; do not
+        # shrink it mid-edit when a bulk quantity crosses below 1000.
+        row["quantity"] = max(1, min(2_147_483_647, int(value or 1)))
         self.save_selection()
 
     def clear_selection(self) -> None:

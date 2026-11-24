@@ -312,6 +312,11 @@ class CraftFixesTests(unittest.TestCase):
             self.assertEqual(page.selection[42]["quantity"], 1499)
             page.change_selection_quantity(42, 1)
             self.assertEqual(page.selection[42]["quantity"], 1500)
+            row = page.selection_list.itemWidget(page.selection_list.item(0))
+            counter = row.findChild(QSpinBox)
+            counter.setValue(998)
+            counter.setValue(1200)
+            self.assertEqual(page.selection[42]["quantity"], 1200)
 
     def test_craft_and_quest_read_duplicate_quantities_consistently(self):
         page = self.make_page()

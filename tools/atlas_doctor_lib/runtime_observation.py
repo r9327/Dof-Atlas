@@ -28,6 +28,7 @@ from typing import Any
 # process, and point it at at most one opt-in observer using a weak reference.
 MAX_SYMBOL_EDGES = 384
 MAX_WEAK_WATCHES = 128
+MAX_CODE_PATHS = 4096
 _AUDIT_HOOK_INSTALLED = False
 _ACTIVE_AUDIT_REF: weakref.ReferenceType | None = None
 
@@ -57,6 +58,7 @@ class RuntimeObserver:
         self.max_events = max_events
         self.events: list[dict[str, Any]] = []
         self._edges: set[tuple[str, str]] = set()
+        self._code_paths: dict[str, str | None] = {}
         self._symbol_edges: set[tuple[str, str, int, str, str]] = set()
         self._symbol_overflow = False
         self._watched: list[tuple[str, str, weakref.ReferenceType]] = []
@@ -106,6 +108,14 @@ class RuntimeObserver:
         except (OSError, ValueError, RuntimeError):
             return None
 
+    def _code_path(self, filename: str) -> str | None:
+        """Resolve a code filename once per trace, not once per Python call."""
+        if filename not in self._code_paths:
+            if len(self._code_paths) >= MAX_CODE_PATHS:
+                self._code_paths.clear()
+            self._code_paths[filename] = self._path(filename)
+        return self._code_paths[filename]
+
     def _record(self, event: dict[str, Any]) -> None:
         if not self._active:
             return
@@ -134,17 +144,21 @@ class RuntimeObserver:
         self._busy = True
         try:
             if event == "c_call":
-                caller = self._path(frame.f_code.co_filename)
                 name = getattr(arg, "__name__", None)
+                if name not in {"connect", "disconnect", "start", "stop"}:
+                    return
                 module = type(getattr(arg, "__self__", None)).__module__
-                if (caller and caller.endswith(".py") and
-                        (module.startswith("PySide6.") or module.startswith("shiboken6")) and
-                        name in {"connect", "disconnect", "start", "stop"}):
+                if not (module.startswith("PySide6.") or module.startswith("shiboken6")):
+                    return
+                caller = self._code_path(frame.f_code.co_filename)
+                if caller and caller.endswith(".py"):
                     self._record({"type": "qt_c_call_site", "source": caller,
                                   "action": name, "confidence": "CALL_SITE_ONLY"})
                 return
-            target = self._path(frame.f_code.co_filename)
-            caller = self._path(frame.f_back.f_code.co_filename) if frame.f_back else None
+            target = self._code_path(frame.f_code.co_filename)
+            if not target or not target.endswith(".py"):
+                return
+            caller = self._code_path(frame.f_back.f_code.co_filename) if frame.f_back else None
             if target and caller and target.endswith(".py") and caller.endswith(".py"):
                 key = caller, target
                 if key not in self._edges:
@@ -200,7 +214,7 @@ class RuntimeObserver:
             for _ in range(12):
                 if frame is None:
                     break
-                current = self._path(frame.f_code.co_filename)
+                current = self._code_path(frame.f_code.co_filename)
                 if current and current.endswith(".py") and current != "tools/atlas_doctor_lib/runtime_observation.py":
                     caller = current
                     break
@@ -671,6 +685,7 @@ class RuntimeObserver:
         if not _AUDIT_HOOK_INSTALLED:
             sys.addaudithook(_audit_dispatch)
             _AUDIT_HOOK_INSTALLED = True
+        self._code_paths.clear()
         self.started_ns = time.monotonic_ns()
         self._old_profile = sys.getprofile()
         self._old_thread_profile = threading.getprofile()
