@@ -88,6 +88,7 @@ def atlas_application_icon() -> QIcon:
 
 def fit_unity_number_spinbox(spinbox: QSpinBox) -> int:
     """Fit an indexed Unity x/x selector to its actual displayed range."""
+    spinbox.ensurePolished()
     # Either endpoint may be wider (e.g. -1000 vs 99). The prefix,
     # suffix and special-value label are real Qt text, not a second width
     # policy owned by individual Guide or module screens.
@@ -567,9 +568,10 @@ class AtlasGuideDisclosure(QToolButton):
         if pixmap.isNull():
             return
         painter = QPainter(self)
+        pixel_ratio = max(1.0, pixmap.devicePixelRatio())
         painter.drawPixmap(
-            (self.width() - pixmap.width()) // 2,
-            (self.height() - pixmap.height()) // 2,
+            int((self.width() - pixmap.width() / pixel_ratio) / 2),
+            int((self.height() - pixmap.height() / pixel_ratio) / 2),
             pixmap,
         )
         painter.end()
