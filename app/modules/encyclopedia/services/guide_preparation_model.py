@@ -7,16 +7,14 @@ into a certified inventory claim.
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 
 from app.core.numbers import positive_int as _positive_int
 from app.core.text import normalize_key, strip_accents
-import zlib
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-_COMPACT_DECODE_LIMIT = 4 * 1024 * 1024
+from app.core.json_store import decode_compact_json
 _COMPACT_PREPARATION_FIELDS = (
     "preparation", "a_preparer", "resource_plan", "resources",
     "required_items", "items_to_prepare", "manual_preparation",
@@ -33,17 +31,7 @@ _COMPACT_GATE_FIELDS = (
 
 def _compact_data(payload: Any, expected_type: type) -> Any | None:
     """Read one compressed source, never hydrate the Qt card or all 267 cards."""
-    if not isinstance(payload, (bytes, bytearray)) or len(payload) > _COMPACT_DECODE_LIMIT:
-        return None
-    try:
-        decoder = zlib.decompressobj()
-        raw = decoder.decompress(bytes(payload), _COMPACT_DECODE_LIMIT + 1)
-        if not decoder.eof or len(raw) > _COMPACT_DECODE_LIMIT:
-            return None
-        decoded = json.loads(raw.decode("utf-8"))
-    except (OSError, UnicodeError, ValueError, TypeError, zlib.error):
-        return None
-    return decoded if isinstance(decoded, expected_type) else None
+    return decode_compact_json(payload, expected_type)
 
 
 _EXPLICIT_QUANTITY = re.compile(

@@ -20,6 +20,7 @@ from app.modules.encyclopedia.services.guide_ultime_manual_route import (
     load_manual_chapter,
 )
 from app.modules.encyclopedia.services.guide_ultime_runtime_service import GuideUltimeRuntimeService
+from app.core.json_store import decode_compact_json, encode_compact_json
 from app.core.map_coordinates import extract_bracketed_coordinates
 from app.core.numbers import optional_int
 from app.core.text import normalize_key as normalize_text
@@ -629,24 +630,10 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                     # Persist only the resolved source for this one sheet. Bytes
                     # are immutable/compact and survive route navigation without
                     # retaining a Python object graph for all 267 authored stages.
-                    card["_manual_stage_payload"] = zlib.compress(
-                        json.dumps(
-                            stage,
-                            ensure_ascii=False,
-                            separators=(",", ":"),
-                        ).encode("utf-8"),
-                        1,
-                    )
+                    card["_manual_stage_payload"] = encode_compact_json(stage)
                     preparation = chapter_preparation_schedule.get(stage_position, [])
                     if preparation:
-                        card["_manual_chapter_preparation_payload"] = zlib.compress(
-                            json.dumps(
-                                preparation,
-                                ensure_ascii=False,
-                                separators=(",", ":"),
-                            ).encode("utf-8"),
-                            1,
-                        )
+                        card["_manual_chapter_preparation_payload"] = encode_compact_json(preparation)
                 else:
                     card = self._stage_to_card(
                         chapter_id,
@@ -866,30 +853,19 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         # Normal compact path: decode only the already-resolved sheet selected by
         # the player. This avoids resolving an entire canonical chapter (and its
         # base/import graph) again in Atlas' long-lived process.
-        payload = card.get("_manual_stage_payload")
-        if isinstance(payload, (bytes, bytearray)):
-            try:
-                decoded = json.loads(zlib.decompress(bytes(payload)).decode("utf-8"))
-            except (OSError, UnicodeError, ValueError, TypeError):
-                decoded = None
-            if isinstance(decoded, dict):
-                preparation: list[dict[str, Any]] = []
-                preparation_payload = card.get("_manual_chapter_preparation_payload")
-                if isinstance(preparation_payload, (bytes, bytearray)):
-                    try:
-                        prepared = json.loads(
-                            zlib.decompress(bytes(preparation_payload)).decode("utf-8")
-                        )
-                    except (OSError, UnicodeError, ValueError, TypeError):
-                        prepared = []
-                    if isinstance(prepared, list):
-                        preparation = [
-                            row for row in prepared if isinstance(row, dict)
-                        ]
+        decoded = decode_compact_json(card.get("_manual_stage_payload"), dict)
+        if decoded is not None:
+            preparation_payload = card.get("_manual_chapter_preparation_payload")
+            prepared = [] if preparation_payload is None else decode_compact_json(preparation_payload, list)
+            if prepared is not None:
                 card["manual_stage_data"] = decoded
-                card["manual_chapter_preparation"] = preparation
+                card["manual_chapter_preparation"] = [
+                    row for row in prepared if isinstance(row, dict)
+                ]
                 self._manual_hydrated_card = card
                 return decoded
+        # Malformed/oversized payloads fall back to the authored chapter rather
+        # than losing preparation rows or crashing on a corrupt compressed cache.
 
         # Compatibility fallback for old/manual cards that predate the compact
         # per-sheet payload. New canonical cards should never take this branch.

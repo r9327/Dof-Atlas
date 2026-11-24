@@ -20,6 +20,7 @@ from app.core import map_coordinates
 from app.core.map_coordinates import extract_bracketed_coordinates, extract_bracketed_position
 from app.quest_catalog import quest_catalog_cache_signature
 from app.modules.encyclopedia.services.guide_catalog_step_index import resolved_route_quests
+from app.modules.encyclopedia.services.guide_release_signature import guide_step_identity_rows
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
 from app.modules.encyclopedia.services.guide_catalog_route_store import (
@@ -83,18 +84,10 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
     loaded = getattr(provider, "_catalog", None)
     if loaded is not None and not bool(getattr(loaded, "deferred_details", False)):
         return None
-    guide = service.catalog_guide
-    steps = [
-        (
-            str(getattr(step, "id", "") or ""),
-            str(getattr(step, "step_type", "") or ""),
-            str(getattr(step, "entity_id", "") or ""),
-            int(getattr(step, "order", 0) or 0),
-        )
-        for step in getattr(guide, "required_steps", ()) or ()
-    ]
+    steps = guide_step_identity_rows(service.catalog_guide)
     from app.modules.encyclopedia.services import (
         guide_catalog_route_store,
+        guide_release_signature,
         guide_quest_view_model,
         guide_ultime_player_policy,
     )
@@ -103,6 +96,7 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         Path(guide_quest_view_model.__file__),
         Path(guide_ultime_player_policy.__file__),
         Path(guide_catalog_route_store.__file__),
+        Path(guide_release_signature.__file__),
         Path(map_coordinates.__file__),
     )
     # Frozen bundles unpack sources to a different temporary path on each

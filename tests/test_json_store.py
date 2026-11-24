@@ -11,6 +11,18 @@ from local_dofus_data import utils
 
 
 class JsonStoreTests(unittest.TestCase):
+    def test_compact_json_codec_bounds_and_validates_payload(self) -> None:
+        from app.core.json_store import decode_compact_json, encode_compact_json
+
+        payload = {"name": "Éliotrope", "steps": [1, 2]}
+        encoded = encode_compact_json(payload)
+        self.assertEqual(decode_compact_json(encoded, dict), payload)
+        self.assertEqual(decode_compact_json(bytearray(encoded), dict), payload)
+        self.assertIsNone(decode_compact_json(encoded, list))
+        self.assertIsNone(decode_compact_json(encoded[:-1], dict))
+        self.assertIsNone(decode_compact_json(b"invalid zlib", dict))
+        self.assertIsNone(decode_compact_json(encode_compact_json(["x" * 1024]), list, max_bytes=64))
+
     def test_corrupt_json_is_backed_up_before_default_is_returned(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "settings.json"
