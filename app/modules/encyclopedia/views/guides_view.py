@@ -50,6 +50,7 @@ from app.modules.encyclopedia.services import (
     QuestGraphService,
     QuestProgressService,
 )
+from app.modules.encyclopedia.services.image_service import read_scaled_image
 from app.modules.encyclopedia.views.guide_home_image_cache import (
     get_cached_scaled_pixmap,
     store_scaled_pixmap,
@@ -200,7 +201,7 @@ atexit.register(SOLUTION_IMAGE_EXECUTOR.shutdown, wait=False, cancel_futures=Tru
 
 
 class _AsyncImageDelivery(QObject):
-    guideImageDecoded = Signal(object, object, QSize, str)
+    guideImageDecoded = Signal(object, object, QSize, str, object)
     solutionImageDecoded = Signal(object, object)
 
     def __init__(self) -> None:
@@ -208,12 +209,12 @@ class _AsyncImageDelivery(QObject):
         self.guideImageDecoded.connect(self._deliver_guide_image)
         self.solutionImageDecoded.connect(self._deliver_solution_image)
 
-    @Slot(object, object, QSize, str)
-    def _deliver_guide_image(self, target_ref, image: QImage, size: QSize, used_path: str) -> None:
+    @Slot(object, object, QSize, str, object)
+    def _deliver_guide_image(self, target_ref, image: QImage, size: QSize, used_path: str, stamp) -> None:
         target = target_ref()
         if target is None or not isValid(target):
             return
-        target.imageDecoded.emit(image, size, used_path)
+        target.imageDecoded.emit(image, size, used_path, stamp)
 
     @Slot(object, object)
     def _deliver_solution_image(self, target_ref, image: QImage) -> None:
@@ -250,20 +251,22 @@ def _ensure_async_image_delivery() -> _AsyncImageDelivery:
 def _decode_guide_image(target_ref, paths: tuple[str, ...], size: QSize) -> None:
     image = QImage()
     used_path = ""
+    stamp = None
     for path in paths:
-        try:
-            payload = Path(path).read_bytes()
-        except OSError:
+        source = Path(path)
+        revision = mtime_ctime_size_stamp_or_zero(source)
+        if not revision[0]:
             continue
-        candidate = _decode_qimage(payload, "guide")
+        candidate = read_scaled_image(source, size)
         if candidate.isNull():
             continue
         image = candidate
         used_path = path
+        stamp = revision
         break
     delivery = _ASYNC_IMAGE_DELIVERY
     if delivery is not None:
-        delivery.guideImageDecoded.emit(target_ref, image, size, used_path)
+        delivery.guideImageDecoded.emit(target_ref, image, size, used_path, stamp)
 
 
 def _decode_solution_image(target_ref, image_path: str) -> None:
@@ -295,7 +298,7 @@ class GuideHomeCard(QFrame):
 
     selected = Signal(str)
     _atlas_async_image_loader = True
-    imageDecoded = Signal(object, object, str)
+    imageDecoded = Signal(object, object, str, object)
 
     def __init__(
         self,
@@ -308,6 +311,7 @@ class GuideHomeCard(QFrame):
         self._async_image_size = QSize()
         self._async_image_paths: tuple[str, ...] = ()
         self._async_image_started = False
+        self._async_image_retried = False
         super().__init__(parent)
         _ensure_async_image_delivery()
         self.guide = guide
@@ -503,10 +507,18 @@ class GuideHomeCard(QFrame):
         self._async_image_paths = tuple(existing)
         return True
 
-    def _finish_async_image(self, image: QImage, size: QSize, used_path: str) -> None:
+    def _finish_async_image(self, image: QImage, size: QSize, used_path: str, stamp=None) -> None:
         label = self._async_image_target
         if label is None:
             return
+        if used_path and stamp != mtime_ctime_size_stamp_or_zero(Path(used_path)):
+            if not self._async_image_retried:
+                self._async_image_retried = True
+                self._async_image_started = False
+                if self.isVisible():
+                    self._start_async_image()
+                return
+            image = QImage()
         if image.isNull() or not used_path:
             if self.variant == "alignment":
                 label.setPixmap(atlas_icon("quest").pixmap(32, 32))
@@ -517,8 +529,9 @@ class GuideHomeCard(QFrame):
             return
         pixmap = QPixmap.fromImage(image)
         scaled = pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        scaled = store_scaled_pixmap(Path(used_path), size, scaled)
-        label.setPixmap(scaled)
+        scaled = store_scaled_pixmap(Path(used_path), size, scaled, source_stamp=stamp)
+        if not scaled.isNull():
+            label.setPixmap(scaled)
 
 
 class DofusGuideGrid(QScrollArea):

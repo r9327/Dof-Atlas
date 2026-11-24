@@ -19,10 +19,13 @@ def get_cached_scaled_pixmap(path: Path, size: QSize) -> QPixmap:
     return ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(path, size)
 
 
-def store_scaled_pixmap(path: Path, size: QSize, pixmap: QPixmap) -> QPixmap:
+def store_scaled_pixmap(
+    path: Path, size: QSize, pixmap: QPixmap,
+    *, source_stamp: tuple[int, int, int] | None = None,
+) -> QPixmap:
     """Compatibility wrapper for existing Guide async callers."""
 
-    return ENCYCLOPEDIA_IMAGE_SERVICE.store_scaled(path, size, pixmap)
+    return ENCYCLOPEDIA_IMAGE_SERVICE.store_scaled(path, size, pixmap, source_stamp=source_stamp)
 
 
 def cached_scaled_pixmap(path: Path, size: QSize) -> QPixmap:

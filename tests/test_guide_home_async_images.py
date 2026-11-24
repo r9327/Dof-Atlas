@@ -142,6 +142,36 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
             self.assertIsInstance(solution_args[1], QImage)
             self.assertFalse(solution_args[1].isNull())
 
+    def test_replaced_async_image_is_not_published_under_new_revision(self) -> None:
+        from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "guide.png"
+            self._png(path)
+            original_stamp = mtime_ctime_size_stamp_or_zero(path)
+            old_image = QImage(str(path))
+            guide = Guide(id="revision", title="Revision", category="dofus", image_path=str(path))
+            executor = _FakeExecutor()
+            with patch.object(guides_module, "SOLUTION_IMAGE_EXECUTOR", executor):
+                card = GuideHomeCard(guide, variant="dofus", progress=(0, 1, "todo"))
+                try:
+                    card.show()
+                    self.app.processEvents()
+                    replacement = QImage(60, 40, QImage.Format_ARGB32)
+                    replacement.fill(0xFFFF0000)
+                    self.assertTrue(replacement.save(str(path), "PNG"))
+                    card._finish_async_image(old_image, QSize(30, 30), str(path), original_stamp)
+                    self.assertTrue(get_cached_scaled_pixmap(path, QSize(30, 30)).isNull())
+                    self.assertEqual(len(executor.jobs), 2)
+                    callback, args = executor.jobs[-1]
+                    callback(*args)
+                    self.app.processEvents()
+                    cached = get_cached_scaled_pixmap(path, QSize(30, 30))
+                    self.assertFalse(cached.isNull())
+                    self.assertEqual(cached.toImage().pixelColor(0, 0).red(), 255)
+                finally:
+                    card.deleteLater()
+                    self.app.processEvents()
+
     def test_hidden_images_do_not_queue_decode_work(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "guide.png"

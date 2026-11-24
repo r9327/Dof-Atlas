@@ -5,12 +5,12 @@ from pathlib import Path
 from threading import RLock
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QImageReader, QPixmap
+from PySide6.QtGui import QImage, QImageReader, QPixmap
 
-from app.core.file_stamp import mtime_size_stamp
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
 
 
-CacheKey = tuple[str, int, int, int, int]
+CacheKey = tuple[str, int, int, int, int, int]
 DEFAULT_IMAGE_CACHE_BYTES = 8 * 1024 * 1024
 DEFAULT_IMAGE_CACHE_ITEMS = 64
 
@@ -36,17 +36,18 @@ class ImageService:
         self._cache_bytes = 0
 
     @staticmethod
-    def _stamp(path: Path) -> tuple[int, int]:
-        return mtime_size_stamp(path)
+    def _stamp(path: Path) -> tuple[int, int, int]:
+        return mtime_ctime_size_stamp_or_zero(path)
 
     def _cache_key(self, path: Path, size: QSize) -> CacheKey | None:
         path = Path(path)
-        mtime_ns, file_size = self._stamp(path)
-        if mtime_ns <= 0 or file_size <= 0:
+        mtime_ns, ctime_ns, file_size = self._stamp(path)
+        if mtime_ns <= 0 or file_size <= 0 or size.isEmpty():
             return None
         return (
             str(path),
             mtime_ns,
+            ctime_ns,
             file_size,
             int(size.width()),
             int(size.height()),
@@ -71,12 +72,17 @@ class ImageService:
             self._cache.move_to_end(key)
             return QPixmap(cached[0])
 
-    def store_scaled(self, path: Path, size: QSize, pixmap: QPixmap) -> QPixmap:
+    def store_scaled(
+        self, path: Path, size: QSize, pixmap: QPixmap,
+        *, source_stamp: tuple[int, int, int] | None = None,
+    ) -> QPixmap:
         """Store a Qt-thread pixmap in the byte-bounded true-LRU cache."""
 
         if pixmap.isNull():
             return QPixmap()
         key = self._cache_key(Path(path), size)
+        if source_stamp is not None and (key is None or key[1:4] != source_stamp):
+            return QPixmap()
         if key is None:
             return pixmap
         return self._store_key(key, pixmap)
@@ -92,6 +98,11 @@ class ImageService:
             if cost <= 0 or self.max_bytes <= 0 or self.max_items <= 0 or cost > self.max_bytes:
                 return pixmap
 
+            # Old revisions of this path cannot be reused at any scale.
+            for obsolete in tuple(self._cache):
+                if obsolete[0] == key[0] and obsolete[1:4] != key[1:4]:
+                    _, old_cost = self._cache.pop(obsolete)
+                    self._cache_bytes -= old_cost
             self._cache[key] = (QPixmap(pixmap), cost)
             self._cache_bytes += cost
             while self._cache and (
@@ -103,30 +114,8 @@ class ImageService:
 
     @staticmethod
     def _decode_scaled(path: Path, size: QSize) -> QPixmap:
-        reader = QImageReader(str(path))
-        reader.setAutoTransform(True)
-        reader.setDecideFormatFromContent(True)
-        original = reader.size()
-        requested = QSize(size)
-        if (
-            original.isValid()
-            and requested.isValid()
-            and original.width() > 0
-            and original.height() > 0
-            and requested.width() > 0
-            and requested.height() > 0
-        ):
-            target = QSize(original)
-            target.scale(requested, Qt.KeepAspectRatio)
-            if target.width() < original.width() or target.height() < original.height():
-                reader.setScaledSize(target)
-        image = reader.read()
-        if image.isNull():
-            return QPixmap()
-        pixmap = QPixmap.fromImage(image)
-        if pixmap.width() > requested.width() or pixmap.height() > requested.height():
-            pixmap = pixmap.scaled(requested, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        return pixmap
+        image = read_scaled_image(path, size)
+        return QPixmap.fromImage(image) if not image.isNull() else QPixmap()
 
     def load_scaled(self, path: Path, size: QSize) -> QPixmap:
         """Decode one visible image close to its requested raster size."""
@@ -161,6 +150,26 @@ class ImageService:
         with self._lock:
             self._cache.clear()
             self._cache_bytes = 0
+
+
+def read_scaled_image(path: Path, size: QSize) -> QImage:
+    """One size-aware decoder usable from workers without allocating QPixmap."""
+    requested = QSize(size)
+    if requested.isEmpty():
+        return QImage()
+    reader = QImageReader(str(path))
+    reader.setAutoTransform(True)
+    reader.setDecideFormatFromContent(True)
+    original = reader.size()
+    if original.isValid() and not original.isEmpty():
+        target = QSize(original)
+        target.scale(requested, Qt.KeepAspectRatio)
+        if target.width() < original.width() or target.height() < original.height():
+            reader.setScaledSize(target)
+    image = reader.read()
+    if not image.isNull() and (image.width() > requested.width() or image.height() > requested.height()):
+        image = image.scaled(requested, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    return image
 
 
 ENCYCLOPEDIA_IMAGE_SERVICE = ImageService()
