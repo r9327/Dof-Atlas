@@ -335,8 +335,14 @@ class UnityPaletteTests(unittest.TestCase):
         ]
         self.assertEqual(len(painters), 1)
         paint_code = ast.get_source_segment(source, painters[0])
-        self.assertIn("QIcon.Normal", paint_code)
-        self.assertNotIn("QIcon.Disabled", paint_code)
+        self.assertIn("_paint_disabled_tool_icon(self)", paint_code)
+        icon_painter = next(
+            node for node in parsed.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_paint_disabled_tool_icon"
+        )
+        icon_paint_code = ast.get_source_segment(source, icon_painter)
+        self.assertIn("QIcon.Normal", icon_paint_code)
+        self.assertNotIn("QIcon.Disabled", icon_paint_code)
         self.assertIn('UNITY_CONTROL_SIZES_PX["progress_toggle_icon"]', source)
         self.assertEqual(UNITY_CONTROL_SIZES_PX["progress_toggle_icon"], 14)
 
@@ -360,11 +366,12 @@ class UnityPaletteTests(unittest.TestCase):
                          and isinstance(node.func, ast.Name)
                          and node.func.id == "configure_unity_progress_bar"]
                 self.assertEqual(sum(
-                    {"height_role": key, "object_name": object_name, "expanding": True}.items()
+                    {"height_role": key, "expanding": True}.items()
                     <= {kw.arg: kw.value.value for kw in call.keywords
                         if isinstance(kw.value, ast.Constant)}.items()
                     for call in calls
                 ), 1)
+                self.assertEqual(component.count(f'"{object_name}"'), 1)
                 for consumer in (source, gallery):
                     self.assertIn("AtlasGuideReadingHeader(", consumer)
                     self.assertNotIn(f'object_name="{object_name}"', consumer)
@@ -373,7 +380,7 @@ class UnityPaletteTests(unittest.TestCase):
         for key in ("progress_toggle_width", "progress_toggle_height"):
             self.assertIn(f'UNITY_CONTROL_SIZES_PX["{key}"]', component)
             self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
-        for name in ("self.global_details_button", "self.preparation_button"):
+        for name in ("self.global_details_button", "button"):
             self.assertIn(f"{name}.configure_compact()", component)
         for consumer in (source, gallery):
             self.assertIn("AtlasGuideReadingHeader(", consumer)
