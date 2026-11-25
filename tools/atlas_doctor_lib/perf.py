@@ -348,7 +348,9 @@ def _same_runner_baseline(root: Path, base_sha: str) -> dict[str, Any]:
     # Git owns worktree removal. Python's final best-effort temp cleanup must
     # not replace the actual baseline/cleanup error with an unrelated WinError.
     with tempfile.TemporaryDirectory(prefix="atlas-perf-", ignore_cleanup_errors=True) as temp:
-        base_root = Path(temp) / "base"
+        # Git registers the expanded Windows path even when TEMP uses an
+        # 8.3 alias such as RUNNER~1. Use the same path for add and remove.
+        base_root = Path(temp).resolve(strict=True) / "base"
         subprocess.run(["git", "worktree", "add", "--detach", str(base_root), base_sha],
                        cwd=root, env=env, check=True, capture_output=True, timeout=180)
         try:
