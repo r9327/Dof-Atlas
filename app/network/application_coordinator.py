@@ -165,9 +165,10 @@ class NetworkApplicationCoordinator:
             self._worker_compact_context_ready = False
             if first_context:
                 self._applied_journal_evidence_keys.clear()
-        self.start_worker()
         if first_context:
-            self.request_start_verified_runtime()
+            self._enqueue_command("start_runtime_on_context_ready")
+        else:
+            self.start_worker()
 
     def start_worker(self) -> bool:
         with self._lock:
@@ -200,6 +201,7 @@ class NetworkApplicationCoordinator:
                 thread.start()
             except Exception:
                 self._thread = None
+                self._publish_status(NetworkApplicationStatus(False, False, "coordinator_start_failed"))
                 self._stop_event.set()
                 self.logger.exception("Network coordinator thread start failed.")
                 return False
@@ -389,8 +391,8 @@ class NetworkApplicationCoordinator:
         return True
 
     def _handle_command(self, command: str) -> None:
-        if (self._stop_event.is_set()
-                or not capture_retry_allowed(self.latest_status().reason)):
+        reason = self.latest_status().reason
+        if self._stop_event.is_set() or not capture_retry_allowed(reason):
             return
         if command == "prepare_capture":
             self._prepare_capture()
@@ -404,7 +406,9 @@ class NetworkApplicationCoordinator:
         if command == "start_calibration":
             self._start_calibration()
             return
-        if command == "start_runtime":
+        if command == "start_runtime" or (
+            command == "start_runtime_on_context_ready" and reason != "capture_elevation_cancelled"
+        ):
             self._start_runtime()
 
     def _start_compact_runtime(self, *, replace_existing: bool = False) -> None:
@@ -526,8 +530,9 @@ class NetworkApplicationCoordinator:
         with self._lock:
             ready = self._context_ready
             pending = self._calibration_pending
-            retry_allowed = capture_retry_allowed(self._last_status.reason)
-        if (not retry_allowed or not ready or pending
+            reason = self._last_status.reason
+        if (reason == "capture_elevation_cancelled" or not capture_retry_allowed(reason)
+                or not ready or pending
                 or self.runtime.is_running or self.calibration.is_running):
             return
         if self._last_runtime.reason != "build_fingerprint_unavailable":

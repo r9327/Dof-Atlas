@@ -4,6 +4,7 @@ kind: shared_infrastructure
 working_set:
   - app/network/
   - tests/test_network_bootstrap.py
+  - tests/test_network_application_coordinator.py
   - app/ui/network_bridge.py
 shared_dependencies:
   - persistence_identity

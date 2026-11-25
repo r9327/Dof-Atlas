@@ -287,6 +287,38 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
                         callback.assert_not_called()
                     self.assertEqual(coordinator.latest_status().reason, reason)
 
+    def test_worker_start_failure_is_reported_without_queuing_capture(self) -> None:
+        from app.core.network_presentation import capture_retry_allowed, network_summary
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with patch("threading.Thread.start", side_effect=RuntimeError("thread unavailable")):
+            self.assertFalse(coordinator.request_prepare_capture())
+
+        status = coordinator.latest_status()
+        self.assertEqual(status.reason, "coordinator_start_failed")
+        self.assertEqual(coordinator.drain_statuses(), [status])
+        self.assertEqual(network_summary(status), ("Attention requise", "error"))
+        self.assertTrue(capture_retry_allowed(status.reason))
+        self.assertFalse(coordinator.is_worker_running)
+        self.assertTrue(coordinator._commands.empty())
+
+    def test_context_ready_respects_cancelled_elevation_but_explicit_retry_starts(self) -> None:
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with patch.object(coordinator, "start_worker", return_value=True):
+            coordinator.configure_context(quest_catalog=QuestCatalog([]), achievement_provider=object())
+            automatic_command = coordinator._commands.get_nowait()
+            coordinator._publish_status(NetworkApplicationStatus(False, False, "capture_elevation_cancelled"))
+            coordinator._last_runtime = NetworkControllerStatus(False, "build_fingerprint_unavailable")
+            with patch.object(coordinator, "_start_runtime") as start:
+                coordinator._handle_command(automatic_command)
+                coordinator._retry_when_client_appears()
+                start.assert_not_called()
+                self.assertTrue(coordinator.request_start_compact_runtime())
+                coordinator._handle_command(coordinator._commands.get_nowait())
+                start.assert_called_once_with()
+
     def test_cold_network_activation_only_queues_worker_command(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         with patch.object(coordinator, "start_worker", return_value=True):
