@@ -180,6 +180,19 @@ def set_unity_widget_object_name(widget: QWidget, object_name: str) -> bool:
     return True
 
 
+def atlas_guide_state_marker(state: str) -> QLabel:
+    """One indexed marker owner for Guide section and prerequisite states."""
+    symbols = {"done": "✓", "partial": "●", "todo": "○", "neutral": ""}
+    if state not in symbols:
+        raise ValueError(f"Unknown Guide marker state: {state}")
+    marker = QLabel(symbols[state])
+    marker.setObjectName("GuideTreeState")
+    marker.setProperty("state", state)
+    marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
+    marker.setAlignment(Qt.AlignCenter)
+    return marker
+
+
 def atlas_prerequisite_row(content: QWidget, completed: bool | None = None) -> QFrame:
     """Canonical marker/layout for plain, Quest and Achievement prerequisites."""
     row = QFrame()
@@ -188,11 +201,9 @@ def atlas_prerequisite_row(content: QWidget, completed: bool | None = None) -> Q
     layout.setContentsMargins(0, 0, 0, 0)
     geometry = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
     layout.setSpacing(geometry["prerequisite_row_spacing"])
-    marker = QLabel("✓" if completed is True else "○" if completed is False else "")
-    marker.setObjectName("GuideTreeState")
-    marker.setProperty("state", "done" if completed is True else "todo" if completed is False else "neutral")
-    marker.setFixedWidth(geometry["prerequisite_marker_width"])
-    marker.setAlignment(Qt.AlignCenter)
+    marker = atlas_guide_state_marker(
+        "done" if completed is True else "todo" if completed is False else "neutral"
+    )
     layout.addWidget(marker, 0, Qt.AlignTop)
     layout.addWidget(content, 1)
     return row

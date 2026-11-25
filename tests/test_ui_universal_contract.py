@@ -327,12 +327,17 @@ class UiUniversalContractTests(unittest.TestCase):
             REPO_ROOT / "app/modules/encyclopedia/views/guides_view.py"
         ).read_text(encoding="utf-8")
         self.assertEqual(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"], 18)
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+        components = (REPO_ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        self.assertEqual(UNITY_MODULE_GEOMETRY_PX["quest_detail"]["prerequisite_marker_width"],
+                         UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
         self.assertEqual(
-            source.count(
-                'marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])'
-            ),
-            3,
+            components.count('marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])'),
+            1,
         )
+        self.assertIn("marker = atlas_guide_state_marker(", source)
+        self.assertIn("marker = atlas_guide_state_marker(", components)
+        self.assertNotIn('setObjectName("GuideTreeState")', source)
         self.assertNotIn("marker.setFixedWidth(18)", source)
 
     def test_nested_encyclopedia_widget_owners_are_registered(self):

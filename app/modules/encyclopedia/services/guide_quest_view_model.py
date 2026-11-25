@@ -10,7 +10,7 @@ from typing import Iterable
 from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
-from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, normalize_coordinate_pair, declared_quest_start, travel_command_from_position
+from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, canonical_declared_coordinate, declared_quest_start, travel_command_from_position
 from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
@@ -24,7 +24,6 @@ from app.modules.encyclopedia.providers import AchievementProvider
 from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
 from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
 from app.quest_catalog import (
-    SENTINEL_COORD,
     QuestObjective,
     QuestRecord,
     QuestReward,
@@ -684,12 +683,7 @@ def _aggregate_global_rewards(
 def _canonical_source_coordinate(value: object) -> str:
     """Only exact numeric coordinates enter the shared copyable start field."""
 
-    match = COORD_RE.fullmatch(clean_text(value))
-    if match is None:
-        return ""
-    # The Guide sheet and Macro share the same 32-bit coordinate validator.
-    position = normalize_coordinate_pair(*match.groups(), lower_exclusive=SENTINEL_COORD)
-    return f"[{position}]" if position is not None else ""
+    return canonical_declared_coordinate(clean_text(value))
 
 
 def _documented_quest_position(quest: QuestRecord) -> str:

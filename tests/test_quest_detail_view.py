@@ -208,6 +208,15 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         try:
             plain = prerequisite_row("Une condition", False)
             linked = sheet._prerequisite_row("Quête précédente", False, 42)
+            from app.ui.components import atlas_guide_state_marker
+            from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+            for state, symbol in (("done", "✓"), ("partial", "●"), ("todo", "○"), ("neutral", "")):
+                marker = atlas_guide_state_marker(state)
+                self.assertEqual(marker.property("state"), state)
+                self.assertEqual(marker.text(), symbol)
+                self.assertEqual(marker.minimumWidth(), UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
+                self.assertEqual(marker.maximumWidth(), marker.minimumWidth())
+                marker.deleteLater()
             for row in (plain, linked):
                 self.assertEqual(row.objectName(), "GuidePrerequisiteRow")
                 marker = row.layout().itemAt(0).widget()

@@ -320,7 +320,24 @@ class NetworkApplicationCoordinator:
                 self._thread = None
         if not worker_stopped:
             self.logger.error("Network coordinator did not stop within timeout.")
-        return calibration_stopped and runtime_stopped and capture_stopped and worker_stopped
+        stopped = calibration_stopped and runtime_stopped and capture_stopped and worker_stopped
+        # A terminal shutdown owns the authoritative status, including callers
+        # outside Qt. Old active notifications must not survive the shutdown.
+        with self._lock:
+            self._last_status = NetworkApplicationStatus(
+                False, False, "stopped" if stopped else "stop_failed",
+            )
+            if worker_stopped:
+                self._context = None
+                self._context_ready = False
+                self._worker_compact_context_ready = False
+            for queue in (self._commands, self._results, self._statuses):
+                while True:
+                    try:
+                        queue.get_nowait()
+                    except Empty:
+                        break
+        return stopped
 
     def _run(self) -> None:
         try:
@@ -801,5 +818,6 @@ class NetworkApplicationCoordinator:
             return
         self.logger.info("Network status: reason=%s running=%s calibrating=%s",
                          status.reason, status.running, status.calibrating)
-        if not self._stop_event.is_set():
-            self._statuses.put(status)
+        with self._lock:
+            if not self._stop_event.is_set():
+                self._statuses.put(status)

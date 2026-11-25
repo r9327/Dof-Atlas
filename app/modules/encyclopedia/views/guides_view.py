@@ -66,7 +66,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import (
-    AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, atlas_prerequisite_row,
+    AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, atlas_prerequisite_row, atlas_guide_state_marker,
     AtlasImagePopup, AtlasGuideReadingHeader, clear_unity_widget_layout, configure_unity_tool_button,
     configure_unity_progress_bar, configure_unity_scroll_area,
     refresh_unity_widget_style, present_transient_dialog,
@@ -1087,11 +1087,7 @@ class CollapsibleInfoSection(QFrame):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(6)
-        marker = QLabel("✓" if state == "done" else "●" if state == "partial" else "○")
-        marker.setObjectName("GuideTreeState")
-        marker.setProperty("state", state)
-        marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
-        marker.setAlignment(Qt.AlignCenter)
+        marker = atlas_guide_state_marker(state if state in {"done", "partial"} else "todo")
         header_layout.addWidget(marker)
         title_label = QLabel(title)
         title_label.setObjectName("GuideInfoSectionTitle")

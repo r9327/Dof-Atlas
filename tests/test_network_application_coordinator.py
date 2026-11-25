@@ -652,6 +652,34 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             logged.assert_not_called()
         self.assertEqual(coordinator.drain_statuses(), [])
 
+    def test_terminal_stop_replaces_active_status_and_drops_old_notifications(self) -> None:
+        for succeeds in (True, False):
+            with self.subTest(succeeds=succeeds):
+                coordinator = NetworkApplicationCoordinator(lambda: ())
+                active = NetworkApplicationStatus(True, False, "running")
+                coordinator._last_status = active
+                coordinator._statuses.put(active)
+                coordinator._commands.put("prepare_capture")
+                coordinator._results.put(object())
+                coordinator._context = (object(), object(), object())
+                coordinator._context_ready = True
+                coordinator._worker_compact_context_ready = True
+                with (
+                    patch.object(coordinator.calibration, "stop", return_value=True),
+                    patch.object(coordinator.runtime, "stop", return_value=True),
+                    patch.object(coordinator, "_close_capture_source", return_value=succeeds),
+                ):
+                    self.assertIs(coordinator.stop(join_timeout=0), succeeds)
+                status = coordinator.latest_status()
+                self.assertEqual(status.reason, "stopped" if succeeds else "stop_failed")
+                self.assertFalse(status.running)
+                self.assertFalse(status.calibrating)
+                self.assertFalse(coordinator.has_pending_ui_events())
+                self.assertTrue(coordinator._commands.empty())
+                self.assertIsNone(coordinator._context)
+                self.assertFalse(coordinator._context_ready)
+                self.assertFalse(coordinator.request_prepare_capture())
+
     def test_stop_closes_other_components_when_calibration_stop_raises(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         with (
