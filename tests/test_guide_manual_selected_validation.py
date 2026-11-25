@@ -173,15 +173,12 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         from app.ui.theme import PALETTE, atlas_stylesheet
 
         style = atlas_stylesheet()
-        checked_selector = "#GuideManualPageCheck:checked {"
-        checked_disabled_selector = "#GuideManualPageCheck:checked:disabled {"
+        checked_selector = "#GuideManualPageCheck:checked,\n#GuideManualPageCheck:checked:disabled {"
         self.assertIn(checked_selector, style)
-        self.assertIn(checked_disabled_selector, style)
-        for selector in (checked_selector, checked_disabled_selector):
-            rules = style.split(selector, 1)[1].split("}", 1)[0]
-            self.assertIn(f"color: {PALETTE['GREEN']}", rules)
-            self.assertIn(f"border-color: {PALETTE['GREEN_BORDER']}", rules)
-            self.assertNotIn("background:", rules)
+        rules = style.split(checked_selector, 1)[1].split("}", 1)[0]
+        self.assertIn(f"color: {PALETTE['GREEN']}", rules)
+        self.assertIn(f"border-color: {PALETTE['GREEN_BORDER']}", rules)
+        self.assertNotIn("background:", rules)
         self.participants.save_selected_keys(("character:1",))
         self._show_sheet()
         button = self.view.validation_layout.itemAt(0).widget()

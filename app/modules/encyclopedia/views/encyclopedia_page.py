@@ -85,11 +85,6 @@ def _resolve_guide_catalog_view_type() -> type:
 def _resolve_guides_view_type() -> type:
     global _GUIDES_VIEW_TYPE
     if _GUIDES_VIEW_TYPE is None:
-        # Install the Guide image policy only when Guide is actually requested.
-        # Loading Encyclopedia/Quests must not import the full Guide widget tree.
-        from app.modules.encyclopedia.views import _ensure_guide_view_loaded
-
-        _ensure_guide_view_loaded()
         from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
             DeferredAchievementGuidesView,
         )
