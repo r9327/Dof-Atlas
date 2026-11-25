@@ -418,8 +418,13 @@ class NetworkApplicationCoordinator:
                 return
             already_ready = self._context_ready
             previous_context = self._context
-            if replace_existing and already_ready and self._worker_compact_context_ready:
-                return
+            if replace_existing:
+                if already_ready and self._worker_compact_context_ready:
+                    return
+                # An automatic context update can arrive after the Windows
+                # prompt was dismissed. A cold start must wait for a user retry.
+                if not already_ready and self._last_status.reason == "capture_elevation_cancelled":
+                    return
         if already_ready and not replace_existing:
             self._start_runtime()
             return

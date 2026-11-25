@@ -319,6 +319,31 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
                 coordinator._handle_command(coordinator._commands.get_nowait())
                 start.assert_called_once_with()
 
+    def test_cold_compact_replacement_keeps_elevation_cancelled(self) -> None:
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator, "start_worker", return_value=True),
+            patch("app.quest_catalog_details.load_network_catalog", return_value=QuestCatalog([])) as load,
+            patch("app.modules.encyclopedia.providers.AchievementProvider"),
+            patch("app.modules.encyclopedia.providers.GuideProvider"),
+            patch.object(coordinator, "configure_context") as configure,
+        ):
+            self.assertTrue(coordinator.request_configure_compact_context())
+            cancelled = NetworkApplicationStatus(False, False, "capture_elevation_cancelled")
+            coordinator._publish_status(cancelled)
+            coordinator._handle_command(coordinator._commands.get_nowait())
+            self.assertEqual(coordinator.latest_status(), cancelled)
+            load.assert_not_called()
+            configure.assert_not_called()
+            self.assertFalse(coordinator.worker_compact_context_ready)
+
+            self.assertTrue(coordinator.request_start_compact_runtime())
+            coordinator._handle_command(coordinator._commands.get_nowait())
+            load.assert_called_once_with()
+            configure.assert_called_once()
+
     def test_cold_network_activation_only_queues_worker_command(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         with patch.object(coordinator, "start_worker", return_value=True):
