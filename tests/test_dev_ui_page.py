@@ -818,7 +818,6 @@ class DevUiPageTests(unittest.TestCase):
                 (page.preview_contract, page.preview_contract_toggle),
                 (page.preview_scope, page.preview_scope_toggle),
                 (page.preview_secondary_surfaces, page.preview_secondary_toggle),
-                (page.preview_mutualization_matrix, page.preview_mutualization_toggle),
                 (page.preview_metrics, page.preview_metrics_toggle),
             ):
                 self.assertTrue(table.isHidden())
@@ -1139,51 +1138,6 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
             self.assertEqual(page.preview_scope.item(14, 0).text(), "Paramètres")
             self.assertIn("main.py", page.preview_scope.item(14, 1).toolTip())
-            self.assertEqual(page.preview_mutualization_matrix.rowCount(), 18)
-            self.assertEqual(page.preview_mutualization_matrix.columnCount(), 5)
-            dialog_rows = [
-                idx for idx in range(page.preview_mutualization_matrix.rowCount())
-                if page.preview_mutualization_matrix.item(idx, 0).text()
-                == "Fenêtres et popups classiques"
-            ]
-            self.assertEqual(len(dialog_rows), 1)
-            self.assertIn(
-                "Craft : 4/4 unifiés, 0 locaux",
-                page.preview_mutualization_matrix.item(dialog_rows[0], 4).text(),
-            )
-            page.preview_mutualization_matrix.cellClicked.emit(dialog_rows[0], 0)
-            from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX
-            self.assertEqual(
-                page.gallery_navigation.currentIndex(),
-                tuple(UNITY_UI_FAMILY_INDEX).index("dialogs"),
-            )
-            self.assertEqual(page.preview_mutualization_matrix.styleSheet(), "")
-            audits = {
-                page.preview_mutualization_matrix.item(index, 0).text():
-                    page.preview_mutualization_matrix.item(index, 4)
-                for index in range(page.preview_mutualization_matrix.rowCount())
-            }
-            self.assertIn("0 QSS local", audits["Bordures et arrondis"].text())
-            self.assertIn(
-                "largeur(s) littérale(s) à revoir",
-                audits["Scrollbars et resize"].text(),
-            )
-            self.assertIn(
-                "QDialog natif(s) à qualifier",
-                audits["Fenêtres et popups classiques"].text(),
-            )
-            self.assertIn(
-                "0 QDialog natif(s) à qualifier",
-                audits["Fenêtres et popups classiques"].text(),
-            )
-            self.assertIn(
-                "Aucun QDialog natif dans les consommateurs audités",
-                audits["Fenêtres et popups classiques"].toolTip(),
-            )
-            self.assertIn(
-                "Guides",
-                page.preview_mutualization_matrix.item(dialog_rows[0], 3).toolTip(),
-            )
             self.assertEqual(page.preview_secondary_surfaces.rowCount(), 15)
             unique_cases = {
                 (

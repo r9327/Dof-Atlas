@@ -97,7 +97,7 @@ from app.ui.unity_skin import (
 )
 from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
-    UI_FAMILY_PAINTED_ROLES, inspect_ui_mutualization_sources, validate_ui_index,
+    UI_FAMILY_PAINTED_ROLES, validate_ui_index,
 )
 
 
@@ -2171,139 +2171,7 @@ class DevUiPage(QWidget):
         self.preview_shared_ui_counts.setWordWrap(True)
         section.addWidget(self.preview_shared_ui_counts)
 
-        # Auditable 18-needs projection of the existing 23 gallery families.
-        # Source references are sampled once, only while Dev UI is opened.
-        # The numbers are static mentions, not runtime adoption proof.
-        audit = inspect_ui_mutualization_sources()
-        audit_note = QLabel(
-            "18 besoins mutualisés : les modules sont comptés uniquement si "
-            "leur source indexée contient un appel compatible. Ce repérage "
-            "statique n'est pas une certification de migration et ne donne "
-            "pas un nombre de doublons non vérifiés."
-        )
-        audit_note.setObjectName("MutedLabel")
-        audit_note.setWordWrap(True)
-        section.addWidget(audit_note)
-        self.preview_mutualization_matrix = QTableWidget(len(audit), 5)
-        self.preview_mutualization_matrix.setHorizontalHeaderLabels((
-            "Élément UI", "Base commune", "Règles / variantes",
-            "Modules repérés", "Écart vérifié",
-        ))
-        self.preview_mutualization_matrix.verticalHeader().hide()
-        self.preview_mutualization_matrix.horizontalHeader().setStretchLastSection(True)
-        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.Stretch
-        )
-        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeToContents
-        )
-        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeToContents
-        )
-        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeToContents
-        )
-        for index, record in enumerate(audit):
-            family = record["family"]
-            qss = record["qss_rules"]
-            if family == "buttons":
-                variants = f"{len(BUTTON_OBJECT_NAMES)} rôles"
-            elif family == "dialogs":
-                variants = f"{len(_DIALOG_PREVIEW_VARIANTS)} démos"
-            else:
-                variants = f"{qss} QSS" if qss else "Tokens"
-            consumers = record["source_consumers"]
-            unreadable = record["unreadable_consumers"]
-            source_count = f"{len(consumers)} repérés"
-            if unreadable:
-                source_count += " (partiel)"
-            raw_qt = record["raw_qt_constructors"]
-            if raw_qt is not None:
-                gap = (
-                    "Inventaire partiel"
-                    if unreadable else f"{len(raw_qt)} constructeur(s) Qt brut(s)"
-                )
-            elif record["local_style_calls"] is not None:
-                gap = (
-                    "Inventaire partiel"
-                    if unreadable else
-                    f"{len(record['local_style_calls'])} QSS local(aux)"
-                )
-            elif record["literal_width_calls"] is not None:
-                gap = (
-                    "Inventaire partiel"
-                    if unreadable else
-                    f"{len(record['literal_width_calls'])} largeur(s) littérale(s) à revoir"
-                )
-            elif family == "dialogs" and record["craft_shared_dialogs"] is not None:
-                gap = (
-                    f"Craft : {record['craft_shared_dialogs']}/4 unifiés, "
-                    f"{record['craft_local_qdialogs']} locaux, "
-                    f"{len(record['native_dialog_calls'] or ())} QDialog natif(s) à qualifier"
-                )
-            else:
-                gap = "Non audité"
-            for column, value in enumerate((
-                record["label"], record["component"],
-                variants, source_count, gap,
-            )):
-                item = QTableWidgetItem(str(value))
-                if column == 1:
-                    item.setToolTip(str(record["style_owner"]))
-                elif column == 3:
-                    item.setToolTip(
-                        "Références statiques repérées : "
-                        + (", ".join(consumers) or "aucune")
-                        + ("\nSources inaccessibles : " + ", ".join(unreadable)
-                           if unreadable else "")
-                    )
-                elif column == 4:
-                    if raw_qt is not None:
-                        detail = tuple(
-                            f"{path}:{line}" for path, line in raw_qt
-                        )
-                    elif record["local_style_calls"] is not None:
-                        detail = tuple(
-                            f"{path}:{line}"
-                            for path, line in record["local_style_calls"]
-                        )
-                    elif record["literal_width_calls"] is not None:
-                        detail = tuple(
-                            f"{path}:{line} ({width}px)"
-                            for path, line, width in record["literal_width_calls"]
-                        )
-                    elif record["native_dialog_calls"] is not None:
-                        detail = tuple(
-                            f"{path}:{line}"
-                            for path, line in record["native_dialog_calls"]
-                        )
-                    else:
-                        detail = ()
-                    item.setToolTip(
-                        "Références statiques du registre (pas un verdict de doublon) : "
-                        + (", ".join(detail) or (
-                            "Aucun QDialog natif dans les consommateurs audités."
-                            if record["native_dialog_calls"] is not None and not unreadable
-                            else "Aucun appel direct trouvé pour ce contrôle, "
-                                 "ou famille pas encore auditée"
-                        ))
-                    )
-                self.preview_mutualization_matrix.setItem(index, column, item)
-        self.preview_mutualization_matrix.setToolTip(
-            "Audit de sources Qt enregistrées, pas décompte des widgets "
-            "instanciés à l'exécution. Cliquer une ligne ouvre l'exemple "
-            "réel de la famille dans la galerie."
-        )
         family_keys = tuple(UNITY_UI_FAMILY_INDEX)
-        self.preview_mutualization_matrix.cellClicked.connect(
-            lambda row, _col: self._jump_to_section(
-                family_keys.index(audit[row]["family"])
-            )
-        )
-        self.preview_mutualization_toggle = self._add_catalog_table(
-            section, self.preview_mutualization_matrix, "les 18 besoins mutualisés"
-        )
-
         contract_label = QLabel(
             "Tous les éléments prévus en uniformisation (cliquer une ligne "
             "pour ouvrir son exemple dans UI Dev)"

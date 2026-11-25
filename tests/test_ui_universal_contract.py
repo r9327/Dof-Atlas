@@ -54,7 +54,7 @@ class UiUniversalContractTests(unittest.TestCase):
             self.assertNotIn('object_name="GuideGlobalProgress"', source)
             self.assertNotIn('object_name="GuideCompactPreparationProgress"', source)
         self.assertEqual(components.count('object_name="GuideGlobalProgress"'), 1)
-        self.assertEqual(components.count('object_name="GuideCompactPreparationProgress"'), 1)
+        self.assertEqual(components.count('"GuideCompactPreparationProgress"'), 1)
         preload = (REPO_ROOT / "app/ui/preload_popup.py").read_text(encoding="utf-8")
         self.assertIn("configure_unity_progress_bar(", preload)
         self.assertIn("maximum=len(PRELOAD_TASK_ORDER), text_visible=True", preload)
