@@ -48,9 +48,12 @@ class PerformanceGuardrailTests(unittest.TestCase):
     def test_large_quest_catalog_keeps_leaf_widgets_lazy(self) -> None:
         source = _source("app/pages/quests_page.py")
         self.assertIn("_MIN_LAZY_QUESTS = 500", source)
-        self.assertIn('placeholder.setData(0, HIERARCHY_KIND_ROLE, "lazy")', source)
-        self.assertIn("def _populate_hierarchy_series", source)
-        self.assertIn("tree.itemExpanded.connect", source)
+        impl = "app/pages/_quests_page_impl.py"
+        self.assertIn("itemExpanded.connect(self.on_hierarchy_item_expanded)", _source(impl))
+        expanded = _method_node(impl, "QuestsPage", "on_hierarchy_item_expanded")
+        self.assertIn("_materialize_hierarchy_series", _called_attributes(expanded))
+        series = _method_node(impl, "QuestsPage", "_materialize_hierarchy_series")
+        self.assertIn("QTreeWidgetItem", _called_attributes(series))
 
     def test_quests_page_does_not_render_last_detail_during_construction(self) -> None:
         restore = _method_node("app/pages/quests_page.py", "QuestsPage", "restore_last_quest")
@@ -99,24 +102,24 @@ class PerformanceGuardrailTests(unittest.TestCase):
         self.assertIn("def _on_search_text_changed", source)
 
     def test_hidden_quest_compatibility_html_is_on_demand(self) -> None:
-        source = _source("app/pages/quests_page.py")
-        self.assertIn("class _LazyCompatQuestDetailPanel", source)
-        self.assertIn("def set_lazy_payload", source)
-        self.assertIn("def toHtml", source)
-        show_detail = _method_node("app/pages/quests_page.py", "QuestsPage", "show_quest_detail")
+        impl = "app/pages/_quests_page_impl.py"
+        html = _method_node(impl, "NativeQuestDetailPanel", "toHtml")
+        self.assertIn("quest_detail_html", _called_attributes(html))
+        show_detail = _method_node(impl, "QuestsPage", "show_quest_detail")
         calls = _called_attributes(show_detail)
         self.assertIn("set_lazy_payload", calls)
         self.assertNotIn("quest_detail_html", calls)
 
     def test_owned_item_file_is_not_reparsed_on_every_quest_click(self) -> None:
-        refresh = _method_node("app/pages/quests_page.py", "QuestsPage", "refresh_owned_items")
+        refresh = _method_node("app/pages/_quests_page_impl.py", "QuestsPage", "refresh_owned_items")
         calls = _called_attributes(refresh)
-        self.assertIn("stat", calls)
+        self.assertIn("mtime_ctime_size_stamp", calls)
         self.assertIn("load_owned_items", calls)
-        source = _source("app/pages/quests_page.py")
-        self.assertIn("_owned_items_file_signature", source)
-        self.assertIn("stat.st_mtime_ns", source)
-        self.assertIn("stat.st_size", source)
+        self.assertIn("if signature == self._owned_items_file_signature", ast.unparse(refresh))
+        stamp = _function_node("app/core/file_stamp.py", "mtime_ctime_size_stamp")
+        self.assertIn("stat", _called_attributes(stamp))
+        self.assertIn("stat.st_mtime_ns", ast.unparse(stamp))
+        self.assertIn("stat.st_size", ast.unparse(stamp))
 
     def test_page_package_does_not_eager_import_unrelated_pages(self) -> None:
         relative_path = "app/pages/__init__.py"
@@ -188,11 +191,12 @@ class PerformanceGuardrailTests(unittest.TestCase):
 
         self.assertIn("_atlas_async_image_loader = True", source)
         self.assertIn("SOLUTION_IMAGE_EXECUTOR.submit", source)
-        self.assertIn("read_bytes", _called_attributes(guide_worker))
+        self.assertIn("read_scaled_image", _called_attributes(guide_worker))
         self.assertIn("read_bytes", _called_attributes(solution_worker))
-        self.assertIn("_decode_qimage", _called_attributes(guide_worker))
         self.assertIn("_decode_qimage", _called_attributes(solution_worker))
-        self.assertNotIn("_decode_qimage", _called_attributes(guide_delivery))
+        reader = _function_node("app/modules/encyclopedia/services/image_service.py", "read_scaled_image")
+        self.assertIn("QImageReader", _called_attributes(reader))
+        self.assertNotIn("read_scaled_image", _called_attributes(guide_delivery))
         self.assertNotIn("_decode_qimage", _called_attributes(solution_delivery))
         self.assertIn("QImage.fromData(payload)", source)
         self.assertNotIn("QImage(path)", source)

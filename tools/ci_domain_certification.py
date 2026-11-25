@@ -671,7 +671,10 @@ def owners_for(path: str) -> frozenset[str]:
         # Existing contracts cover Zaap/Guide routing, identity, persistence,
         # Qt callbacks and shutdown. A generic runtime wildcard is unsafe.
         return frozenset({"organizer", "guides", "identity", "data", "ui", "startup"})
-    if path == "tests/test_memory_policy_contract.py":
+    if path in {
+        "tests/test_memory_policy_contract.py",
+        "tests/test_performance_guardrails.py",
+    }:
         return frozenset({"quests", "guides", "ui", "startup"})
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
