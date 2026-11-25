@@ -214,7 +214,8 @@ class ContinuousGuideRoutePanel(QWidget):
         self.participants_button.setToolTip("Sélectionner les personnages")
         self.participants_button.setAccessibleName("Personnages")
         header.global_details_rows.hide()
-        header.global_details_button.hide()
+        # The parent disclosure is the only entry point to Préparation and
+        # Sommaire, exactly as in the optimized reader and Dev UI.
         header.attach_preparation(self.preparation_scroll)
         self.preparation_toggle.toggled.connect(self._on_preparation_toggled)
         layout.insertWidget(0, header)
@@ -470,10 +471,8 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_toggle.setText(f"À préparer ({len(references)})")
         self.compact_header.preparation_caption.setText(f"Préparation ({len(references)})")
         self.preparation_toggle.setEnabled(bool(references))
-        if not references and self.preparation_toggle.isChecked():
-            # A new source step without references must not leave an invisible
-            # drawer logically open with its shared chevron pointing upward.
-            self.preparation_toggle.setChecked(False)
+        self.compact_header.set_metric_available("preparation", bool(references))
+        self.compact_header.set_metric_available("summary", bool(position.total_steps))
         self.preparation_scroll.setVisible(bool(references) and self._preparation_open)
         self.preparation_label.setText(
             "Références à vérifier (aucun achat présumé) :\n"

@@ -156,7 +156,16 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
 
     def test_global_progress_tracks_both_lower_bars_across_all_four_presets(self):
         from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
+        from unittest.mock import patch
+        reference = SimpleNamespace(label="Objet", optional_or_conditional=False,
+                                    obtainable_on_route=False, needed_at_step=1)
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            return_value=(reference,),
+        ):
+            self.panel.refresh()
         self.panel.show()
+        self.panel.compact_header.global_details_button.click()
         try:
             for preset, dimensions in UNITY_WINDOW_PRESETS_PX.items():
                 with self.subTest(preset=preset):
@@ -191,6 +200,42 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(preparation.accessibleName(), "Afficher Préparation")
 
 
+    def test_global_disclosure_owns_both_drawers_and_hides_empty_preparation(self):
+        from unittest.mock import patch
+        header = self.panel.compact_header
+        self.panel.show()
+        self.addCleanup(self.panel.hide)
+        self.app.processEvents()
+        self.assertTrue(header.global_details_button.isVisible())
+        self.assertFalse(header.global_details_panel.isVisible())
+        self.assertTrue(header.global_progress_bar.isVisible())
+        header.global_details_button.click()
+        self.assertTrue(header.global_details_panel.isVisible())
+        self.assertTrue(header.summary_column.isVisible())
+        self.assertTrue(header.preparation_column.isHidden())
+        reference = SimpleNamespace(label="Objet", optional_or_conditional=False,
+                                    obtainable_on_route=False, needed_at_step=1)
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            return_value=(reference,),
+        ):
+            self.panel.refresh()
+            self.assertTrue(header.preparation_column.isVisible())
+            self.panel.preparation_toggle.click()
+            header.summary_button.click()
+            self.assertTrue(self.panel.preparation_scroll.isVisible())
+            self.assertTrue(header.summary_panel.isVisible())
+            header.global_details_button.click()
+            self.assertFalse(self.panel.preparation_scroll.isVisible())
+            self.assertFalse(header.summary_panel.isVisible())
+            header.global_details_button.click()
+            self.assertTrue(self.panel.preparation_scroll.isVisible())
+            self.assertTrue(header.summary_panel.isVisible())
+        self.panel.refresh()
+        self.assertTrue(header.preparation_column.isHidden())
+        self.assertFalse(self.panel.preparation_toggle.isChecked())
+        self.assertTrue(header.summary_button.isChecked())
+
     def test_preparation_references_are_plain_lines_without_added_bullets(self):
         from unittest.mock import patch
 
@@ -213,6 +258,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                          "ganymede_2205_step_0001")
         self.assertEqual(self.panel.title_label.text(), "Fiche 1")
         self.assertFalse(hasattr(self.panel, "summary"))
+        self.panel.compact_header.global_details_button.click()
         self.panel.compact_header.summary_button.click()
         self.assertEqual(self.panel.compact_header.summary_panel.item(0).text(),
                          f"1. {self.panel.title_label.text()}")
@@ -472,6 +518,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.addCleanup(panel.deleteLater)
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (2)")
         self.assertFalse(panel.preparation_scroll.isVisible())
+        panel.compact_header.global_details_button.click()
         panel.preparation_toggle.click()
         self.assertTrue(panel.preparation_toggle.isChecked())
         self.assertTrue(panel._preparation_open)
