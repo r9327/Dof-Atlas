@@ -347,7 +347,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
 
     def test_preparation_item_artwork_resolves_flat_and_grouped_layouts(self) -> None:
         from unittest.mock import patch
-        from app.modules.encyclopedia.views import shared_manual_guide_view as shared
+        from app.core.item_artwork import item_icon_index, item_icon_path
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -355,18 +355,25 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             grouped = root / "images" / "resources" / "ingredients"
             flat.mkdir(parents=True)
             grouped.mkdir(parents=True)
-            (flat / "123456.png").write_bytes(b"fake-artwork-path")
-            (grouped / "789012.png").write_bytes(b"fake-artwork-path")
-            with patch.object(shared, "DATA_DIR", root):
-                shared._preparation_icon_roots.cache_clear()
-                shared._preparation_icon_path.cache_clear()
-                try:
-                    self.assertEqual(shared._preparation_icon_path(123456), flat / "123456.png")
-                    self.assertEqual(shared._preparation_icon_path(789012), grouped / "789012.png")
-                    self.assertIsNone(shared._preparation_icon_path(999999))
-                finally:
-                    shared._preparation_icon_path.cache_clear()
-                    shared._preparation_icon_roots.cache_clear()
+            flat_icon = flat / "123456.png"
+            grouped_icon = grouped / "789012.png"
+            flat_icon.touch()
+            grouped_icon.touch()
+            item_icon_index.cache_clear()
+            try:
+                with (
+                    patch("app.constants.DATA_DIR", root),
+                    patch("app.quest_catalog.doduda_rows", return_value={
+                        101: {"iconId": 123456},
+                        202: {"iconId": 789012},
+                        303: {"iconId": 999999},
+                    }),
+                ):
+                    self.assertEqual(Path(item_icon_path(101)), flat_icon)
+                    self.assertEqual(Path(item_icon_path(202)), grouped_icon)
+                    self.assertEqual(item_icon_path(303), "")
+            finally:
+                item_icon_index.cache_clear()
 
     def test_guide_symbol_icons_are_shared_without_retaining_widgets(self) -> None:
         from app.modules.encyclopedia.views import shared_manual_guide_view as shared

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import patch
 
@@ -38,13 +39,18 @@ class JsonStoreTests(unittest.TestCase):
     def test_unrepresentable_json_uses_both_existing_error_policies(self) -> None:
         from app.core.json_store import InvalidPersistentJsonError, read_json_validated
 
-        for invalid in ('{"id": ' + "9" * 5000 + "}", "[" * 2000 + "]" * 2000):
+        cases = (
+            ('{"id": ' + "9" * 5000 + "}", nullcontext()),
+            ("[[]]", patch("app.core.json_store.json.loads", side_effect=RecursionError)),
+        )
+        for invalid, decoder in cases:
             with self.subTest(length=len(invalid)), tempfile.TemporaryDirectory() as tmp:
                 path = Path(tmp) / "settings.json"
                 path.write_text(invalid, encoding="utf-8")
-                self.assertEqual(read_json_resilient(path, {"default": True}), {"default": True})
-                with self.assertRaises(InvalidPersistentJsonError):
-                    read_json_validated(path, {}, lambda _payload: None)
+                with decoder:
+                    self.assertEqual(read_json_resilient(path, {"default": True}), {"default": True})
+                    with self.assertRaises(InvalidPersistentJsonError):
+                        read_json_validated(path, {}, lambda _payload: None)
                 self.assertEqual(path.read_text(encoding="utf-8"), invalid)
                 backups = list(Path(tmp).glob("settings.json.corrupt.*.bak"))
                 self.assertEqual(len(backups), 2)
