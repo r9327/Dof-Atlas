@@ -306,12 +306,11 @@ class UnitySkinTests(unittest.TestCase):
         self.assertEqual(UNITY_PALETTE, original)
 
     def test_guide_controls_render_the_canonical_palette_values(self) -> None:
-        # Legacy role is an alias to the common BORDER by default, but
-        # explicit per-role previews are still supported.
-        self.assertIn(
-            "border-top: 1px solid #010203;",
-            unity_skin_stylesheet({"GUIDE_NAV_BORDER": "#010203"}),
-        )
+        from app.ui.theme import atlas_stylesheet
+
+        style = atlas_stylesheet({"BORDER_SOFT": "#010203"})
+        rule = style.split("QFrame#GuideManualNav {", 1)[1].split("}", 1)[0]
+        self.assertIn("border: 1px solid #010203;", rule)
 
     def test_unity_only_theme_even_with_stale_legacy_override(self) -> None:
         for choice in ("", "atlas", "legacy", "dofus_unity"):
@@ -935,7 +934,12 @@ class UnitySkinTests(unittest.TestCase):
             home.deleteLater()
 
         nav = []
-        shell = SimpleNamespace(show_page=lambda name: nav.append(name))
+        requests = []
+        shell = SimpleNamespace(
+            show_page=nav.append,
+            _request_almanax_day=requests.append,
+            quit_requested=False,
+        )
         page = AtlasWindow.create_almanax_page(shell)
         try:
             self.assertEqual(page.objectName(), "AlmanaxPage")
@@ -957,9 +961,12 @@ class UnitySkinTests(unittest.TestCase):
                 shell.almanax_selected_date_label.text(),
                 future.toString("dddd d MMMM yyyy"),
             )
+            day_key = future.toString("yyyy-MM-dd")
+            self.assertEqual(requests, [QDate.currentDate().toString("yyyy-MM-dd"), day_key])
+            AtlasWindow._on_almanax_day_unavailable(shell, day_key, "offline")
             self.assertIn(
-                "aucune source locale Almanax",
-                page.findChild(QLabel, "AlmanaxUnavailable").text(),
+                "Aucune offrande ni bonus sourcé",
+                page.findChild(QLabel, "AlmanaxDayDetails").text(),
             )
             self.assertEqual(page.styleSheet(), "")
         finally:
@@ -1007,13 +1014,21 @@ class UnitySkinTests(unittest.TestCase):
                 fallback.deleteLater()
         app.processEvents()
 
-    def test_home_uses_canonical_transparent_logo_not_raw_png(self) -> None:
-        home_source = (Path(__file__).resolve().parents[1] / "app/pages/home_page.py").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("self.almanax_icon.setIcon(atlas_application_icon())", home_source)
-        self.assertIn("atlas_application_icon() if selected == fallback", home_source)
-        self.assertNotIn("self.almanax_icon.setIcon(QIcon(str(LOGO_PATH)))", home_source)
+    def test_home_uses_canonical_transparent_logo(self) -> None:
+        from PySide6.QtGui import QIcon
+        from app.pages.home_page import HomePage
+
+        pixmap = QPixmap(24, 24)
+        pixmap.fill(Qt.transparent)
+        logo = QIcon(pixmap)
+        with patch("app.pages.home_page.atlas_application_icon", return_value=logo):
+            home = HomePage()
+            try:
+                self.assertEqual(home.almanax_icon.icon().cacheKey(), logo.cacheKey())
+                self.assertEqual(home.character_portrait.icon().cacheKey(), logo.cacheKey())
+            finally:
+                home.close()
+                home.deleteLater()
 
     def test_application_has_only_unity_palette(self) -> None:
         from app.ui import theme
@@ -1105,6 +1120,7 @@ class EncyclopediaQuestLoadingUITests(unittest.TestCase):
 
     def test_abandoned_quest_result_never_mounts_inactive_view(self) -> None:
         from queue import Queue
+        from threading import Event
         from unittest.mock import Mock
         from app.modules.encyclopedia.views.encyclopedia_page import (
             EncyclopediaPage, _QuestRuntimePayload,
@@ -1114,6 +1130,7 @@ class EncyclopediaQuestLoadingUITests(unittest.TestCase):
             _collect_quest_runtime = EncyclopediaPage._collect_quest_runtime
 
             def __init__(self) -> None:
+                self._runtime_released = Event()
                 self._quest_load_queue = Queue(maxsize=1)
                 self._quest_load_timer = Mock()
                 self._quest_load_started = True
