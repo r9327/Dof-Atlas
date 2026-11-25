@@ -317,6 +317,8 @@ class DevUiPage(QWidget):
     def _add_catalog_table(
         self, layout: QVBoxLayout, table: QTableWidget, label: str
     ) -> AtlasButton:
+        table.setAlternatingRowColors(False)
+        table.setShowGrid(False)
         self._expand_catalog_table(table)
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.hide()
@@ -1476,8 +1478,6 @@ class DevUiPage(QWidget):
         )
         self.preview_metrics = QTableWidget(len(metric_rows), 2)
         self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
-        self.preview_metrics.setAlternatingRowColors(False)
-        self.preview_metrics.setShowGrid(False)
         self.preview_metrics.verticalHeader().hide()
         self.preview_metrics.horizontalHeader().setStretchLastSection(False)
         self.preview_metrics.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -1506,8 +1506,6 @@ class DevUiPage(QWidget):
         self.preview_module_geometry.setHorizontalHeaderLabels(
             ("Module", "Contrainte indexée", "Valeur existante")
         )
-        self.preview_module_geometry.setAlternatingRowColors(False)
-        self.preview_module_geometry.setShowGrid(False)
         for i, (module, role, value) in enumerate(module_rows):
             item = QTableWidgetItem(module)
             item.setToolTip(UNITY_MODULE_GEOMETRY_OWNERS[module])
@@ -2080,8 +2078,6 @@ class DevUiPage(QWidget):
         self.preview_scope.setHorizontalHeaderLabels(
             ("Module", "Source de style cible", "Exemple partagé")
         )
-        self.preview_scope.setAlternatingRowColors(False)
-        self.preview_scope.setShowGrid(False)
         self.preview_scope.verticalHeader().hide()
         self.preview_scope.horizontalHeader().setStretchLastSection(False)
         self.preview_scope.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -2130,8 +2126,6 @@ class DevUiPage(QWidget):
         self.preview_secondary_surfaces.setHorizontalHeaderLabels(
             ("Zone", "UI existante", "Fichier propriétaire")
         )
-        self.preview_secondary_surfaces.setAlternatingRowColors(False)
-        self.preview_secondary_surfaces.setShowGrid(False)
         self.preview_secondary_surfaces.verticalHeader().hide()
         self.preview_secondary_surfaces.horizontalHeader().setStretchLastSection(True)
         self.preview_secondary_surfaces.horizontalHeader().setSectionResizeMode(
@@ -2195,8 +2189,6 @@ class DevUiPage(QWidget):
             "Élément UI", "Base commune", "Règles / variantes",
             "Modules repérés", "Écart vérifié",
         ))
-        self.preview_mutualization_matrix.setAlternatingRowColors(False)
-        self.preview_mutualization_matrix.setShowGrid(False)
         self.preview_mutualization_matrix.verticalHeader().hide()
         self.preview_mutualization_matrix.horizontalHeader().setStretchLastSection(True)
         self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
@@ -2320,13 +2312,10 @@ class DevUiPage(QWidget):
         section.addWidget(contract_label)
         self.preview_contract = QTableWidget(len(UNITY_UI_UNIFICATION_CONTRACT), 2)
         self.preview_contract.setHorizontalHeaderLabels(("Élément prévu", "Famille UI"))
-        self.preview_contract.setAlternatingRowColors(False)
-        self.preview_contract.setShowGrid(False)
         self.preview_contract.verticalHeader().hide()
         self.preview_contract.horizontalHeader().setStretchLastSection(False)
         self.preview_contract.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.preview_contract.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        family_keys = tuple(UNITY_UI_FAMILY_INDEX)
         for index, (label, family) in enumerate(UNITY_UI_UNIFICATION_CONTRACT):
             self.preview_contract.setItem(index, 0, QTableWidgetItem(label))
             family_item = QTableWidgetItem(UNITY_UI_FAMILY_INDEX[family]["title"])

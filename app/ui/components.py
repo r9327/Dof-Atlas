@@ -886,6 +886,25 @@ class AtlasGuideParticipantPortrait(QToolButton):
             )
 
 
+def _paint_disabled_tool_icon(button: QToolButton, *, smooth: bool = False) -> None:
+    """Preserve indexed icon artwork when Qt suppresses disabled tool icons."""
+    if button.isEnabled() or button.icon().isNull():
+        return
+    pixmap = button.icon().pixmap(button.iconSize(), QIcon.Normal)
+    if pixmap.isNull():
+        return
+    painter = QPainter(button)
+    if smooth:
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+    pixel_ratio = max(1.0, pixmap.devicePixelRatio())
+    painter.drawPixmap(
+        int((button.width() - pixmap.width() / pixel_ratio) / 2),
+        int((button.height() - pixmap.height() / pixel_ratio) / 2),
+        pixmap,
+    )
+    painter.end()
+
+
 class AtlasGuideParticipantButton(QToolButton):
     """Keep the indexed Unity Character artwork legible in disabled shells.
 
@@ -907,20 +926,7 @@ class AtlasGuideParticipantButton(QToolButton):
 
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
-        if self.isEnabled() or self.icon().isNull():
-            return
-        pixmap = self.icon().pixmap(self.iconSize(), QIcon.Normal)
-        if pixmap.isNull():
-            return
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.SmoothPixmapTransform)
-        pixel_ratio = max(1.0, pixmap.devicePixelRatio())
-        painter.drawPixmap(
-            int((self.width() - pixmap.width() / pixel_ratio) / 2),
-            int((self.height() - pixmap.height() / pixel_ratio) / 2),
-            pixmap,
-        )
-        painter.end()
+        _paint_disabled_tool_icon(self, smooth=True)
 
 
 # #363's public name is an alias, never a second owner/implementation.
@@ -959,19 +965,7 @@ class AtlasGuideDisclosure(QToolButton):
         # Qt/Windows suppresses QToolButton SVG icons in disabled state
         # even though the same QIcon works on the navigation QPushButtons.
         # Draw the unchanged indexed artwork on top of the shared chrome.
-        if self.isEnabled() or self.icon().isNull():
-            return
-        pixmap = self.icon().pixmap(self.iconSize(), QIcon.Normal)
-        if pixmap.isNull():
-            return
-        painter = QPainter(self)
-        pixel_ratio = max(1.0, pixmap.devicePixelRatio())
-        painter.drawPixmap(
-            int((self.width() - pixmap.width() / pixel_ratio) / 2),
-            int((self.height() - pixmap.height() / pixel_ratio) / 2),
-            pixmap,
-        )
-        painter.end()
+        _paint_disabled_tool_icon(self)
 
 
 class AtlasPanelToggle(QToolButton):

@@ -1960,25 +1960,11 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
     border-radius: @RADIUS_LG;
 }
 
-#HomeCharacterCard {
-    background: @PANEL_GRADIENT;
-}
-
-#HomeTrackingCard {
-    background: @PANEL_GRADIENT;
-}
-
 #HomeGuideCard {
-    background: @PANEL_GRADIENT;
     border-color: @BORDER_STRONG;
 }
 
-#HomeAlmanaxCard {
-    background: @PANEL_GRADIENT;
-}
-
 #HomeNetworkMiniCard {
-    background: @PANEL_GRADIENT;
     border-color: @BORDER_SOFT;
 }
 
@@ -2657,14 +2643,6 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
                 border: none;
             }
 
-            QFrame#GuideQuestItemRow[state="done"],
-            QFrame#GuideItemRow[state="done"],
-            QFrame#QuestItemRow[state="done"] {
-                background: rgba(52, 142, 78, 0.20);
-                border: 1px solid @GREEN_BORDER;
-                border-radius: 5px;
-            }
-
             QFrame#GuideInfoSection,
             QFrame#QuestSolutionStep {
                 background: transparent;
@@ -2702,17 +2680,6 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
                 background: transparent;
                 border: none;
                 padding: 0px;
-            }
-
-            QToolButton#GuideItemIcon[state="todo"] {
-                border: 1px solid @BORDER;
-                border-radius: 5px;
-            }
-
-            QToolButton#GuideItemIcon[state="done"] {
-                background: rgba(52, 142, 78, 0.28);
-                border: 1px solid @GREEN;
-                border-radius: 5px;
             }
 
             QToolButton#GuideQuestState,
@@ -3765,15 +3732,6 @@ QToolButton#GuideContinuousValidate:checked {
     color: @TEXT;
 }
 
-QLabel[travelCopyEnabled="true"] {
-    color: @GREEN;
-}
-
-
-#GuideUltimeGeneratedView {
-    background: @BG;
-}
-
 #GuideRouteHeader,
 #GuideUltimeRouteSheet {
     background: @PANEL;
@@ -3828,10 +3786,7 @@ QLabel[travelCopyEnabled="true"] {
 }
 
 #GuideUltimeSectionTitle {
-    color: @GREEN;
     font-size: 14px;
-    font-weight: 800;
-    margin-top: 6px;
 }
 
 #GuideRouteAction,
