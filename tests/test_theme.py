@@ -483,9 +483,10 @@ class SharedThemeTests(unittest.TestCase):
         from app.pages.character_page import CharacterPage
         app = QApplication.instance() or QApplication([])
         style = theme.atlas_stylesheet()
-        self.assertIn("QWidget#AtlasTransparentHost,", style)
-        self.assertIn("QWidget#CharacterEquipmentGrid,", style)
-        rule = style.split("QWidget#CharacterEquipmentCenter {", 1)[1].split("}", 1)[0]
+        selectors, rule = style.split("QWidget#AtlasTransparentHost,", 1)[1].split("{", 1)
+        self.assertIn("QWidget#CharacterEquipmentGrid", selectors)
+        self.assertIn("QWidget#CharacterEquipmentCenter", selectors)
+        rule = rule.split("}", 1)[0]
         self.assertIn("background: transparent;", rule)
         self.assertIn("border: none;", rule)
         from pathlib import Path
