@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
-    QScrollArea,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -18,11 +17,10 @@ from PySide6.QtWidgets import (
 
 from app.core.numbers import format_grouped_int
 from app.pages._character_page_impl import (
-    CHARACTER_STAT_ROWS,
     EQUIPMENT_SLOTS,
     CharacterPage as _CharacterPage,
 )
-from app.ui.components import AtlasComboBox, configure_unity_scroll_area
+from app.ui.components import AtlasComboBox
 from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 CHARACTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character"]
@@ -169,41 +167,10 @@ class CharacterPage(_CharacterPage):
         self.stats_empty_label.setWordWrap(True)
         layout.addWidget(self.stats_empty_label, 1)
 
-        self.stats_scroll = configure_unity_scroll_area(
-            QScrollArea(), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
-        )
-
-        content = QWidget()
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(7)
-        self.stat_rows: dict[str, QWidget] = {}
-        self.stat_value_labels: dict[str, QLabel] = {}
-
-        for stat_key, label_text in CHARACTER_STAT_ROWS:
-            row = QWidget()
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(8)
-
-            label = QLabel(label_text)
-            label.setObjectName("MutedLabel")
-            row_layout.addWidget(label, 1)
-
-            value = QLabel("")
+        super()._build_stats_panel(layout)
+        for value in self.stat_value_labels.values():
             value.setObjectName("CharacterStatValue")
-            value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            row_layout.addWidget(value)
-
-            row.hide()
-            content_layout.addWidget(row)
-            self.stat_rows[stat_key] = row
-            self.stat_value_labels[stat_key] = value
-
-        content_layout.addStretch(1)
-        self.stats_scroll.setWidget(content)
         self.stats_scroll.hide()
-        layout.addWidget(self.stats_scroll, 1)
 
     def _build_equipment_panel(self, layout: QVBoxLayout) -> None:
         equipment_widget = QWidget()

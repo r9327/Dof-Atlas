@@ -427,27 +427,13 @@ dynamiques restent des critères obligatoires de #365.
   conservée. Tests ajoutés dans `tests/test_craft_fixes.py` et
   `tests/test_dev_ui_page.py` : héritage commun, conteneur unique,
   en-têtes réels, panoplie vide et fenêtre ressources non modale.
-- Le **panneau Couverture** de Dev UI recense **18 besoins** (boutons,
-  sélections, quantités, fenêtres, cases, saisie, progression, panneaux,
-  titres, bordures, glass, images, navigation, onglets, listes, tooltips,
-  badges, scroll/resize). Ce sont des **entrées d'audit** rattachées aux
-  23 familles UI existantes, pas 18 nouvelles classes.
-  Chaque ligne affiche la base commune, le nombre de sélecteurs QSS
-  indexés ou de variantes explicitement connues, le nombre de modules
-  dont les **fichiers sources enregistrés contiennent un appel
-  correspondant**, et l'écart réellement vérifié. Les modules
-  agrégateurs et la galerie Dev UI sont exclus du décompte afin
-  d'éviter un faux double comptage. Les propriétaires affichés viennent
-  directement de `UNITY_UI_FAMILY_INDEX`.
-- Les chiffres sont **des indices statiques, pas un relevé des widgets
-  instanciés ni une preuve de migration**. Les doublons non analysés
-  affichent « Non audité » plutôt qu'un faux zéro. La famille Dialogues
-  relève automatiquement la transition **Craft 4/4 sur AtlasDialog,
-  0 classe Craft encore héritée directement de QDialog**.
-  `UI_MUTUALIZATION_TARGETS` et
-  `inspect_ui_mutualization_sources()` vivent dans l'index
-  `app/ui/ui_registry.py`, sans créer une seconde palette ou un
-  moteur de composants.
+- Le **panneau Couverture** de Dev UI présente les modules consommateurs,
+  les fenêtres secondaires et les familles de composants de la galerie.
+  L'audit statique des **18 besoins** s'exécute dans
+  `tests/test_ui_universal_contract.py` à partir du registre des
+  consommateurs et des familles. Il vérifie notamment que les quatre
+  fenêtres Craft utilisent `AtlasDialog`. La galerie se concentre sur les
+  composants visuels et interactifs.
 
 ### Suite de l'audit, avant Ready
 

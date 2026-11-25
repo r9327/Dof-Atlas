@@ -176,7 +176,9 @@ class ModernCharacterPageTests(unittest.TestCase):
                     right.right() + page.layout().contentsMargins().right(),
                     page.width(),
                 )
-                self.assertGreaterEqual(page.character_selector.width(), 260)
+                selector = page.character_selector
+                self.assertEqual(selector.sizeAdjustPolicy(), selector.SizeAdjustPolicy.AdjustToContents)
+                self.assertGreaterEqual(selector.width(), selector.minimumSizeHint().width())
                 self.assertTrue(page.character_selector.isVisibleTo(page))
             page.close()
             page.deleteLater()

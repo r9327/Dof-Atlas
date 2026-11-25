@@ -110,6 +110,14 @@ _DIALOG_PREVIEW_VARIANTS = (
 )
 
 
+def _muted_label(text: str = "", *, wrap: bool = False) -> QLabel:
+    label = QLabel(text)
+    label.setObjectName("MutedLabel")
+    if wrap:
+        label.setWordWrap(True)
+    return label
+
+
 class DevUiPage(QWidget):
     """One interactive visual checkpoint for all currently shared UI families."""
 
@@ -165,16 +173,14 @@ class DevUiPage(QWidget):
         heading.addWidget(self.back_button)
         outer.addLayout(heading)
 
-        subtitle = QLabel(
+        subtitle = _muted_label(
             "Composants Unity existants et contrôles candidats à mutualiser. "
             "Cette galerie permet la comparaison visuelle ; l'adoption dans "
-            "chaque module se vérifie séparément."
+            "chaque module se vérifie séparément.",
+            wrap=True,
         )
-        subtitle.setObjectName("MutedLabel")
-        subtitle.setWordWrap(True)
         outer.addWidget(subtitle)
-        self.feedback = QLabel("Test des interactions : prêt")
-        self.feedback.setObjectName("MutedLabel")
+        self.feedback = _muted_label("Test des interactions : prêt")
         self.feedback.setAccessibleName("Résultat des interactions du laboratoire UI")
         outer.addWidget(self.feedback)
 
@@ -190,8 +196,7 @@ class DevUiPage(QWidget):
         # The shared combo sizes to the longest family label, but can shrink
         # when the page uses a compact layout.
         navigator.addWidget(self.gallery_navigation)
-        self.gallery_count = QLabel()
-        self.gallery_count.setObjectName("MutedLabel")
+        self.gallery_count = _muted_label()
         navigator.addWidget(self.gallery_count)
         navigator.addStretch(1)
         outer.addLayout(navigator)
@@ -474,8 +479,7 @@ class DevUiPage(QWidget):
             tab = QWidget()
             tab.setObjectName("DevUiTabPage")
             tab_layout = QVBoxLayout(tab)
-            text = QLabel(f"Contenu de démonstration : {title}")
-            text.setObjectName("MutedLabel")
+            text = _muted_label(f"Contenu de démonstration : {title}")
             tab_layout.addWidget(text)
             self.preview_tabs.addTab(tab, title)
         self.preview_tabs.currentChanged.connect(
@@ -541,12 +545,11 @@ class DevUiPage(QWidget):
         )
 
         section = self._section(parent, "headers")
-        note = QLabel(
+        note = _muted_label(
             "En-têtes de référence · composants et thème Unity existants. "
-            "Progression et personnages fictifs : aucune donnée Ganymède chargée."
+            "Progression et personnages fictifs : aucune donnée Ganymède chargée.",
+            wrap=True,
         )
-        note.setObjectName("MutedLabel")
-        note.setWordWrap(True)
         section.addWidget(note)
 
         self.preview_page_header = QFrame()
@@ -755,12 +758,11 @@ class DevUiPage(QWidget):
         content.addWidget(divider)
         layout.addWidget(self.preview_sidebar_content)
         row.addWidget(self.preview_sidebar)
-        note = QLabel(
+        note = _muted_label(
             "Navigation Unity : actif, survol, replié et séparateur. "
-            "Démonstration sans changement de page."
+            "Démonstration sans changement de page.",
+            wrap=True,
         )
-        note.setObjectName("MutedLabel")
-        note.setWordWrap(True)
         row.addWidget(note, 1)
         section.addLayout(row)
 
@@ -810,8 +812,7 @@ class DevUiPage(QWidget):
     def _build_breadcrumbs(self, parent: QVBoxLayout) -> None:
         """Real shared Guide breadcrumb states, not one isolated button."""
         section = self._section(parent, "breadcrumbs")
-        caption = QLabel("Parcours complet : survoler et cliquer chaque niveau.")
-        caption.setObjectName("MutedLabel")
+        caption = _muted_label("Parcours complet : survoler et cliquer chaque niveau.")
         section.addWidget(caption)
 
         self.preview_breadcrumb = AtlasBreadcrumb()
@@ -943,8 +944,7 @@ class DevUiPage(QWidget):
     def _build_layouts(self, parent: QVBoxLayout) -> None:
         """Existing card QSS inside an elastic two-column grid."""
         section = self._section(parent, "layouts")
-        intro = QLabel("Grille 2 × 2 : colonnes égales, marges et alignements communs.")
-        intro.setObjectName("MutedLabel")
+        intro = _muted_label("Grille 2 × 2 : colonnes égales, marges et alignements communs.")
         section.addWidget(intro)
         grid = QGridLayout()
         grid.setSpacing(10)
@@ -1075,8 +1075,7 @@ class DevUiPage(QWidget):
             ("Date", self.preview_date),
             ("Heure", self.preview_time),
         )):
-            heading = QLabel(caption)
-            heading.setObjectName("MutedLabel")
+            heading = _muted_label(caption)
             form_grid.addWidget(heading, index // 3 * 2, index % 3)
             control.setMinimumHeight(UNITY_SIZES_PX["control_normal"])
             form_grid.addWidget(control, index // 3 * 2 + 1, index % 3)
@@ -1137,8 +1136,7 @@ class DevUiPage(QWidget):
 
         # Passive corner badges do not respond to hover. Clickable chips below
         # are separate, underlined actions with full hover/focus states.
-        chip_hint = QLabel("Actions de statut cliquables · survol et sélection")
-        chip_hint.setObjectName("MutedLabel")
+        chip_hint = _muted_label("Actions de statut cliquables · survol et sélection")
         section.addWidget(chip_hint)
         chip_row = QHBoxLayout()
         self.preview_chips: dict[str, AtlasButton] = {}
@@ -1165,8 +1163,7 @@ class DevUiPage(QWidget):
         chip_row.addStretch(1)
         section.addLayout(chip_row)
         self.preview_interaction_states = UNITY_INTERACTION_STATES
-        hint = QLabel("États indexés : " + " · ".join(UNITY_INTERACTION_STATES))
-        hint.setObjectName("MutedLabel")
+        hint = _muted_label("États indexés : " + " · ".join(UNITY_INTERACTION_STATES))
         section.addWidget(hint)
 
         state_row = QHBoxLayout()
@@ -1190,8 +1187,7 @@ class DevUiPage(QWidget):
             )
         )
         state_row.addWidget(self.preview_checked_action)
-        info = QLabel("Survol · pressé · focus · désactivé")
-        info.setObjectName("MutedLabel")
+        info = _muted_label("Survol · pressé · focus · désactivé")
         state_row.addWidget(info, 1)
         section.addLayout(state_row)
 
@@ -1235,12 +1231,11 @@ class DevUiPage(QWidget):
     def _build_notifications(self, parent: QVBoxLayout) -> None:
         """Read-only notification preview; no pretend toast or duplicate QSS."""
         section = self._section(parent, "notifications")
-        note = QLabel(
+        note = _muted_label(
             "Exemples intégrés utilisant les badges et surfaces Unity existants. "
-            "Le comportement des notifications flottantes reste à mutualiser."
+            "Le comportement des notifications flottantes reste à mutualiser.",
+            wrap=True,
         )
-        note.setObjectName("MutedLabel")
-        note.setWordWrap(True)
         section.addWidget(note)
         self.preview_notifications: dict[str, QFrame] = {}
         for state, title, message in (
@@ -1258,9 +1253,7 @@ class DevUiPage(QWidget):
             line.setContentsMargins(10, 6, 10, 6)
             line.setSpacing(12)
             line.addWidget(AtlasStatusBadge(title, state=state))
-            body = QLabel(message)
-            body.setObjectName("MutedLabel")
-            body.setWordWrap(True)
+            body = _muted_label(message, wrap=True)
             line.addWidget(body, 1)
             self.preview_notifications[state] = frame
             section.addWidget(frame)
@@ -1287,8 +1280,7 @@ class DevUiPage(QWidget):
             ("body", "Courant"),
             ("muted", "Secondaire"),
         )):
-            key = QLabel(caption)
-            key.setObjectName("MutedLabel")
+            key = _muted_label(caption)
             scale.addWidget(key, index, 0)
             scale.addWidget(self.preview_type_samples[role], index, 1)
         scale.setColumnStretch(1, 1)
@@ -1326,9 +1318,7 @@ class DevUiPage(QWidget):
             heading = QLabel(caption)
             heading.setObjectName("PanelTitle")
             card_layout.addWidget(heading)
-            small = QLabel("Couleurs, bordures et espacements communs")
-            small.setObjectName("MutedLabel")
-            small.setWordWrap(True)
+            small = _muted_label("Couleurs, bordures et espacements communs", wrap=True)
             card_layout.addWidget(small)
             # Fixed visual samples only. No effect on scrolling rows,
             # focusable controls or the actual game panels.
@@ -1374,21 +1364,19 @@ class DevUiPage(QWidget):
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Plain)
         section.addWidget(separator)
-        hint = QLabel(
+        hint = _muted_label(
             "Les surfaces de démonstration gardent les styles QSS réels. "
-            "Les dispositions et données spécifiques restent propres aux modules."
+            "Les dispositions et données spécifiques restent propres aux modules.",
+            wrap=True,
         )
-        hint.setObjectName("MutedLabel")
-        hint.setWordWrap(True)
         section.addWidget(hint)
 
     def _build_scroll_and_resize(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "scroll_resize")
-        hint = QLabel(
-            "Déplace la séparation, sélectionne une ligne et fais défiler la liste."
+        hint = _muted_label(
+            "Déplace la séparation, sélectionne une ligne et fais défiler la liste.",
+            wrap=True,
         )
-        hint.setObjectName("MutedLabel")
-        hint.setWordWrap(True)
         section.addWidget(hint)
 
         self.preview_splitter = QSplitter(Qt.Horizontal)
@@ -1414,12 +1402,11 @@ class DevUiPage(QWidget):
         title = QLabel("Panneau adaptable")
         title.setObjectName("PanelTitle")
         split_layout.addWidget(title)
-        detail = QLabel(
+        detail = _muted_label(
             "Redimensionnement du panneau · bordure Unity · "
-            "barre de défilement partagée"
+            "barre de défilement partagée",
+            wrap=True,
         )
-        detail.setObjectName("MutedLabel")
-        detail.setWordWrap(True)
         split_layout.addWidget(detail, 1)
         self.preview_splitter.addWidget(self.preview_scroll_panel)
         self.preview_splitter.setSizes((220, 460))
@@ -1428,12 +1415,11 @@ class DevUiPage(QWidget):
     def _build_sizes(self, parent: QVBoxLayout) -> None:
         """Show shared sizing rules and live layouts before module migration."""
         section = self._section(parent, "metrics")
-        sizing_hint = QLabel(
+        sizing_hint = _muted_label(
             "Trois hauteurs de contrôles et quatre tailles d'icônes, "
-            "pilotées par les mêmes métriques que le code commun."
+            "pilotées par les mêmes métriques que le code commun.",
+            wrap=True,
         )
-        sizing_hint.setObjectName("MutedLabel")
-        sizing_hint.setWordWrap(True)
         section.addWidget(sizing_hint)
         self._build_responsive_reference(section)
         self.preview_metric_buttons: dict[str, AtlasButton] = {}
@@ -1461,8 +1447,7 @@ class DevUiPage(QWidget):
             icon.setPixmap(unity_original_preview_icon("guide", size).pixmap(size, size))
             icon.setToolTip(f"{role} : {size} px")
             icons.addWidget(icon)
-            text = QLabel(f"{size} px")
-            text.setObjectName("MutedLabel")
+            text = _muted_label(f"{size} px")
             icons.addWidget(text)
             self.preview_metric_icons[role] = icon
         icons.addStretch(1)
@@ -1498,13 +1483,12 @@ class DevUiPage(QWidget):
         self.preview_metrics_toggle = self._add_catalog_table(
             section, self.preview_metrics, "les dimensions et espacements"
         )
-        module_intro = QLabel(
+        module_intro = _muted_label(
             "Dimensions relevées dans les modules réels. Indexé ne veut pas "
             "dire raccordé : les pages doivent consommer ces valeurs pour "
-            "hériter d'une modification future."
+            "hériter d'une modification future.",
+            wrap=True,
         )
-        module_intro.setObjectName("MutedLabel")
-        module_intro.setWordWrap(True)
         section.addWidget(module_intro)
         module_rows = tuple(
             (module, role, size)
@@ -1565,13 +1549,10 @@ class DevUiPage(QWidget):
         selector_row.addStretch(1)
         section.addLayout(selector_row)
 
-        self.preview_window_description = QLabel()
-        self.preview_window_description.setObjectName("MutedLabel")
-        self.preview_window_description.setWordWrap(True)
+        self.preview_window_description = _muted_label(wrap=True)
         section.addWidget(self.preview_window_description)
 
-        self.preview_responsive_mode = QLabel()
-        self.preview_responsive_mode.setObjectName("MutedLabel")
+        self.preview_responsive_mode = _muted_label()
         section.addWidget(self.preview_responsive_mode)
 
         self.preview_responsive_host = QFrame()
@@ -1604,9 +1585,7 @@ class DevUiPage(QWidget):
             heading = QLabel(name)
             heading.setObjectName("PanelTitle")
             content.addWidget(heading)
-            description = QLabel(summary)
-            description.setObjectName("MutedLabel")
-            description.setWordWrap(True)
+            description = _muted_label(summary, wrap=True)
             content.addWidget(description)
             if index == 0:
                 progress = atlas_guide_global_progress_bar()
@@ -1716,8 +1695,7 @@ class DevUiPage(QWidget):
         self.preview_glass_panel.setObjectName("OrganizerPanel")
         apply_unity_panel_shadow(self.preview_glass_panel, **UNITY_PANEL_SHADOW)
         line = QHBoxLayout(self.preview_glass_panel)
-        glass_title = QLabel("Organizer · glass Unity et dégradé communs")
-        glass_title.setObjectName("MutedLabel")
+        glass_title = _muted_label("Organizer · glass Unity et dégradé communs")
         line.addWidget(glass_title)
         section.addWidget(self.preview_glass_panel)
 
@@ -1731,19 +1709,17 @@ class DevUiPage(QWidget):
         """Display the actual cached wallpaper/gradient widget used by the shell."""
         section = self._section(parent, "backdrop")
         self.preview_backdrop = UnityBackdrop()
-        self.preview_wallpaper_status = QLabel(
+        self.preview_wallpaper_status = _muted_label(
             "Fond actif : image étoilée Unity locale nettoyée."
             if self.preview_backdrop.has_wallpaper else
             "Fond actif : dégradé Unity de secours (image étoilée indisponible)."
         )
-        self.preview_wallpaper_status.setObjectName("MutedLabel")
         section.addWidget(self.preview_wallpaper_status)
-        note = QLabel(
+        note = _muted_label(
             "Aucun faux motif étoilé : la démonstration utilise exactement "
-            "le même UnityBackdrop que l'application."
+            "le même UnityBackdrop que l'application.",
+            wrap=True,
         )
-        note.setObjectName("MutedLabel")
-        note.setWordWrap(True)
         section.addWidget(note)
         self.preview_backdrop.setFixedHeight(5 * UNITY_SIZES_PX["control_normal"])
         wrapper = QVBoxLayout(self.preview_backdrop)
@@ -1753,8 +1729,7 @@ class DevUiPage(QWidget):
         apply_unity_panel_shadow(card, **UNITY_PANEL_SHADOW)
         card_layout = QVBoxLayout(card)
         card_layout.addWidget(AtlasPageTitle("Carte sur fond Unity"))
-        muted = QLabel("Dégradé, transparence et bordures hérités du thème")
-        muted.setObjectName("MutedLabel")
+        muted = _muted_label("Dégradé, transparence et bordures hérités du thème")
         card_layout.addWidget(muted)
         wrapper.addWidget(card)
         section.addWidget(self.preview_backdrop)
@@ -1832,9 +1807,7 @@ class DevUiPage(QWidget):
         for listing in self._guide_preview_listings:
             self.guide_source_preview_combo.addItem(listing.title, listing.source_id)
         self.guide_source_preview_combo.setEnabled(bool(self._guide_preview_listings))
-        self.guide_source_preview_status = QLabel()
-        self.guide_source_preview_status.setObjectName("MutedLabel")
-        self.guide_source_preview_status.setWordWrap(True)
+        self.guide_source_preview_status = _muted_label(wrap=True)
         section.addWidget(self.guide_source_preview_status)
         section.addWidget(self.guide_source_preview_combo)
 
@@ -1911,8 +1884,7 @@ class DevUiPage(QWidget):
 
         # Semantic links consume exactly the same indexed Unity color roles
         # as the shared Guide renderer; no additional stylesheet or colors.
-        link_caption = QLabel("Liens des étapes · couleurs Unity communes")
-        link_caption.setObjectName("MutedLabel")
+        link_caption = _muted_label("Liens des étapes · couleurs Unity communes")
         section.addWidget(link_caption)
         link_grid = QGridLayout()
         link_grid.setHorizontalSpacing(10)
@@ -1977,11 +1949,10 @@ class DevUiPage(QWidget):
         local_icon_count = sum(
             sprite_icon_path(name) is not None for name in all_icon_names
         )
-        source_hint = QLabel(
+        source_hint = _muted_label(
             f"Sources Unity communes : {local_icon_count}/{len(all_icon_names)} "
             "pictogrammes repérés dans ce lancement · couleurs originales conservées"
         )
-        source_hint.setObjectName("MutedLabel")
         section.addWidget(source_hint)
         icons = QGridLayout()
         self.preview_icon_grid = icons
@@ -2024,8 +1995,7 @@ class DevUiPage(QWidget):
                 symbol.setToolTip(
                     f"{icon_captions[name]} · sprite Unity local ou repli Atlas"
                 )
-            caption = QLabel(icon_captions[name])
-            caption.setObjectName("MutedLabel")
+            caption = _muted_label(icon_captions[name])
             cell_layout.addWidget(symbol)
             cell_layout.addWidget(caption, 1)
             if name in self.preview_icon_missing:
@@ -2058,12 +2028,11 @@ class DevUiPage(QWidget):
     def _build_scope_matrix(self, parent: QVBoxLayout) -> None:
         """Show migration scope without incorrectly claiming all screens migrated."""
         section = self._section(parent, "coverage")
-        note = QLabel(
+        note = _muted_label(
             "Exemples de réutilisation dans les modules. La couverture complète "
-            "reste à vérifier écran par écran."
+            "reste à vérifier écran par écran.",
+            wrap=True,
         )
-        note.setObjectName("MutedLabel")
-        note.setWordWrap(True)
         section.addWidget(note)
 
         modules = UNITY_UI_CONSUMERS
@@ -2154,7 +2123,7 @@ class DevUiPage(QWidget):
             path == "app/pages/craft_page.py" and label.endswith("Dialog")
             for label, path in UI_CONSUMER_INDEX["Popups et dialogues"]["surfaces"]
         )
-        self.preview_shared_ui_counts = QLabel(
+        self.preview_shared_ui_counts = _muted_label(
             f"Boutons classiques : 1 AtlasButton / {len(BUTTON_OBJECT_NAMES)} "
             "rôles visuels. "
             "Sélections : 1 AtlasComboBox partagé et 1 règle de largeur "
@@ -2163,10 +2132,9 @@ class DevUiPage(QWidget):
             f"{len(_DIALOG_PREVIEW_VARIANTS)} variantes de démonstration. "
             f"Craft : {craft_dialog_count} usages sur AtlasDialog commun. "
             f"Popups et overlays : {len(secondary)} usages existants distincts "
-            "(pas autant de composants)."
+            "(pas autant de composants).",
+            wrap=True,
         )
-        self.preview_shared_ui_counts.setObjectName("MutedLabel")
-        self.preview_shared_ui_counts.setWordWrap(True)
         section.addWidget(self.preview_shared_ui_counts)
 
         family_keys = tuple(UNITY_UI_FAMILY_INDEX)
@@ -2206,13 +2174,12 @@ class DevUiPage(QWidget):
         Keep these isolated from production widgets until visual acceptance.
         """
         section = self._section(parent, "motion")
-        note = QLabel(
+        note = _muted_label(
             "Transitions de prévisualisation Qt. Les durées ne sont pas "
             "encore mesurées sur DOFUS Unity : comparer puis valider avant "
-            "toute généralisation."
+            "toute généralisation.",
+            wrap=True,
         )
-        note.setObjectName("MutedLabel")
-        note.setWordWrap(True)
         section.addWidget(note)
 
         timing = QHBoxLayout()
@@ -2307,18 +2274,16 @@ class DevUiPage(QWidget):
     def _build_dialogs_and_colors(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "dialogs")
         section.addWidget(AtlasPageTitle("Titre Atlas partagé"))
-        muted = QLabel("Texte secondaire · même typographie sur chaque écran")
-        muted.setObjectName("MutedLabel")
+        muted = _muted_label("Texte secondaire · même typographie sur chaque écran")
         section.addWidget(muted)
-        family_note = QLabel(
+        family_note = _muted_label(
             "Un seul conteneur AtlasDialog pour les fenêtres classiques : "
             "en-tête, contenu et actions changent selon l'utilisation. "
             "Le zoom Quêtes/Guides réutilise AtlasImagePopup ; les menus, "
             "suggestions et overlays conservent leur comportement spécialisé. "
-            "La largeur du dialogue suit son contenu et les limites partagées."
+            "La largeur du dialogue suit son contenu et les limites partagées.",
+            wrap=True,
         )
-        family_note.setObjectName("MutedLabel")
-        family_note.setWordWrap(True)
         section.addWidget(family_note)
         row = QHBoxLayout()
         self.dialog_button = AtlasButton("Ouvrir une fenêtre", variant="primary")
@@ -2352,13 +2317,12 @@ class DevUiPage(QWidget):
         icons_row.addStretch(1)
         section.addLayout(icons_row)
 
-        craft_note = QLabel(
+        craft_note = _muted_label(
             "Fenêtres Craft réelles (sans mutation des données) : "
             "quatre contenus métier sur le conteneur AtlasDialog commun "
-            "et l'en-tête AtlasDialogHeader partagé."
+            "et l'en-tête AtlasDialogHeader partagé.",
+            wrap=True,
         )
-        craft_note.setObjectName("MutedLabel")
-        craft_note.setWordWrap(True)
         section.addWidget(craft_note)
         craft_row = QHBoxLayout()
         self.preview_craft_dialog_choice = AtlasComboBox()
@@ -2381,13 +2345,12 @@ class DevUiPage(QWidget):
         section.addLayout(craft_row)
 
         colors = self._section(parent, "palette")
-        intro = QLabel(
+        intro = _muted_label(
             "Couleurs principales et emplacement dans l'UI darkStone : "
             "les mêmes rôles sont utilisés dans les modules. "
-            "Les boutons partagés suivent strictement les couleurs Unity."
+            "Les boutons partagés suivent strictement les couleurs Unity.",
+            wrap=True,
         )
-        intro.setObjectName("MutedLabel")
-        intro.setWordWrap(True)
         colors.addWidget(intro)
 
         main_grid = QGridLayout()
@@ -2475,8 +2438,7 @@ class DevUiPage(QWidget):
         chip.setPixmap(self._color_pixmap(value))
         chip.setAccessibleName(f"Couleur {role}")
         layout.addWidget(chip)
-        label = QLabel(role)
-        label.setObjectName("MutedLabel")
+        label = _muted_label(role)
         label.setToolTip(f"{role} : {value}")
         layout.addWidget(label, 1)
         return cell

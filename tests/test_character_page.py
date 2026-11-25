@@ -176,7 +176,7 @@ class CharacterPageTests(unittest.TestCase):
 
             page.refresh_from_sources("character:42")
             self.assertEqual(page.character_level.text(), "Niveau 199")
-            self.assertEqual(page.achievement_points.text(), "12345 points de succès")
+            self.assertEqual(page.achievement_points.text(), "12 345 points de succès")
             self.assertIn("12345 succès", page.character_selector.currentText())
             self.assertIn("12345 succès", page.character_order_list.item(0).text())
 
@@ -215,7 +215,7 @@ class CharacterPageTests(unittest.TestCase):
             page._refresh_runtime_projection()
 
             self.assertEqual(page.character_level.text(), "Niveau 200")
-            self.assertEqual(page.achievement_points.text(), "24680 points de succès")
+            self.assertEqual(page.achievement_points.text(), "24 680 points de succès")
             self.assertIn("24680 succès", page.character_selector.currentText())
             self.assertIs(page.character_order_list.item(0), alpha_item)
             self.assertIs(page.character_order_list.item(1), beta_item)
