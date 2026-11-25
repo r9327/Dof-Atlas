@@ -522,6 +522,7 @@ def quest_catalog_cache_signature(data_dir: Path = RAW_QUEST_DATA_DIR) -> tuple[
         entries.append(_path_signature(label, path))
     entries.append(_path_signature("enrichment", DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json"))
     entries.append(_path_signature("loader", Path(__file__)))
+    entries.append(_path_signature("coordinate_rules", Path(__file__).with_name("core") / "map_coordinates.py"))
     for folder_name in ("items", "resources", "misc", "archive"):
         entries.append(_path_signature(f"images/{folder_name}", DATA_DIR / "images" / folder_name))
     return tuple(entries)
@@ -921,7 +922,7 @@ def native_quest_start_review(quest: Mapping, maps: Mapping) -> dict[str, Any]:
 
 
 def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]:
-    """Recover only a unique explicitly declared game start map."""
+    """Recover coordinates from explicit game starts, retaining ambiguous map identity."""
     review = native_quest_start_review(quest, maps)
     if review["reason"] == "COINCIDENT_NATIVE_START_MAPS":
         return {"native_start": {"map_ids": review["map_ids"], "position": review["position"]}}

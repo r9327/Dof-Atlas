@@ -159,7 +159,8 @@ def quest_launch_position_evidence(source_info: object) -> tuple[str, str, tuple
     """Combine native start-map and documentary declarations without guessing.
 
     Native evidence is compiled only from the local game's explicit
-    startPosition map ID and maps_information row, never from objectives.
+    startPosition maps and maps_information rows, never from objectives.
+    Multiple map identities may establish coordinates only when all coincide.
     Contradictory documentary declarations remain visible as review evidence.
     """
     primary, status, positions = declared_quest_start(source_info)
@@ -172,9 +173,10 @@ def quest_launch_position_evidence(source_info: object) -> tuple[str, str, tuple
         and all(type(ident) is int and ident > 0 for ident in map_ids)
         and len(set(map_ids)) == len(map_ids)
     )
+    unique = type(map_id) is int and map_id > 0 and map_ids is None
     native_position = (
         canonical_declared_coordinate(native.get("position"))
-        if (type(map_id) is int and map_id > 0) or coincident else ""
+        if unique or coincident else ""
     )
     if not native_position:
         return primary, status, positions

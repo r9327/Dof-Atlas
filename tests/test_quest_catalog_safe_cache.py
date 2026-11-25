@@ -84,6 +84,12 @@ class QuestCatalogSafeCacheTests(unittest.TestCase):
             self.assertEqual(loaded.quests[0].steps[0].objectives[0].zone, "Astrub")
             self.assertEqual(loaded.achievement_series[0].quest_ids, (42,))
 
+    def test_cache_signature_tracks_shared_coordinate_rules(self) -> None:
+        signature = dict((label, path) for label, path, *_stamp
+                         in quest_catalog.quest_catalog_cache_signature())
+        self.assertEqual(Path(signature["coordinate_rules"]),
+                         Path(quest_catalog.__file__).with_name("core") / "map_coordinates.py")
+
     def test_module_does_not_import_or_deserialize_pickle(self) -> None:
         source = inspect.getsource(quest_catalog)
         self.assertNotIn("import pickle", source)

@@ -58,6 +58,13 @@ class QuestDetailsTests(unittest.TestCase):
         evidence = qc.native_quest_start_evidence(quest, maps)
         self.assertEqual(evidence, {"native_start": {"map_ids": [10, 11], "position": "[1,2]"}})
         self.assertEqual(quest_launch_position_evidence(evidence)[:2], ("[1,2]", "NATIVE_START_DECLARED"))
+        for invalid in (
+            {"map_id": 10, "map_ids": [10, 11], "position": "[1,2]"},
+            {"map_ids": [10, 10], "position": "[1,2]"},
+            {"map_ids": [True, 11], "position": "[1,2]"},
+        ):
+            self.assertEqual(quest_launch_position_evidence({"native_start": invalid})[:2],
+                             ("", "NO_DECLARED_START"))
         maps[11]["posX"] = 3
         self.assertEqual(qc.native_quest_start_evidence(quest, maps), {})
         self.assertEqual(qc.native_quest_start_evidence(quest, {10: maps[10]}), {})

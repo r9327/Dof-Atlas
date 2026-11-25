@@ -103,6 +103,28 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 [{"quest_id": 20, "status": "NO_DECLARED_START"}],
             )
 
+    def test_native_start_audit_does_not_count_coincident_maps_as_unique(self):
+        from app.modules.encyclopedia.tools.audit_quests_guides_semantic import native_start_coverage
+
+        quests = {
+            1: {"startPosition": [{"mapId": 10}]},
+            2: {"startPosition": [{"mapId": 10}, {"mapId": 11}]},
+            3: {"startPosition": [{"mapId": 10}, {"mapId": 12}]},
+        }
+        maps = {
+            10: {"posX": 1, "posY": 2}, 11: {"posX": 1, "posY": 2},
+            12: {"posX": 3, "posY": 4},
+        }
+        report = native_start_coverage({}, (1, 2, 3), quests, maps)
+        self.assertEqual(report["quests_considered"], 3)
+        self.assertEqual(report["counts"]["WITH_UNIQUE_NATIVE_MAP"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_UNIQUE_NATIVE_MAP"], 2)
+        self.assertEqual(report["counts"]["WITH_COINCIDENT_NATIVE_MAPS"], 1)
+        self.assertEqual(report["counts"]["WITH_NATIVE_START_COORDINATES"], 2)
+        self.assertEqual(report["counts"]["WITHOUT_NATIVE_START_COORDINATES"], 1)
+        self.assertEqual(report["recovered_from_native_map_quest_ids"], [1, 2])
+        self.assertEqual([row["quest_id"] for row in report["needs_review"]], [3])
+
     def test_native_start_audit_separates_recovered_conflicting_and_unresolved_ids(self):
         from app.modules.encyclopedia.tools.audit_quests_guides_semantic import native_start_coverage
 

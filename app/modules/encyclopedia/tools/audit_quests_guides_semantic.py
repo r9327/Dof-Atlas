@@ -572,7 +572,7 @@ def native_start_coverage(
     enriched: Mapping[str, Any], quest_ids: Iterable[int],
     quests: Mapping, maps: Mapping,
 ) -> dict[str, Any]:
-    """Count unique native starts separately from the documentary inventory.
+    """Count native coordinates separately from unique native map identities.
 
     The same native compiler and conflict policy are used by the live reader.
     Neither an objective hint nor an imported native_start field counts.
@@ -595,10 +595,14 @@ def native_start_coverage(
         }
         position, status, declarations = quest_launch_position_evidence(evidence)
         counts[status] += 1
-        if native:
+        native_start = native.get("native_start", {})
+        if "map_id" in native_start:
             counts["WITH_UNIQUE_NATIVE_MAP"] += 1
         else:
             counts["WITHOUT_UNIQUE_NATIVE_MAP"] += 1
+        if "map_ids" in native_start:
+            counts["WITH_COINCIDENT_NATIVE_MAPS"] += 1
+        counts["WITH_NATIVE_START_COORDINATES" if native else "WITHOUT_NATIVE_START_COORDINATES"] += 1
         if status == "NATIVE_START_DECLARED" and declared_quest_start(row)[1] == "NO_DECLARED_START":
             recovered.append(quest_id)
         if status not in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"}:
