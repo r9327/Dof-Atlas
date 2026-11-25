@@ -670,6 +670,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "startup"})
     if path in {
         "app/modules/encyclopedia/providers/quest_provider.py",
+        "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py",
+        "tests/test_achievement_compact_subprocess_lifecycle.py",
         "app/quest_catalog_details.py",
     }:
         # Compact Quest evidence is shared by the Guide renderer and its

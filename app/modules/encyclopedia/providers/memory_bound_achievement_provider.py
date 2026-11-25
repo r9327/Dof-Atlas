@@ -374,6 +374,18 @@ def _compact_achievement_dict(achievement: Achievement) -> dict[str, object]:
     }
 
 
+def _category_from_dict(value: dict[str, Any]) -> AchievementCategory:
+    return AchievementCategory(
+        id=int(value["id"]),
+        name=str(value.get("name") or ""),
+        parent_id=int(value.get("parent_id") or 0),
+        order=int(value.get("order") or 0),
+        achievement_ids=tuple(
+            int(item) for item in value.get("achievement_ids", []) if isinstance(item, int)
+        ),
+    )
+
+
 def _achievement_from_dict(value: dict[str, Any]) -> Achievement:
     objectives = tuple(
         objective
@@ -741,48 +753,6 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._image_indexes.clear()
         self._reset_sources()
 
-    def _consume_compact_row(
-        self,
-        row: dict[str, object],
-        categories: dict[int, AchievementCategory],
-        achievements: list[Achievement],
-        progress_objectives: dict[int, str],
-        *,
-        retained_only: bool,
-    ) -> bool:
-        kind = str(row.get("kind") or "")
-        if kind == "external_start" and retained_only:
-            return False
-        value = row.get("value")
-        if kind == "category" and isinstance(value, dict):
-            category = AchievementCategory(
-                id=int(value["id"]),
-                name=str(value.get("name") or ""),
-                parent_id=int(value.get("parent_id") or 0),
-                order=int(value.get("order") or 0),
-                achievement_ids=tuple(
-                    int(item)
-                    for item in value.get("achievement_ids", [])
-                    if isinstance(item, int)
-                ),
-            )
-            categories[category.id] = category
-        elif kind == "achievement" and isinstance(value, dict):
-            achievement = _achievement_from_dict(value)
-            if retained_only and int(achievement.category_id) not in {
-                int(item) for item in RETAINED_TOP_CATEGORY_IDS
-            }:
-                return True
-            achievements.append(achievement)
-            raw_progress = value.get("progress_objectives")
-            if isinstance(raw_progress, list) and raw_progress:
-                progress_objectives[int(achievement.id)] = json.dumps(
-                    raw_progress,
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                )
-        return True
-
     def _load_from_compact_cache(self) -> None:
         if not _achievement_compact_cache_valid(
             ACHIEVEMENT_COMPACT_CACHE,
@@ -822,17 +792,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 value = row.get("value")
                 if kind != "category" or not isinstance(value, dict):
                     continue
-                category = AchievementCategory(
-                    id=int(value["id"]),
-                    name=str(value.get("name") or ""),
-                    parent_id=int(value.get("parent_id") or 0),
-                    order=int(value.get("order") or 0),
-                    achievement_ids=tuple(
-                        int(item)
-                        for item in value.get("achievement_ids", [])
-                        if isinstance(item, int)
-                    ),
-                )
+                category = _category_from_dict(value)
                 categories[category.id] = category
 
         raw_offsets = index_payload.get("offsets") if isinstance(index_payload, dict) else {}
@@ -1046,17 +1006,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 kind = str(row.get("kind") or "")
                 value = row.get("value")
                 if kind == "category" and isinstance(value, dict):
-                    category = AchievementCategory(
-                        id=int(value["id"]),
-                        name=str(value.get("name") or ""),
-                        parent_id=int(value.get("parent_id") or 0),
-                        order=int(value.get("order") or 0),
-                        achievement_ids=tuple(
-                            int(item)
-                            for item in value.get("achievement_ids", [])
-                            if isinstance(item, int)
-                        ),
-                    )
+                    category = _category_from_dict(value)
                     categories[category.id] = category
                 elif kind == "achievement" and isinstance(value, dict):
                     category_id = safe_int(value.get("category_id"), 0) or 0

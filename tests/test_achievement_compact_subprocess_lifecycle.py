@@ -1009,6 +1009,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
         data = [
             SimpleNamespace(
                 id=10, category_id=8, subcategory_id=None,
+                name="Succès 10", level=None, points=0,
                 linked_quests=(
                     SimpleNamespace(entity_id=42),
                     SimpleNamespace(entity_id="42"),
@@ -1017,6 +1018,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             ),
             SimpleNamespace(
                 id=11, category_id=8, subcategory_id=None,
+                name="Succès 11", level=None, points=0,
                 linked_quests=(
                     SimpleNamespace(entity_id=42),
                     SimpleNamespace(entity_id=99),
@@ -1064,7 +1066,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
         }
         provider._achievements = [
             SimpleNamespace(id=10, category_id=8, subcategory_id=None,
-                            linked_quests=()),
+                            name="Succès 10", level=None, points=0, linked_quests=()),
         ]
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / "success.jsonl"
@@ -1098,7 +1100,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
         provider._categories = {}
         provider._achievements = [
             SimpleNamespace(id=10, category_id=8, subcategory_id=None,
-                            linked_quests=()),
+                            name="Succès 10", level=None, points=0, linked_quests=()),
         ]
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / "success.jsonl"
@@ -1131,7 +1133,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
         }
         fake._achievements = [
             SimpleNamespace(id=10, category_id=8, subcategory_id=None,
-                            linked_quests=()),
+                            name="Succès 10", level=None, points=0, linked_quests=()),
         ]
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / "success.jsonl"
@@ -1568,6 +1570,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
 
         provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
         provider._compact_retained_set = frozenset({10})
+        provider._compact_startup_rows = {}
         summary = SimpleNamespace(name="Recovered", level=199, points=30)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "success.jsonl"
@@ -1591,6 +1594,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
 
         provider = MemoryBoundAchievementProvider.__new__(MemoryBoundAchievementProvider)
         provider._compact_retained_set = frozenset({10})
+        provider._compact_startup_rows = {}
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / "success.jsonl"
             with (

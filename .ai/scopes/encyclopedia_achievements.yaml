@@ -5,6 +5,8 @@ working_set:
   - app/modules/encyclopedia/views/achievements_view.py
   - app/modules/encyclopedia/achievement_catalog_policy.py
   - app/modules/encyclopedia/providers/achievement_provider.py
+  - app/modules/encyclopedia/providers/memory_bound_achievement_provider.py
+  - tests/test_achievement_compact_subprocess_lifecycle.py
   - app/modules/encyclopedia/services/serialized_achievement_progress_service.py
   - app/modules/encyclopedia/services/achievement_progress_logic.py
   - app/modules/encyclopedia/widgets/achievement_detail_widget.py
