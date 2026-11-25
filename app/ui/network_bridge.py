@@ -36,8 +36,13 @@ class NetworkUiBridge(QObject):
         # created only after Encyclopedia context or an explicit calibration
         # request. Keep coordinator/settings/catalog imports on that real-use path.
         from app.network.application_coordinator import NetworkApplicationCoordinator
+        from app.network.character_runtime_state import character_runtime_state
 
         self.coordinator = NetworkApplicationCoordinator(self._window_handles)
+        # The decoded transport read model also changes on an entire capture
+        # reset or verified recovery, without an individual progress event.
+        self._character_runtime_state = character_runtime_state()
+        self._observed_network_keys = self._character_runtime_state.connected_character_keys()
         self._context_signature: tuple[int, int, int] | None = None
         self._compact_context_ready = False
         self._last_status = self.coordinator.latest_status()
@@ -157,9 +162,13 @@ class NetworkUiBridge(QObject):
     def _poll(self) -> None:
         if self._stopped:
             return
-        if not self.coordinator.has_pending_ui_events():
+        current_network_keys = self._character_runtime_state.connected_character_keys()
+        membership_changes = current_network_keys ^ self._observed_network_keys
+        self._observed_network_keys = current_network_keys
+        pending = self.coordinator.has_pending_ui_events()
+        if not pending and not membership_changes:
             return
-        statuses = self.coordinator.drain_statuses(50)
+        statuses = self.coordinator.drain_statuses(50) if pending else ()
         if statuses:
             # The queue is bounded per poll and concurrent publishers may
             # enqueue old notifications after a newer state was committed.
@@ -175,7 +184,7 @@ class NetworkUiBridge(QObject):
         changed_characters: set[str] = set()
         active_characters: set[str] = set()
         disconnected_characters: set[str] = set()
-        for result in self.coordinator.drain_results(100):
+        for result in (self.coordinator.drain_results(100) if pending else ()):
             reason = str(getattr(result, "reason", "") or "")
             if (
                 bool(getattr(result, "accepted", False))
@@ -221,11 +230,12 @@ class NetworkUiBridge(QObject):
                 self.characterActivated.emit(identities[0])
                 if self._stopped:
                     return
-        if disconnected_characters and not active_characters:
-            # A close may be just one of several transports for a character.
-            # Publish only the changed identities: the shell recomputes the
-            # actual connected state, with no automatic selection.
-            self.connectionsChanged.emit(tuple(sorted(disconnected_characters)))
+        connection_changes = disconnected_characters | membership_changes
+        if connection_changes and not active_characters:
+            # A decoder reset can remove all transports without individual
+            # closure events. Recovery can also attach an existing identity
+            # without a login. Both are roster refreshes, never activations.
+            self.connectionsChanged.emit(tuple(sorted(connection_changes)))
             if self._stopped:
                 return
         # When an identification happened in this same poll, its batch

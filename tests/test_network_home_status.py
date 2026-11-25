@@ -518,6 +518,44 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
+    def test_transport_reset_and_recovery_refresh_membership_without_progress_or_focus(self) -> None:
+        from unittest.mock import Mock, patch
+        from app.network.character_runtime_state import CharacterRuntimeStateStore
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = False
+        coordinator.stop.return_value = True
+        state = CharacterRuntimeStateStore()
+        with patch("app.network.character_runtime_state.character_runtime_state", return_value=state):
+            bridge = self._new_network_bridge(coordinator)
+        membership, activations, progress = [], [], []
+        bridge.connectionsChanged.connect(membership.append)
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            state.identify(session_id="tcp:1:1", character_key="character:1",
+                           character_id=1, name="Alpha")
+            bridge._poll()
+            bridge._poll()
+            self.assertEqual(membership, [("character:1",)])
+            state.identify(session_id="tcp:1:2", character_key="character:1",
+                           character_id=1, name="Alpha")
+            state.close_session("tcp:1:1")
+            bridge._poll()
+            self.assertEqual(membership, [("character:1",)])
+            state.clear_sessions()
+            bridge._poll()
+            bridge._poll()
+            self.assertEqual(membership, [("character:1",), ("character:1",)])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, [])
+            coordinator.drain_results.assert_not_called()
+            coordinator.drain_statuses.assert_not_called()
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def test_network_verified_disconnects_refresh_accounts_once_without_progress(self) -> None:
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
