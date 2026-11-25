@@ -13,6 +13,7 @@ working_set:
   - app/modules/encyclopedia/widgets/quest_item_row.py
   - app/pages/quest_character_cache.py
   - tests/test_quest_hierarchy.py
+  - tests/test_quest_detail_navigation.py
   - tests/test_lazy_quests_page_performance.py
 shared_dependencies:
   - dofus_data

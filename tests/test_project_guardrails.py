@@ -172,7 +172,8 @@ class ProjectGuardrailsTests(unittest.TestCase):
             source = self._text(relative)
             self.assertIn("coordinator_for", source, relative)
             self.assertIn("_ensure_fresh", source, relative)
-            self.assertIn("mark_changed", source, relative)
+            self.assertIn("CoordinatedProgressReader", source, relative)
+            self.assertIn("_accept_snapshot_locked(changed=True)", source, relative)
 
     def test_ui_does_not_use_legacy_quest_progress_helpers(self) -> None:
         forbidden = ("quest_done", "quest_item_done", "set_quest_done", "set_quest_item_done")

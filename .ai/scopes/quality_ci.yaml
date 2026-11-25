@@ -2,6 +2,8 @@ schema_version: 1
 scope: quality_ci
 kind: shared_infrastructure
 working_set:
+  - tests/test_clean_foundation_guardrails.py
+  - tests/test_project_guardrails.py
   - tests/test_phase8_preload_benchmark_contract.py
   - .gitignore
   - tests/test_distribution_craft_seed.py
