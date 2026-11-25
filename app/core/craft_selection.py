@@ -89,17 +89,20 @@ def _selection_schema_error(value: object) -> str | None:
     return None
 
 
+def read_selection_payload(path: Path) -> dict[str, Any]:
+    """Read the shared selection without replacing damaged state with an empty list."""
+    from app.core.json_store import read_json_validated
+    return read_json_validated(path, {"items": []}, _selection_schema_error)
+
+
 def persist_selection_quantity(path: Path, item_id: int, name: str, quantity: int) -> None:
     """Serialize a targeted edit against the latest shared Craft/Quest file."""
-    from app.core.json_store import read_json_validated, write_json_atomic
+    from app.core.json_store import write_json_atomic
     from app.core.progress_coordinator import coordinator_for
 
     coordinator = coordinator_for(path)
     with coordinator.lock:
-        payload = read_json_validated(
-            path, {"items": []},
-            _selection_schema_error,
-        )
+        payload = read_selection_payload(path)
         updated = replace_selection_quantity(payload, item_id, name, quantity)
         if updated != payload:
             write_json_atomic(path, updated)
@@ -108,12 +111,12 @@ def persist_selection_quantity(path: Path, item_id: int, name: str, quantity: in
 
 def clear_persisted_selection(path: Path) -> None:
     """Only an explicit full clear replaces every saved row."""
-    from app.core.json_store import read_json_validated, write_json_atomic
+    from app.core.json_store import write_json_atomic
     from app.core.progress_coordinator import coordinator_for
 
     coordinator = coordinator_for(path)
     with coordinator.lock:
-        payload = read_json_validated(path, {"items": []}, _selection_schema_error)
+        payload = read_selection_payload(path)
         updated = dict(payload) if isinstance(payload.get("items"), list) else {}
         updated["items"] = []
         if updated != payload:

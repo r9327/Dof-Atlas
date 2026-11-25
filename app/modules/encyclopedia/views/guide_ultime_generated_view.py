@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -465,14 +465,13 @@ class GuideUltimeGeneratedView(QWidget):
     def _sync_order_combo(self) -> None:
         selected = self.service.selected_order_name(self.character_key)
         allowed = self.service.bonta_order_names()
-        self.order_combo.blockSignals(True)
-        self.order_combo.clear()
-        self.order_combo.addItem("Choisir un Ordre", "")
-        for name in allowed:
-            self.order_combo.addItem(name, name)
-        target = self.order_combo.findData(selected) if selected else 0
-        self.order_combo.setCurrentIndex(max(0, target))
-        self.order_combo.blockSignals(False)
+        with QSignalBlocker(self.order_combo):
+            self.order_combo.clear()
+            self.order_combo.addItem("Choisir un Ordre", "")
+            for name in allowed:
+                self.order_combo.addItem(name, name)
+            target = self.order_combo.findData(selected) if selected else 0
+            self.order_combo.setCurrentIndex(max(0, target))
 
     def _order_changed(self, index: int) -> None:
         value = str(self.order_combo.itemData(index) or "").strip()

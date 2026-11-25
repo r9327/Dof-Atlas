@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QApplication,
@@ -1011,11 +1011,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 continue
             checked = character.key in selected
             if button.isChecked() != checked:
-                blocked = button.blockSignals(True)
-                try:
+                with QSignalBlocker(button):
                     button.setChecked(checked)
-                finally:
-                    button.blockSignals(blocked)
             progress = self._participant_progress(character.key)
             button.set_percent(progress)
             class_label = str(button.property("guideClassLabel") or "")
@@ -1640,14 +1637,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             label, hint = "Valider", "Valider la fiche pour les personnages sélectionnés qui en ont besoin."
         if statuses and (not callable(batcher) or not callable(page_key)):
             hint = "Sauvegarde multi-personnages indisponible : aucune écriture autorisée."
-        button.blockSignals(True)
-        try:
+        with QSignalBlocker(button):
             button.setChecked(all_done)
             button.setText(label)
             button.setEnabled(enabled)
             button.setToolTip(hint)
-        finally:
-            button.blockSignals(False)
 
     def _page_toggled_for_participants(self, card: dict[str, Any], index: int, checked: bool) -> None:
         # Ignore deferred signals from an old card after navigation.

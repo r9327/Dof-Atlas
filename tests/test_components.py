@@ -272,6 +272,19 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
+    def test_numeric_editor_keeps_outer_signal_block_on_configuration(self):
+        from app.ui.components import configure_unity_number_spinbox
+        counter = QSpinBox()
+        try:
+            counter.blockSignals(True)
+            configure_unity_number_spinbox(counter, minimum=0, maximum=10, value=4)
+            self.assertTrue(counter.signalsBlocked())
+            counter.blockSignals(False)
+            configure_unity_number_spinbox(counter, minimum=0, maximum=10, value=5)
+            self.assertFalse(counter.signalsBlocked())
+        finally:
+            counter.deleteLater()
+
     def test_shared_numeric_editor_configuration_and_rollback_are_silent(self):
         from unittest.mock import Mock
         from app.ui.components import configure_unity_number_spinbox, restore_unity_number_value

@@ -37,7 +37,7 @@ from app.core.numbers import optional_int
 from app.core.json_store import InvalidPersistentJsonError
 from app.core.craft_selection import (
     selection_item_row, resolve_selection, selection_editor_maximum,
-    persist_selection_quantity, clear_persisted_selection,
+    persist_selection_quantity, clear_persisted_selection, read_selection_payload,
 )
 from app.constants import (
     CRAFT_SELECTION_FILE,
@@ -722,8 +722,12 @@ class CraftPage(QWidget):
         if self._runtime_ready and self._selection_source_loaded:
             stamp = mtime_ctime_size_stamp(CRAFT_SELECTION_FILE)
             if stamp != self._selection_source_stamp:
-                self.load_selection()
-                self.refresh_selection()
+                try:
+                    self.load_selection()
+                except (InvalidPersistentJsonError, OSError, TimeoutError) as exc:
+                    self.status_callback(f"Sélection non actualisée : {exc}")
+                else:
+                    self.refresh_selection()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -998,6 +1002,7 @@ class CraftPage(QWidget):
         # save/load. Keep the viewport stable when a new item is appended.
         scrollbar = self.selection_list.verticalScrollBar()
         scroll_position = scrollbar.value()
+        updates_enabled = self.selection_list.updatesEnabled()
         self.selection_list.setUpdatesEnabled(False)
         try:
             self.selection_list.clear()
@@ -1032,7 +1037,7 @@ class CraftPage(QWidget):
                 layout.addWidget(delete)
                 self.selection_list.setItemWidget(entry, widget)
         finally:
-            self.selection_list.setUpdatesEnabled(True)
+            self.selection_list.setUpdatesEnabled(updates_enabled)
         scrollbar.setValue(min(scroll_position, scrollbar.maximum()))
 
     def save_selection(self, ident: int | None = None, *, clear: bool = False) -> None:
@@ -1098,7 +1103,12 @@ class CraftPage(QWidget):
             except Exception:
                 return None
 
-        payload = read_json(CRAFT_SELECTION_FILE, {"items": []})
+        # Never replace visible state with an empty fallback on a damaged source.
+        payload = (
+            read_selection_payload(CRAFT_SELECTION_FILE)
+            if self._selection_source_loaded
+            else read_json(CRAFT_SELECTION_FILE, {"items": []})
+        )
         loaded_selection = resolve_selection(payload, lookup, allow_legacy=True)
         self.selection.clear()
         self.selection.update(loaded_selection)

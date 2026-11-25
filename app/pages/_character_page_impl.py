@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QSignalBlocker, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -445,8 +445,7 @@ class CharacterPage(QWidget):
         return self._visual_path(label)
 
     def _rebuild_character_selector(self) -> None:
-        self.character_selector.blockSignals(True)
-        try:
+        with QSignalBlocker(self.character_selector):
             self.character_selector.clear()
             self.character_selector.setEnabled(bool(self.characters))
             for character in self.characters:
@@ -458,8 +457,6 @@ class CharacterPage(QWidget):
                     character.key,
                 )
             self._sync_character_selector_selection()
-        finally:
-            self.character_selector.blockSignals(False)
 
     def _sync_character_selector_selection(self) -> None:
         target = -1
@@ -469,26 +466,19 @@ class CharacterPage(QWidget):
                 break
         if self.character_selector.currentIndex() == target:
             return
-        self.character_selector.blockSignals(True)
-        try:
+        with QSignalBlocker(self.character_selector):
             self.character_selector.setCurrentIndex(target)
-        finally:
-            self.character_selector.blockSignals(False)
 
     def _refresh_character_selector_runtime_labels(self) -> None:
         by_key = {character.key: character for character in self.characters}
-        self.character_selector.blockSignals(True)
-        try:
+        with QSignalBlocker(self.character_selector):
             for index in range(self.character_selector.count()):
                 key = str(self.character_selector.itemData(index) or "")
                 character = by_key.get(key)
                 if character is not None:
-                    self.character_selector.setItemText(
-                        index,
-                        self._character_selector_text(character),
-                    )
-        finally:
-            self.character_selector.blockSignals(False)
+                    text = self._character_selector_text(character)
+                    if self.character_selector.itemText(index) != text:
+                        self.character_selector.setItemText(index, text)
 
     def _on_character_selector_changed(self, index: int) -> None:
         if index < 0:

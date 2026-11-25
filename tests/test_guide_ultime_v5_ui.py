@@ -256,6 +256,18 @@ class GuideUltimeV5UITests(unittest.TestCase):
         finally:
             host.deleteLater()
 
+    def test_generated_order_refresh_keeps_outer_signal_block(self):
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            view.order_combo.blockSignals(True)
+            view._sync_order_combo()
+            self.assertTrue(view.order_combo.signalsBlocked())
+            view.order_combo.blockSignals(False)
+            view._sync_order_combo()
+            self.assertFalse(view.order_combo.signalsBlocked())
+        finally:
+            view.deleteLater()
+
     def test_generated_guide_uses_shared_scroll_without_changing_navigation(self):
         view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
         try:

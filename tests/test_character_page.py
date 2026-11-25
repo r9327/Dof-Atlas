@@ -223,6 +223,23 @@ class CharacterPageTests(unittest.TestCase):
             page.deleteLater()
             self.app.processEvents()
 
+    def test_character_selector_rebuild_preserves_outer_signal_block(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            page = self.build_page(self.build_files(Path(temporary)))
+            try:
+                selector = page.character_selector
+                selector.blockSignals(True)
+                page._rebuild_character_selector()
+                self.assertTrue(selector.signalsBlocked())
+                page._refresh_character_selector_runtime_labels()
+                self.assertTrue(selector.signalsBlocked())
+                selector.blockSignals(False)
+                page._rebuild_character_selector()
+                self.assertFalse(selector.signalsBlocked())
+            finally:
+                page.close()
+                page.deleteLater()
+
     def test_character_selector_requests_central_selection_without_local_persistence(self):
         with tempfile.TemporaryDirectory() as temporary:
             paths = self.build_files(Path(temporary))

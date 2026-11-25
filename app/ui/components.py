@@ -5,7 +5,7 @@ from html import escape
 from pathlib import Path
 from typing import Callable, Literal
 
-from PySide6.QtCore import QObject, QPointF, QRect, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QSignalBlocker, QObject, QPointF, QRect, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPen, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QApplication,
@@ -126,8 +126,7 @@ def configure_unity_number_spinbox(
     tooltip: str | None = None, centered: bool = False, compact: bool = False,
 ) -> QSpinBox:
     """One numeric editor projection; callers own the meaning of the value."""
-    blocked = spinbox.blockSignals(True)
-    try:
+    with QSignalBlocker(spinbox):
         if object_name is not None:
             spinbox.setObjectName(object_name)
         if compact:
@@ -141,18 +140,13 @@ def configure_unity_number_spinbox(
             spinbox.setToolTip(tooltip)
         spinbox.setValue(value)
         fit_unity_number_spinbox(spinbox)
-    finally:
-        spinbox.blockSignals(blocked)
     return spinbox
 
 
 def restore_unity_number_value(spinbox: QSpinBox, value: int) -> None:
     """Restore a persisted value without generating a second user edit."""
-    blocked = spinbox.blockSignals(True)
-    try:
+    with QSignalBlocker(spinbox):
         spinbox.setValue(value)
-    finally:
-        spinbox.blockSignals(blocked)
 
 
 def refresh_unity_widget_style(widget: QWidget) -> None:
@@ -416,20 +410,16 @@ def select_character_combo_key(combo: QComboBox, character_key: str) -> bool:
     index = character_combo_index(combo, character_key)
     if index < 0:
         return False
-    blocked = combo.blockSignals(True)
-    try:
+    with QSignalBlocker(combo):
         combo.setCurrentIndex(index)
         combo.setToolTip(str(getattr(combo.currentData(), "label", "")))
-    finally:
-        combo.blockSignals(blocked)
     return True
 
 
 def populate_character_combo(combo: QComboBox, characters, previous_key: str) -> str:
     """Shared selector projection, retaining selection and caller signal state."""
     rows = tuple(characters)
-    blocked = combo.blockSignals(True)
-    try:
+    with QSignalBlocker(combo):
         combo.clear()
         selected = 0
         for index, row in enumerate(rows):
@@ -441,8 +431,6 @@ def populate_character_combo(combo: QComboBox, characters, previous_key: str) ->
         current = combo.currentData()
         combo.setToolTip(str(getattr(current, "label", "")))
         return str(getattr(current, "key", previous_key))
-    finally:
-        combo.blockSignals(blocked)
 
 
 class AtlasPageNavigator(QWidget):
@@ -1324,8 +1312,7 @@ class AtlasGuideReadingHeader(QFrame):
         if self._summary_provider is None:
             return
         titles = tuple(self._summary_provider())
-        blocked = self.summary_panel.blockSignals(True)
-        try:
+        with QSignalBlocker(self.summary_panel):
             if titles != self._summary_titles:
                 self._summary_titles = titles
                 self.summary_panel.clear()
@@ -1337,8 +1324,6 @@ class AtlasGuideReadingHeader(QFrame):
                     item.setToolTip(f"<qt>{escape(text)}</qt>")
                     self.summary_panel.addItem(item)
             self.summary_panel.setCurrentRow(self._summary_index)
-        finally:
-            self.summary_panel.blockSignals(blocked)
 
     def _request_summary_row(self, index: int) -> None:
         if 0 <= index < len(self._summary_titles):
@@ -1574,11 +1559,8 @@ class AtlasGuidePreparationRow(QFrame):
         self._confirmed = confirmed
         self._participants = participants
         self._ready = bool(participants and confirmed == participants)
-        blocked = self.ready_button.blockSignals(True)
-        try:
+        with QSignalBlocker(self.ready_button):
             self.ready_button.setChecked(self._ready)
-        finally:
-            self.ready_button.blockSignals(blocked)
         counter = self.quantity_editor
         if counter is not None and owned is not None:
             restore_unity_number_value(counter, max(0, min(counter.maximum(), int(owned))))

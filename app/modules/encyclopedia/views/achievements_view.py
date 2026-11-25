@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from PySide6.QtCore import QTimer, Qt, Signal, Slot
+from PySide6.QtCore import QSignalBlocker, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QColor, QPainter, QPalette
 from PySide6.QtWidgets import (
     QFrame,
@@ -346,51 +346,50 @@ class AchievementsView(QWidget):
 
 
     def populate_categories(self) -> None:
-        self.category_tree.blockSignals(True)
-        self.category_tree.clear()
-        self._tree_items.clear()
-        first_item: QTreeWidgetItem | None = None
-        count_by_category = getattr(self.provider, "count_by_category", None)
-        for category in self.provider.get_retained_categories():
-            top_value = count_by_category(category.id) if callable(count_by_category) else None
-            top_count = (
-                top_value
-                if isinstance(top_value, int)
-                else len(self.provider.get_by_category(category.id))
-            )
-            top_item = QTreeWidgetItem([f"{category.name}  ({top_count})"])
-            top_font = top_item.font(0)
-            top_font.setBold(True)
-            top_item.setFont(0, top_font)
-            top_item.setToolTip(0, category.name)
-            top_item.setData(0, CATEGORY_ROLE, category.id)
-            top_item.setData(0, TOP_CATEGORY_ROLE, category.id)
-            self.category_tree.addTopLevelItem(top_item)
-            self._tree_items[category.id] = top_item
-            if first_item is None:
-                first_item = top_item
-            for subcategory in self.provider.get_subcategories(category.id):
-                child_value = (
-                    count_by_category(subcategory.id)
-                    if callable(count_by_category)
-                    else None
+        with QSignalBlocker(self.category_tree):
+            self.category_tree.clear()
+            self._tree_items.clear()
+            first_item: QTreeWidgetItem | None = None
+            count_by_category = getattr(self.provider, "count_by_category", None)
+            for category in self.provider.get_retained_categories():
+                top_value = count_by_category(category.id) if callable(count_by_category) else None
+                top_count = (
+                    top_value
+                    if isinstance(top_value, int)
+                    else len(self.provider.get_by_category(category.id))
                 )
-                child_count = (
-                    child_value
-                    if isinstance(child_value, int)
-                    else len(self.provider.get_by_category(subcategory.id))
-                )
-                child = QTreeWidgetItem([f"{subcategory.name}  ({child_count})"])
-                child.setToolTip(0, subcategory.name)
-                child.setData(0, CATEGORY_ROLE, subcategory.id)
-                child.setData(0, TOP_CATEGORY_ROLE, category.id)
-                top_item.addChild(child)
-                self._tree_items[subcategory.id] = child
-            top_item.setExpanded(False)
-        if first_item is not None:
-            self.selected_category_id = int(first_item.data(0, CATEGORY_ROLE))
-            self.category_tree.setCurrentItem(first_item)
-        self.category_tree.blockSignals(False)
+                top_item = QTreeWidgetItem([f"{category.name}  ({top_count})"])
+                top_font = top_item.font(0)
+                top_font.setBold(True)
+                top_item.setFont(0, top_font)
+                top_item.setToolTip(0, category.name)
+                top_item.setData(0, CATEGORY_ROLE, category.id)
+                top_item.setData(0, TOP_CATEGORY_ROLE, category.id)
+                self.category_tree.addTopLevelItem(top_item)
+                self._tree_items[category.id] = top_item
+                if first_item is None:
+                    first_item = top_item
+                for subcategory in self.provider.get_subcategories(category.id):
+                    child_value = (
+                        count_by_category(subcategory.id)
+                        if callable(count_by_category)
+                        else None
+                    )
+                    child_count = (
+                        child_value
+                        if isinstance(child_value, int)
+                        else len(self.provider.get_by_category(subcategory.id))
+                    )
+                    child = QTreeWidgetItem([f"{subcategory.name}  ({child_count})"])
+                    child.setToolTip(0, subcategory.name)
+                    child.setData(0, CATEGORY_ROLE, subcategory.id)
+                    child.setData(0, TOP_CATEGORY_ROLE, category.id)
+                    top_item.addChild(child)
+                    self._tree_items[subcategory.id] = child
+                top_item.setExpanded(False)
+            if first_item is not None:
+                self.selected_category_id = int(first_item.data(0, CATEGORY_ROLE))
+                self.category_tree.setCurrentItem(first_item)
 
     def sync_automatic_progress(self) -> bool:
         if not is_character_key(self.character_key):
@@ -1167,8 +1166,7 @@ class AchievementsView(QWidget):
             done_color = self.palette().color(QPalette.Disabled, QPalette.Text)
             todo_color = self.palette().color(QPalette.Active, QPalette.Text)
 
-            self.list_widget.blockSignals(True)
-            try:
+            with QSignalBlocker(self.list_widget):
                 # Only real batch-capable providers use the optimized path.
                 # Existing test doubles keep the original single-row contract.
                 batch_loader = getattr(type(self.provider), "catalogue_rows_by_ids", None)
@@ -1245,8 +1243,6 @@ class AchievementsView(QWidget):
                     item.setData(COMPLETED_ROLE, completed)
                     self.list_widget.addItem(item)
                     self._achievement_visible_row_by_id[achievement_id] = self.list_widget.count() - 1
-            finally:
-                self.list_widget.blockSignals(False)
 
             if generation != self._achievement_render_generation:
                 return

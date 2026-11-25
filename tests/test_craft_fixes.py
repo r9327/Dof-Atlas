@@ -341,6 +341,34 @@ class CraftFixesTests(unittest.TestCase):
                 self.assertEqual(lookup.call_count, 2)
                 page.hide()
 
+    def test_craft_reactivation_preserves_selection_on_corrupt_file(self):
+        import json
+        from app.core.json_store import InvalidPersistentJsonError
+        page = self.make_page()
+        page.preload = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            path.write_text(json.dumps({"items": [{"item_id": 42, "quantity": 2}]}))
+            with patch("app.pages.craft_page.CRAFT_SELECTION_FILE", path), \
+                 patch("app.pages.craft_page.local_data_cache.get_item", return_value={"ankama_id": 42, "name": "Potion"}):
+                page.load_selection()
+                old_stamp = page._selection_source_stamp
+                path.write_text("{bad")
+                with self.assertRaises(InvalidPersistentJsonError):
+                    page.load_selection()
+                self.assertEqual(page.selection[42]["quantity"], 2)
+                self.assertEqual(page._selection_source_stamp, old_stamp)
+                path.write_text(json.dumps({"items": []}))
+                page.load_selection()
+                self.assertEqual(page.selection, {})
+
+    def test_selection_refresh_preserves_disabled_updates(self):
+        page = self.make_page()
+        page.selection_list.setUpdatesEnabled(False)
+        page.refresh_selection()
+        self.assertFalse(page.selection_list.updatesEnabled())
+        page.selection_list.setUpdatesEnabled(True)
+
     def test_stale_preload_reuses_item_metadata_but_reads_latest_quantities(self):
         page = self.make_page()
         page.preload = {

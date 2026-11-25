@@ -50,6 +50,16 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.list_widget.addItem(item)
         return item
 
+    def test_category_refresh_preserves_signal_state_on_error(self):
+        view, provider = self.make_view()
+        tree = view.category_tree
+        for previous in (True, False):
+            tree.blockSignals(previous)
+            with patch.object(tree, "clear", side_effect=RuntimeError("provider")):
+                with self.assertRaisesRegex(RuntimeError, "provider"):
+                    view.populate_categories()
+            self.assertEqual(tree.signalsBlocked(), previous)
+
     def test_achievement_summary_shares_progress_percentage_with_detail(self):
         from PySide6.QtWidgets import QProgressBar
         from app.modules.encyclopedia.widgets.achievement_summary_widget import (

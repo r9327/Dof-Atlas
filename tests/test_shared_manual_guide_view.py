@@ -33,6 +33,23 @@ class SharedGuideManualViewThemeTests(unittest.TestCase):
             self.assertNotIn("setHorizontalScrollBarPolicy", fragment)
             self.assertNotIn("setWidgetResizable", fragment)
 
+    def test_validation_projection_preserves_outer_signal_block(self):
+        from PySide6.QtWidgets import QApplication, QPushButton
+        app = QApplication.instance() or QApplication([])
+        button = QPushButton()
+        button.setCheckable(True)
+        probe = SimpleNamespace(
+            _validation_status=lambda card, index: [],
+            service=SimpleNamespace(),
+        )
+        try:
+            for previous in (True, False):
+                button.blockSignals(previous)
+                SharedGuideManualView._sync_validation_control(probe, button, {}, 0)
+                self.assertEqual(button.signalsBlocked(), previous)
+        finally:
+            button.deleteLater()
+
     def test_participant_progress_uses_shared_clamped_calculation(self):
         probe = SimpleNamespace(service=SimpleNamespace(route_sheet_progress=lambda key: (3, 4)))
         self.assertEqual(SharedGuideManualView._participant_progress(probe, "character:1"), 75)
