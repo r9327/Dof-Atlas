@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from copy import deepcopy
+from threading import RLock
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 from app.constants import KEY_SELECTED_CHARACTER, KEY_TOPMOST, PROFILE_FILE
 from app.core.character_identity import require_character_key
+from app.core.file_stamp import resolved_file_revision
 from app.core.json_store import read_json_validated, _write_json_atomic_unchecked
 from app.core.progress_coordinator import coordinator_for
 
 
 ProfileMutator = Callable[[dict[str, Any]], None]
+_FIELD_CACHE_LOCK = RLock()
+_FIELD_CACHE: OrderedDict[tuple[object, ...], dict[str, Any]] = OrderedDict()
+_FIELD_CACHE_LIMIT = 16
 
 
 class ProfileSettingsService:
@@ -40,6 +46,44 @@ class ProfileSettingsService:
                 self._profile_schema_error,
             )
             return deepcopy(self._coerce_payload(payload, default))
+
+    def load_fields(
+        self, keys: Iterable[str], default: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Read a small strict projection without retaining the full profile.
+
+        The cache is shared across live readers and keyed by the disk revision
+        plus the coordinator generation. Missing/corrupt files never seed it.
+        Mutations still reload and validate the complete document from disk.
+        """
+        fields = tuple(dict.fromkeys(str(key) for key in keys))
+        if not fields:
+            return {}
+        coordinator = coordinator_for(self.profile_path)
+        with coordinator.lock:
+            identity, revision = resolved_file_revision(self.profile_path)
+            generation = coordinator.generation
+            key = (identity, revision, generation, fields)
+            if revision is not None:
+                with _FIELD_CACHE_LOCK:
+                    cached = _FIELD_CACHE.get(key)
+                    if cached is not None:
+                        _FIELD_CACHE.move_to_end(key)
+                        return deepcopy(cached)
+            payload = read_json_validated(
+                self.profile_path, dict(default or {}), self._profile_schema_error,
+            )
+            projected = {field: payload[field] for field in fields if field in payload}
+            if revision is not None and resolved_file_revision(self.profile_path) == (identity, revision):
+                with _FIELD_CACHE_LOCK:
+                    for old in tuple(_FIELD_CACHE):
+                        if old[0] == identity and old[1:3] != key[1:3]:
+                            _FIELD_CACHE.pop(old)
+                    _FIELD_CACHE[key] = deepcopy(projected)
+                    _FIELD_CACHE.move_to_end(key)
+                    while len(_FIELD_CACHE) > _FIELD_CACHE_LIMIT:
+                        _FIELD_CACHE.popitem(last=False)
+            return deepcopy(projected)
 
     def mutate(
         self,

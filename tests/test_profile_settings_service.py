@@ -11,6 +11,30 @@ from app.services.profile_settings_service import ProfileSettingsService
 
 
 class ProfileSettingsServiceTests(unittest.TestCase):
+    def test_field_projection_reuses_reads_but_not_defaults_or_stale_revisions(self):
+        from unittest.mock import patch
+        from app.core.json_store import InvalidPersistentJsonError, read_json_validated
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "profile.json"
+            first, second = ProfileSettingsService(path), ProfileSettingsService(path)
+            self.assertEqual(first.load_fields(("x",), {"x": [1]}), {"x": [1]})
+            self.assertEqual(second.load_fields(("x",), {"x": [2]}), {"x": [2]})
+            path.write_text(json.dumps({"x": [3], "unrelated": "keep"}))
+            with patch("app.services.profile_settings_service.read_json_validated", wraps=read_json_validated) as read:
+                result = first.load_fields(("x",))
+                result["x"].append(999)
+                self.assertEqual(second.load_fields(("x",)), {"x": [3]})
+                read.assert_called_once()
+                second.set_value("x", [4])
+                self.assertEqual(first.load_fields(("x",)), {"x": [4]})
+                path.write_text('{"x":[5,6]}')
+                self.assertEqual(first.load_fields(("x",)), {"x": [5, 6]})
+                path.write_text("broken")
+                with self.assertRaises(InvalidPersistentJsonError):
+                    first.load_fields(("x",))
+                path.write_text('{"x":[7]}')
+                self.assertEqual(first.load_fields(("x",)), {"x": [7]})
+
     def test_independent_writers_preserve_each_others_changes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             profile_path = Path(temp_dir) / "profiles.json"

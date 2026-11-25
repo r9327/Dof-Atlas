@@ -12,7 +12,7 @@ from app.constants import (
     NETWORK_CHARACTER_BINDINGS_FILE,
     PROFILE_FILE,
 )
-from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero, file_revision
 from app.services.character_order_logic import (
     load_character_order, clear_character_order_cache, sort_character_rows,
 )
@@ -64,6 +64,10 @@ def quest_character_source_signature(
         _file_stamp(resolved_binding),
         slot_count,
         bool(connected_only),
+        # Preserve the historical signature fields while also detecting an
+        # atomic replacement with preserved size/timestamps on Windows.
+        file_revision(client_index_path),
+        file_revision(resolved_binding),
     )
 
 
@@ -109,7 +113,9 @@ def cached_load_quest_characters(
     # Avoid caching a roster read across a concurrent client/binding rewrite.
     # The logical order remains the single captured snapshot for this call.
     if (_file_stamp(client_index_path) != signature[3]
-            or _file_stamp(_resolved_binding_path(profile_path, client_index_path, binding_path)) != signature[5]):
+            or _file_stamp(_resolved_binding_path(profile_path, client_index_path, binding_path)) != signature[5]
+            or file_revision(client_index_path) != signature[8]
+            or file_revision(_resolved_binding_path(profile_path, client_index_path, binding_path)) != signature[9]):
         return _clone_characters(frozen)
     with _LOCK:
         cached = _CACHE.get(signature)

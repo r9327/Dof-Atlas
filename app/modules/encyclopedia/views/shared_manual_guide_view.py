@@ -972,8 +972,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             button.setChecked(character.key in selected)
             icon_path, class_label = self._participant_icon(character)
             if icon_path:
-                button.setIcon(QIcon(icon_path))
-            else:
+                from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(icon_path), button.iconSize())
+                if not pixmap.isNull():
+                    button.setIcon(QIcon(pixmap))
+            if button.icon().isNull():
                 button.setIcon(
                     _guide_symbol_icon(button, "people", color=PALETTE["TEXT_SOFT"])
                 )

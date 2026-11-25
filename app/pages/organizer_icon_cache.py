@@ -5,14 +5,14 @@ from threading import RLock
 from typing import Any
 
 from app.constants import NETWORK_CHARACTER_BINDINGS_FILE
-from app.core.file_stamp import resolved_mtime_size_stamp as _file_stamp
+from app.core.file_stamp import resolved_file_revision as _file_stamp
 from app.network.character_resolver import merge_verified_binding_classes
 from app.pages import organizer_page as _organizer_page
 from app.pages.organizer.common import client_class_candidates
 
 
 _LOCK = RLock()
-_SOURCE_STAMP: tuple[tuple[str, int, int], tuple[str, int, int]] | None = None
+_SOURCE_STAMP: tuple[tuple[str, tuple[int, int, int, int] | None], tuple[str, tuple[int, int, int, int] | None]] | None = None
 _CLASS_BY_CHARACTER: dict[str, str] = {}
 _ICON_BY_CLASS: dict[str, Path] = {}
 _PRESERVE_SIGNATURE: tuple[object, ...] | None = None
@@ -56,18 +56,18 @@ def _collect_binding_candidates(payload: object, candidates: dict[str, set[str]]
             _add_candidate(candidates, row.get("name"), row.get("class_key"))
 
 
-def _source_stamp() -> tuple[tuple[str, int, int], tuple[str, int, int]]:
+def _source_stamp() -> tuple[tuple[str, tuple[int, int, int, int] | None], tuple[str, tuple[int, int, int, int] | None]]:
     return (_file_stamp(_client_index_path()), _file_stamp(_binding_path()))
 
 
 def _rebuild_character_class_cache(
-    stamp: tuple[tuple[str, int, int], tuple[str, int, int]],
+    stamp: tuple[tuple[str, tuple[int, int, int, int] | None], tuple[str, tuple[int, int, int, int] | None]],
 ) -> None:
     global _SOURCE_STAMP, _CLASS_BY_CHARACTER
 
     candidates: dict[str, set[str]] = {}
-    client_payload = _organizer_page.read_json(_client_index_path(), {"clients": []})
-    binding_payload = _organizer_page.read_json(_binding_path(), {"slots": {}})
+    client_payload = _organizer_page.read_json(_client_index_path(), None)
+    binding_payload = _organizer_page.read_json(_binding_path(), None)
     _collect_client_candidates(client_payload, candidates)
     _collect_binding_candidates(binding_payload, candidates)
 
@@ -76,7 +76,14 @@ def _rebuild_character_class_cache(
         for character_key, class_keys in candidates.items()
         if len(class_keys) == 1
     }
-    _SOURCE_STAMP = stamp
+    # A failed existing-file read or a concurrent source replacement must
+    # never pin a fallback class map under a valid revision.
+    stable = _source_stamp() == stamp
+    valid = all(revision is None or isinstance(payload, dict)
+                for (_, revision), payload in zip(stamp, (client_payload, binding_payload)))
+    _SOURCE_STAMP = stamp if stable and valid else None
+    if not stable:
+        _CLASS_BY_CHARACTER = {}
 
 
 def _live_session_class_candidates(sessions: list[dict[str, Any]] | None) -> dict[str, set[str]]:

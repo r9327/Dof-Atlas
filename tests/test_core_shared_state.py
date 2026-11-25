@@ -407,6 +407,23 @@ class CoreSharedStateTests(unittest.TestCase):
         self.assertEqual([ident for ident, _ in iter_verified_character_bindings(payload, include_legacy_slots=True)], [1, 2, 22])
         self.assertEqual(list(iter_verified_character_bindings(None)), [])
 
+    def test_full_file_revision_distinguishes_atomic_replacement_with_preserved_mtime(self):
+        import os
+        from app.core.file_stamp import file_revision, resolved_file_revision
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "source.json"
+            self.assertIsNone(file_revision(path))
+            path.write_bytes(b"old")
+            before = file_revision(path)
+            stat = path.stat()
+            replacement = root / "replacement.json"
+            replacement.write_bytes(b"new")
+            os.utime(replacement, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+            replacement.replace(path)
+            self.assertNotEqual(file_revision(path), before)
+            self.assertEqual(resolved_file_revision(path), (str(path.resolve()), file_revision(path)))
+
     def test_file_stamps_match_existing_cache_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index.json"

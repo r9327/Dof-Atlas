@@ -50,6 +50,25 @@ def size_mtime_ctime_inode_stamp(path: Path) -> tuple[int, int, int, int]:
     return (int(stat.st_size), int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_ino))
 
 
+def file_revision(path: Path | None) -> tuple[int, int, int, int] | None:
+    """Optional full file generation for caches exposed to atomic replacements."""
+    if path is None:
+        return None
+    try:
+        return size_mtime_ctime_inode_stamp(Path(path))
+    except OSError:
+        return None
+
+
+def resolved_file_revision(path: Path) -> tuple[str, tuple[int, int, int, int] | None]:
+    target = Path(path)
+    try:
+        identity = str(target.resolve())
+    except OSError:
+        identity = str(target.absolute())
+    return identity, file_revision(target)
+
+
 def source_file_sizes(
     root: Path,
     files: Iterable[tuple[str, str]],

@@ -10,6 +10,7 @@ from app.constants import (
 )
 from app.core.character_identity import character_key, is_character_key, iter_verified_character_bindings
 from app.core.json_store import read_json_resilient
+from app.core.file_stamp import file_revision
 from app.core.profile_settings import default_profiles
 from app.quest_catalog import QuestCharacter
 from app.pages.quest_character_cache import cached_load_quest_characters as load_quest_characters
@@ -29,27 +30,46 @@ class GuideParticipantService:
         self.client_index_path = Path(client_index_path)
         self.binding_path = Path(binding_path)
         self.settings = ProfileSettingsService(self.profile_path)
+        self._verified_snapshot: tuple[tuple[int, int, int, int], frozenset[str]] | None = None
 
-    def _verified_keys(self) -> set[str]:
-        """Only network-proven identities are eligible as Guide participants."""
-        payload = read_json_resilient(self.binding_path, {})
-        return {
-            character_key(ident)
-            for ident, _row in iter_verified_character_bindings(payload, include_legacy_slots=True)
-        }
+    def _verified_keys(self) -> frozenset[str]:
+        """Reuse only stable, successful network identity reads; fail closed."""
+        for _attempt in range(2):
+            revision = file_revision(self.binding_path)
+            if revision is None:
+                self._verified_snapshot = None
+                return frozenset()
+            cached = self._verified_snapshot
+            if cached is not None and cached[0] == revision:
+                return cached[1]
+            payload = read_json_resilient(self.binding_path, None)
+            if file_revision(self.binding_path) != revision:
+                continue
+            if not isinstance(payload, dict):
+                self._verified_snapshot = None
+                return frozenset()
+            keys = frozenset(
+                character_key(ident)
+                for ident, _row in iter_verified_character_bindings(payload, include_legacy_slots=True)
+            )
+            self._verified_snapshot = (revision, keys)
+            return keys
+        self._verified_snapshot = None
+        return frozenset()
 
     def available_characters(self) -> tuple[QuestCharacter, ...]:
-        verified = self._verified_keys()
-        return tuple(
-            row
-            for row in load_quest_characters(
-                self.profile_path,
-                self.client_index_path,
-                binding_path=self.binding_path,
-                connected_only=False,
+        for _attempt in range(2):
+            revision = file_revision(self.binding_path)
+            verified = self._verified_keys()
+            if not verified:
+                return ()
+            rows = load_quest_characters(
+                self.profile_path, self.client_index_path,
+                binding_path=self.binding_path, connected_only=False,
             )
-            if row.key in verified
-        )
+            if revision == file_revision(self.binding_path):
+                return tuple(row for row in rows if row.key in verified)
+        return ()
 
     def _validated_selected_keys(self, values) -> tuple[str, ...]:
         """Single filter for selection read/write; keep offline verified IDs."""
@@ -64,7 +84,7 @@ class GuideParticipantService:
         return tuple(selected)
 
     def selected_keys(self) -> tuple[str, ...]:
-        payload = self.settings.load(default_profiles())
+        payload = self.settings.load_fields((KEY_GUIDE_PARTICIPANTS,), default_profiles())
         values = payload.get(KEY_GUIDE_PARTICIPANTS, [])
         if not isinstance(values, list):
             return ()

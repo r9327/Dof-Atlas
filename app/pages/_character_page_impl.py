@@ -32,7 +32,7 @@ from app.network.character_runtime_state import (
     CharacterRuntimeStateStore,
     character_runtime_state,
 )
-from app.core.file_stamp import resolved_mtime_size_stamp, mtime_ctime_size_stamp
+from app.core.file_stamp import resolved_mtime_size_stamp, mtime_ctime_size_stamp, resolved_file_revision
 from app.core.numbers import format_grouped_int
 from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
 from app.quest_catalog import QuestCharacter
@@ -402,10 +402,10 @@ class CharacterPage(QWidget):
         )
 
         signature = (
-            tuple((row.key, row.label, row.connected) for row in self.characters),
+            tuple((row.key, row.label, row.connected, row.class_key) for row in self.characters),
             self.character_order_service.load_order(),
-            self._file_stamp(self.client_index_path),
-            self._file_stamp(self.binding_path),
+            resolved_file_revision(self.client_index_path),
+            resolved_file_revision(self.binding_path),
         )
         if signature != self._character_list_signature:
             self._character_list_signature = signature

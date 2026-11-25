@@ -10,6 +10,42 @@ from app.services.guide_participant_service import GuideParticipantService
 
 
 class GuideParticipantServiceTests(unittest.TestCase):
+    def test_verified_projection_reuses_success_and_retries_transient_failure(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            payload = {"characters": {"1": {"name": "Alpha", "source": "verified_network_identity"}}}
+            bindings.write_text(json.dumps(payload))
+            profile = root / "profile.json"
+            profile.write_text(json.dumps({KEY_GUIDE_PARTICIPANTS: ["character:1"]}))
+            service = GuideParticipantService(profile, root / "clients.json", bindings)
+            with patch("app.services.guide_participant_service.read_json_resilient",
+                       side_effect=[None, payload]) as read:
+                self.assertEqual(service.selected_keys(), ())
+                self.assertEqual(service.selected_keys(), ("character:1",))
+                self.assertEqual(service.selected_keys(), ("character:1",))
+                self.assertEqual(read.call_count, 2)
+            bindings.write_text('{"characters":{}}')
+            self.assertEqual(service.selected_keys(), ())
+            self.assertEqual(service.available_characters(), ())
+
+    def test_participant_roster_does_not_publish_revoked_identity_during_read(self):
+        from unittest.mock import patch
+        from app.quest_catalog import QuestCharacter
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            bindings.write_text(json.dumps({"characters": {"1": {
+                "name": "Alpha", "source": "verified_network_identity",
+            }}}))
+            service = GuideParticipantService(root / "profile.json", root / "clients.json", bindings)
+            def stale_roster(*args, **kwargs):
+                bindings.write_text('{"characters":{}}')
+                return [QuestCharacter("character:1", "Alpha", 1, True)]
+            with patch("app.services.guide_participant_service.load_quest_characters", side_effect=stale_roster):
+                self.assertEqual(service.available_characters(), ())
+
     def test_selection_persists_canonical_ids_and_keeps_offline_characters(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
