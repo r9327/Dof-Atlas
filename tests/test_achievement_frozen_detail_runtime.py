@@ -57,27 +57,30 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
                         child.assert_not_called()
                         self.assertEqual(compact.call_count, int(valid))
 
-    def test_windows_exe_prepares_success_details_during_runtime_warmup(self) -> None:
-        provider = self._provider(Path(RAW_QUEST_DATA_DIR))
-        with (
-            patch.object(sys, "frozen", True, create=True),
-            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded") as loaded,
-            patch.object(MemoryBoundAchievementProvider, "prepare_detail_sources") as prepared,
-        ):
-            provider.load_runtime()
-            loaded.assert_called_once_with()
-            prepared.assert_called_once_with()
-
-    def test_development_subprocess_runtime_keeps_details_cold(self) -> None:
-        provider = self._provider(Path(RAW_QUEST_DATA_DIR))
-        with (
-            patch.object(sys, "frozen", False, create=True),
-            patch.object(MemoryBoundAchievementProvider, "_ensure_loaded") as loaded,
-            patch.object(MemoryBoundAchievementProvider, "prepare_detail_sources") as prepared,
-        ):
-            provider.load_runtime()
-            loaded.assert_called_once_with()
-            prepared.assert_not_called()
+    def test_runtime_keeps_details_cold_even_when_they_need_an_in_process_index(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            for frozen, data_dir, needs_index in (
+                (True, RAW_QUEST_DATA_DIR, True),
+                (False, RAW_QUEST_DATA_DIR, False),
+                (False, Path(directory), True),
+            ):
+                with self.subTest(frozen=frozen, needs_index=needs_index):
+                    provider = MemoryBoundAchievementProvider(data_dir=data_dir)
+                    marker = object()
+                    with (
+                        patch.object(sys, "frozen", frozen, create=True),
+                        patch.object(provider, "_ensure_loaded") as loaded,
+                        patch.object(provider, "prepare_detail_sources") as prepared,
+                        patch.object(provider, "_get_detail_in_process", return_value=marker) as reader,
+                    ):
+                        provider.load_runtime()
+                        loaded.assert_called_once_with()
+                        prepared.assert_not_called()
+                        self.assertEqual(provider.detail_source_index_required(), needs_index)
+                        if needs_index:
+                            self.assertIs(provider.get_detail_by_id(321), marker)
+                            prepared.assert_called_once_with()
+                            reader.assert_called_once_with(321)
 
     def test_windows_frozen_detail_does_not_spawn_console_or_worker(self) -> None:
         provider = MemoryBoundAchievementProvider(data_dir=RAW_QUEST_DATA_DIR)
@@ -165,18 +168,6 @@ class AchievementFrozenDetailRuntimeTests(unittest.TestCase):
         self.assertEqual(provider._recent_rich_details, {})
         self.assertEqual(provider.last_cold_detail_breakdown_ms, {})
         self.assertEqual(provider._last_detail_cache_source, "cold")
-
-    def test_nonstandard_runtime_data_directory_uses_in_process_details(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            provider = self._provider(Path(directory))
-            with (
-                patch.object(sys, "frozen", False, create=True),
-                patch.object(MemoryBoundAchievementProvider, "_ensure_loaded") as loaded,
-                patch.object(MemoryBoundAchievementProvider, "prepare_detail_sources") as prepared,
-            ):
-                provider.load_runtime()
-                loaded.assert_called_once_with()
-                prepared.assert_called_once_with()
 
 
 if __name__ == "__main__":

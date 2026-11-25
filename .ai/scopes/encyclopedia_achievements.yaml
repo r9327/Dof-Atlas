@@ -2,6 +2,7 @@ schema_version: 1
 scope: encyclopedia_achievements
 kind: feature
 working_set:
+  - tests/test_achievement_frozen_detail_runtime.py
   - app/modules/encyclopedia/views/achievements_view.py
   - app/modules/encyclopedia/achievement_catalog_policy.py
   - app/modules/encyclopedia/providers/achievement_provider.py
