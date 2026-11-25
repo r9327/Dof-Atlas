@@ -693,7 +693,7 @@ class HomePage(QWidget):
                 state == "error"
                 or reason == "capture_ready_waiting_context"
                 or state == "idle" and reason in {
-                    "no_window_handles", "build_fingerprint_unavailable",
+                    "no_window_handles", "build_fingerprint_unavailable", "runtime_stopped",
                 }
             )
         )
@@ -740,6 +740,9 @@ class HomePage(QWidget):
             "mapping_ambiguous_exact_match": "Plusieurs profils réseau correspondent au client : sélection automatique bloquée.",
             "quest_snapshot_missed": "Journal des quêtes non reçu pendant la calibration.",
             "stop_failed": "Arrêt de la capture non confirmé : vérifier le processus avant de réessayer.",
+            "capture_helper_cleanup_failed": "Arrêt de la capture non confirmé : le processus Windows doit être vérifié.",
+            "coordinator_cleanup_failed": "Arrêt de la capture non confirmé : vérifier les composants réseau avant toute relance.",
+            "runtime_stopped": "Suivi automatique hors ligne : relancer la capture si nécessaire.",
             "no_window_handles": "Aucune fenêtre DOFUS suivie détectée.",
             "build_fingerprint_unavailable": "Identification de la version de DOFUS indisponible.",
             "build_fingerprint_error": "Erreur pendant l'identification de la version DOFUS. Réessayer la connexion.",

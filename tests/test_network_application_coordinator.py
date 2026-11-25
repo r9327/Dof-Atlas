@@ -695,6 +695,27 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             capture.assert_called_once_with()
         self.assertTrue(coordinator._stop_event.is_set())
 
+    def test_worker_crash_cleanup_failure_is_terminal_for_capture_retries(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        for cleanup_ok in (True, False):
+            with self.subTest(cleanup_ok=cleanup_ok):
+                coordinator._last_status = NetworkApplicationStatus(True, False, "running")
+                with (
+                    patch.object(coordinator._commands, "get", side_effect=RuntimeError("worker fault")),
+                    patch.object(coordinator.calibration, "stop", return_value=True),
+                    patch.object(coordinator.runtime, "stop", return_value=True),
+                    patch.object(coordinator, "_close_capture_source", return_value=cleanup_ok),
+                    patch.object(coordinator.logger, "exception"),
+                ):
+                    coordinator._run()
+                status = coordinator.latest_status()
+                self.assertFalse(status.running)
+                self.assertFalse(status.calibrating)
+                self.assertEqual(status.reason, "coordinator_error" if cleanup_ok else "coordinator_cleanup_failed")
+                if not cleanup_ok:
+                    self.assertFalse(coordinator.start_worker())
+                    self.assertFalse(coordinator.request_prepare_capture())
+
     def test_worker_finally_closes_capture_even_after_runtime_stop_error(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         coordinator._stop_event.set()

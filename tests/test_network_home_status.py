@@ -96,7 +96,7 @@ class NetworkHomeStatusTests(unittest.TestCase):
                 )
 
     def test_waiting_and_error_states_remain_short_but_distinct(self) -> None:
-        for reason in ("waiting_context", "stopped"):
+        for reason in ("waiting_context", "stopped", "runtime_stopped"):
             with self.subTest(reason=reason):
                 self.assertEqual(
                     HomePage._network_summary(self._status(reason=reason)),

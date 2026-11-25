@@ -95,6 +95,43 @@ class FakeHelperLauncher:
 
 
 class NetworkElevatedCaptureTests(unittest.TestCase):
+    def test_unconfirmed_helper_exit_retains_process_and_blocks_new_launch(self) -> None:
+        from unittest.mock import Mock
+
+        process = Mock()
+        process.wait.side_effect = [False, False, True]
+        launcher = Mock()
+        source = ElevatedWindowsProtocolSource(lambda: (), helper_launcher=launcher)
+        source._process = process
+        with self.assertRaisesRegex(NetworkCaptureStartError, "capture_helper_cleanup_failed"):
+            source.close()
+        self.assertIs(source._process, process)
+        self.assertFalse(source.is_started)
+        process.terminate.assert_called_once_with()
+        process.close.assert_not_called()
+        with self.assertRaisesRegex(NetworkCaptureStartError, "capture_helper_cleanup_failed"):
+            source.start()
+        launcher.assert_not_called()
+        source.close()
+        self.assertIsNone(source._process)
+        process.close.assert_called_once_with()
+
+    def test_failed_pause_does_not_report_prepared_capture(self) -> None:
+        from unittest.mock import Mock
+        source = ElevatedWindowsProtocolSource(lambda: (), keep_helper_alive=True)
+        source._connected = True
+        source._started = True
+        source._connection = Mock()
+        source._process = Mock()
+        source._process.wait.return_value = True
+        with patch.object(source, "_wait_for_control_frame",
+                          side_effect=NetworkCaptureStartError("capture_helper_timeout")):
+            with self.assertRaisesRegex(NetworkCaptureStartError, "capture_helper_pause_failed"):
+                source.stop()
+        self.assertFalse(source.is_started)
+        self.assertIsNone(source._process)
+        self.assertEqual(source.start_failure_reason, "capture_helper_pause_failed")
+
     def test_capture_helper_import_does_not_hydrate_application_stacks(self) -> None:
         root = Path(__file__).resolve().parents[1]
         modules = (

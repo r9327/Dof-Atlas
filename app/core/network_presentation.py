@@ -27,7 +27,7 @@ def network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
         or "ambiguous" in reason
     ):
         return "Attention requise", "error"
-    if reason in {"waiting_context", "stopped"}:
+    if reason in {"waiting_context", "stopped", "runtime_stopped"}:
         # No verified capture is active. Never describe a disconnected
         # network bridge as merely "preparing" indefinitely.
         return "Hors ligne", "idle"

@@ -171,7 +171,7 @@ class NetworkApplicationCoordinator:
 
     def start_worker(self) -> bool:
         with self._lock:
-            if self._shutdown_requested:
+            if self._shutdown_requested or not capture_retry_allowed(self._last_status.reason):
                 return False
             if self.is_worker_running:
                 return True
@@ -297,18 +297,7 @@ class NetworkApplicationCoordinator:
         with self._lock:
             self._shutdown_requested = True
             self._stop_event.set()
-        with self._operation_lock:
-            try:
-                calibration_stopped = bool(self.calibration.stop())
-            except Exception:
-                self.logger.exception("Network calibration cleanup failed.")
-                calibration_stopped = False
-            try:
-                runtime_stopped = bool(self.runtime.stop())
-            except Exception:
-                self.logger.exception("Network runtime cleanup failed.")
-                runtime_stopped = False
-            capture_stopped = self._close_capture_source()
+        components_stopped = self._stop_capture_components()
         with self._lock:
             self._calibration_pending = False
             thread = self._thread
@@ -320,7 +309,7 @@ class NetworkApplicationCoordinator:
                 self._thread = None
         if not worker_stopped:
             self.logger.error("Network coordinator did not stop within timeout.")
-        stopped = calibration_stopped and runtime_stopped and capture_stopped and worker_stopped
+        stopped = components_stopped and worker_stopped
         # A terminal shutdown owns the authoritative status, including callers
         # outside Qt. Old active notifications must not survive the shutdown.
         with self._lock:
@@ -365,18 +354,31 @@ class NetworkApplicationCoordinator:
         finally:
             # Always attempt every cleanup step, even if a calibration
             # controller raises while a background worker is exiting.
-            with self._operation_lock:
-                try:
-                    self.calibration.stop()
-                except Exception:
-                    self.logger.exception("Network calibration final cleanup failed.")
-                try:
-                    self.runtime.stop()
-                except Exception:
-                    self.logger.exception("Network runtime final cleanup failed.")
-                self._close_capture_source()
+            stopped = self._stop_capture_components()
             with self._lock:
                 self._calibration_pending = False
+                terminal_shutdown = self._shutdown_requested
+            if not terminal_shutdown and not self._stop_event.is_set():
+                # A dead worker cannot continue to advertise an active reader.
+                # A failed cleanup also prohibits every restart path.
+                reason = "coordinator_error" if stopped else "coordinator_cleanup_failed"
+                self._publish_status(NetworkApplicationStatus(False, False, reason))
+
+    def _stop_capture_components(self) -> bool:
+        """Both explicit shutdown and worker failure use one cleanup contract."""
+        with self._operation_lock:
+            try:
+                calibration_stopped = bool(self.calibration.stop())
+            except Exception:
+                self.logger.exception("Network calibration cleanup failed.")
+                calibration_stopped = False
+            try:
+                runtime_stopped = bool(self.runtime.stop())
+            except Exception:
+                self.logger.exception("Network runtime cleanup failed.")
+                runtime_stopped = False
+            capture_stopped = self._close_capture_source()
+        return calibration_stopped and runtime_stopped and capture_stopped
 
     def _close_capture_source(self) -> bool:
         try:
