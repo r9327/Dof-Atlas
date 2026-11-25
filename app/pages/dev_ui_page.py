@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-from PySide6.QtCore import QDate, QEasingCurve, QEvent, QPropertyAnimation, QSize, Qt
+from PySide6.QtCore import QDate, QEasingCurve, QEvent, QPropertyAnimation, Qt
 from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -36,7 +36,6 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QStackedWidget,
     QSplitter,
-    QStyle,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -62,12 +61,8 @@ from app.ui.components import (
     AtlasDialogHeader,
     AtlasPageTitle, AtlasUnavailablePage,
     AtlasPanelToggle,
-    AtlasGuideDisclosure,
-    atlas_guide_arrow_icon,
-    atlas_guide_character_icon,
-    AtlasGuideParticipantButton,
     configure_unity_number_spinbox,
-    AtlasGuideCover, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
+    AtlasGuideReadingHeader, AtlasGuideSheetHeader,
     AtlasGuidePreparationRow, AtlasGuidePreparationPanel, AtlasGuidePreparationSummary,
     AtlasGuideReadingNav, AtlasGuideValidationButton,
     AtlasStatusBadge,
@@ -78,7 +73,7 @@ from app.ui.components import (
     configure_unity_progress_bar, configure_unity_scroll_area, configure_unity_tool_button,
     atlas_guide_symbol_icon, atlas_guide_global_progress_bar,
 )
-from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
+from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.entity_link_roles import entity_link_markup
 from app.ui.unity_palette import (
     UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,

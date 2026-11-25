@@ -6,7 +6,6 @@ from app.modules.encyclopedia.services.guide_catalog_route_stats import (
     catalog_route_map_count_hint,
 )
 from app.modules.encyclopedia.views.guides_view import (
-    GUIDE_ULTIME_LEGACY_ID,
     GuidesView as _BaseGuidesView,
 )
 
