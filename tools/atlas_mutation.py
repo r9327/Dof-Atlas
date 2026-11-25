@@ -73,12 +73,12 @@ MUTANTS: tuple[dict[str, Any], ...] = (
         "id": "persistence_skip_corrupt_backup",
         "module": "app/core/json_store.py",
         "old": (
-            "except (OSError, UnicodeError, json.JSONDecodeError) as exc:\n"
-            "        backup = backup_corrupt_json(target)"
+            "        backup = backup_corrupt_json(target)\n"
+            "        active_logger = logger or LOGGER"
         ),
         "new": (
-            "except (OSError, UnicodeError, json.JSONDecodeError) as exc:\n"
-            "        backup = None"
+            "        backup = None\n"
+            "        active_logger = logger or LOGGER"
         ),
         "probe": _json_corruption_backup,
     },
