@@ -11,6 +11,8 @@ working_set:
   - app/modules/encyclopedia/services/achievement_progress_logic.py
   - app/modules/encyclopedia/widgets/achievement_detail_widget.py
   - app/modules/encyclopedia/widgets/filter_panel.py
+  - tests/test_achievements_view.py
+  - tests/test_encyclopedia_success_detail_prewarm.py
 shared_dependencies:
   - dofus_data
   - persistence_identity

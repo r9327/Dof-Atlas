@@ -585,29 +585,17 @@ QSplitter#AchievementCatalogSplitter::handle {
 
 #EncyclopediaPanel, #GuidesListPanel, #ProgressCard, #RewardCard,
 #ObjectiveRow, #CategoryProgressCard, #EntityLinksPanel,
-#GuideProgressHeader, #GuideSectionWidget,
-#GuideStepWidget, #GuideStepActive, #AchievementContextDetail,
+#AchievementContextDetail,
 #AchievementSummaryWidget, #AchievementRewardWidget, #GuideCompletedSeriesLabel {
     background: @PANEL;
     border: 1px solid @BORDER;
     border-radius: @RADIUS_MD;
 }
 
-#CategoryProgressCard, #RewardCard, #ObjectiveRow, #GuideStepWidget,
+#CategoryProgressCard, #RewardCard, #ObjectiveRow,
 #AchievementContextDetail, #AchievementSummaryWidget, #AchievementRewardWidget {
     background: @PANEL_2;
     border-color: @BORDER_SOFT;
-}
-
-#GuideStepActive {
-    background: @PANEL_2;
-    border: 1px solid @YELLOW;
-}
-
-#GuideStepStatus {
-    color: @YELLOW;
-    font-size: 10px;
-    font-weight: 800;
 }
 
 #GuideChevronButton {
@@ -697,11 +685,6 @@ QSplitter#AchievementCatalogSplitter::handle {
 #StatusBadge[state="neutral"] {
     color: @TEXT_MUTED;
     border-color: @TEXT_MUTED;
-}
-
-#GuideManualStepCheck {
-    color: @TEXT;
-    font-size: @FONT_SMALL;
 }
 
 #EncyclopediaResultList, #GuideResultList {

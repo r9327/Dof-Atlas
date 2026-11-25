@@ -139,17 +139,6 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         finally:
             bar.deleteLater()
 
-    def test_guide_header_uses_common_progress_configuration(self):
-        from app.modules.encyclopedia.widgets.guide_progress_header import GuideProgressHeader
-
-        header = GuideProgressHeader()
-        try:
-            self.assertEqual(header.progress.objectName(), "EncyclopediaProgressBar")
-            self.assertEqual((header.progress.minimum(), header.progress.maximum()), (0, 100))
-            self.assertFalse(header.progress.isTextVisible())
-        finally:
-            header.deleteLater()
-
     def test_shared_progress_bar_preserves_role_range_and_initial_value(self):
         from PySide6.QtWidgets import QProgressBar
         from app.ui.components import configure_unity_progress_bar

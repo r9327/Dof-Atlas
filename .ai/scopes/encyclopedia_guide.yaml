@@ -23,6 +23,17 @@ working_set:
   - app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py
   - tests/test_guide_manual_route_cache.py
   - data/routes/guide_ultime_manual/
+  - app/modules/encyclopedia/tools/audit_quests_guides.py
+  - tests/test_guide_image_memory_policy.py
+  - tests/test_guide_home_async_images.py
+  - tests/test_guide_home_image_cache.py
+  - tests/test_guide_home_image_cache_budget.py
+  - tests/test_guide_canonical_button_imports.py
+  - tests/test_shared_guide_visual_flow_contract.py
+  - app/modules/encyclopedia/views/guide_home_image_cache.py
+  - app/modules/encyclopedia/widgets/guide_progress_header.py
+  - app/modules/encyclopedia/widgets/guide_section_widget.py
+  - app/modules/encyclopedia/widgets/guide_step_widget.py
 shared_dependencies:
   - cartography
   - dofus_data

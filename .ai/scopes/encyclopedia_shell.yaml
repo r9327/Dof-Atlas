@@ -5,6 +5,7 @@ working_set:
   - app/modules/encyclopedia/views/encyclopedia_page.py
   - app/modules/encyclopedia/views/__init__.py
   - app/modules/encyclopedia/constants.py
+  - app/modules/encyclopedia/widgets/__init__.py
 shared_dependencies:
   - dofus_data
   - persistence_identity

@@ -18,10 +18,7 @@ from app.modules.encyclopedia.models import DofusItem, Guide
 from app.modules.encyclopedia.services.guide_source_media import (
     resolved_source_images, source_image_values,
 )
-from app.modules.encyclopedia.views.guide_home_image_cache import (
-    clear_guide_home_image_cache,
-    get_cached_scaled_pixmap,
-)
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.modules.encyclopedia.views.guides_view import GuideHomeCard, SolutionImageLabel
 
 
@@ -48,10 +45,10 @@ class _FakeFuture:
 class GuideHomeAsyncImageTests(unittest.TestCase):
     def setUp(self) -> None:
         self.app = QApplication.instance() or QApplication([])
-        clear_guide_home_image_cache()
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
 
     def tearDown(self) -> None:
-        clear_guide_home_image_cache()
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
 
     @staticmethod
     def _png(path: Path) -> None:
@@ -160,12 +157,12 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
                     replacement.fill(0xFFFF0000)
                     self.assertTrue(replacement.save(str(path), "PNG"))
                     card._finish_async_image(old_image, QSize(30, 30), str(path), original_stamp)
-                    self.assertTrue(get_cached_scaled_pixmap(path, QSize(30, 30)).isNull())
+                    self.assertTrue(ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(path, QSize(30, 30)).isNull())
                     self.assertEqual(len(executor.jobs), 2)
                     callback, args = executor.jobs[-1]
                     callback(*args)
                     self.app.processEvents()
-                    cached = get_cached_scaled_pixmap(path, QSize(30, 30))
+                    cached = ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(path, QSize(30, 30))
                     self.assertFalse(cached.isNull())
                     self.assertEqual(cached.toImage().pixelColor(0, 0).red(), 255)
                 finally:
@@ -223,7 +220,7 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
 
                     self.assertIsNotNone(first_label.pixmap())
                     self.assertFalse(first_label.pixmap().isNull())
-                    cached = get_cached_scaled_pixmap(path, QSize(30, 30))
+                    cached = ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(path, QSize(30, 30))
                     self.assertFalse(cached.isNull())
 
                     second = GuideHomeCard(guide, variant="dofus", progress=(0, 1, "todo"))
@@ -270,8 +267,8 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
                     self.assertIsNotNone(label)
                     self.assertIsNotNone(label.pixmap())
                     self.assertFalse(label.pixmap().isNull())
-                    self.assertTrue(get_cached_scaled_pixmap(corrupt, QSize(30, 30)).isNull())
-                    self.assertFalse(get_cached_scaled_pixmap(valid, QSize(30, 30)).isNull())
+                    self.assertTrue(ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(corrupt, QSize(30, 30)).isNull())
+                    self.assertFalse(ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(valid, QSize(30, 30)).isNull())
                 finally:
                     card.deleteLater()
                     self.app.processEvents()

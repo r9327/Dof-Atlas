@@ -11,7 +11,7 @@ from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import QApplication
 
-from app.modules.encyclopedia.views import guide_home_image_cache
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 
 
 def test_scaled_guide_pixmap_is_reused_without_second_decode() -> None:
@@ -22,20 +22,20 @@ def test_scaled_guide_pixmap_is_reused_without_second_decode() -> None:
         source.fill(QColor("#ffffff"))
         assert source.save(str(path), "PNG")
 
-        guide_home_image_cache.clear_guide_home_image_cache()
-        first = guide_home_image_cache.cached_scaled_pixmap(path, QSize(32, 32))
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
+        first = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(32, 32))
         assert not first.isNull()
 
         with patch.object(
-            guide_home_image_cache,
-            "QPixmap",
+            ENCYCLOPEDIA_IMAGE_SERVICE,
+            "_decode_scaled",
             side_effect=AssertionError("cached guide image decoded again"),
         ):
-            second = guide_home_image_cache.cached_scaled_pixmap(path, QSize(32, 32))
+            second = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(32, 32))
 
         assert not second.isNull()
         assert second.cacheKey() == first.cacheKey()
-        guide_home_image_cache.clear_guide_home_image_cache()
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
         app.processEvents()
 
 
@@ -47,12 +47,12 @@ def test_different_requested_size_uses_distinct_scaled_cache_entry() -> None:
         source.fill(QColor("#ffffff"))
         assert source.save(str(path), "PNG")
 
-        guide_home_image_cache.clear_guide_home_image_cache()
-        small = guide_home_image_cache.cached_scaled_pixmap(path, QSize(20, 20))
-        large = guide_home_image_cache.cached_scaled_pixmap(path, QSize(60, 60))
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
+        small = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(20, 20))
+        large = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(60, 60))
 
         assert small.width() <= 20 and small.height() <= 20
         assert large.width() <= 60 and large.height() <= 60
         assert large.width() > small.width()
-        guide_home_image_cache.clear_guide_home_image_cache()
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
         app.processEvents()

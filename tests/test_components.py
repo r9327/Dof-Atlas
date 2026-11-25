@@ -159,6 +159,8 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertIs(header.content_layout.itemAt(1).widget(), header.participants_panel)
             self.assertIs(header.preparation_bar.parentWidget(), header.preparation_column)
             self.assertIs(header.global_progress_bar.parentWidget(), header.progress_group)
+            self.assertEqual(header.global_progress_bar.objectName(), "GuideGlobalProgress")
+            self.assertFalse(header.global_progress_bar.isTextVisible())
             self.assertIs(header.preparation_column.parentWidget(), header.global_details_panel)
             self.assertIs(header.summary_column.parentWidget(), header.global_details_panel)
             self.assertIs(header.global_details_panel.parentWidget(), header.progress_group)

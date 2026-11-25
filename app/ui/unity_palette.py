@@ -560,14 +560,6 @@ UNITY_MODULE_GEOMETRY_PX = {
         "preparation_detail_margins": (8, 2, 8, 3),
         "overview_cover_box": 44, "overview_cover_artwork": 38,
     },
-    "guide_header": {
-        "cover_box": (82, 82), "cover_artwork": 74,
-        "reward_box": (36, 36), "reward_artwork": 30,
-        "outer_margins": (10, 10, 10, 10), "outer_spacing": 8,
-        "top_spacing": 10, "content_spacing": 4,
-        "progress_spacing": 8, "reward_spacing": 6,
-        "secondary_row_margins": (0, 2, 0, 0),
-    },
     "guide_route": {
         "selector_min_width": 170, "route_icon_box": 34,
         "route_icon_artwork": 21, "detail_max_height": 136,
@@ -642,7 +634,6 @@ UNITY_MODULE_GEOMETRY_OWNERS = {
     "guide_catalog": "app/modules/encyclopedia/views/guide_catalog_view.py",
     "guide_cards": "app/modules/encyclopedia/views/guides_view.py",
     "guide_reading_header": "app/ui/components.py",
-    "guide_header": "app/modules/encyclopedia/widgets/guide_progress_header.py",
     "guide_route": "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
     "world_scan": "app/ui/world_scan_panel.py",
     "world_map": "app/ui/map_canvas_widget.py",

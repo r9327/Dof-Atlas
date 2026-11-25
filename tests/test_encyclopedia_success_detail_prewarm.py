@@ -29,6 +29,7 @@ def page_probe(*, pending_id: int | None):
     receiver = Mock()
     receiver.emit.side_effect = lambda _result: sequence.append("emitted")
     page = _PageProbe(
+        _runtime_released=Event(),
         _achievement_ready=False,
         _achievement_load_started=False,
         _success_runtime_requested=False,

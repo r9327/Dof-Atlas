@@ -50,12 +50,7 @@ from app.modules.encyclopedia.services import (
     QuestGraphService,
     QuestProgressService,
 )
-from app.modules.encyclopedia.services.image_service import read_scaled_image
-from app.modules.encyclopedia.views.guide_image_runtime_policy import SOLUTION_DECODE_MAX_SIZE
-from app.modules.encyclopedia.views.guide_home_image_cache import (
-    get_cached_scaled_pixmap,
-    store_scaled_pixmap,
-)
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE, read_scaled_image
 from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state, guide_progress_style_state
 from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, FixedColumnSplitter
 from app.modules.encyclopedia.widgets.guide_card import (
@@ -80,6 +75,7 @@ from app.ui.unity_palette import (
 )
 
 GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+SOLUTION_DECODE_MAX_SIZE = QSize(1180, 860)
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.services.guide_quest_view_model import (
@@ -480,7 +476,7 @@ class GuideHomeCard(QFrame):
         if not existing:
             return False
         first_path = Path(existing[0])
-        cached = get_cached_scaled_pixmap(first_path, size)
+        cached = ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(first_path, size)
         if not cached.isNull():
             label.setPixmap(cached)
             return True
@@ -511,7 +507,9 @@ class GuideHomeCard(QFrame):
             return
         pixmap = QPixmap.fromImage(image)
         scaled = pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        scaled = store_scaled_pixmap(Path(used_path), size, scaled, source_stamp=stamp)
+        scaled = ENCYCLOPEDIA_IMAGE_SERVICE.store_scaled(
+            Path(used_path), size, scaled, source_stamp=stamp,
+        )
         if not scaled.isNull():
             label.setPixmap(scaled)
 

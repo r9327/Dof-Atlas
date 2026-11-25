@@ -15,6 +15,7 @@ working_set:
   - tests/test_ui_universal_contract.py
   - tests/test_unity_skin.py
   - tools/dev_ui_snapshot.py
+  - tests/test_components.py
 shared_dependencies: []
 context_entries:
   - main.py

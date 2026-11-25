@@ -10,9 +10,6 @@ GUIDE_BUTTON_CONSUMERS = (
     "app/modules/encyclopedia/views/guides_view.py",
     "app/modules/encyclopedia/widgets/dashboard.py",
     "app/modules/encyclopedia/widgets/entity_link_button.py",
-    "app/modules/encyclopedia/widgets/guide_progress_header.py",
-    "app/modules/encyclopedia/widgets/guide_section_widget.py",
-    "app/modules/encyclopedia/widgets/guide_step_widget.py",
 )
 
 

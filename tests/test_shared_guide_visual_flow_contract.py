@@ -17,11 +17,10 @@ class SharedGuideVisualFlowContractTests(unittest.TestCase):
     def test_compact_progress_header_is_built_before_scroll_and_bottom_navigation(self) -> None:
         source = _source()
         progress = source.index("self._build_compact_header(root)")
-        scroll = source.index("self.scroll = QScrollArea()")
-        navigation = source.index("nav = QFrame()")
+        scroll = source.index("self.scroll = configure_unity_scroll_area(")
+        navigation = source.index("nav = AtlasGuideReadingNav()")
         assert progress < scroll < navigation
-        assert "self.route_bar = GuideManualProgressBar()" in source
-        assert 'self.route_bar.setObjectName("GuideManualProgress")' in source
+        assert "header = AtlasGuideReadingHeader(" in source
 
 
     def test_detached_combat_fallback_is_gone(self) -> None:
@@ -41,5 +40,7 @@ class SharedGuideVisualFlowContractTests(unittest.TestCase):
         source = _source()
         assert "GuideManualCombatInlineText" in source
         assert "GuideManualCombatInlineRow" in source
-        assert "rgba(174, 183, 177" in source
+        theme = (ROOT / "app/ui/theme.py").read_text(encoding="utf-8")
+        combat_style = theme.split("QFrame#GuideManualCombatInlineRow {", 1)[1].split("}", 1)[0]
+        assert "background: @GLASS_SUBTLE_SURFACE;" in combat_style
         assert '"GuideManualDungeonSection"' not in source
