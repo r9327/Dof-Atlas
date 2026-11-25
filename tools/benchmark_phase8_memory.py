@@ -899,6 +899,8 @@ def parse_args() -> argparse.Namespace:
                         help="2 canonical CI cycles; use 5-10 for manual Windows retention probes")
     parser.add_argument("--include-heavy-views", action="store_true",
                         help="also repeat Craft and Equipment within each navigation cycle")
+    parser.add_argument("--quest-coverage", action="store_true",
+                        help="collect local Quest source gaps after all timed measurements")
     return parser.parse_args()
 
 
@@ -917,6 +919,23 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+    # The existing Windows proof already materializes the canonical source
+    # inventory. Collect the exact-SHA coverage once, AFTER the sampler and
+    # Qt application have stopped. No new workflow, no changed RSS threshold.
+    if args.quest_coverage or os.environ.get("GITHUB_ACTIONS") == "true":
+        from tools.atlas_doctor_lib.perf import collect_quest_coverage_evidence
+
+        evidence = collect_quest_coverage_evidence(ROOT, payload["metrics"]["git_head"])
+        coverage_path = args.output.with_name("quest_local_coverage.json")
+        coverage_path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n",
+                                 encoding="utf-8")
+        summary = {key: value for key, value in evidence.items() if key != "coverage"}
+        if evidence["status"] == "MEASURED":
+            coverage = evidence["coverage"]
+            summary["quests_considered"] = coverage["quests_considered"]
+            summary["documentary_counts"] = coverage["counts"]
+            summary["native_start_counts"] = coverage["native_start_coverage"]["counts"]
+        print("QUEST_SOURCE_COVERAGE " + json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0
 
 

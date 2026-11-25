@@ -276,6 +276,42 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertNotIn("first_achievement_detail_ms", metrics)
         self.assertEqual(paired["comparison"]["status"], "PASS")
 
+    def test_quest_coverage_evidence_rejects_changed_sha_or_incomplete_inventory(self):
+        from tools.atlas_doctor_lib import perf
+        root = Path("candidate")
+        good = {"quests_considered": 1976, "counts": {},
+                "native_start_coverage": {"quests_considered": 1976, "counts": {}}}
+        with patch.object(perf, "git_state", return_value={"head": "candidate"}), \
+                patch.object(perf, "_local_quest_coverage", return_value=good) as audit:
+            report = perf.collect_quest_coverage_evidence(root, "candidate")
+            self.assertEqual(report, {"status": "MEASURED", "git_head": "candidate",
+                                      "coverage": good})
+            audit.assert_called_once_with(root)
+        with patch.object(perf, "git_state", return_value={"head": "other"}), \
+                patch.object(perf, "_local_quest_coverage") as audit:
+            self.assertEqual(perf.collect_quest_coverage_evidence(root, "candidate")["status"],
+                             "UNAVAILABLE")
+            audit.assert_not_called()
+        with patch.object(perf, "git_state", side_effect=[{"head": "candidate"}, {"head": "other"}]), \
+                patch.object(perf, "_local_quest_coverage", return_value=good):
+            self.assertEqual(perf.collect_quest_coverage_evidence(root, "candidate")["status"],
+                             "UNAVAILABLE")
+        for bad in ({}, {"quests_considered": 0, "native_start_coverage": {"quests_considered": 0}},
+                    {"quests_considered": 1976, "native_start_coverage": {"quests_considered": 1}}):
+            with patch.object(perf, "git_state", return_value={"head": "candidate"}), \
+                    patch.object(perf, "_local_quest_coverage", return_value=bad):
+                self.assertEqual(perf.collect_quest_coverage_evidence(root, "candidate")["status"],
+                                 "UNAVAILABLE")
+
+    def test_quest_coverage_evidence_preserves_subprocess_error(self):
+        from tools.atlas_doctor_lib import perf
+        failure = subprocess.CalledProcessError(1, ["audit"], stderr="Missing native source")
+        with patch.object(perf, "git_state", return_value={"head": "candidate"}), \
+                patch.object(perf, "_local_quest_coverage", side_effect=failure):
+            report = perf.collect_quest_coverage_evidence(Path("candidate"), "candidate")
+        self.assertEqual(report["status"], "UNAVAILABLE")
+        self.assertIn("Missing native source", report["reason"])
+
     def test_attach_baseline_keeps_reproducible_baseline_snapshot(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=100.0, rss_mb=100.0)]

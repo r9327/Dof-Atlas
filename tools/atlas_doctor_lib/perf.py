@@ -398,6 +398,25 @@ def _local_quest_coverage(root: Path) -> dict[str, Any]:
         return json.loads(output.read_text(encoding="utf-8"))
 
 
+def collect_quest_coverage_evidence(root: Path, expected_sha: str) -> dict[str, Any]:
+    """Run the canonical local audit separately from any timed UI/RAM sample."""
+    try:
+        if git_state(root)["head"] != expected_sha:
+            raise ValueError("Quest coverage checkout differs from measured candidate")
+        coverage = _local_quest_coverage(root)
+        if git_state(root)["head"] != expected_sha:
+            raise ValueError("Quest coverage checkout changed during audit")
+        native = coverage.get("native_start_coverage")
+        count = coverage.get("quests_considered")
+        if (type(count) is not int or count <= 0 or not isinstance(native, dict)
+                or native.get("quests_considered") != count):
+            raise ValueError("Quest coverage inventory missing or inconsistent")
+        return {"status": "MEASURED", "git_head": expected_sha, "coverage": coverage}
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        return {"status": "UNAVAILABLE", "git_head": expected_sha,
+                "reason": _baseline_failure_detail(exc)}
+
+
 def run_performance(root: Path, *, include_runtime: bool = True, save: bool = True) -> dict[str, Any]:
     started = time.perf_counter()
     payload: dict[str, Any] = {
@@ -428,10 +447,11 @@ def run_performance(root: Path, *, include_runtime: bool = True, save: bool = Tr
                 payload["same_runner_success"] = {"status": "UNAVAILABLE", "reason": "Candidate runtime failed"}
             # Coverage runs AFTER measurement so its 80 MB source reads never
             # pollute the timed sample or retained runtime memory figures.
-            try:
-                payload["quest_local_coverage"] = _local_quest_coverage(root)
-            except (OSError, ValueError, subprocess.SubprocessError) as exc:
-                payload["quest_local_coverage"] = {"status": "UNAVAILABLE", "reason": str(exc)}
+            coverage_evidence = collect_quest_coverage_evidence(root, payload["git"]["head"])
+            payload["quest_local_coverage"] = (
+                coverage_evidence["coverage"] if coverage_evidence["status"] == "MEASURED"
+                else coverage_evidence
+            )
     payload['duration_ms'] = milliseconds(started)
     if save:
         write_json(root, 'latest_perf', payload, rotate=True)
