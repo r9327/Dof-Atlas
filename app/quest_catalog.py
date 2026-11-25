@@ -26,7 +26,8 @@ from app.core.character_identity import character_id_from_key, is_verified_chara
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.file_stamp import mtime_size_stamp_optional
 from app.core.doduda_rows import array_rows as array_value, rows_by_id, keyed_rows
-from app.core.numbers import optional_int as safe_int
+from app.core.numbers import exact_native_integer, optional_int as safe_int
+from app.core.map_coordinates import canonical_declared_coordinate
 from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
 
@@ -899,11 +900,8 @@ def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]
     for start in starts:
         if not isinstance(start, dict):
             return {}
-        raw_id = start.get("mapId")
-        if type(raw_id) not in (int, str):
-            return {}
-        ident = safe_int(raw_id)
-        if ident is None or ident <= 0:
+        ident = exact_native_integer(start.get("mapId"), (1 << 63) - 1)
+        if ident is None:
             return {}
         ids.add(ident)
     if len(ids) != 1:
@@ -914,7 +912,7 @@ def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]
         type(row.get(key)) not in (int, str) for key in ("posX", "posY")
     ):
         return {}
-    position = map_label(map_id, None, maps)
+    position = canonical_declared_coordinate(f"[{row['posX']},{row['posY']}]")
     if not position:
         return {}
     return {"native_start": {"map_id": map_id, "position": position}}

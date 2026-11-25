@@ -12,7 +12,7 @@ from pathlib import Path
 from collections.abc import Mapping
 from typing import Any, Iterable
 
-from app.constants import DATA_DIR, ROOT_DIR
+from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import QuestGraphService
 from app.modules.encyclopedia.tools.enrich_quests import (
@@ -20,8 +20,8 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     extract_dpln_page_v2,
     request_bytes,
 )
-from app.core.map_coordinates import declared_quest_start
-from app.quest_catalog import normalize_text, read_json_file, write_json_file
+from app.core.map_coordinates import declared_quest_start, quest_launch_position_evidence
+from app.quest_catalog import native_quest_start_evidence, normalize_text, read_json_file, write_json_file
 from app.quest_source_index import QuestSources
 
 
@@ -565,6 +565,52 @@ def local_start_position_coverage(
         "priority_missing_both_quest_ids": priority_missing_both,
         # Pointers to raw local evidence only. This never certifies map data.
         "declared_start_issues": declared_start_issues,
+    }
+
+
+def native_start_coverage(
+    enriched: Mapping[str, Any], quest_ids: Iterable[int],
+    quests: Mapping, maps: Mapping,
+) -> dict[str, Any]:
+    """Count unique native starts separately from the documentary inventory.
+
+    The same native compiler and conflict policy are used by the live reader.
+    Neither an objective hint nor an imported native_start field counts.
+    """
+    counts: Counter[str] = Counter()
+    recovered: list[int] = []
+    needs_review: list[dict[str, Any]] = []
+    for quest_id in sorted(set(int(value) for value in quest_ids)):
+        raw_quest = quests.get(quest_id)
+        native = native_quest_start_evidence(raw_quest, maps) if isinstance(raw_quest, Mapping) else {}
+        row = enriched.get(str(quest_id))
+        row = row if isinstance(row, dict) else {}
+        # Select only documentary declarations; the imported row must not
+        # supply the native provenance field.
+        evidence = {
+            "launch_position": row.get("launch_position"),
+            "source_meta": row.get("source_meta"),
+            **native,
+        }
+        position, status, _ = quest_launch_position_evidence(evidence)
+        counts[status] += 1
+        if native:
+            counts["WITH_UNIQUE_NATIVE_MAP"] += 1
+        else:
+            counts["WITHOUT_UNIQUE_NATIVE_MAP"] += 1
+        if status == "NATIVE_START_DECLARED" and declared_quest_start(row)[1] == "NO_DECLARED_START":
+            recovered.append(quest_id)
+        if status not in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"}:
+            needs_review.append({
+                "quest_id": quest_id, "status": status,
+                "position_for_review": position,
+            })
+    return {
+        "evidence": "LOCAL_NATIVE_AND_DOCUMENTARY_NOT_LIVE_NETWORK_VERIFIED",
+        "quests_considered": counts["WITH_UNIQUE_NATIVE_MAP"] + counts["WITHOUT_UNIQUE_NATIVE_MAP"],
+        "counts": dict(sorted(counts.items())),
+        "recovered_from_native_map_quest_ids": recovered,
+        "needs_review": needs_review,
     }
 
 
@@ -1179,16 +1225,25 @@ def main(argv: list[str] | None = None) -> int:
             coverage = local_start_position_coverage(
                 enriched, quest_ids,
             )
+            # Stay on the same bounded offset-index owner. Required native
+            # source files must exist; do not report false zero coverage.
+            native_coverage = native_start_coverage(
+                enriched, quest_ids,
+                sources.rows(RAW_QUEST_DATA_DIR / "quests.json"),
+                sources.rows(RAW_QUEST_DATA_DIR / "maps_information.json"),
+            )
         finally:
             sources.close()
         payload = {
             "scope": "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS",
             **coverage,
+            "native_start_coverage": native_coverage,
         }
         write_json_file(args.json_output, payload)
         print(json.dumps({
             "quests_considered": coverage["quests_considered"],
             "counts": coverage["counts"],
+            "native_start_counts": native_coverage["counts"],
         }, ensure_ascii=False, indent=2))
         return 0
     payload = build_audit(args.online, max(30, min(args.sample_size, 50)), args.workers, args.refresh, args.cache)

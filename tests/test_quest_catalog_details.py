@@ -67,7 +67,8 @@ class QuestDetailsTests(unittest.TestCase):
             {"startPosition": [{"mapId": 17}, {"mapId": "17"}]}, maps), expected)
         for starts in ([], [{"mapId": 17}, {"mapId": 19}],
                        [{"mapId": 17}, {"mapId": 0}], [{"mapId": True}],
-                       [{"mapId": 17.5}], [{"mapId": 99}], [{"mapId": 20}],
+                       [{"mapId": 17.5}], [{"mapId": "1_7"}],
+                       [{"mapId": 99}], [{"mapId": 20}],
                        [{"mapId": 17}, None]):
             with self.subTest(starts=starts):
                 self.assertEqual(qc.native_quest_start_evidence({"startPosition": starts}, maps), {})

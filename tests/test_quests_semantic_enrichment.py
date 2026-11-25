@@ -43,6 +43,12 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "local_coverage.json"
             sources = Mock()
+            sources.rows.side_effect = lambda path: (
+                {10: {"startPosition": [{"mapId": 1}]},
+                 20: {"startPosition": [{"mapId": 2}]}}
+                if path.name == "quests.json"
+                else {1: {"posX": 3, "posY": 4}, 2: {"posX": -5, "posY": 6}}
+            )
             sources.mapping.return_value = {
                 "10": {
                     "launch_position": {"position": "[3,4]"},
@@ -76,6 +82,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             sources.mapping.assert_called_once_with(
                 mod.ENRICHED_PATH, "quests", required=True,
             )
+            self.assertEqual(sources.rows.call_count, 2)
             sources.close.assert_called_once_with()
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["scope"], "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS")
@@ -86,10 +93,41 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             self.assertEqual(payload["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 1)
             self.assertEqual(payload["missing_instruction_quest_ids"], [20])
             self.assertEqual(payload["priority_missing_both_quest_ids"], [20])
+            native = payload["native_start_coverage"]
+            self.assertEqual(native["quests_considered"], 2)
+            self.assertEqual(native["counts"]["NATIVE_START_DECLARED"], 2)
+            self.assertEqual(native["recovered_from_native_map_quest_ids"], [20])
+            self.assertEqual(native["needs_review"], [])
             self.assertEqual(
                 payload["needs_review"],
                 [{"quest_id": 20, "status": "NO_DECLARED_START"}],
             )
+
+    def test_native_start_audit_separates_recovered_conflicting_and_unresolved_ids(self):
+        from app.modules.encyclopedia.tools.audit_quests_guides_semantic import native_start_coverage
+
+        rows = {
+            "1": {"source_meta": {"startCoords": "[9,9]"}},
+            "2": {"native_start": {"map_id": 10, "position": "[1,2]"}},
+            "4": {"launch_position": {"position": "[7,8]"}},
+            "5": {"source_meta": {"startCoords": "[1,2]"}},
+        }
+        quests = {
+            1: {"startPosition": [{"mapId": 10}]},
+            3: {"startPosition": [{"mapId": 10}]},
+            5: {"startPosition": [{"mapId": 10}]},
+            6: {"startPosition": [{"mapId": 10}, {"mapId": 11}]},
+        }
+        maps = {10: {"posX": 1, "posY": 2}, 11: {"posX": 3, "posY": 4}}
+        report = native_start_coverage(rows, range(1, 7), quests, maps)
+        self.assertEqual(report["quests_considered"], 6)
+        self.assertEqual(report["counts"]["WITH_UNIQUE_NATIVE_MAP"], 3)
+        self.assertEqual(report["counts"]["NATIVE_START_DECLARED"], 2)
+        self.assertEqual(report["counts"]["LOCAL_START_DECLARED"], 1)
+        self.assertEqual(report["counts"]["CONFLICTING_DECLARED_START"], 1)
+        self.assertEqual(report["counts"]["NO_DECLARED_START"], 2)
+        self.assertEqual(report["recovered_from_native_map_quest_ids"], [3])
+        self.assertEqual([row["quest_id"] for row in report["needs_review"]], [1, 2, 6])
 
     def test_local_coverage_closes_sqlite_readers_after_audit_error(self):
         from types import SimpleNamespace
