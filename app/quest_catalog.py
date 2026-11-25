@@ -475,6 +475,7 @@ class QuestCatalog:
                     prerequisites=prerequisites,
                     info=info,
                     steps=steps,
+                    source_info=native_quest_start_evidence(quest, maps),
                     rewards=dedupe_rewards(quest_rewards),
                 )
             )
@@ -885,6 +886,40 @@ def map_label(
     return ""
 
 
+def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]:
+    """Recover a launch coordinate only from a unique explicit game start map.
+
+    Do not promote objective maps, infer a map from a zone, or choose the first
+    of several quest start maps. Preserve the local map ID for provenance.
+    """
+    starts = array_value(quest.get("startPosition"))
+    if not starts:
+        return {}
+    ids: set[int] = set()
+    for start in starts:
+        if not isinstance(start, dict):
+            return {}
+        raw_id = start.get("mapId")
+        if type(raw_id) not in (int, str):
+            return {}
+        ident = safe_int(raw_id)
+        if ident is None or ident <= 0:
+            return {}
+        ids.add(ident)
+    if len(ids) != 1:
+        return {}
+    map_id = next(iter(ids))
+    row = maps.get(map_id)
+    if not isinstance(row, dict) or any(
+        type(row.get(key)) not in (int, str) for key in ("posX", "posY")
+    ):
+        return {}
+    position = map_label(map_id, None, maps)
+    if not position:
+        return {}
+    return {"native_start": {"map_id": map_id, "position": position}}
+
+
 def resolve_objective(
     objective: dict[str, Any],
     objective_type_names: dict[int, str],
@@ -1204,6 +1239,10 @@ def apply_quest_enrichment(records: list[QuestRecord], *, payload=None) -> None:
             required_items.append(normalized_item)
 
         record.source_info = {
+            # Only the native loader owns this evidence; imported documentary
+            # JSON must never be able to manufacture a native start map.
+            **({"native_start": record.source_info["native_start"]}
+               if "native_start" in record.source_info else {}),
             "status": str(row.get("status") or ""),
             "source": str(row.get("source") or ""),
             "source_url": str(row.get("source_url") or ""),

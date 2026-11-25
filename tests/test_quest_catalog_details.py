@@ -55,6 +55,40 @@ class QuestDetailsTests(unittest.TestCase):
         self.assertEqual(qc.map_label(None, {"x": -(2**31) + 1, "y": 0}, {}),
                          "[-2147483647,0]")
 
+    def test_native_quest_start_uses_only_unique_explicit_map_and_survives_enrichment(self):
+        import json
+        from dataclasses import asdict
+
+        maps = {17: {"posX": "-03", "posY": "04"},
+                19: {"posX": 2, "posY": 8},
+                20: {"posX": -(2**31), "posY": 0}}
+        expected = {"native_start": {"map_id": 17, "position": "[-3,4]"}}
+        self.assertEqual(qc.native_quest_start_evidence(
+            {"startPosition": [{"mapId": 17}, {"mapId": "17"}]}, maps), expected)
+        for starts in ([], [{"mapId": 17}, {"mapId": 19}],
+                       [{"mapId": 17}, {"mapId": 0}], [{"mapId": True}],
+                       [{"mapId": 17.5}], [{"mapId": 99}], [{"mapId": 20}],
+                       [{"mapId": 17}, None]):
+            with self.subTest(starts=starts):
+                self.assertEqual(qc.native_quest_start_evidence({"startPosition": starts}, maps), {})
+        self.assertEqual(qc.native_quest_start_evidence(
+            {"startPosition": [{"mapId": 17}]},
+            {17: {"posX": True, "posY": 4}}), {})
+        quest = record(42)
+        quest.source_info = expected
+        qc.apply_quest_enrichment([quest], payload={"quests": {"42": {
+            "native_start": {"map_id": 99, "position": "[99,99]"},
+            "source_meta": {"startCoords": "[-3,4]"},
+        }}})
+        self.assertEqual(quest.source_info["native_start"], expected["native_start"])
+        restored = qc._record_from_cache(json.loads(json.dumps(asdict(quest))))
+        self.assertEqual(restored.source_info["native_start"], expected["native_start"])
+        unverified = record(43)
+        qc.apply_quest_enrichment([unverified], payload={"quests": {"43": {
+            "native_start": {"map_id": 99, "position": "[99,99]"},
+        }}})
+        self.assertNotIn("native_start", unverified.source_info)
+
     def test_compact_quest_id_inventory_preserves_duplicate_titles(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -270,6 +270,29 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "Zone de quête",
         )
 
+    def test_native_start_map_fills_missing_documentary_position_without_guessing(self):
+        from app.core.map_coordinates import quest_launch_position_evidence
+        from app.modules.encyclopedia.services.guide_quest_view_model import quest_start_info
+
+        quest = QuestRecord(44, "Quête locale", "Quêtes", 1, 1, "")
+        quest.source_info = {"native_start": {"map_id": 17, "position": "[-3,4]"}}
+        self.assertEqual(quest_start_info(quest, include_map_images=False).position, "[-3,4]")
+        self.assertEqual(QuestDetailView._start_position_heading(quest, "[-3,4]"),
+                         "Position de lancement (source du jeu)")
+        quest.source_info["source_meta"] = {"startCoords": "[  -03, 04 ]"}
+        self.assertEqual(quest_launch_position_evidence(quest.source_info)[:2],
+                         ("[-3,4]", "NATIVE_START_DECLARED"))
+        quest.source_info["source_meta"] = {"startCoords": "[6,7]"}
+        self.assertEqual(quest_start_info(quest, include_map_images=False).position, "[-3,4]")
+        self.assertEqual(QuestDetailView._start_position_heading(quest, "[-3,4]"),
+                         "Départ à vérifier (sources incohérentes)")
+        quest.source_info["source_meta"] = {"startCoords": "inconnue"}
+        self.assertEqual(QuestDetailView._start_position_heading(quest, "[-3,4]"),
+                         "Départ à vérifier (sources incohérentes)")
+        self.assertEqual(quest_launch_position_evidence({
+            "native_start": {"map_id": True, "position": "[1,2]"},
+        })[0], "")
+
     def test_legacy_quest_links_share_strict_bold_coordinate_contract(self) -> None:
         from PySide6.QtCore import QUrl
         from app.pages._quests_page_impl import linkify_travel_coordinates, travel_command_from_url

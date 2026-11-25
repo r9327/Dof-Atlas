@@ -10,7 +10,7 @@ from typing import Iterable
 from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
-from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, canonical_declared_coordinate, declared_quest_start, travel_command_from_position
+from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, canonical_declared_coordinate, quest_launch_position_evidence, travel_command_from_position
 from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
@@ -719,7 +719,7 @@ def quest_start_info(
     # Normalize local source coordinates once: Guide copy links and /travel
     # expect [x,y], regardless of whitespace or zero-padding in the source.
     # A placeholder must not suppress a valid second source or objective hint.
-    position, _start_status, _declarations = declared_quest_start(source_info)
+    position, _start_status, _declarations = quest_launch_position_evidence(source_info)
     source_zone = clean_text(source_meta.get("zone"))
     zone = next(
         (value for value in quest.zones if source_zone and normalize_text(source_zone) in normalize_text(value)),

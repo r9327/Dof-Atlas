@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.core.map_coordinates import declared_quest_start
+from app.core.map_coordinates import quest_launch_position_evidence
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     ProgressCount,
@@ -259,10 +259,12 @@ class QuestDetailView(QWidget):
         """Do not mislabel an objective coordinate as a proven quest start."""
         if not position:
             return "Zone de quête"
-        _primary, status, source_positions = declared_quest_start(quest.source_info)
+        _primary, status, source_positions = quest_launch_position_evidence(quest.source_info)
         shown = _canonical_source_coordinate(position)
         if not shown or shown not in source_positions:
             return "Position d'objectif (départ non confirmé)"
+        if status == "NATIVE_START_DECLARED":
+            return "Position de lancement (source du jeu)"
         if status != "LOCAL_START_DECLARED":
             return "Départ à vérifier (sources incohérentes)"
         return "Position de lancement"

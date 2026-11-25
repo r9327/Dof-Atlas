@@ -155,6 +155,35 @@ def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]
     return positions[0] or positions[1], status, (positions[0], positions[1])
 
 
+def quest_launch_position_evidence(source_info: object) -> tuple[str, str, tuple[str, ...]]:
+    """Combine native start-map and documentary declarations without guessing.
+
+    Native evidence is compiled only from the local game's explicit
+    startPosition map ID and maps_information row, never from objectives.
+    Contradictory documentary declarations remain visible as review evidence.
+    """
+    primary, status, positions = declared_quest_start(source_info)
+    info = source_info if isinstance(source_info, dict) else {}
+    native = info.get("native_start")
+    map_id = native.get("map_id") if isinstance(native, dict) else None
+    native_position = (
+        canonical_declared_coordinate(native.get("position"))
+        if type(map_id) is int and map_id > 0 else ""
+    )
+    if not native_position:
+        return primary, status, positions
+    declared = (*positions, native_position)
+    if status == "NO_DECLARED_START":
+        return native_position, "NATIVE_START_DECLARED", declared
+    if status == "LOCAL_START_DECLARED":
+        return (
+            native_position,
+            "NATIVE_START_DECLARED" if primary == native_position else "CONFLICTING_DECLARED_START",
+            declared,
+        )
+    return native_position, status, declared
+
+
 def explicit_coordinate_query(value: object) -> tuple[int, int] | None:
     """Read a coordinate search, not arbitrary numbers inside a place name."""
     text = str(value or "").strip()
