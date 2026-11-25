@@ -481,7 +481,7 @@ class SharedThemeTests(unittest.TestCase):
         # solid dark QWidget background when no player data is present.
         from PySide6.QtWidgets import QApplication, QWidget
         from app.pages.character_page import CharacterPage
-        app = QApplication.instance() or QApplication([])
+        _app = QApplication.instance() or QApplication([])
         style = theme.atlas_stylesheet()
         selectors, rule = style.split("QWidget#AtlasTransparentHost,", 1)[1].split("{", 1)
         self.assertIn("QWidget#CharacterEquipmentGrid", selectors)

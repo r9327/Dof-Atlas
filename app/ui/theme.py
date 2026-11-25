@@ -4,14 +4,14 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from app.ui.unity_palette import (
-    GUIDE_ENTITY_LINK_ROLES, UNITY_COLOR_ALIAS_ROLES, UNITY_GLASS_INTENSITY, UNITY_RADII, UNITY_SIZES_PX,
+    UNITY_COLOR_ALIAS_ROLES, UNITY_GLASS_INTENSITY, UNITY_RADII, UNITY_SIZES_PX,
     UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
     UNITY_GUIDE_READING_METRICS_PX,
     resolve_unity_colors, unity_glass_gradient,
 )
 from app.ui.organizer_style import ORGANIZER_STYLE_TEMPLATE
 from app.ui.entity_link_roles import entity_link_colors
-from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
+from app.ui.unity_skin import unity_skin_stylesheet
 
 
 # Palette, typography and spacing are all indexed in the Qt-free Unity

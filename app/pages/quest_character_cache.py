@@ -4,7 +4,6 @@ from collections import OrderedDict
 from dataclasses import replace
 from pathlib import Path
 from threading import RLock
-from typing import Any
 
 from app import quest_catalog as _quest_catalog
 from app.constants import (

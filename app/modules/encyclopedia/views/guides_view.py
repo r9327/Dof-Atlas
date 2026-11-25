@@ -9,7 +9,6 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
-from functools import lru_cache
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal, Slot
@@ -69,13 +68,12 @@ from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, atlas_prerequisite_row, atlas_guide_state_marker,
     AtlasImagePopup, AtlasGuideReadingHeader, clear_unity_widget_layout, configure_unity_tool_button,
     configure_unity_progress_bar, configure_unity_scroll_area,
-    refresh_unity_widget_style, present_transient_dialog,
+    present_transient_dialog,
     set_unity_widget_property,
 )
 from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import (
-    UNITY_CONTROL_SIZES_PX,
     UNITY_GUIDE_READING_METRICS_PX,
     UNITY_MODULE_GEOMETRY_PX,
 )
@@ -84,7 +82,6 @@ GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.services.guide_quest_view_model import (
-        DisplayItem,
         DisplayReward,
         DisplaySolutionBlock,
         SolutionObjective,

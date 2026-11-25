@@ -25,8 +25,8 @@ from PySide6.QtWidgets import (
 
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
-from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair, TRAVEL_URL_RE, travel_command_from_link
-from app.core.numbers import clamped_percent, format_grouped_int, optional_int
+from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair, travel_command_from_link
+from app.core.numbers import format_grouped_int
 from app.core.json_store import InvalidPersistentJsonError
 from app.core.file_stamp import mtime_ctime_size_stamp
 from app.pages.quest_character_cache import cached_load_quest_characters as load_quest_characters
