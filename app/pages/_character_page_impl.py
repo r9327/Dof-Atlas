@@ -694,7 +694,11 @@ class CharacterPage(QWidget):
             self.portrait.setText(self._portrait_placeholder())
         else:
             self.portrait.setText("")
-            self.portrait.setPixmap(pixmap.scaled(width, height, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            target = pixmap.size().scaled(QSize(width, height), Qt.KeepAspectRatio)
+            self.portrait.setPixmap(
+                pixmap if target == pixmap.size()
+                else pixmap.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            )
         self._portrait_signature = signature
 
     def showEvent(self, event) -> None:

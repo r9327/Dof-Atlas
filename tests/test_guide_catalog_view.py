@@ -200,6 +200,24 @@ class GuideCatalogInteractionTests(unittest.TestCase):
         tree.itemActivated.emit(child, 0)
         self.assertEqual(requested, ["region_test"])
 
+    def test_featured_artwork_is_independent_of_progress_refresh(self):
+        from PySide6.QtGui import QPixmap
+        from app.modules.encyclopedia.views.guide_featured_home import FeaturedGuideCard
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cover.png"
+            path.write_bytes(b"old")
+            guide = Guide(id="guide_complet", title="Test", category="aventure", image_path=str(path))
+            card = FeaturedGuideCard("guide_complet", "Test", lambda _id: None)
+            self.addCleanup(card.deleteLater)
+            with patch("app.modules.encyclopedia.views.guide_featured_home.ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled",
+                       return_value=QPixmap(16, 16)) as decode:
+                card.set_guide(guide, (0, 3, "Non commencé"))
+                card.set_guide(guide, (1, 3, "En cours"))
+                self.assertEqual(decode.call_count, 1)
+                path.write_bytes(b"new source")
+                card.set_guide(guide, (1, 3, "En cours"))
+                self.assertEqual(decode.call_count, 2)
+
     def test_featured_mouse_and_keyboard_both_reach_guide_signal(self):
         view = self.make_view()
         requested = []

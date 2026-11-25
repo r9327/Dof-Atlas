@@ -65,6 +65,9 @@ class ImageService:
         key = self._cache_key(Path(path), size)
         if key is None:
             return QPixmap()
+        return self._get_key(key)
+
+    def _get_key(self, key: CacheKey) -> QPixmap:
         with self._lock:
             cached = self._cache.get(key)
             if cached is None:
@@ -95,14 +98,14 @@ class ImageService:
                 self._cache.move_to_end(key)
                 return QPixmap(existing[0])
 
-            if cost <= 0 or self.max_bytes <= 0 or self.max_items <= 0 or cost > self.max_bytes:
-                return pixmap
-
             # Old revisions of this path cannot be reused at any scale.
+            # Purge them even when the replacement exceeds the cache budget.
             for obsolete in tuple(self._cache):
                 if obsolete[0] == key[0] and obsolete[1:4] != key[1:4]:
                     _, old_cost = self._cache.pop(obsolete)
                     self._cache_bytes -= old_cost
+            if cost <= 0 or self.max_bytes <= 0 or self.max_items <= 0 or cost > self.max_bytes:
+                return pixmap
             self._cache[key] = (QPixmap(pixmap), cost)
             self._cache_bytes += cost
             while self._cache and (
@@ -123,11 +126,9 @@ class ImageService:
         path = Path(path)
         key = self._cache_key(path, size)
         if key is not None:
-            with self._lock:
-                cached = self._cache.get(key)
-                if cached is not None:
-                    self._cache.move_to_end(key)
-                    return QPixmap(cached[0])
+            cached = self._get_key(key)
+            if not cached.isNull():
+                return cached
         scaled = self._decode_scaled(path, size)
         if scaled.isNull():
             return QPixmap()
@@ -180,4 +181,5 @@ __all__ = [
     "DEFAULT_IMAGE_CACHE_ITEMS",
     "ENCYCLOPEDIA_IMAGE_SERVICE",
     "ImageService",
+    "read_scaled_image",
 ]

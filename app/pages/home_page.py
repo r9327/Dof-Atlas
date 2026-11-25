@@ -1139,6 +1139,9 @@ class HomePage(QWidget):
         if selected is None:
             self.character_portrait.setIcon(QIcon())
             return
-        self.character_portrait.setIcon(
-            atlas_application_icon() if selected == fallback else QIcon(str(selected))
-        )
+        if selected == fallback:
+            self.character_portrait.setIcon(atlas_application_icon())
+        else:
+            from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+            pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(selected, self.character_portrait.iconSize())
+            self.character_portrait.setIcon(QIcon(pixmap) if not pixmap.isNull() else QIcon())

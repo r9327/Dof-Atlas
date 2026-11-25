@@ -284,6 +284,28 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             counter.deleteLater()
 
+    def test_guide_cover_reuses_bounded_thumbnail_decoder(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtGui import QImage
+        from app.ui.components import AtlasGuideCover
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        cover = AtlasGuideCover()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "cover.png"
+                image = QImage(800, 500, QImage.Format_ARGB32)
+                image.fill(0xFF336699)
+                self.assertTrue(image.save(str(path)))
+                with patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled",
+                                  wraps=ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled) as load:
+                    self.assertTrue(cover.set_artwork(path))
+                    load.assert_called_once_with(path, cover.size())
+                    self.assertLessEqual(cover.pixmap().width(), cover.width())
+                    self.assertLessEqual(cover.pixmap().height(), cover.height())
+        finally:
+            cover.deleteLater()
+
     def test_application_icon_recovers_when_asset_appears_or_changes(self):
         import tempfile
         from pathlib import Path

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from copy import deepcopy
 import difflib
 import inspect
@@ -869,9 +870,13 @@ class IconCache:
     def __init__(self, size: int = 32, max_items: int = 1200):
         self.size = size
         self.max_items = max_items
-        self.cache: dict[str, QIcon] = {}
-        self.order: list[str] = []
+        self.cache: OrderedDict[str, QIcon] = OrderedDict()
         self._stamps: dict[str, tuple[int, int, int]] = {}
+
+    @property
+    def order(self) -> list[str]:
+        """Compatibility view of the cache's oldest-to-newest keys."""
+        return list(self.cache)
 
     def icon_for_item(self, item: dict[str, Any], fallback: QIcon | None = None) -> QIcon:
         path = local_image_path(item)
@@ -880,11 +885,12 @@ class IconCache:
         key = str(path)
         stamp = mtime_ctime_size_stamp(path)
         if stamp is None:
+            self.cache.pop(key, None)
+            self._stamps.pop(key, None)
             return fallback or QIcon()
         if key in self.cache:
-            self.order.remove(key)
             if self._stamps.get(key) == stamp:
-                self.order.append(key)
+                self.cache.move_to_end(key)
                 return QIcon(self.cache[key])
             self.cache.pop(key, None)
             self._stamps.pop(key, None)
@@ -906,16 +912,13 @@ class IconCache:
             return icon
         self.cache[key] = QIcon(icon)
         self._stamps[key] = stamp
-        self.order.append(key)
-        while self.order and len(self.order) > max(0, self.max_items):
-            old = self.order.pop(0)
-            self.cache.pop(old, None)
+        while self.cache and len(self.cache) > max(0, self.max_items):
+            old, _ = self.cache.popitem(last=False)
             self._stamps.pop(old, None)
         return icon
 
     def clear(self) -> None:
         self.cache.clear()
-        self.order.clear()
         self._stamps.clear()
 
 

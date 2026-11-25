@@ -567,7 +567,11 @@ class AtlasGuideCover(QLabel):
         cover = Path(image_path) if isinstance(image_path, (str, Path)) and image_path else None
         if cover is None or not cover.is_file():
             cover = sprite_icon_path("dofus" if category == "dofus" else "guide")
-        pixmap = QIcon(str(cover)).pixmap(self.size()) if cover else QPixmap()
+            pixmap = QIcon(str(cover)).pixmap(self.size()) if cover else QPixmap()
+        else:
+            # The same bounded decoder is used by the catalogue and real sheets.
+            from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+            pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(cover, self.size())
         self.setPixmap(pixmap)
         self.setVisible(not pixmap.isNull())
         return not pixmap.isNull()

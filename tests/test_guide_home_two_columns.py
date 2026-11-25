@@ -167,6 +167,24 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                 self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
                 self.assertEqual(decode.call_count, 2)
 
+    def test_same_metadata_rechecks_cached_artwork_only_at_refresh(self) -> None:
+        model = GuideListModel()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "turquoise.png"
+            path.write_bytes(b"old")
+            guide = replace(_guide("dofus_turquoise", "dofus", "Turquoise"), image_path=str(path))
+            model.set_home_column([guide], "right")
+            with patch("app.modules.encyclopedia.widgets.guide_card.ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled",
+                       return_value=QPixmap(16, 16)) as decode:
+                index = model.index(0, 0)
+                model.data(index, Qt.DecorationRole)
+                path.write_bytes(b"new source")
+                model.data(index, Qt.DecorationRole)
+                self.assertEqual(decode.call_count, 1)
+                model.set_home_column([guide], "right")
+                model.data(index, Qt.DecorationRole)
+                self.assertEqual(decode.call_count, 2)
+
     def test_grid_balances_five_dofus_instead_of_leaving_one_orphan(self) -> None:
         columns = GuideCatalogView._balanced_grid_columns
         self.assertEqual(columns(1024, 5), 3)  # 3 + 2, not 4 + 1

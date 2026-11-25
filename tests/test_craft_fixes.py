@@ -473,6 +473,21 @@ class CraftFixesTests(unittest.TestCase):
                 decode.assert_called_once()
                 self.assertNotEqual(first.cacheKey(), second.cacheKey())
 
+    def test_replaced_image_purges_old_revision_even_above_cache_budget(self):
+        from PySide6.QtCore import QSize
+        from PySide6.QtGui import QPixmap
+        from app.modules.encyclopedia.services.image_service import ImageService
+        service = ImageService(max_bytes=1024)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "image.png"
+            path.write_bytes(b"old")
+            service.store_scaled(path, QSize(8, 8), QPixmap(8, 8))
+            self.assertEqual(service.info()["items"], 1)
+            path.write_bytes(b"new source")
+            service.store_scaled(path, QSize(32, 32), QPixmap(32, 32))
+            self.assertEqual(service.info()["items"], 0)
+            self.assertEqual(service.info()["bytes"], 0)
+
     def test_craft_icon_cache_invalidates_replaced_file_and_reuses_recent_icons(self):
         import tempfile
         from pathlib import Path

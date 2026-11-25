@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QBoxLayout, QFrame, QHBoxLayout, QLabel, QProgressBar,
@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.numbers import clamped_percent
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.components import AtlasButton, configure_unity_progress_bar
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
@@ -87,10 +88,18 @@ class FeaturedGuideCard(QFrame):
         super().keyPressEvent(event)
 
     def set_guide(self, guide, values: tuple[int, int, str]) -> None:
-        # Progress refresh and library filtering can call this many times with
-        # identical data. Avoid repeatedly clearing and decoding two icons.
+        # Artwork has an independent source revision. Progress-only updates
+        # must not trigger another image decode or replace the current pixmap.
+        raw_image = getattr(guide, "image_path", None)
+        image_path = Path(raw_image) if raw_image else None
+        local_icon = sprite_icon_path("guide" if self.guide_id == "guide_complet" else "dofus")
+        artwork_signature = (
+            str(image_path), mtime_ctime_size_stamp(image_path) if image_path is not None else None,
+            str(local_icon), mtime_ctime_size_stamp(Path(local_icon)) if local_icon else None,
+        )
+        artwork_changed = artwork_signature != getattr(self, "_artwork_signature", None)
         if (getattr(self, "_rendered_guide", object()) is guide
-                and getattr(self, "_rendered_values", None) == values):
+                and getattr(self, "_rendered_values", None) == values and not artwork_changed):
             return
         self._rendered_guide = guide
         self._rendered_values = values
@@ -118,22 +127,19 @@ class FeaturedGuideCard(QFrame):
         self.progress.setVisible(usable and total > 0)
         if total > 0:
             self.progress.setValue(clamped_percent(done, total))
+        if not artwork_changed:
+            return
+        self._artwork_signature = artwork_signature
         self.artwork.clear()
-        local_icon = sprite_icon_path("guide" if self.guide_id == "guide_complet" else "dofus")
         # Only two featured QIcons, backed by local assets when explicitly enabled.
         # Visual artwork belongs on the card, not the hidden compatibility button.
         if local_icon:
             self.artwork.setPixmap(QIcon(str(local_icon)).pixmap(24, 24))
-        if usable:
-            image_path = getattr(guide, "image_path", None)
-            if image_path and Path(image_path).is_file():
-                from PySide6.QtCore import QSize
-                art_box = GUIDE_CARD_GEOMETRY["featured_compact_artwork_box"]
-                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(
-                    Path(image_path), QSize(art_box, art_box)
-                )
-                if pixmap is not None and not pixmap.isNull():
-                    self.artwork.setPixmap(pixmap)
+        if usable and image_path is not None and image_path.is_file():
+            art_box = GUIDE_CARD_GEOMETRY["featured_compact_artwork_box"]
+            pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(art_box, art_box))
+            if not pixmap.isNull():
+                self.artwork.setPixmap(pixmap)
 
 
 class FeaturedPair(QWidget):
