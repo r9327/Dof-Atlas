@@ -213,6 +213,18 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertEqual(startup["delta_percent"], 20.0)
         self.assertEqual(len(comparison["regressions_15pct"]), 1)
 
+    def test_baseline_comparison_never_passes_without_valid_common_costs(self) -> None:
+        current = aggregate_samples([self.sample(head="new", startup_ms=100, rss_mb=100)])
+        environment = {**current["environment"], "git_head": "old"}
+        for metrics in ({}, {"other_ms": 20}, {"startup_stabilized_ms": float("nan")},
+                        {"startup_stabilized_ms": float("inf")}, {"startup_stabilized_ms": -1}):
+            with self.subTest(metrics=metrics):
+                baseline = {"environment": environment, "medians": metrics}
+                self.assertEqual(compare_to_baseline(current, baseline)["status"], "UNAVAILABLE")
+        baseline = {"environment": {**environment, "git_head": "unknown"},
+                    "medians": current["medians"]}
+        self.assertEqual(compare_to_baseline(current, baseline)["status"], "UNAVAILABLE")
+
     def test_environment_mismatch_refuses_false_comparison(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=100.0, rss_mb=100.0)]

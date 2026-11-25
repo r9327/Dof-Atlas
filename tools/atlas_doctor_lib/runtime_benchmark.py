@@ -556,6 +556,18 @@ def compare_to_baseline(
 
     current_environment = current.get("environment") or {}
     baseline_environment = baseline.get("environment") or {}
+    missing_environment = [
+        key for key in (*ENVIRONMENT_KEYS, "git_head")
+        if any(not isinstance(env.get(key), str)
+               or env[key].strip().lower() in {"", "unknown"}
+               for env in (current_environment, baseline_environment))
+    ]
+    if missing_environment:
+        return {
+            "status": "UNAVAILABLE",
+            "reason": "Runtime environment or revision identity is missing.",
+            "missing_environment": missing_environment,
+        }
     mismatches = [
         key
         for key in ENVIRONMENT_KEYS
@@ -577,6 +589,8 @@ def compare_to_baseline(
             continue
         before = baseline_values[metric]
         after = current_values[metric]
+        if not (0 <= before < float("inf") and 0 <= after < float("inf")):
+            continue
         delta = after - before
         percent = None if before == 0 else round((delta / before) * 100.0, 2)
         rows.append(
@@ -588,6 +602,13 @@ def compare_to_baseline(
                 "delta_percent": percent,
             }
         )
+    if not rows:
+        return {
+            "status": "UNAVAILABLE",
+            "reason": "No common valid runtime cost metrics.",
+            "baseline_git_head": baseline_environment.get("git_head"),
+            "metrics": [],
+        }
     regressions = [
         row
         for row in rows

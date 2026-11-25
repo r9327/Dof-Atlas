@@ -362,11 +362,15 @@ class ContinuousGuideRoutePanel(QWidget):
                 if callable(self._available_characters_provider)
                 else self.available_characters
             )
-            online = {
-                row.key for row in rows
-                if getattr(row, "key", None) in registered
-                and getattr(row, "connected", False) is True
-            }
+            connections = {}
+            for row in rows:
+                key = getattr(row, "key", None)
+                if key not in selected:
+                    continue
+                if key in connections:
+                    return None, "Identité de connexion ambiguë"
+                connections[key] = getattr(row, "connected", False) is True
+            online = {key for key, connected in connections.items() if connected}
         except Exception:
             from app.core.logger import get_runtime_logger
             get_runtime_logger().exception("Guide participant connection lookup failed")

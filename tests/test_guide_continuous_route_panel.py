@@ -662,7 +662,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
 
         def current_characters():
             checked.append(state["connected"])
-            return (SimpleNamespace(key="character:1", connected=state["connected"]),)
+            row = SimpleNamespace(key="character:1", connected=state["connected"])
+            return (row, SimpleNamespace(key="character:1", connected=False)) if state.get("duplicate") else (row,)
 
         plan = {
             "mode": "direct",
@@ -708,6 +709,14 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(len(emitted), 2)
         self.assertIn(False, checked)
         self.assertTrue(checked[-1])
+        state["duplicate"] = True
+        panel.request_current_travel()
+        self.assertEqual(len(emitted), 2)
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertIn("ambiguë", panel.travel_button.toolTip())
+        state["duplicate"] = False
+        panel.refresh_connection_state()
+        self.assertTrue(panel.travel_button.isEnabled())
 
     def test_zaap_plan_requires_complete_verified_coordinates_and_exact_members(self):
         from copy import deepcopy
