@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 from app import local_data_cache
 from app.core.item_artwork import item_with_artwork
 from app.core.file_stamp import mtime_ctime_size_stamp
-from app.core.numbers import optional_int
+from app.core.numbers import clamp_int32, optional_int
 from app.core.json_store import InvalidPersistentJsonError
 from app.core.craft_selection import (
     selection_item_row, resolve_selection, selection_editor_maximum,
@@ -973,7 +973,7 @@ class CraftPage(QWidget):
         # The live editor already enforces its displayed range; do not
         # shrink it mid-edit when a bulk quantity crosses below 1000.
         before = dict(self.selection)
-        self.selection[ident] = {**row, "quantity": max(1, min(2_147_483_647, int(value or 1)))}
+        self.selection[ident] = {**row, "quantity": max(1, clamp_int32(int(value or 1)))}
         if not self._commit_selection_edit(before, ident):
             # Roll back the visible counter without replacing its live sender.
             counter = self.sender()

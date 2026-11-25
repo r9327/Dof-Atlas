@@ -19,6 +19,21 @@ class Row:
 
 
 class CharacterOrderServiceTests(unittest.TestCase):
+    def test_transient_resilient_read_failure_is_not_cached(self):
+        from app.services.character_order_logic import load_character_order, clear_character_order_cache
+        with tempfile.TemporaryDirectory() as tmp:
+            profile = Path(tmp) / "profile.json"
+            profile.write_text(json.dumps({KEY_SESSION_ORDER: ["Alpha"]}))
+            clear_character_order_cache()
+            try:
+                with patch("app.core.json_store.read_json_resilient", side_effect=[None, {KEY_SESSION_ORDER: ["Alpha"]}]) as read:
+                    self.assertEqual(load_character_order(profile), ())
+                    self.assertEqual(load_character_order(profile), ("alpha",))
+                    self.assertEqual(load_character_order(profile), ("alpha",))
+                    self.assertEqual(read.call_count, 2)
+            finally:
+                clear_character_order_cache()
+
     def test_order_projection_cache_reuses_stable_reads_and_keeps_strict_errors(self):
         from app.services.character_order_logic import load_character_order, clear_character_order_cache
         from app.core.json_store import InvalidPersistentJsonError

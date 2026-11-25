@@ -32,6 +32,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import APP_ICON_PATH
+from app.core.file_stamp import mtime_ctime_size_stamp
+from app.core.numbers import clamp_int32
 from app.ui.unity_palette import (
     UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX,
     UNITY_PALETTE,
@@ -68,14 +70,16 @@ BUTTON_OBJECT_NAMES = {
 }
 
 _APPLICATION_ICON: QIcon | None = None
+_APPLICATION_ICON_STAMP: tuple[str, tuple[int, int, int] | None] | None = None
 
 
 def atlas_application_icon() -> QIcon:
     """Return a cheap copy of the product icon from the canonical source asset."""
 
-    global _APPLICATION_ICON
-    if _APPLICATION_ICON is None:
-        if APP_ICON_PATH.exists():
+    global _APPLICATION_ICON, _APPLICATION_ICON_STAMP
+    stamp = (str(APP_ICON_PATH), mtime_ctime_size_stamp(APP_ICON_PATH))
+    if _APPLICATION_ICON is None or stamp != _APPLICATION_ICON_STAMP:
+        if APP_ICON_PATH.is_file():
             source = QImage(str(APP_ICON_PATH))
             if source.isNull():
                 _APPLICATION_ICON = QIcon(str(APP_ICON_PATH))
@@ -87,6 +91,7 @@ def atlas_application_icon() -> QIcon:
                 _APPLICATION_ICON = QIcon(QPixmap.fromImage(image))
         else:
             _APPLICATION_ICON = QIcon()
+        _APPLICATION_ICON_STAMP = stamp
     # QIcon is implicitly shared; copying preserves caller value semantics while
     # avoiding repeated file-backed icon construction during shell/dialog setup.
     return QIcon(_APPLICATION_ICON)
@@ -133,12 +138,12 @@ def configure_unity_number_spinbox(
             spinbox.setFixedHeight(UNITY_SIZES_PX["control_compact"])
         if centered:
             spinbox.setAlignment(Qt.AlignCenter)
-        spinbox.setRange(minimum, maximum)
+        spinbox.setRange(clamp_int32(minimum), clamp_int32(maximum))
         if suffix is not None:
             spinbox.setSuffix(suffix)
         if tooltip is not None:
             spinbox.setToolTip(tooltip)
-        spinbox.setValue(value)
+        spinbox.setValue(clamp_int32(value))
         fit_unity_number_spinbox(spinbox)
     return spinbox
 
@@ -146,7 +151,7 @@ def configure_unity_number_spinbox(
 def restore_unity_number_value(spinbox: QSpinBox, value: int) -> None:
     """Restore a persisted value without generating a second user edit."""
     with QSignalBlocker(spinbox):
-        spinbox.setValue(value)
+        spinbox.setValue(clamp_int32(value))
 
 
 def refresh_unity_widget_style(widget: QWidget) -> None:
@@ -1479,8 +1484,8 @@ class AtlasGuidePreparationRow(QFrame):
         self.quantity_editor: QSpinBox | None = None
         if quantity is not None and quantity > 0:
             counter = configure_unity_number_spinbox(
-                QSpinBox(), minimum=0, maximum=min(2_147_483_647, int(quantity)),
-                value=min(2_147_483_647, max(0, int(owned))),
+                QSpinBox(), minimum=0, maximum=int(quantity),
+                value=max(0, int(owned)),
                 object_name="GuidePreparationQuantity", suffix=f"/{quantity}",
                 tooltip="Quantité déjà possédée (brouillon de cette session)", compact=True,
             )

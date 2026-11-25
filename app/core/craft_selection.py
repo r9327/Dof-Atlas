@@ -5,7 +5,7 @@ from collections.abc import Iterator, Mapping
 from typing import Any
 from pathlib import Path
 
-from app.core.numbers import optional_int
+from app.core.numbers import INT32_MAX, optional_int
 
 
 def selection_item_id(row: Mapping[str, Any]) -> int | None:
@@ -136,4 +136,4 @@ def resolve_selection(payload: object, get_item, *, allow_legacy: bool = False) 
 
 def selection_editor_maximum(quantity: int) -> int:
     """Keep ordinary counters compact without clipping a bulk craft quantity."""
-    return max(999, min(2_147_483_647, max(999_999, quantity))) if quantity > 999 else 999
+    return max(999, min(INT32_MAX, max(999_999, quantity))) if quantity > 999 else 999

@@ -223,14 +223,16 @@ class UiUniversalContractTests(unittest.TestCase):
             if isinstance(node, ast.ImportFrom) and node.module == "app.ui.components"
             for alias in node.names
         }
-        self.assertTrue({"AtlasComboBox", "fit_unity_number_spinbox",
-                         "configure_unity_progress_bar"} <= imports)
+        self.assertTrue({"AtlasComboBox", "configure_unity_number_spinbox",
+                         "configure_unity_progress_bar", "clear_unity_widget_layout"} <= imports)
         self.assertIn("bar = configure_unity_progress_bar(", source)
         self.assertIn('object_name="EncyclopediaProgressBar"', source)
         self.assertIn("bar.setValue(clamped_percent(completed, total))", source)
         self.assertIn("percent = clamped_percent(completed, total)", source)
-        self.assertIn("fit_unity_number_spinbox(self.min_level)", source)
-        self.assertIn("fit_unity_number_spinbox(self.max_level)", source)
+        self.assertIn("self.min_level = configure_unity_number_spinbox(", source)
+        self.assertIn("self.max_level = configure_unity_number_spinbox(", source)
+        self.assertIn("clear_unity_widget_layout(self.category_layout", source)
+        self.assertNotIn("fit_unity_number_spinbox(", source)
 
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()

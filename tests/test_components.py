@@ -272,6 +272,43 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
+    def test_numeric_editor_clamps_python_integers_before_qt_conversion(self):
+        from app.core.numbers import INT32_MIN, INT32_MAX
+        from app.ui.components import configure_unity_number_spinbox, restore_unity_number_value
+        counter = QSpinBox()
+        try:
+            configure_unity_number_spinbox(counter, minimum=-(2**80), maximum=2**80, value=2**70)
+            self.assertEqual((counter.minimum(), counter.maximum(), counter.value()), (INT32_MIN, INT32_MAX, INT32_MAX))
+            restore_unity_number_value(counter, -(2**70))
+            self.assertEqual(counter.value(), INT32_MIN)
+        finally:
+            counter.deleteLater()
+
+    def test_application_icon_recovers_when_asset_appears_or_changes(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from PySide6.QtGui import QImage
+        from app.ui import components
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "logo.png"
+            with patch.object(components, "APP_ICON_PATH", path), \
+                 patch.object(components, "_APPLICATION_ICON", None), \
+                 patch.object(components, "_APPLICATION_ICON_STAMP", None):
+                self.assertTrue(components.atlas_application_icon().isNull())
+                first = QImage(24, 24, QImage.Format_ARGB32)
+                first.fill(0xFF336699)
+                self.assertTrue(first.save(str(path)))
+                icon = components.atlas_application_icon()
+                self.assertFalse(icon.isNull())
+                self.assertEqual(icon.cacheKey(), components.atlas_application_icon().cacheKey())
+                second = QImage(42, 42, QImage.Format_ARGB32)
+                second.fill(0xFF669933)
+                self.assertTrue(second.save(str(path)))
+                updated = components.atlas_application_icon()
+                self.assertFalse(updated.isNull())
+                self.assertNotEqual(icon.cacheKey(), updated.cacheKey())
+
     def test_numeric_editor_keeps_outer_signal_block_on_configuration(self):
         from app.ui.components import configure_unity_number_spinbox
         counter = QSpinBox()

@@ -9,6 +9,15 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 
+INT32_MAX = (1 << 31) - 1
+INT32_MIN = -(1 << 31)
+
+
+def clamp_int32(value: int) -> int:
+    """Clamp Python integers to the signed native range used by Qt editors."""
+    return max(INT32_MIN, min(INT32_MAX, value))
+
+
 def positive_int(value: object) -> int | None:
     if isinstance(value, bool):
         return None

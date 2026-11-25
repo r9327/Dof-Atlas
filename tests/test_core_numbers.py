@@ -16,6 +16,16 @@ class ItemIdCompatibilityTests(unittest.TestCase):
         self.assertIsNone(item_id({}))
 
 
+class NativeInt32Tests(unittest.TestCase):
+    def test_signed_native_editor_range_is_bounded_without_changing_normal_values(self):
+        from app.core.numbers import INT32_MIN, INT32_MAX, clamp_int32
+        self.assertEqual(clamp_int32(-(2**80)), INT32_MIN)
+        self.assertEqual(clamp_int32(2**80), INT32_MAX)
+        self.assertEqual(clamp_int32(-7), -7)
+        self.assertEqual(clamp_int32(0), 0)
+
+
+
 class PositiveIntTests(unittest.TestCase):
     def test_accepts_positive_integer_and_decimal_text(self):
         for raw, expected in ((1, 1), (" 02 ", 2), (9.0, 9), (2**40, 2**40)):

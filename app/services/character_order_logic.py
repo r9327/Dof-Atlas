@@ -55,9 +55,9 @@ def load_character_order(path: Path, *, strict: bool = False) -> tuple[str, ...]
         from app.services.profile_settings_service import ProfileSettingsService
         payload = ProfileSettingsService(path).load()
     else:
-        payload = read_json_resilient(path, {})
+        payload = read_json_resilient(path, None)
     order = character_order_from_profile(payload)
-    if key is not None and mtime_ctime_size_stamp(path) == stamp:
+    if key is not None and isinstance(payload, Mapping) and mtime_ctime_size_stamp(path) == stamp:
         with _ORDER_LOCK:
             for old in tuple(_ORDER_CACHE):
                 if old[0] == key[0] and old[1] != key[1]:
@@ -95,4 +95,4 @@ def sort_character_rows(
     ))
 
 
-__all__ = ["character_order_from_profile", "normalize_character_order", "sort_character_rows"]
+__all__ = ["character_order_from_profile", "normalize_character_order", "sort_character_rows", "load_character_order", "clear_character_order_cache"]

@@ -1139,8 +1139,8 @@ class QuestsPage(QWidget):
         required_label = QLabel(f"/ {format_number(required)}")
         required_label.setObjectName("MutedLabel")
         quantity = configure_unity_number_spinbox(
-            QSpinBox(), minimum=0, maximum=min(required, 2_147_483_647),
-            value=min(owned, required, 2_147_483_647), object_name="QuestItemQuantity",
+            QSpinBox(), minimum=0, maximum=required,
+            value=owned, object_name="QuestItemQuantity",
             centered=True,
         )
         quantity.valueChanged.connect(lambda value, data=dict(item), maximum=required: self.set_owned_item_quantity(data, value, maximum))
