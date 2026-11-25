@@ -63,9 +63,6 @@ class QuestProgressService(CoordinatedProgressReader):
         return load_quest_progress(self.path)
 
     def _coordinated_invalidate(self) -> None:
-        self._clear_read_caches()
-
-    def _clear_read_caches(self) -> None:
         self._completed_quest_ids_cache.clear()
         self._completed_objective_ids_cache.clear()
         self._completed_item_ids_cache.clear()
@@ -97,7 +94,7 @@ class QuestProgressService(CoordinatedProgressReader):
             character = self._mutable_character(key)
             done = mutable_progress_mapping(character, "done")
             if not update_progress_flag(done, str(int(quest_id)), completed):
-                self._accept_loaded_snapshot_locked()
+                self._accept_snapshot_locked(changed=False)
                 return False
             self._write_locked()
             return True
@@ -142,7 +139,7 @@ class QuestProgressService(CoordinatedProgressReader):
             if not changed:
                 # Keep this instance synchronized with the latest peer-written
                 # snapshot without publishing a redundant generation.
-                self._accept_loaded_snapshot_locked()
+                self._accept_snapshot_locked(changed=False)
                 return False
             self._write_locked()
             return True
@@ -199,7 +196,7 @@ class QuestProgressService(CoordinatedProgressReader):
             else:
                 values.discard(int(objective_id))
             if values == previous:
-                self._accept_loaded_snapshot_locked()
+                self._accept_snapshot_locked(changed=False)
                 return False
             if values:
                 rows[key] = sorted(values)
@@ -258,7 +255,7 @@ class QuestProgressService(CoordinatedProgressReader):
             if not quest_items:
                 items.pop(quest_key, None)
             if not changed:
-                self._accept_loaded_snapshot_locked()
+                self._accept_snapshot_locked(changed=False)
                 return False
             self._write_locked()
             return True
@@ -280,11 +277,6 @@ class QuestProgressService(CoordinatedProgressReader):
             lambda: save_quest_progress(self.progress, self.path),
         )
         self._accept_snapshot_locked(changed=True)
-
-    def _accept_loaded_snapshot_locked(self) -> None:
-        """Mark a no-op reload current without publishing a false change."""
-
-        self._accept_snapshot_locked(changed=False)
 
     def _read_character(self, character_key: str) -> dict[str, Any]:
         return read_progress_character(self.progress, character_key)

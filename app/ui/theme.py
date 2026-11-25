@@ -509,13 +509,7 @@ QTabWidget#EncyclopediaTabs QTabBar::tab {
     padding: 0px 7px;
 }
 
-QTabWidget#EncyclopediaTabs QTabBar::tab:selected {
-    background: @PANEL_ACTIVE;
-    border-color: @BORDER_SOFT;
-    border-bottom: 2px solid @GREEN;
-    color: @GREEN;
-}
-
+QTabWidget#EncyclopediaTabs QTabBar::tab:selected,
 QTabWidget#EncyclopediaTabs QTabBar[guideActive="true"]::tab:selected {
     background: @PANEL_ACTIVE;
     border-color: @BORDER_SOFT;
@@ -655,11 +649,7 @@ QSplitter#AchievementCatalogSplitter::handle {
     background: @BORDER_SOFT;
 }
 
-#CompactScroll, #CompactScrollContent {
-    background: transparent;
-    border: none;
-}
-
+#CompactScroll, #CompactScrollContent,
 #RequiredItemRow, #ActivitySummary {
     background: transparent;
     border: none;
@@ -1940,11 +1930,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
     background: transparent;
 }
 
-#HomeLeftColumn {
-    background: transparent;
-    border: none;
-}
-
+#HomeLeftColumn,
 #HomeRightColumn {
     background: transparent;
     border: none;
@@ -3701,11 +3687,7 @@ QToolButton#GuideContinuousValidate:checked {
     color: @TEXT_MUTED;
 }
 
-#GuideManualPageCheck:checked {
-    color: @GREEN;
-    border-color: @GREEN_BORDER;
-}
-
+#GuideManualPageCheck:checked,
 #GuideManualPageCheck:checked:disabled {
     color: @GREEN;
     border-color: @GREEN_BORDER;

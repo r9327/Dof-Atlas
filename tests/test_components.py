@@ -456,7 +456,7 @@ class SharedUiComponentsTests(unittest.TestCase):
         button = QToolButton()
         button.setCheckable(True)
         calls = []
-        button.clicked.connect(calls.append)
+        button.clicked[bool].connect(calls.append)
         try:
             self.assertIs(configure_unity_tool_button(
                 button, object_name="ResourceTile", box=(56, 42), icon_size=16,
@@ -521,7 +521,7 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertIs(row.itemAt(1).widget(), dismiss)
             self.assertIs(row.itemAt(2).widget(), confirm)
             confirm.click()
-            self.assertEqual(dialog.result(), dialog.Accepted)
+            self.assertEqual(dialog.result(), AtlasDialog.DialogCode.Accepted)
         finally:
             dialog.deleteLater()
 

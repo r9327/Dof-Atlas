@@ -1132,78 +1132,63 @@ class AtlasGuideReadingHeader(QFrame):
 
         metrics = QHBoxLayout()
         metrics.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
-        self.preparation_column = QWidget()
-        self.preparation_column.setObjectName("GuideHeaderSectionHost")
-        preparation_metric = QVBoxLayout(self.preparation_column)
-        preparation_metric.setContentsMargins(0, 0, 0, 0)
-        preparation_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
-        caption = QHBoxLayout()
-        caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
-        icon = QLabel()
-        icon.setObjectName("GuideCompactMetricIconCube")
         icon_size = UNITY_SIZES_PX["icon_small"]
-        icon.setPixmap(
-            atlas_guide_symbol_icon(icon, "cube", size=icon_size, color=PALETTE["GREEN"]).pixmap(icon_size, icon_size)
-        )
-        icon.setFixedSize(UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"])
-        caption.addWidget(icon)
-        caption_label = QLabel("Préparation")
-        caption_label.setToolTip("Préparation")
-        caption.addWidget(caption_label)
-        self.preparation_caption = caption_label
-        self.preparation_icon = icon
-        caption.addStretch(1)
-        self.preparation_progress_label = QLabel("—")
-        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
-        caption.addWidget(self.preparation_progress_label)
-        self.preparation_button = AtlasGuideDisclosure()
-        self.preparation_button.configure_compact()
-        self._preparation_description = ""
-        self.preparation_button.setToolTip("Afficher Préparation")
-        self.preparation_button.setAccessibleName("Afficher Préparation")
-        caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
-        preparation_metric.addLayout(caption)
-        self.preparation_bar = configure_unity_progress_bar(
-            QProgressBar(), object_name="GuideCompactPreparationProgress",
-            height_role="progress_secondary", expanding=True,
-        )
-        preparation_metric.addWidget(self.preparation_bar)
-        drawer = QVBoxLayout()
-        drawer.setContentsMargins(0, 0, 0, 0)
-        self.preparation_drawer = drawer
-        preparation_metric.addLayout(drawer)
-        metrics.addWidget(self.preparation_column, 1)
+        for is_preparation, title, symbol, bar_role, tooltip in (
+            (True, "Préparation", "cube", "GuideCompactPreparationProgress", "Afficher Préparation"),
+            (False, "Sommaire", "summary", "GuideCompactSummaryProgress", "Ouvrir Sommaire"),
+        ):
+            column = QWidget()
+            column.setObjectName("GuideHeaderSectionHost")
+            metric = QVBoxLayout(column)
+            metric.setContentsMargins(0, 0, 0, 0)
+            metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+            caption = QHBoxLayout()
+            caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+            icon = QLabel()
+            icon.setPixmap(atlas_guide_symbol_icon(
+                icon, symbol, size=icon_size, color=PALETTE["GREEN"],
+            ).pixmap(icon_size, icon_size))
+            icon.setFixedSize(icon_size, icon_size)
+            caption.addWidget(icon)
+            label = QLabel(title)
+            caption.addWidget(label)
+            button = AtlasGuideDisclosure()
+            button.configure_compact()
+            button.setToolTip(tooltip)
+            button.setAccessibleName(f"Afficher {title}")
+            if is_preparation:
+                caption.addWidget(button, 0, Qt.AlignVCenter)
+            else:
+                caption.addWidget(button)
+            caption.addStretch(1)
+            value = QLabel("—")
+            value.setObjectName("GuideCompactMetricValue")
+            caption.addWidget(value)
+            metric.addLayout(caption)
+            bar = configure_unity_progress_bar(
+                QProgressBar(), object_name=bar_role,
+                height_role="progress_secondary", expanding=True,
+            )
+            metric.addWidget(bar)
+            if is_preparation:
+                icon.setObjectName("GuideCompactMetricIconCube")
+                label.setToolTip(title)
+                self.preparation_column = column
+                self.preparation_caption, self.preparation_icon = label, icon
+                self.preparation_button, self.preparation_progress_label = button, value
+                self.preparation_bar = bar
+                self._preparation_description = ""
+                self.preparation_drawer = QVBoxLayout()
+                self.preparation_drawer.setContentsMargins(0, 0, 0, 0)
+                metric.addLayout(self.preparation_drawer)
+                metrics.addWidget(column, 1)
+            else:
+                self.summary_column = column
+                self.summary_icon = icon
+                self.summary_button, self.summary_progress_label = button, value
+                self.summary_bar = bar
+                summary_metric = metric
 
-        self.summary_column = QWidget()
-        self.summary_column.setObjectName("GuideHeaderSectionHost")
-        summary_metric = QVBoxLayout(self.summary_column)
-        summary_metric.setContentsMargins(0, 0, 0, 0)
-        summary_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
-        summary_caption = QHBoxLayout()
-        summary_caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
-        self.summary_icon = QLabel()
-        self.summary_icon.setPixmap(
-            atlas_guide_symbol_icon(self.summary_icon, "summary", size=icon_size,
-                                    color=PALETTE["GREEN"]).pixmap(icon_size, icon_size)
-        )
-        self.summary_icon.setFixedSize(icon_size, icon_size)
-        summary_caption.addWidget(self.summary_icon)
-        summary_caption.addWidget(QLabel("Sommaire"))
-        self.summary_button = AtlasGuideDisclosure()
-        self.summary_button.configure_compact()
-        self.summary_button.setAccessibleName("Afficher Sommaire")
-        self.summary_button.setToolTip("Ouvrir Sommaire")
-        summary_caption.addWidget(self.summary_button)
-        summary_caption.addStretch(1)
-        self.summary_progress_label = QLabel("—")
-        self.summary_progress_label.setObjectName("GuideCompactMetricValue")
-        summary_caption.addWidget(self.summary_progress_label)
-        summary_metric.addLayout(summary_caption)
-        self.summary_bar = configure_unity_progress_bar(
-            QProgressBar(), object_name="GuideCompactSummaryProgress",
-            height_role="progress_secondary", expanding=True,
-        )
-        summary_metric.addWidget(self.summary_bar)
         self.summary_panel = QListWidget()
         self.summary_panel.setObjectName("GuideSummaryList")
         self.summary_panel.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])

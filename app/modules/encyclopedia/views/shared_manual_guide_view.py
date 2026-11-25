@@ -133,69 +133,30 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             root.addWidget(title)
 
         section_provider = getattr(service, "manual_sections_for_card", None)
-        if callable(section_provider):
-            sections = section_provider(character_key, card)
-            # The section provider already owns line materialization. Do not call
-            # manual_lines_for_card first and build the same visible sheet twice.
-            manual_lines = []
-        else:
+        sections = section_provider(character_key, card) if callable(section_provider) else None
+        # A valid section provider owns line materialization; otherwise use the
+        # flat source once, including when the fallback returns an empty sheet.
+        if not isinstance(sections, dict) or not any(sections.values()):
             line_provider = getattr(service, "manual_lines_for_card", None)
-            manual_lines = (
+            sections = {"now": (
                 line_provider(character_key, card)
                 if callable(line_provider)
                 else card.get("manual_lines", []) or []
-            )
-            sections = {"now": manual_lines}
-        if not isinstance(sections, dict) or not any(sections.values()):
-            if not manual_lines:
-                line_provider = getattr(service, "manual_lines_for_card", None)
-                manual_lines = (
-                    line_provider(character_key, card)
-                    if callable(line_provider)
-                    else card.get("manual_lines", []) or []
-                )
-            sections = {"now": manual_lines}
+            )}
         sections = self._without_prepare_duplicates(sections)
         self._combat_targets = self._quest_combat_targets(sections)
 
         # Preparation belongs to the single global, participant-aware panel.
         # Repeating every requirement on each sheet made the route unreadable
         # and could contradict the saved ``Prêt`` state.
-        self._add_line_section(
-            root,
-            "À FAIRE MAINTENANT",
-            sections.get("now"),
-            "GuideManualActionSection",
-            "now",
-        )
-        self._add_line_section(
-            root,
-            "À PROFITER ICI",
-            sections.get("opportunity"),
-            "GuideManualActionSection",
-            "opportunity",
-        )
-        self._add_line_section(
-            root,
-            "À CONSERVER POUR PLUS TARD",
-            sections.get("keep"),
-            "GuideManualResourceSection",
-            "keep",
-        )
-        self._add_line_section(
-            root,
-            "BOSS / CAPTURES",
-            sections.get("boss"),
-            "GuideManualCombatSection",
-            "boss",
-        )
-        self._add_line_section(
-            root,
-            "AVANT DE PARTIR",
-            sections.get("before_leave"),
-            "GuideManualWarningSection",
-            "before_leave",
-        )
+        for key, title, role in (
+            ("now", "À FAIRE MAINTENANT", "GuideManualActionSection"),
+            ("opportunity", "À PROFITER ICI", "GuideManualActionSection"),
+            ("keep", "À CONSERVER POUR PLUS TARD", "GuideManualResourceSection"),
+            ("boss", "BOSS / CAPTURES", "GuideManualCombatSection"),
+            ("before_leave", "AVANT DE PARTIR", "GuideManualWarningSection"),
+        ):
+            self._add_line_section(root, title, sections.get(key), role, key)
 
         automatic = service.card_auto_complete(character_key, card)
         manual = service.page_checked(character_key, card, index)

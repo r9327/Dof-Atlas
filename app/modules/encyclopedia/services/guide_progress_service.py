@@ -36,9 +36,6 @@ class GuideProgressService(CoordinatedProgressReader):
         return self._load()
 
     def _coordinated_invalidate(self) -> None:
-        self._clear_manual_steps_cache()
-
-    def _clear_manual_steps_cache(self) -> None:
         self._manual_steps_cache.clear()
 
     def _manual_steps_snapshot(self, character_key: str, guide_id: str) -> frozenset[str]:
@@ -92,7 +89,7 @@ class GuideProgressService(CoordinatedProgressReader):
                     )
                     if previous != bool(expected_completed[key]):
                         self._seen_generation = self._coordinator.generation
-                        self._clear_manual_steps_cache()
+                        self._coordinated_invalidate()
                         raise RuntimeError("Guide progress changed since selection; reload before validating")
             changed = False
             for key in keys:
