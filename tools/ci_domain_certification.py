@@ -264,6 +264,7 @@ PR365_REVIEWED_DOMAIN_GROUPS = (
     (frozenset({"startup", "identity", "quests", "guides", "data", "ui", "organizer"}), frozenset({
         "app/network/application_coordinator.py",
         "app/network/bootstrap.py",
+        "app/network/calibration_runtime.py",
         "app/network/calibrated_mapping_install.py",
         "app/network/character_resolver.py",
         "app/network/contracts.py",
@@ -286,11 +287,13 @@ PR365_REVIEWED_DOMAIN_GROUPS = (
         "app/network/quest_snapshot_decoder.py",
         "app/network/quest_snapshot_discovery.py",
         "app/network/runtime.py",
+        "app/network/source.py",
         "tests/test_network_application_coordinator.py",
         "tests/test_network_bootstrap.py",
         "tests/test_network_current_protocol_profile.py",
         "tests/test_network_protocol_calibration.py",
         "tests/test_network_protocol_extract.py",
+        "tests/test_network_runtime_robustness.py",
         "tests/test_network_sha256_shared_contract.py",
     })),
     (frozenset({"ui", "startup", "data"}), frozenset({
@@ -524,6 +527,8 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"quests", "guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        "app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py",
+        "tests/test_guide_manual_route_cache.py",
         "app/modules/encyclopedia/views/manual_route_guides_view.py",
         "tests/test_shared_manual_guide_view.py",
         "tests/test_guides_home_render_cache.py",
@@ -665,6 +670,8 @@ def owners_for(path: str) -> frozenset[str]:
         # Existing contracts cover Zaap/Guide routing, identity, persistence,
         # Qt callbacks and shutdown. A generic runtime wildcard is unsafe.
         return frozenset({"organizer", "guides", "identity", "data", "ui", "startup"})
+    if path == "tests/test_memory_policy_contract.py":
+        return frozenset({"quests", "guides", "ui", "startup"})
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
         return frozenset({"ci", "startup"})

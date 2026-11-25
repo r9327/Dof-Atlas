@@ -11,11 +11,11 @@ from app.network.protocol_calibration import (
     CurrentProtocolCalibration,
     ProtocolCalibrationStatus,
 )
-from app.network.source import cleanup_capture_reader
+from app.network.source import CaptureReaderLifecycle, cleanup_capture_reader
 from app.network.transport import ProtocolMessageSource
 
 
-class ProtocolCalibrationRuntime:
+class ProtocolCalibrationRuntime(CaptureReaderLifecycle):
     """Run explicit protocol calibration outside the Qt UI thread."""
 
     def __init__(
@@ -26,25 +26,11 @@ class ProtocolCalibrationRuntime:
         logger: Logger | None = None,
         read_timeout: float = 0.25,
     ) -> None:
-        self.source = source
+        super().__init__(source, logger or get_runtime_logger(), read_timeout, "calibration_cleanup_failed")
         self.calibration = calibration
-        self.logger = logger or get_runtime_logger()
-        self.read_timeout = max(0.05, float(read_timeout))
-        self._stop_event = threading.Event()
-        self._thread: threading.Thread | None = None
         self._statuses: Queue[ProtocolCalibrationStatus] = Queue()
         self._identity_results: Queue = Queue()
         self._latest_status = calibration.status()
-        self.start_failure_reason = ""
-        self._lifecycle_lock = threading.RLock()
-        self._stopping = False
-        self._cleanup_ok = True
-        self._shutdown_failure_reason = "calibration_cleanup_failed"
-
-    @property
-    def is_running(self) -> bool:
-        thread = self._thread
-        return bool(thread is not None and thread.is_alive())
 
     @property
     def latest_status(self) -> ProtocolCalibrationStatus:
@@ -104,48 +90,6 @@ class ProtocolCalibrationRuntime:
             self.source, self._reset_decoder, self.logger, label="Calibration",
         )
         return self._cleanup_ok
-
-    def stop(self, join_timeout: float = 2.0) -> bool:
-        with self._lifecycle_lock:
-            if self._stopping:
-                return False
-            self._stopping = True
-            self._stop_event.set()
-            thread = self._thread
-
-        try:
-            # The normal reader finally owns the source pause. Sending a pause
-            # while it receives would race on the elevated IPC control channel.
-            if thread is not None and thread is not threading.current_thread():
-                thread.join(max(0.0, float(join_timeout)))
-
-            stopped = thread is None or not thread.is_alive()
-            if not stopped:
-                # Force a misbehaving source to unblock, then wait briefly for
-                # the reader's own final cleanup to attest the actual outcome.
-                try:
-                    self.source.stop()
-                except Exception:
-                    self.logger.exception("Capture source forced stop failed.")
-                if thread is not threading.current_thread():
-                    thread.join(max(0.05, min(self.read_timeout * 2.0, 0.5)))
-                stopped = not thread.is_alive()
-            elif thread is None:
-                self._cleanup_reader()
-
-            with self._lifecycle_lock:
-                if stopped and self._thread is thread:
-                    self._thread = None
-                cleanup_ok = self._cleanup_ok
-            if not stopped:
-                self.logger.error("Capture reader did not stop within timeout.")
-            if not stopped or not cleanup_ok:
-                self.start_failure_reason = self._shutdown_failure_reason
-                return False
-            return True
-        finally:
-            with self._lifecycle_lock:
-                self._stopping = False
 
     def get_status_nowait(self) -> ProtocolCalibrationStatus | None:
         try:

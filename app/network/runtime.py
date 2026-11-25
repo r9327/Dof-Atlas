@@ -7,10 +7,10 @@ from queue import Empty, Queue
 from app.core.logger import get_runtime_logger
 from app.network.capture_ipc import CaptureIpcDisconnected
 from app.network.progress_bridge import EventApplicationResult, NetworkProgressBridge
-from app.network.source import NetworkEventSource, cleanup_capture_reader
+from app.network.source import CaptureReaderLifecycle, NetworkEventSource, cleanup_capture_reader
 
 
-class NetworkEventRuntime:
+class NetworkEventRuntime(CaptureReaderLifecycle):
     """Read normalized network events outside the Qt UI thread."""
 
     def __init__(
@@ -21,23 +21,9 @@ class NetworkEventRuntime:
         logger: Logger | None = None,
         read_timeout: float = 0.25,
     ) -> None:
-        self.source = source
+        super().__init__(source, logger or get_runtime_logger(), read_timeout, "runtime_cleanup_failed")
         self.bridge = bridge
-        self.logger = logger or get_runtime_logger()
-        self.read_timeout = max(0.05, float(read_timeout))
-        self._stop_event = threading.Event()
-        self._thread: threading.Thread | None = None
         self._results: Queue[EventApplicationResult] = Queue()
-        self.start_failure_reason = ""
-        self._lifecycle_lock = threading.RLock()
-        self._stopping = False
-        self._cleanup_ok = True
-        self._shutdown_failure_reason = "runtime_cleanup_failed"
-
-    @property
-    def is_running(self) -> bool:
-        thread = self._thread
-        return bool(thread is not None and thread.is_alive())
 
     def start(self) -> bool:
         with self._lifecycle_lock:
@@ -83,48 +69,6 @@ class NetworkEventRuntime:
             self.source, self.bridge.reset_sessions, self.logger, label="Network",
         )
         return self._cleanup_ok
-
-    def stop(self, join_timeout: float = 2.0) -> bool:
-        with self._lifecycle_lock:
-            if self._stopping:
-                return False
-            self._stopping = True
-            self._stop_event.set()
-            thread = self._thread
-
-        try:
-            # The normal reader finally owns the source pause. Sending a pause
-            # while it receives would race on the elevated IPC control channel.
-            if thread is not None and thread is not threading.current_thread():
-                thread.join(max(0.0, float(join_timeout)))
-
-            stopped = thread is None or not thread.is_alive()
-            if not stopped:
-                # Force a misbehaving source to unblock, then wait briefly for
-                # the reader's own final cleanup to attest the actual outcome.
-                try:
-                    self.source.stop()
-                except Exception:
-                    self.logger.exception("Capture source forced stop failed.")
-                if thread is not threading.current_thread():
-                    thread.join(max(0.05, min(self.read_timeout * 2.0, 0.5)))
-                stopped = not thread.is_alive()
-            elif thread is None:
-                self._cleanup_reader()
-
-            with self._lifecycle_lock:
-                if stopped and self._thread is thread:
-                    self._thread = None
-                cleanup_ok = self._cleanup_ok
-            if not stopped:
-                self.logger.error("Capture reader did not stop within timeout.")
-            if not stopped or not cleanup_ok:
-                self.start_failure_reason = self._shutdown_failure_reason
-                return False
-            return True
-        finally:
-            with self._lifecycle_lock:
-                self._stopping = False
 
     def get_result_nowait(self) -> EventApplicationResult | None:
         try:

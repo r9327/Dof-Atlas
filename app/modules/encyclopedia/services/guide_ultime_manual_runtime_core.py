@@ -721,7 +721,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
     def manual_audit(self) -> dict[str, Any]:
         return copy.deepcopy(self.manual_audit_data)
 
-    def _stage_to_compact_card(
+    def _stage_card_metadata(
         self,
         chapter_id: str,
         chapter_meta: dict[str, Any],
@@ -729,8 +729,6 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         stage: dict[str, Any],
         index: int,
     ) -> dict[str, Any]:
-        """Build only the route/progress metadata required while a card is hidden."""
-
         start = stage.get("start") if isinstance(stage.get("start"), dict) else {}
         end = stage.get("end") if isinstance(stage.get("end"), dict) else {}
         location = start if start else end
@@ -767,12 +765,51 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         success_names = self._string_list(stage.get("successes"))
         resource_names = self._stage_resource_names(chapter, stage)
 
+        return {
+            "index": index,
+            "manual_source": True,
+            "_manual_route_cacheable": True,
+            "manual_chapter_id": chapter_id,
+            "manual_chapter_label": str(
+                chapter_meta.get("label")
+                or coverage.get("chapter")
+                or chapter_id.replace("_", " ").title()
+            ).strip(),
+            "manual_stage_id": str(stage.get("id") or f"{chapter_id}-{index}"),
+            "manual_title": str(stage.get("title") or zone or "Fiche de route").strip(),
+            "expected_level": str(stage.get("expected_level") or stage.get("level") or "").strip(),
+            "x": x,
+            "y": y,
+            "zone": zone,
+            "subzone": zone,
+            "destination": destination,
+            "manual_quest_ids": quest_ids,
+            "manual_quest_names": quest_names,
+            "manual_resource_names": resource_names,
+            "manual_success_names": success_names,
+            "manual_temporal_hooks": temporal_hooks,
+            "a_prendre": [],
+            "a_faire_ici": [],
+            "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
+        }
+
+    def _stage_to_compact_card(
+        self,
+        chapter_id: str,
+        chapter_meta: dict[str, Any],
+        chapter: dict[str, Any],
+        stage: dict[str, Any],
+        index: int,
+    ) -> dict[str, Any]:
+        """Build only the route/progress metadata required while a card is hidden."""
+
+        card = self._stage_card_metadata(chapter_id, chapter_meta, chapter, stage, index)
         search_chunks = [
             str(stage.get("title") or ""),
-            destination,
-            " ".join(quest_names),
-            " ".join(success_names),
-            " ".join(temporal_hooks),
+            card["destination"],
+            " ".join(card["manual_quest_names"]),
+            " ".join(card["manual_success_names"]),
+            " ".join(card["manual_temporal_hooks"]),
             " ".join(self._string_list(stage.get("route_hooks"))),
         ]
         manual_search_text = normalize_text(" ".join(value for value in search_chunks if value))
@@ -793,34 +830,10 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         )
 
         return {
-            "index": index,
-            "manual_source": True,
-            "_manual_route_cacheable": True,
-            "manual_chapter_id": chapter_id,
-            "manual_chapter_label": str(
-                chapter_meta.get("label")
-                or coverage.get("chapter")
-                or chapter_id.replace("_", " ").title()
-            ).strip(),
-            "manual_stage_id": str(stage.get("id") or f"{chapter_id}-{index}"),
-            "manual_title": str(stage.get("title") or zone or "Fiche de route").strip(),
-            "expected_level": str(stage.get("expected_level") or stage.get("level") or "").strip(),
-            "x": x,
-            "y": y,
-            "zone": zone,
-            "subzone": zone,
-            "destination": destination,
+            **card,
             "manual_lines": [],
             "manual_has_lines": bool(manual_has_lines),
             "manual_search_text": manual_search_text,
-            "manual_quest_ids": quest_ids,
-            "manual_quest_names": quest_names,
-            "manual_resource_names": resource_names,
-            "manual_success_names": success_names,
-            "manual_temporal_hooks": temporal_hooks,
-            "a_prendre": [],
-            "a_faire_ici": [],
-            "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
             "a_preparer": [],
             "hard_runtime_gates": [],
             "profession_gates": [],
@@ -891,32 +904,8 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         *,
         chapter_preparation: Any = None,
     ) -> dict[str, Any]:
-        start = stage.get("start") if isinstance(stage.get("start"), dict) else {}
-        end = stage.get("end") if isinstance(stage.get("end"), dict) else {}
-        location = start if start else end
-        x = self._as_int(location.get("x"))
-        y = self._as_int(location.get("y"))
-
-        first_route_position = self._first_route_position(stage)
-        if x is None or y is None:
-            route_coords = self._coords_from_text(first_route_position)
-            if route_coords is not None:
-                x, y = route_coords
-
-        coverage = chapter.get("coverage") if isinstance(chapter.get("coverage"), dict) else {}
-        zone = str(
-            location.get("zone")
-            or location.get("label")
-            or coverage.get("chapter")
-            or chapter_meta.get("label")
-            or chapter_id.replace("_", " ").title()
-        ).strip()
-        destination = self._location_text(x, y, zone)
-        if not destination and first_route_position:
-            destination = first_route_position
-
-        quest_names = self._stage_quest_names(stage)
-        quest_ids = [self._quest_name_to_id[name] for name in quest_names if name in self._quest_name_to_id]
+        card = self._stage_card_metadata(chapter_id, chapter_meta, chapter, stage, index)
+        quest_names = card["manual_quest_names"]
         lines = self._stage_lines(stage, quest_names, chapter_preparation=chapter_preparation)
         manual_search_text = normalize_text(
             " ".join(
@@ -926,9 +915,6 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             )
         )
         structured_runtime_lines = self._stage_structured_runtime_lines(stage)
-        resource_names = self._stage_resource_names(chapter, stage)
-        temporal_hooks = self._string_list(stage.get("temporal_hooks")) + self._string_list(stage.get("temporal_hook"))
-        temporal_hooks = list(dict.fromkeys(temporal_hooks))
 
         structured_preparation = self._structured_rows_from_fields(stage, _STRUCTURED_PREPARATION_FIELDS)
         structured_preparation = self._dedupe_structured_rows(
@@ -944,23 +930,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         }
 
         return {
-            "index": index,
-            "manual_source": True,
-            "_manual_route_cacheable": True,
-            "manual_chapter_id": chapter_id,
-            "manual_chapter_label": str(
-                chapter_meta.get("label")
-                or coverage.get("chapter")
-                or chapter_id.replace("_", " ").title()
-            ).strip(),
-            "manual_stage_id": str(stage.get("id") or f"{chapter_id}-{index}"),
-            "manual_title": str(stage.get("title") or zone or "Fiche de route").strip(),
-            "expected_level": str(stage.get("expected_level") or stage.get("level") or "").strip(),
-            "x": x,
-            "y": y,
-            "zone": zone,
-            "subzone": zone,
-            "destination": destination,
+            **card,
             # Atlas renders one sheet at a time. In compact runtime mode, keep
             # only the compact search fingerprint and rebuild the visible sheet lines
             # from the authored stage instead of retaining 267 rendered lists.
@@ -968,20 +938,12 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             "manual_has_lines": bool(lines),
             "manual_search_text": manual_search_text,
             "structured_runtime_lines": structured_runtime_lines,
-            "manual_quest_ids": quest_ids,
-            "manual_quest_names": quest_names,
-            "manual_resource_names": resource_names,
-            "manual_success_names": self._string_list(stage.get("successes")),
-            "manual_temporal_hooks": temporal_hooks,
             "manual_runtime_metadata": runtime_metadata,
             # Non-compact callers retain the authored structured values directly.
             # Compact runtime hydrates only the visible sheet and releases it again,
             # so this rich payload does not stay resident across the whole route.
             "manual_stage_data": stage,
             "manual_chapter_preparation": chapter_preparation or [],
-            "a_prendre": [],
-            "a_faire_ici": [],
-            "progresse_aussi": {"quest_ids": quest_ids, "success_ids": []},
             "a_preparer": structured_preparation,
             "hard_runtime_gates": runtime_gates,
             "profession_gates": profession_gates,

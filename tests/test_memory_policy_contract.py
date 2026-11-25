@@ -140,7 +140,7 @@ def test_quest_graph_does_not_import_success_provider_for_safe_int() -> None:
         ROOT / "app" / "modules" / "encyclopedia" / "services" / "quest_graph_service.py"
     ).read_text(encoding="utf-8")
     assert "providers.achievement_provider import safe_int" not in source
-    assert "def safe_int(" in source
+    assert "from app.core.numbers import optional_int as safe_int" in source
 
 
 def test_encyclopedia_quest_surface_defers_success_and_guide_widgets() -> None:
@@ -352,11 +352,12 @@ def test_guide_home_worker_keeps_quest_catalogue_and_graph_cold() -> None:
     ]
     worker = request[
         request.index("def worker()"):
-        request.index("self.guideRuntimeFinished.emit")
+        request.index("page.guideRuntimeFinished.emit")
     ]
     assert "quest_provider.get_catalog()" not in worker
     assert "QuestGraphService(" not in worker
-    assert "_build_guide_progress_snapshot(" in worker
+    assert "build_progress = type(self)._build_guide_progress_snapshot" in request
+    assert "build_progress(" in worker
 
     snapshot = source[
         source.index("def _build_guide_progress_snapshot"):
@@ -505,8 +506,9 @@ def test_guide_render_uses_compact_quest_evidence_not_rich_steps() -> None:
     ).read_text(encoding="utf-8")
     assert "def guide_evidence" in provider
     resource_start = manual.index("def _clickable_resource_names")
-    combat_start = manual.index("def _quest_combat_targets", resource_start)
-    assert "quest_items_from_objectives" not in manual[resource_start:combat_start]
+    resource_end = manual.index("\n    def ", resource_start)
+    combat_start = manual.index("def _quest_combat_targets")
+    assert "quest_items_from_objectives" not in manual[resource_start:resource_end]
     combat_end = manual.index("@classmethod", combat_start)
     assert ".steps" not in manual[combat_start:combat_end]
     assert 'evidence = getattr(provider, "guide_evidence"' in manual
@@ -528,7 +530,7 @@ def test_shared_manual_card_does_not_materialize_lines_before_sections() -> None
     section_pos = constructor.index('section_provider = getattr(service, "manual_sections_for_card"')
     line_pos = constructor.index('line_provider = getattr(service, "manual_lines_for_card"')
     assert section_pos < line_pos
-    assert "Do not call" in constructor
+    assert section_pos < constructor.index("if not isinstance(sections, dict) or not any(sections.values()):") < line_pos
 
 
 def test_guide_navigation_materializes_only_one_chapter_at_a_time() -> None:
@@ -583,13 +585,13 @@ def test_guide_manual_runtime_keeps_only_visible_authored_stage_hot() -> None:
 
     assert "def _stage_to_compact_card" in core
     assert "card = self._stage_to_compact_card(" in core
-    assert "if self.compact_runtime" in core
+    assert 'if bool(getattr(self, "compact_runtime", False)):' in core
     assert 'card["manual_source_file"] = filename' in core
     assert 'card["manual_stage_position"] = int(stage_position)' in core
     assert "def _hydrate_manual_card_source" in core
     assert 'previous.pop("manual_stage_data", None)' in core
     assert '"_hydrate_manual_card_source"' in conditions
-    assert "dict(card) if self.compact_runtime else copy.deepcopy(card)" in runtime
+    assert 'dict(card) if bool(getattr(self, "compact_runtime", False)) else copy.deepcopy(card)' in runtime
 
 
 def test_services_facade_keeps_progress_runtime_lazy() -> None:
@@ -946,7 +948,9 @@ def test_idle_network_poll_does_not_drain_empty_queues() -> None:
         bridge.index("def _poll(self)"):
         bridge.index("def _emit_pending_progress")
     ]
-    assert "if not self.coordinator.has_pending_ui_events():" in poll
+    assert "if not pending and not membership_changes:" in poll
+    assert "self.coordinator.drain_statuses(50) if pending else ()" in poll
+    assert "self.coordinator.drain_results(100) if pending else ()" in poll
     assert poll.index("has_pending_ui_events") < poll.index("drain_statuses")
 
     gate = coordinator[

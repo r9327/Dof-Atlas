@@ -8,6 +8,7 @@ import unittest
 from types import SimpleNamespace
 
 from app.network.calibration_runtime import ProtocolCalibrationRuntime
+from app.network.progress_bridge import EventApplicationResult
 from app.network.runtime import NetworkEventRuntime
 
 
@@ -52,7 +53,7 @@ class _FailOnceBridge:
         if self.handle_calls == 1:
             raise RuntimeError("synthetic service failure")
         self.processed.append(event)
-        return SimpleNamespace(changed=True)
+        return EventApplicationResult(accepted=True, changed=True, reason="")
 
     def reset_sessions(self) -> None:
         self.reset_calls += 1
@@ -63,7 +64,7 @@ class _PassiveBridge:
         self.reset_calls = 0
 
     def handle(self, event: object):
-        return SimpleNamespace(changed=False)
+        return EventApplicationResult(accepted=True, changed=False, reason="")
 
     def reset_sessions(self) -> None:
         self.reset_calls += 1
