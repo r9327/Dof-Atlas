@@ -30,7 +30,7 @@ def achievement_progress_snapshot(
                        if achievement_objective_counts_for_progress(achievement, objective))
     done = 0
     for objective in objectives:
-        oid = int(objective.id)
+        oid = int(getattr(objective, "id", 0) or 0)
         if oid in overrides:
             done += bool(overrides[oid])
         elif state is not None and aid:

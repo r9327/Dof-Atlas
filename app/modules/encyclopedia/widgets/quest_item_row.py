@@ -3,34 +3,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QPoint, QSignalBlocker, QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygon
+from PySide6.QtCore import QSignalBlocker, QSize, Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
 
 from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem, format_number
 from app.ui.components import AtlasButton, configure_unity_tool_button, set_unity_widget_property
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from functools import lru_cache
-from app.ui.theme import PALETTE
+from app.ui.guide_glyphs import atlas_icon
 
 
-@lru_cache(maxsize=1)
 def _fallback_item_icon() -> QIcon:
-    """Render the same item glyph that the legacy Guide view used."""
-
-    pixmap = QPixmap(20, 20)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    pen = QPen(QColor(PALETTE["GREEN"]), 1.8)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-    painter.drawPolygon(QPolygon([QPoint(10, 3), QPoint(16, 9), QPoint(10, 17), QPoint(4, 9)]))
-    painter.end()
-    return QIcon(pixmap)
-
+    return atlas_icon("item")
 
 def _apply_item_row_state(row: QFrame, image: QToolButton, checked: bool) -> None:
     state = "done" if checked else "todo"

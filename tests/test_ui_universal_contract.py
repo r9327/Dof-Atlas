@@ -28,6 +28,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class UiUniversalContractTests(unittest.TestCase):
+    def test_global_template_has_no_legacy_hex_and_scroll_viewport_is_transparent(self):
+        from app.ui.theme import _STYLE_TEMPLATE
+        self.assertIsNone(re.search(r"#[0-9a-fA-F]{6}\b", _STYLE_TEMPLATE))
+        self.assertIn("QScrollArea > QWidget#qt_scrollarea_viewport", atlas_stylesheet())
+
+    def test_fallback_item_icon_has_one_painter_owner(self):
+        from app.ui.guide_glyphs import atlas_icon
+        from app.modules.encyclopedia.views.guides_view import atlas_icon as guide_icon
+        from app.modules.encyclopedia.widgets.quest_item_row import _fallback_item_icon
+        self.assertIs(guide_icon, atlas_icon)
+        self.assertIs(_fallback_item_icon.__globals__["atlas_icon"], atlas_icon)
+
     def test_dev_ui_and_manual_guide_share_progress_bar_configuration(self):
         dev = (REPO_ROOT / "app/pages/dev_ui_page.py").read_text(encoding="utf-8")
         manual = (

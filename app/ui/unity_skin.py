@@ -305,6 +305,9 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         translucent("LIST_SURFACE", 0.45),
         "QScrollArea { background: %s; border: none; }" %
         translucent("SCROLL_SURFACE", 0.35),
+        # The native viewport is itself a QWidget. Without this selector it
+        # inherits the opaque application background and hides the shell.
+        "QScrollArea > QWidget#qt_scrollarea_viewport, "
         "QScrollArea > QWidget > QWidget { background: transparent; }",
         # Shared widget families, never changes their existing geometry or actions.
         "QGroupBox, QTabWidget::pane { "

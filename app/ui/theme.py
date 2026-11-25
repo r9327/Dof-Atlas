@@ -1219,7 +1219,7 @@ QPushButton:disabled, QToolButton:disabled {
 #StatusChip[tone="neutral"]:checked { color: @TEXT_SOFT; border-bottom-color: @BORDER_CARD; }
 
 #keyBadge, #InlineShortcutButton {
-    background: #09121F;
+    background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     border-radius: 5px;
     color: @TEXT;
@@ -1233,7 +1233,7 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #keyBadge:hover, #InlineShortcutButton:hover {
-    background: #122139;
+    background: @PANEL_HOVER;
     border-color: @GREEN;
 }
 
@@ -1257,8 +1257,8 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #iconButton:hover, #ClientMenuButton:hover {
-    background: #16263A;
-    border-color: #334761;
+    background: @PANEL_HOVER;
+    border-color: @BORDER_STRONG;
     color: @TEXT;
 }
 
@@ -1266,7 +1266,7 @@ QPushButton:disabled, QToolButton:disabled {
     background: transparent;
     border: 1px solid transparent;
     border-radius: 7px;
-    color: #D6DFEB;
+    color: @TEXT_SOFT;
     font-size: 10px;
     font-weight: 800;
     padding: 0px;
@@ -1274,16 +1274,16 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #iconButtonDanger:hover, #ShortcutClear:hover {
-    background: #2A1118;
+    background: @DANGER_PANEL;
     border-color: @RED;
-    color: #FFD6D9;
+    color: @DANGER_TEXT;
 }
 
 #GhostButton {
-    background: #0A121D;
+    background: @PANEL;
     border-style: dashed;
     border-color: @BORDER;
-    color: #64748B;
+    color: @TEXT_DISABLED;
 }
 
 #GhostTile {
@@ -1305,43 +1305,43 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #characterSlot:hover, #ListRow:hover {
-    background: #16263A;
-    border-color: #344B66;
+    background: @PANEL_HOVER;
+    border-color: @BORDER_STRONG;
 }
 
 #characterSlotEmpty, #EmptySessionSlot {
-    background: #09111D;
+    background: @PANEL;
     border: 1px solid @BORDER_SOFT;
     border-radius: 7px;
     margin: 0px;
 }
 
 #characterSlotEmpty:hover, #EmptySessionSlot:hover {
-    background: #0D1827;
-    border-color: #2A3A51;
+    background: @PANEL;
+    border-color: @BORDER_STRONG;
 }
 
 #characterSlotMissing, #MissingSessionRow {
-    background: #0A1320;
+    background: @PANEL;
     border: 1px solid @BORDER_SOFT;
     border-radius: 7px;
     margin: 0px;
 }
 
 #characterSlotMissing:hover, #MissingSessionRow:hover {
-    background: #101C2B;
-    border-color: #344B66;
+    background: @PANEL_HOVER;
+    border-color: @BORDER_STRONG;
 }
 
 #characterSlotDragging, #DraggingListRow {
-    background: #0A4F32;
+    background: @GREEN_DARK;
     border: 1px solid @GREEN;
     border-radius: 7px;
     margin: 0px;
 }
 
 #characterSlotDropTarget, #DropTargetListRow {
-    background: #10243A;
+    background: @PANEL_ACTIVE;
     border: 1px dashed @GREEN;
     border-radius: 7px;
     margin: 0px;
@@ -1354,7 +1354,7 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #slotIndexBadge, #slotNumberBadge {
-    background: #0A121D;
+    background: @PANEL;
     border: 1px solid @BORDER_SOFT;
     border-radius: 5px;
     color: @TEXT_MUTED;
@@ -1392,7 +1392,7 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #ClientIndexButton, #PrimaryClientIndexButton {
-    background: #0A121D;
+    background: @PANEL;
     border: 1px solid @BORDER;
     border-radius: 5px;
     color: @TEXT;
@@ -1412,7 +1412,7 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #ZaapSuggestionPopup::item, QListWidget::item {
-    color: #DCE5F2;
+    color: @TEXT_SOFT;
     padding: 5px 8px;
     min-height: 25px;
     border-radius: @RADIUS_XS;
@@ -1430,7 +1430,7 @@ QListWidget::item:selected {
 }
 
 #favoriteChip, #ZaapFavoriteChip {
-    background: #0A121D;
+    background: @PANEL;
     border: 1px solid @BORDER;
     border-radius: 7px;
     min-height: 26px;
@@ -1449,14 +1449,14 @@ QListWidget::item:selected {
 
 #favoriteChip:hover, #ZaapFavoriteChip:hover,
 #favoriteChipStar:hover, #ZaapFavoriteStar:hover {
-    background: #10301F;
+    background: @PANEL_ACTIVE;
     border-color: @GREEN;
     color: @TEXT;
 }
 
 #favoriteChipName, #ZaapFavoriteName {
     background: transparent;
-    color: #DCE5F2;
+    color: @TEXT_SOFT;
     border: none;
     border-radius: 0px;
     padding: 0px;
@@ -1477,7 +1477,7 @@ QListWidget::item:selected {
 }
 
 #ResourceTile {
-    border-color: #10B981;
+    border-color: @GREEN;
     text-align: center;
     padding: 0px;
     font-size: 8px;
@@ -1526,7 +1526,7 @@ QListWidget::item:selected {
 }
 
 #WorldScanProgress {
-    color: #DCE5F2;
+    color: @TEXT_SOFT;
     font-size: @FONT_BODY;
     font-weight: 750;
 }
@@ -1687,12 +1687,12 @@ QListWidget::item:selected {
 }
 
 #ResourceNameButton:hover {
-    background: #13243A;
+    background: @PANEL_HOVER;
     border: 1px solid @BORDER;
 }
 
 #LevelBadge {
-    background: #09121F;
+    background: @PANEL_2;
     border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;
     color: @GREEN;
@@ -2432,7 +2432,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QFrame#GuidesHomeSeparator {
-                background: #262d3a;
+                background: @BORDER;
                 border: none;
             }
 
@@ -2487,39 +2487,39 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QLabel#GuideQuestLineTitle[state="done"],
             QLabel#GuideTreePartText[state="done"],
             QLabel#GuideTreeChildText[state="done"] {
-                color: #68717e;
+                color: @TEXT_DISABLED;
             }
 
             QToolButton#GuideTreeStateButton {
                 background: transparent;
-                border: 1px solid #303847;
+                border: 1px solid @BORDER;
                 border-radius: 5px;
-                color: #8c95a3;
+                color: @TEXT_MUTED;
                 font-size: @FONT_BODY;
                 font-weight: 800;
                 padding: 0px;
             }
 
             QToolButton#GuideTreeStateButton:hover {
-                background: #1a202b;
-                border-color: #6f4bb6;
-                color: #f1f4fb;
+                background: @PANEL_HOVER;
+                border-color: @GREEN;
+                color: @TEXT;
             }
 
             QToolButton#GuideTreeStateButton[state="done"] {
-                color: #68717e;
-                border-color: #343b46;
+                color: @TEXT_DISABLED;
+                border-color: @BORDER_STRONG;
             }
 
             QLabel#GuidesHomeCategoryTitle,
             QLabel#GuideHeaderTitle,
             QLabel#GuideSeriesHeaderTitle {
-                color: #f5f0ff;
+                color: @TEXT;
                 font-weight: 800;
             }
 
             QLabel#GuidesHomeCategoryTitle {
-                color: #e7bf63;
+                color: @YELLOW;
                 font-size: @FONT_BODY;
                 letter-spacing: 0px;
             }
@@ -2529,22 +2529,22 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QLabel#GuideHeaderMeta {
-                color: #c9d0dc;
+                color: @TEXT_SOFT;
                 font-size: @FONT_BODY;
             }
 
             QLabel#GuideHeaderProgress {
-                color: #e7bf63;
+                color: @YELLOW;
                 font-size: 15px;
                 font-weight: 800;
                 padding: 4px 8px;
-                border: 1px solid #5d512d;
+                border: 1px solid @BORDER_STRONG;
                 border-radius: @RADIUS_SM;
-                background: #1c1a12;
+                background: @PANEL_2;
             }
 
             QLabel#GuideInfoSectionTitle {
-                color: #e8edf7;
+                color: @TEXT_SOFT;
                 font-size: @FONT_SMALL;
                 font-weight: 800;
             }
@@ -2554,7 +2554,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QLabel#GuideTreePartText,
             QLabel#GuideSeriesHeaderTitle,
             QLabel#QuestSolutionStepTitle {
-                color: #f1f4fb;
+                color: @TEXT;
                 font-size: 13px;
                 font-weight: 750;
             }
@@ -2568,7 +2568,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QLabel#GuideInfoLine,
             QLabel#QuestSolutionDescription,
             QLabel#GuideActivityText {
-                color: #d9dfeb;
+                color: @TEXT_SOFT;
                 font-size: @FONT_BODY;
             }
 
@@ -2588,24 +2588,24 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QLabel#GuideBreadcrumbCurrent,
             QLabel#MutedLabel,
             QLabel#GuidesHomeEmptyText {
-                color: #9ca5b4;
+                color: @TEXT_MUTED;
                 font-size: @FONT_SMALL;
             }
 
             QLabel#GuideBreadcrumbCurrentStrong {
-                color: #dfe6f3;
+                color: @TEXT_SOFT;
                 font-size: @FONT_SMALL;
                 font-weight: 700;
             }
 
             QLabel#GuideQuestNumber {
-                color: #a78bda;
+                color: @GREEN;
                 font-size: @FONT_BODY;
                 font-weight: 800;
             }
 
             QLabel#GuideTreeState {
-                color: #727b88;
+                color: @TEXT_DISABLED;
                 font-size: 13px;
                 font-weight: 800;
             }
@@ -2615,7 +2615,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QLabel#GuideHomeProgress[state="done"],
             QLabel#GuideDofusProgress[state="done"],
             QLabel#GuideSeriesHeaderProgress[state="done"] {
-                color: #58c878;
+                color: @GREEN;
             }
 
             QLabel#GuideTreeState[state="partial"],
@@ -2623,7 +2623,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QLabel#GuideHomeProgress[state="partial"],
             QLabel#GuideDofusProgress[state="partial"],
             QLabel#GuideSeriesHeaderProgress[state="partial"] {
-                color: #e0b75a;
+                color: @YELLOW;
             }
 
             QLabel#GuideHeaderImage,
@@ -2661,14 +2661,14 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QFrame#GuideItemRow[state="done"],
             QFrame#QuestItemRow[state="done"] {
                 background: rgba(52, 142, 78, 0.20);
-                border: 1px solid #2e7445;
+                border: 1px solid @GREEN_BORDER;
                 border-radius: 5px;
             }
 
             QFrame#GuideInfoSection,
             QFrame#QuestSolutionStep {
                 background: transparent;
-                border-top: 1px solid #252c38;
+                border-top: 1px solid @BORDER_SOFT;
                 border-left: none;
                 border-right: none;
                 border-bottom: none;
@@ -2689,7 +2689,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
 
             QFrame#QuestObjectiveLine:hover,
             QFrame#GuideCollapsibleHeader:hover {
-                background: #171d27;
+                background: @PANEL_HOVER;
             }
 
             QToolButton#GuideChevronButton,
@@ -2705,13 +2705,13 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QToolButton#GuideItemIcon[state="todo"] {
-                border: 1px solid #303847;
+                border: 1px solid @BORDER;
                 border-radius: 5px;
             }
 
             QToolButton#GuideItemIcon[state="done"] {
                 background: rgba(52, 142, 78, 0.28);
-                border: 1px solid #58c878;
+                border: 1px solid @GREEN;
                 border-radius: 5px;
             }
 
@@ -2720,9 +2720,9 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QToolButton#GuideHeaderDoneButton,
             QToolButton#QuestGlobalDoneButton {
                 background: transparent;
-                border: 1px solid #303847;
+                border: 1px solid @BORDER;
                 border-radius: 5px;
-                color: #8c95a3;
+                color: @TEXT_MUTED;
                 font-size: @FONT_BODY;
                 font-weight: 800;
                 padding: 0px 6px;
@@ -2732,16 +2732,16 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QToolButton#GuideStepsCollapseButton:hover,
             QToolButton#GuideHeaderDoneButton:hover,
             QToolButton#QuestGlobalDoneButton:hover {
-                background: #1a202b;
-                border-color: #6f4bb6;
-                color: #f1f4fb;
+                background: @PANEL_HOVER;
+                border-color: @GREEN;
+                color: @TEXT;
             }
 
             QToolButton#GuideQuestState[state="done"],
             QToolButton#GuideHeaderDoneButton[state="done"],
             QToolButton#QuestGlobalDoneButton[state="done"] {
-                color: #58c878;
-                border-color: #2e7445;
+                color: @GREEN;
+                border-color: @GREEN_BORDER;
             }
 
             QToolButton#GuideHeaderDoneButton,
@@ -2795,8 +2795,8 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QPushButton#GuideItemNameButton:hover {
-                background: #1a202b;
-                border-color: #5e3d93;
+                background: @PANEL_HOVER;
+                border-color: @GREEN_BORDER;
                 color: @GREEN_HOVER;
             }
 
@@ -2806,13 +2806,13 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QLabel#GuideItemQuantity {
-                color: #aeb7c6;
+                color: @TEXT_MUTED;
                 font-size: @FONT_SMALL;
                 font-weight: 700;
             }
 
             QCheckBox#GuideInventoryCheck {
-                color: #9ca5b4;
+                color: @TEXT_MUTED;
                 font-size: 10px;
                 padding-left: 2px;
             }
@@ -2830,33 +2830,33 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QSplitter#GuideDetailSplitter::handle {
-                background: #242b37;
+                background: @BORDER_SOFT;
             }
 
             QProgressBar#GuideTinyProgress {
-                background: #0b0f17;
-                border: 1px solid #29313f;
+                background: @BG;
+                border: 1px solid @BORDER;
                 border-radius: 3px;
             }
 
             QProgressBar#GuideTinyProgress::chunk {
-                background: #58c878;
+                background: @GREEN;
                 border-radius: 2px;
             }
 
             QProgressBar#GuideDofusHomeBar {
-                background: #0b0f17;
-                border: 1px solid #27303d;
+                background: @BG;
+                border: 1px solid @BORDER;
                 border-radius: 2px;
             }
 
             QProgressBar#GuideDofusHomeBar::chunk {
-                background: #7f5bc5;
+                background: @GREEN_DARK;
                 border-radius: 2px;
             }
 
             QProgressBar#GuideDofusHomeBar[state="done"]::chunk {
-                background: #58c878;
+                background: @GREEN;
             }
 
             QFrame#GuidesHomeEmpty {
@@ -2866,7 +2866,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QLabel#GuideStepsVerticalText {
-                color: #9ca5b4;
+                color: @TEXT_MUTED;
                 font-size: 10px;
                 font-weight: 800;
             }

@@ -13,8 +13,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal, Slot
-from PySide6.QtCore import QPoint
-from PySide6.QtGui import QColor, QIcon, QImage, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
+from PySide6.QtGui import QIcon, QImage, QMouseEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -34,6 +33,7 @@ from PySide6.QtWidgets import (
 from shiboken6 import isValid
 
 from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE, QUEST_PROGRESS_FILE
+from app.ui.guide_glyphs import atlas_icon
 from app.core.character_identity import is_character_key
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
 from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE
@@ -4345,65 +4345,6 @@ def solution_objective_row(objective: SolutionObjective) -> QWidget:
     layout.addWidget(image, 0, Qt.AlignTop)
     layout.addWidget(text_label(clean_text(objective.text), "QuestSolutionDescription"), 1)
     return row
-
-
-@lru_cache(maxsize=16)
-def atlas_icon(kind: str) -> QIcon:
-    # Bounded cache for the fixed Unity fallback icons. Reward rows otherwise
-    # repaint the same 20px QPixmap hundreds of times on the Qt UI thread.
-    pixmap = QPixmap(20, 20)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    pen = QPen(QColor(PALETTE["GREEN"]), 1.8)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-    if kind == "quest":
-        painter.drawRoundedRect(5, 3, 10, 14, 2, 2)
-        painter.drawLine(7, 8, 13, 8)
-        painter.drawLine(7, 12, 12, 12)
-    elif kind == "solo":
-        painter.drawLine(6, 16, 14, 4)
-        painter.drawLine(10, 12, 14, 16)
-        painter.drawLine(9, 11, 5, 7)
-        painter.drawLine(5, 17, 8, 14)
-    elif kind == "group":
-        painter.drawLine(4, 16, 13, 5)
-        painter.drawLine(7, 13, 3, 9)
-        painter.drawLine(3, 17, 6, 14)
-        painter.drawLine(16, 16, 7, 5)
-        painter.drawLine(13, 13, 17, 9)
-        painter.drawLine(17, 17, 14, 14)
-    elif kind == "dungeon":
-        painter.drawRoundedRect(4, 7, 12, 10, 1, 1)
-        painter.drawArc(5, 2, 10, 10, 0, 180 * 16)
-        painter.drawLine(7, 7, 7, 17)
-        painter.drawLine(13, 7, 13, 17)
-        painter.drawEllipse(9, 12, 2, 2)
-    elif kind == "tactical":
-        painter.drawEllipse(4, 4, 12, 12)
-        painter.drawEllipse(8, 8, 4, 4)
-        painter.drawLine(10, 2, 10, 6)
-        painter.drawLine(10, 14, 10, 18)
-        painter.drawLine(2, 10, 6, 10)
-        painter.drawLine(14, 10, 18, 10)
-    elif kind == "drop":
-        painter.drawLine(10, 3, 15, 10)
-        painter.drawArc(5, 8, 10, 9, 200 * 16, 140 * 16)
-        painter.drawLine(10, 3, 5, 10)
-    elif kind == "item":
-        painter.drawPolygon(QPolygon([QPoint(10, 3), QPoint(16, 9), QPoint(10, 17), QPoint(4, 9)]))
-    elif kind == "combat":
-        painter.drawLine(4, 15, 16, 5)
-        painter.drawLine(5, 5, 16, 16)
-    else:
-        painter.drawEllipse(5, 5, 10, 10)
-        painter.drawLine(10, 2, 10, 5)
-        painter.drawLine(10, 15, 10, 18)
-    painter.end()
-    return QIcon(pixmap)
 
 
 def activity_icon_key(label: str) -> str:

@@ -230,6 +230,7 @@ def configure_unity_scroll_area(
     Layouts, contents, object names and scroll ownership remain with callers.
     """
     area.setWidgetResizable(True)
+    area.viewport().setAutoFillBackground(False)
     area.setHorizontalScrollBarPolicy(horizontal_policy)
     if borderless:
         area.setFrameShape(QFrame.NoFrame)

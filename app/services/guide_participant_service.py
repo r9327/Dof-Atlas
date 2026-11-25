@@ -60,6 +60,7 @@ class GuideParticipantService:
     def available_characters(self) -> tuple[QuestCharacter, ...]:
         for _attempt in range(2):
             revision = file_revision(self.binding_path)
+            clients_revision = file_revision(self.client_index_path)
             verified = self._verified_keys()
             if not verified:
                 return ()
@@ -67,7 +68,8 @@ class GuideParticipantService:
                 self.profile_path, self.client_index_path,
                 binding_path=self.binding_path, connected_only=False,
             )
-            if revision == file_revision(self.binding_path):
+            if (revision == file_revision(self.binding_path)
+                    and clients_revision == file_revision(self.client_index_path)):
                 return tuple(row for row in rows if row.key in verified)
         return ()
 
