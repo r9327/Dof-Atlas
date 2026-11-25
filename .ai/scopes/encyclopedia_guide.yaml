@@ -13,6 +13,7 @@ working_set:
   - tests/test_guide_ganymede_continuous_plan.py
   - tests/test_guide_ultime_route_sheet_ui.py
   - app/modules/encyclopedia/views/guides_view.py
+  - app/modules/encyclopedia/views/manual_route_guides_view.py
   - app/modules/encyclopedia/views/guide_ultime_generated_view.py
   - app/modules/encyclopedia/views/guide_ultime_manual_view.py
   - app/modules/encyclopedia/views/guide_ultime_universal_view.py

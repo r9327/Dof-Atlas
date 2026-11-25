@@ -67,6 +67,22 @@ class ManualRouteGuidesView(_BaseGuidesView):
         super().refresh_home()
         self._refresh_catalog_route_home_labels()
 
+    def _build_manual_route_reader(self, service) -> SharedGuideManualView:
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualView,
+        )
+
+        view = SharedGuideManualView(
+            service,
+            character_key=self.current_character_key,
+            quest_provider=self.quest_provider,
+            quest_graph=getattr(self, "graph", None),
+            travel_callback=self.launch_travel_callback,
+            participant_service=self.guide_participant_service,
+        )
+        view.navigate_entity = self.link_service.navigate_to_entity
+        return view
+
     def ensure_guide_ultime_view(self) -> SharedGuideManualView | None:
         """Keep Guide Succès on the canonical service but use the shared renderer."""
         if self.guide_ultime_view is not None:
@@ -74,9 +90,6 @@ class ManualRouteGuidesView(_BaseGuidesView):
 
         from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
             GuideUltimeManualRuntimeService,
-        )
-        from app.modules.encyclopedia.views.shared_manual_guide_view import (
-            SharedGuideManualView,
         )
 
         service = self.guide_ultime_service
@@ -102,15 +115,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
         if not service.available:
             return None
 
-        view = SharedGuideManualView(
-            service,
-            character_key=self.current_character_key,
-            quest_provider=self.quest_provider,
-            quest_graph=getattr(self, "graph", None),
-            travel_callback=self.launch_travel_callback,
-            participant_service=self.guide_participant_service,
-        )
-        view.navigate_entity = self.link_service.navigate_to_entity
+        view = self._build_manual_route_reader(service)
         view.questProgressChanged.connect(self._on_guide_ultime_quest_progress_changed)
         self.stack.addWidget(view)
         self.guide_ultime_view = view
@@ -120,9 +125,6 @@ class ManualRouteGuidesView(_BaseGuidesView):
     def ensure_catalog_manual_view(self, guide_id: str) -> SharedGuideManualView | None:
         from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
             GuideCatalogManualRuntimeService,
-        )
-        from app.modules.encyclopedia.views.shared_manual_guide_view import (
-            SharedGuideManualView,
         )
 
         guide_id = str(guide_id or "")
@@ -144,15 +146,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
         if not service.available:
             return None
 
-        view = SharedGuideManualView(
-            service,
-            character_key=self.current_character_key,
-            quest_provider=self.quest_provider,
-            quest_graph=getattr(self, "graph", None),
-            travel_callback=self.launch_travel_callback,
-            participant_service=self.guide_participant_service,
-        )
-        view.navigate_entity = self.link_service.navigate_to_entity
+        view = self._build_manual_route_reader(service)
         view.questProgressChanged.connect(
             lambda quest_id, gid=guide_id: self._on_catalog_manual_quest_progress_changed(
                 gid,

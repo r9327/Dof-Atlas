@@ -91,12 +91,12 @@ class GuidesHomeRenderCacheTests(unittest.TestCase):
             view._quest_id_from_requirement_line("Quête terminée: Premier combat"),
             101,
         )
-        first_index = view._quest_name_id_index
+        first_index = view._compat_requirement_index
         self.assertEqual(
             view._quest_id_from_requirement_line("Quête active: Deuxième quête"),
             103,
         )
-        self.assertIs(view._quest_name_id_index, first_index)
+        self.assertIs(view._compat_requirement_index, first_index)
         self.assertIsNone(
             view._quest_id_from_requirement_line("Quête terminée: inconnue"),
         )
@@ -107,16 +107,16 @@ class GuidesHomeRenderCacheTests(unittest.TestCase):
             view._quest_id_from_requirement_line("Quête terminée: Premier combat"),
             205,
         )
-        self.assertIsNot(view._quest_name_id_index, first_index)
+        self.assertIsNot(view._compat_requirement_index, first_index)
 
     def test_prerequisite_index_is_not_built_for_unknown_lines_or_missing_catalog(self) -> None:
         view = _GuidesCacheHarness()
         view.quest_catalog = None
         self.assertIsNone(view._quest_id_from_requirement_line("Quête active: exemple"))
-        self.assertFalse(hasattr(view, "_quest_name_id_index"))
+        self.assertFalse(hasattr(view, "_compat_requirement_index"))
         view.quest_catalog = SimpleNamespace(quests=[])
         self.assertIsNone(view._quest_id_from_requirement_line("Fais les combats"))
-        self.assertFalse(hasattr(view, "_quest_name_id_index"))
+        self.assertFalse(hasattr(view, "_compat_requirement_index"))
 
     def test_guide_ultime_card_is_selected_by_stable_id(self) -> None:
         class _Model:

@@ -2226,13 +2226,6 @@ class GuidesView(QWidget):
 
 
 
-    def _refresh_current_view(self, preserve_scroll: bool = False) -> None:
-        self.refresh_home()
-        if self.current_guide_id and self.current_quest_id is not None:
-            self.show_quest_detail(self.current_quest_id, preserve_scroll=preserve_scroll)
-        elif self.current_guide_id:
-            self.show_guide_overview(self.current_guide_id, preserve_scroll=preserve_scroll)
-
     def _guide_progress_tuple_uncached(self, guide: Guide) -> tuple[int, int, str]:
         self._ensure_progress_runtime()
         compact_quest_ids = getattr(self.provider, "progress_quest_ids_for", None)
@@ -3096,12 +3089,6 @@ class GuidesView(QWidget):
 
         self.right_layout.addStretch(1)
 
-    def _guide_prerequisite_widgets(self, guide: Guide) -> list[QWidget]:
-        return [
-            self._guide_prerequisite_row(text, quest_id, success_id)
-            for text, quest_id, success_id in self._guide_prerequisite_entries(guide)
-        ]
-
     def _guide_prerequisite_entries(
         self, guide: Guide,
     ) -> list[tuple[str, int | None, int | None]]:
@@ -3711,11 +3698,6 @@ def _catalog_subtitle(guide: Guide) -> str:
     return _display_guide_level_text(guide)
 
 
-def _category_breadcrumb_label(guide: Guide) -> str:
-    labels = {"aventure": "Aventure", "alignements": "Alignements", "dofus": "Dofus"}
-    return labels.get(guide.category, guide.category.title())
-
-
 def _display_guide_level_text(guide: Guide) -> str:
     minimum = _positive_int(getattr(guide, "recommended_level_min", None))
     maximum = _positive_int(getattr(guide, "recommended_level_max", None))
@@ -3784,18 +3766,6 @@ def _progress_label(progress: tuple[int, int, str] | None) -> str:
 def _tuple_progress_state(progress: tuple[int, int, str] | None) -> str:
     completed, total, _state = progress or (0, 0, "")
     return guide_progress_style_state(completed, total)
-
-
-def _is_complete(completed: int, total: int) -> bool:
-    return bool(total and completed >= total)
-
-
-def _progress_marker(progress: ProgressCount) -> str:
-    if progress.is_complete:
-        return "✓"
-    if progress.completed:
-        return "●"
-    return "○"
 
 
 def _progress_state(progress: ProgressCount) -> str:
