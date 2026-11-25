@@ -9,7 +9,11 @@ working_set:
   - app/modules/encyclopedia/services/quest_progress_service.py
   - app/modules/encyclopedia/services/quest_hierarchy_service.py
   - app/modules/encyclopedia/widgets/quest_detail_view.py
+  - app/modules/encyclopedia/services/guide_quest_view_model.py
+  - app/modules/encyclopedia/widgets/quest_item_row.py
+  - app/pages/quest_character_cache.py
   - tests/test_quest_hierarchy.py
+  - tests/test_lazy_quests_page_performance.py
 shared_dependencies:
   - dofus_data
   - persistence_identity
@@ -17,4 +21,3 @@ shared_dependencies:
 context_entries:
   - app/quest_catalog.py
   - app/modules/encyclopedia/services/quest_graph_service.py
-  - app/modules/encyclopedia/services/guide_quest_view_model.py
