@@ -146,7 +146,7 @@ class GuideUltimeV5UITests(unittest.TestCase):
     def test_02_guides_wrapper_routes_legacy_id_to_manual_guide(self):
         source = (Path(__file__).parents[1] / "app/modules/encyclopedia/views/guides_view.py").read_text(encoding="utf-8")
         self.assertIn("GuideUltimeManualRuntimeService", source)
-        self.assertIn("GuideUltimeManualView", source)
+        self.assertIn("SharedGuideManualView", source)
         self.assertIn('GUIDE_ULTIME_LEGACY_ID = "guide_complet"', source)
         self.assertNotIn("guides_view_legacy", source)
 

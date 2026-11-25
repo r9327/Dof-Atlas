@@ -81,23 +81,23 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
     def test_guide_succes_and_catalogue_routes_share_the_same_renderer(self) -> None:
         source = ROUTER.read_text(encoding="utf-8")
         assert 'CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})' in source
-        assert source.count("view = SharedGuideManualView(") == 1
-        assert source.count("self._build_manual_route_reader(service)") == 2
-        # Any added guide entry must reuse SharedGuideManualView, not a fork.
-        assert "SharedGuideManualView(" in source
-        assert "class Sylvestre" not in source
-        assert "GuideUltimeManualRuntimeService(" in source
+        guides = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
+        assert "view = SharedGuideManualView(" in guides
+        assert "self._build_manual_route_reader(service)" in guides
+        assert "self._build_manual_route_reader(service)" in source
+        assert "def ensure_guide_ultime_view(" not in source
+        assert "SharedGuideManualView(" not in source
+        assert "GuideUltimeManualRuntimeService(" in guides
         assert "GuideCatalogManualRuntimeService(" in source
 
 
     def test_all_authorized_ganymede_entrypoints_use_indexed_guide_header(self) -> None:
         """Both trusted continuous cutovers and imported manual guides share
         the indexed Guide header controls; metadata-only rows stay disabled."""
-        source = ROUTER.read_text(encoding="utf-8")
         continuous_router = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
         continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(encoding="utf-8")
         shared = SHARED.read_text(encoding="utf-8")
-        assert "SharedGuideManualView(" in source
+        assert "SharedGuideManualView(" in continuous_router
         assert "ContinuousGuideRoutePanel(" in continuous_router
         assert 'replacement_status") == "TRUSTED_SOURCE_STEPS"' in continuous_router
         controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")

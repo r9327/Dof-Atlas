@@ -87,7 +87,7 @@ if TYPE_CHECKING:
     from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
         GuideUltimeManualRuntimeService,
     )
-    from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
+    from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 
 
 _GUIDE_QUEST_VM = None
@@ -1141,6 +1141,7 @@ class GuidesView(QWidget):
     CATALOG = "CATALOG"
     GUIDE_OVERVIEW = "GUIDE_OVERVIEW"
     QUEST_DETAIL = "QUEST_DETAIL"
+    _compact_guide_ultime_runtime = False
 
     def __init__(
         self,
@@ -1169,7 +1170,7 @@ class GuidesView(QWidget):
         self._catalog_external_owner = False
 
         self.guide_ultime_service: GuideUltimeManualRuntimeService | None = None
-        self.guide_ultime_view: GuideUltimeManualView | None = None
+        self.guide_ultime_view: SharedGuideManualView | None = None
         self._external_progress_signature: tuple[object, ...] | None = None
         self._home_render_signature: tuple[object, ...] | None = None
         self._home_progress_cache_signature: tuple[object, ...] | None = None
@@ -3312,47 +3313,12 @@ class GuidesView(QWidget):
         self._home_progress_cache[guide_id] = progress
         return progress
 
-    def ensure_guide_ultime_view(self) -> GuideUltimeManualView | None:
-        if self.guide_ultime_view is not None:
-            return self.guide_ultime_view
-
-        from app.modules.encyclopedia.services.guide_auto_validation_contract import (
-            build_route_auto_validation_contract,
-        )
-        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
-            GuideUltimeManualRuntimeService,
-        )
-        from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-            GuideUltimeManualView,
+    def _build_manual_route_reader(self, service) -> SharedGuideManualView:
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualView,
         )
 
-        service = self.guide_ultime_service
-        if service is None:
-            service = GuideUltimeManualRuntimeService(
-                self.quest_progress_service,
-                self.achievement_progress_service,
-                self.guide_progress_service,
-                quest_provider=self.quest_provider,
-                autoload=False,
-            )
-            # The canonical manual route is authoritative. Generated V5 artifacts
-            # are loaded only if manual composition actually failed, avoiding two
-            # complete route reads on every successful first opening.
-            if not service.available:
-                service.load()
-            # Reuse the exact provider already owned by Guides/Succès. Creating
-            # another provider here adds work and risks two catalogue snapshots.
-            service.achievement_provider = self.achievement_provider
-            service.auto_validation_contract = build_route_auto_validation_contract(
-                service.cards,
-                achievement_provider=self.achievement_provider,
-            )
-            self.guide_ultime_service = service
-
-        if not service.available:
-            return None
-
-        view = GuideUltimeManualView(
+        view = SharedGuideManualView(
             service,
             character_key=self.current_character_key,
             quest_provider=self.quest_provider,
@@ -3360,14 +3326,54 @@ class GuidesView(QWidget):
             travel_callback=self.launch_travel_callback,
             participant_service=self.guide_participant_service,
         )
-        # Expose the already-existing Encyclopedia navigator to the GPS view. The
-        # view never knows how tabs are built; it only asks Atlas to open an entity.
         view.navigate_entity = self.link_service.navigate_to_entity
+        return view
+
+    def ensure_guide_ultime_view(self) -> SharedGuideManualView | None:
+        if self.guide_ultime_view is not None:
+            return self.guide_ultime_view
+
+        service = self.guide_ultime_service
+        if service is None:
+            from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+                GuideUltimeManualRuntimeService,
+            )
+
+            compact = self._compact_guide_ultime_runtime
+            service = GuideUltimeManualRuntimeService(
+                self.quest_progress_service,
+                self.achievement_progress_service,
+                self.guide_progress_service,
+                quest_provider=self.quest_provider,
+                autoload=False,
+                cache_manual_bundle=not compact,
+                compact_runtime=compact,
+            )
+            if not service.available:
+                service.load()
+            service.achievement_provider = self.achievement_provider
+            # Compact readers resolve validation per sheet to keep the initial
+            # opening from allocating a second copy of the whole route.
+            service.auto_validation_contract = None
+            if not compact:
+                from app.modules.encyclopedia.services.guide_auto_validation_contract import (
+                    build_route_auto_validation_contract,
+                )
+
+                service.auto_validation_contract = build_route_auto_validation_contract(
+                    service.cards,
+                    achievement_provider=self.achievement_provider,
+                )
+            self.guide_ultime_service = service
+
+        if not service.available:
+            return None
+
+        view = self._build_manual_route_reader(service)
         view.questProgressChanged.connect(self._on_guide_ultime_quest_progress_changed)
         self.stack.addWidget(view)
         self.guide_ultime_view = view
-        # The home catalogue is hidden while Guide Ultime opens. Only its manual
-        # route counter needs patching; rebuilding every card/image is wasted work.
+        # Only the route counter changes while the catalogue is hidden.
         self._refresh_guide_ultime_home_labels()
         return view
 

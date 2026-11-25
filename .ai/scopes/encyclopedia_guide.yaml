@@ -2,6 +2,10 @@ schema_version: 1
 scope: encyclopedia_guide
 kind: feature
 working_set:
+  - tests/test_guides_lazy_ultime_runtime.py
+  - tests/test_guide_ultime_manual_preview.py
+  - tests/test_shared_guide_single_renderer_contract.py
+  - tests/test_guide_ultime_v5_ui.py
   - app/modules/encyclopedia/views/guide_continuous_route_panel.py
   - tests/test_guide_continuous_route_panel.py
   - app/modules/encyclopedia/providers/memory_bound_guide_provider.py

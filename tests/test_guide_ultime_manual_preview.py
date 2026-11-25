@@ -240,10 +240,11 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         init_source = inspect.getsource(GuidesView.__init__)
         lazy_source = inspect.getsource(GuidesView.ensure_guide_ultime_view)
         self.assertIn("self.guide_ultime_service: GuideUltimeManualRuntimeService | None = None", init_source)
-        self.assertIn("self.guide_ultime_view: GuideUltimeManualView | None = None", init_source)
+        self.assertIn("self.guide_ultime_view: SharedGuideManualView | None = None", init_source)
         self.assertNotIn("GuideUltimeManualRuntimeService(", init_source)
         self.assertIn("GuideUltimeManualRuntimeService(", lazy_source)
-        self.assertIn("GuideUltimeManualView(", lazy_source)
+        self.assertIn("self._build_manual_route_reader(service)", lazy_source)
+        self.assertIn("SharedGuideManualView(", inspect.getsource(GuidesView._build_manual_route_reader))
         self.assertIn("quest_provider=self.quest_provider", lazy_source)
         self.assertIn("build_route_auto_validation_contract", lazy_source)
 

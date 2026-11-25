@@ -1047,7 +1047,7 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
         / "views"
         / "manual_route_guides_view.py"
     ).read_text(encoding="utf-8")
-    assert "cache_manual_bundle=False" in view_source
+    assert "_compact_guide_ultime_runtime = True" in view_source
 
     core_source = (
         ROOT
@@ -1086,12 +1086,15 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
     assert "def _stage_to_card" not in wrapper_source
     assert "def _raw_stage_lines" in wrapper_source
 
-    runtime_open = view_source[
-        view_source.index("def ensure_guide_ultime_view"):
-        view_source.index("def ensure_catalog_manual_view")
+    guides_source = (ROOT / "app/modules/encyclopedia/views/guides_view.py").read_text(encoding="utf-8")
+    runtime_open = guides_source[
+        guides_source.index("def ensure_guide_ultime_view"):
+        guides_source.index("def _refresh_guide_ultime_home_labels")
     ]
-    assert "build_route_auto_validation_contract" not in runtime_open
+    assert "compact = self._compact_guide_ultime_runtime" in runtime_open
+    assert "cache_manual_bundle=not compact" in runtime_open
     assert "service.auto_validation_contract = None" in runtime_open
+    assert runtime_open.index("if not compact:") < runtime_open.index("build_route_auto_validation_contract(")
 
     core_stage = core_source[
         core_source.index("def _stage_to_card"):
@@ -1104,7 +1107,7 @@ def test_atlas_manual_guide_disables_bundle_copy_and_wrapper_duplicate_snapshots
     assert '"manual_has_lines": bool(lines)' in core_stage
     assert '"manual_search_text": manual_search_text' in core_stage
 
-    assert "compact_runtime=True" in runtime_open
+    assert "compact_runtime=compact" in runtime_open
 
     conditions_source = (
         ROOT
