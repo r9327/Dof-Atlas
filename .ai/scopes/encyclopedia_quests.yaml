@@ -2,6 +2,7 @@ schema_version: 1
 scope: encyclopedia_quests
 kind: feature
 working_set:
+  - data/encyclopedia/quests/quests_enriched.json
   - app/pages/quests_page.py
   - app/pages/_quests_page_impl.py
   - app/pages/progressive_quests_page.py

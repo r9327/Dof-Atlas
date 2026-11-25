@@ -4271,7 +4271,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -5141,7 +5144,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -6680,7 +6686,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -7550,7 +7559,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat"
       ],
@@ -8423,7 +8435,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -10062,7 +10077,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -44224,7 +44242,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -45573,7 +45594,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -46852,7 +46876,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat"
       ],
@@ -47791,7 +47818,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -49244,7 +49274,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-19]",
+        "source_text": "Prenez l’avis de recherche à la milice d’Astrub."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -70770,7 +70803,10 @@
         "Quete terminee: Des donjons, encore des donjons",
         "Niveau > 29"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-6,-37]",
+        "source_text": "Parlez au Maître des clefs."
+      },
       "preparation": [
         "Des donjons, encore des donjons",
         "1 x Donjon Repaire de Skeunk",
@@ -88719,7 +88755,10 @@
         "Niveau recommandé : 80",
         "Un Mawiage Pwincier"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[4,-6]",
+        "source_text": "Parlez au Prince d’Wa."
+      },
       "preparation": [
         "3 x combats (seul)"
       ],
@@ -95590,7 +95629,10 @@
         "ATTENTION : Afin de pouvoir lancer la quête, vous devez posséder une Epée Maudite du Saigneur Guerrier dans vote inventaire. Durant la quête vous perdrez cette épée et vous obtiendrez la faux en échange. Ne faites cette quête uniquement si vous avez vraiment besoin ou envie d'augmenter votre nombre de quêtes accomplies car la faux que vous obtiendrez coutera globalement moins cher que l'épée elle-même que vous donnez en échange !",
         "Pour cette quête commencez par acheter ou fabriquer une Epée Maudite du Saigneur Guerrier à partir de cette recette et d'un forgeron 200 minimum :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,6]",
+        "source_text": "Présentez l’épée maudite à Farle Ingalsse."
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -190835,7 +190877,10 @@
         "Domen vous apprend que les disciples de l'ordre du cœur saignant et de l'ordre de l'esprit malsain sont d'après Domen nuisibles à Brâkmar. Afin de réduire leur puissance, il décide d'un plan pour les monter l'un contre l'autre. Votre rôle pour le moment est de réunir un bon paquet d'armes",
         "Une fois les forgerons convaincus de vous fabriquer des armes, il vous faudra voler une caisse de poison, puis récupérer les armes et mettre le tout dans un repaire dont Domen vous procure la clef"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-22,33]",
+        "source_text": "Rendez-vous au point de lancement indiqué à Brâkmar."
+      },
       "preparation": [],
       "required_items": [
         {
@@ -194019,7 +194064,10 @@
         "Maître chanteur",
         "Domen vous apprend que les contrebandiers que vous avez éliminés étaient en fait à la solde d'Oto... Il accepte de ne rien dire à Oto si vous l'aidez encore une fois. Il faut lui ramener 2 Roupies de Champ à Gnons et 2 Amaryllis"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-22,33]",
+        "source_text": "Rendez-vous au point de lancement indiqué à Brâkmar."
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "1 x combat (réalisable en groupe)",
@@ -283517,7 +283565,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-76,-42]",
+        "source_text": "Prenez l’avis de recherche à la milice de la Bourgade de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -284924,7 +284975,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-76,-42]",
+        "source_text": "Prenez l’avis de recherche à la milice de la Bourgade de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -286355,7 +286409,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-76,-42]",
+        "source_text": "Prenez l’avis de recherche à la milice de la Bourgade de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -288011,7 +288068,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-76,-42]",
+        "source_text": "Prenez l’avis de recherche à la milice de la Bourgade de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -289443,7 +289503,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-76,-42]",
+        "source_text": "Prenez l’avis de recherche à la milice de la Bourgade de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -290401,7 +290464,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[-76,-42]",
+        "source_text": "Prenez l’avis de recherche à la milice de la Bourgade de Frigost."
+      }
     },
     "550": {
       "extraction_version": 2,
@@ -292351,7 +292418,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-75,-74]",
+        "source_text": "Prenez l’avis de recherche à la milice du Village enseveli de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -293553,7 +293623,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-75,-74]",
+        "source_text": "Prenez l’avis de recherche à la milice du Village enseveli de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -295751,7 +295824,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-75,-74]",
+        "source_text": "Prenez l’avis de recherche à la milice du Village enseveli de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -298677,7 +298753,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-75,-74]",
+        "source_text": "Prenez l’avis de recherche à la milice du Village enseveli de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -345860,7 +345939,10 @@
         "Dépôt de ravitaillement",
         "Il vous faut être au minimum 8 personnages, ayant la quête de lancée ou de terminée"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-82,-72]",
+        "source_text": "Rendez-vous dans la Forêt pétrifiée."
+      },
       "preparation": [
         "Avoir drop la Clef secrète de la forêt pétrifiée sur le Korriandre à un taux de base de 5%"
       ],
@@ -383859,7 +383941,10 @@
         "Cinquième postage",
         "Chuck vous demande de livrer une lettre pour lui à une personne de Frigost"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-77,-37]",
+        "source_text": "Rendez-vous au Port de givre."
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -397174,7 +397259,10 @@
         "Niveau recommandé : 140",
         "Les joyeux de la couronne"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-64,-55]",
+        "source_text": "Rejoignez le point de départ au Lac gelé."
+      },
       "preparation": [
         "1 x Donjon Excavation du Mansot Royal"
       ],
@@ -397416,7 +397504,10 @@
         "Niveau recommandé : 150",
         "Fais dodo, t'auras du gâteau"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-60,-84]",
+        "source_text": "Rejoignez le point de départ au Berceau d’Alma."
+      },
       "preparation": [
         "1 x Donjon Épave du Golandais Violent"
       ],
@@ -398094,7 +398185,10 @@
         "Niveau recommandé : 180",
         "Sans ma barbe, quelle barbe"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-73,-69]",
+        "source_text": "Rendez-vous dans la Forêt pétrifiée."
+      },
       "preparation": [
         "1 x Donjon Antre du Korriandre",
         "Parlez à Sylvie Barbe qui vous apprend que certains mineurs ont besoin d'un vaccin à base d'une plante qui se trouve tout au fond de l'antre du Korriandre mais que personne ne se porte volontaire pour y aller ! En échange d'une clef ou du trousseau Sylvie vous laissera pénétrer dans le donjon"
@@ -398339,7 +398433,10 @@
         "Niveau recommandé : 170",
         "Là-haut sur la montagne"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-61,-69]",
+        "source_text": "Rejoignez le point de départ aux Crocs de verre."
+      },
       "preparation": [
         "1 x Donjon Cavernes du Kolosso"
       ],
@@ -453889,7 +453986,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[-32,-86]",
+        "source_text": "Parlez à Groocse sur l’île de Nowel."
+      }
     },
     "856": {
       "extraction_version": 2,
@@ -459334,7 +459435,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[33,11]",
+        "source_text": "Terminez la quête précédente sur l’île de Moon pour lancer celle-ci."
+      }
     },
     "864": {
       "quest_id": 864,
@@ -461786,7 +461891,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[-35,-89]",
+        "source_text": "Lisez la pancarte sur l’île de Nowel et choisissez de chercher comment entrer dans le refuge."
+      }
     },
     "869": {
       "extraction_version": 2,
@@ -470284,7 +470393,10 @@
         "Niveau recommandé : 80",
         "Qui veut la peau du Wabbit"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[4,-6]",
+        "source_text": "Rendez-vous au Château d’Amakna."
+      },
       "preparation": [
         "1 x combat (seul)"
       ],
@@ -485001,8 +485113,8 @@
         "Quête répétable (hebdomadaire mardi 7h)"
       ],
       "launch_position": {
-        "position": "[-49,45]",
-        "source_text": "Attention : En lançant cette quête, vous perdez tous les foulards rouges (Foulard de Kohrog) que vous possédez.\nNOTE : Pour se rendre sur l'îlot, parlez au requin L.A.T.P. en [-49,45] et répondez « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin.\nLa quête se lance en [-49,47] auprès de Elmouth Arde qui vous demande de rejoindre le clan de touristes de son île Lantamaï pour participer à la compétition qui les oppose à Kohrog « Se joindre aux touristes de Lantamaï ».\nPour savoir si vous êtes apte à les rejoindre, il vous met au défi d'aller souiller le drapeau du camp adverse Kohrog qui se trouve au nord de l'archipel « Accepter »."
+        "position": "[-49,47]",
+        "source_text": "Parlez à Elmouth Arde sur Lantamaï après avoir rejoint l’îlot."
       },
       "preparation": [],
       "required_items": [],
@@ -533518,7 +533630,10 @@
         "IV- Emprisonnement du recherché",
         "​NOTE : Pour prendre l’avis d’un recherché de Frigost III il faut absolument avoir lancé la quête Les marcheurs blancs qui se lance auprès du Baron d’Ouillard « Se renseigner sur son rôle ici » et qui vous demande simplement de terminer les 6 quêtes d’avis de recherche de Frigost III"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-68,-76]",
+        "source_text": "Prenez l’avis de recherche au Château de Harebourg."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -536116,7 +536231,10 @@
         "IV- Emprisonnement du recherché",
         "NOTE : Pour prendre l’avis d’un recherché de Frigost III il faut absolument avoir lancé la quête Les marcheurs blancs qui se lance auprès du Baron d’Ouillard « Se renseigner sur son rôle ici » et qui vous demande simplement de terminer les 6 quêtes d’avis de recherche de Frigost III"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-68,-76]",
+        "source_text": "Prenez l’avis de recherche au Château de Harebourg."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -538180,7 +538298,10 @@
         "IV- Emprisonnement du recherché",
         "NOTE : Pour prendre l’avis d’un recherché de Frigost III il faut absolument avoir lancé la quête Les marcheurs blancs qui se lance auprès du Baron d’Ouillard « Se renseigner sur son rôle ici » et qui vous demande simplement de terminer les 6 quêtes d’avis de recherche de Frigost III"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-68,-76]",
+        "source_text": "Prenez l’avis de recherche au Château de Harebourg."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -540138,7 +540259,10 @@
         "IV- Emprisonnement du recherché",
         "NOTE : Pour prendre l’avis d’un recherché de Frigost III il faut absolument avoir lancé la quête Les marcheurs blancs qui se lance auprès du Baron d’Ouillard « Se renseigner sur son rôle ici » et qui vous demande simplement de terminer les 6 quêtes d’avis de recherche de Frigost III"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-68,-76]",
+        "source_text": "Prenez l’avis de recherche au Château de Harebourg."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -542248,7 +542372,10 @@
         "IV- Emprisonnement du recherché",
         "NOTE : Pour prendre l’avis d’un recherché de Frigost III il faut absolument avoir lancé la quête Les marcheurs blancs qui se lance auprès du Baron d’Ouillard « Se renseigner sur son rôle ici » et qui vous demande simplement de terminer les 6 quêtes d’avis de recherche de Frigost III"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-68,-76]",
+        "source_text": "Prenez l’avis de recherche au Château de Harebourg."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -576460,7 +576587,10 @@
         "Succes requis: Meulou (Hardi)",
         "Niveau recommandé : 200"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-68,-76]",
+        "source_text": "Rendez-vous au Château de Harebourg pour lancer la quête."
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -578530,7 +578660,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-76,-42]",
+        "source_text": "Prenez l’avis de recherche à la milice de la Bourgade de Frigost."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -595719,7 +595852,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -599546,7 +599682,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Base des Justiciers."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -601237,7 +601376,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Base des Justiciers."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -605303,7 +605445,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Base des Justiciers."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -606622,7 +606767,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Base des Justiciers."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -615494,7 +615642,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1447": {
       "quest_id": 1447,
@@ -616079,7 +616231,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1448": {
       "quest_id": 1448,
@@ -616664,7 +616820,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1449": {
       "quest_id": 1449,
@@ -617249,7 +617409,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1450": {
       "quest_id": 1450,
@@ -617834,7 +617998,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1451": {
       "quest_id": 1451,
@@ -618419,7 +618587,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1452": {
       "quest_id": 1452,
@@ -619004,7 +619176,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1453": {
       "quest_id": 1453,
@@ -619589,7 +619765,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1454": {
       "quest_id": 1454,
@@ -620174,7 +620354,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1455": {
       "quest_id": 1455,
@@ -620759,7 +620943,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[4,4]",
+        "source_text": "Prenez l’avis de recherche à la Milifutaie."
+      }
     },
     "1456": {
       "extraction_version": 2,
@@ -832309,7 +832497,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -833988,7 +834179,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -835400,7 +835594,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -836943,7 +837140,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -838002,7 +838202,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -839021,7 +839224,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      }
     },
     "1628": {
       "extraction_version": 2,
@@ -840194,7 +840401,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -891110,7 +891320,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1071681,7 +1071894,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[15,-57]",
+        "source_text": "Prenez l’avis de recherche au Sabloon de Saharach."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1088243,7 +1088459,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "position": "[-27,-34]",
+        "source_text": "Parlez à Rosal dans les Routes Rocailleuses."
+      }
     },
     "1792": {
       "extraction_version": 2,
@@ -1105722,7 +1105942,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[15,-57]",
+        "source_text": "Prenez l’avis de recherche au Sabloon de Saharach."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1129279,7 +1129502,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[15,-57]",
+        "source_text": "Prenez l’avis de recherche au Sabloon de Saharach."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1134097,7 +1134323,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[15,-57]",
+        "source_text": "Prenez l’avis de recherche au Sabloon de Saharach."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1150256,7 +1150485,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1154133,7 +1154365,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1156244,7 +1156479,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1158199,7 +1158437,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[5,-6]",
+        "source_text": "Prenez l’avis de recherche à la milice du Château d’Amakna."
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1238118,8 +1238359,8 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance en [-71,-78] devant le donjon d’Illyzaelle auprès de l’Esprit de Menalt qui vous conseil d’aller rencontrer une dénommée Agonie qui pourrait vous aider à trouver une solution pour tuer Hyrkul.",
-          "position": "[-71,-78]",
+          "content": "La quête se lance en [-73,-76] devant le donjon d’Illyzaelle auprès de l’Esprit de Menalt qui vous conseil d’aller rencontrer une dénommée Agonie qui pourrait vous aider à trouver une solution pour tuer Hyrkul.",
+          "position": "[-73,-76]",
           "data": {
             "npc": "",
             "interaction": "",
@@ -1239040,8 +1239281,8 @@
           "description": "",
           "objectives": [
             {
-              "text": "La quête se lance en [-71,-78] devant le donjon d’Illyzaelle auprès de l’Esprit de Menalt qui vous conseil d’aller rencontrer une dénommée Agonie qui pourrait vous aider à trouver une solution pour tuer Hyrkul.",
-              "position": "[-71,-78]",
+              "text": "La quête se lance en [-73,-76] devant le donjon d’Illyzaelle auprès de l’Esprit de Menalt qui vous conseil d’aller rencontrer une dénommée Agonie qui pourrait vous aider à trouver une solution pour tuer Hyrkul.",
+              "position": "[-73,-76]",
               "npc": "",
               "interaction": "",
               "combat": false,
@@ -1240219,8 +1240460,8 @@
         "Nordalie"
       ],
       "launch_position": {
-        "position": "[-71,-78]",
-        "source_text": "La quête se lance en [-71,-78] devant le donjon d’Illyzaelle auprès de l’Esprit de Menalt qui vous conseil d’aller rencontrer une dénommée Agonie qui pourrait vous aider à trouver une solution pour tuer Hyrkul."
+        "position": "[-73,-76]",
+        "source_text": "La quête se lance en [-73,-76] devant le donjon d’Illyzaelle auprès de l’Esprit de Menalt qui vous conseil d’aller rencontrer une dénommée Agonie qui pourrait vous aider à trouver une solution pour tuer Hyrkul."
       },
       "preparation": [
         "1 x Donjon Transporteur de Sylargh",
@@ -1427521,8 +1427762,8 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance en [-1,-4] sur le monde principal en parlant à Ding Dong qui vous apprend que chaque année durant la période de Pwâk une île flottante fait son apparition et que vous pouvez vous y rendre via la cloche ailée géante.",
-          "position": "[-1,-4]",
+          "content": "La quête se lance en [1,-4] sur le monde principal en parlant à Ding Dong qui vous apprend que chaque année durant la période de Pwâk une île flottante fait son apparition et que vous pouvez vous y rendre via la cloche ailée géante.",
+          "position": "[1,-4]",
           "data": {
             "npc": "",
             "interaction": "",
@@ -1427631,8 +1427872,8 @@
         }
       ],
       "launch_position": {
-        "position": "[-1,-4]",
-        "source_text": "La quête se lance en [-1,-4] sur le monde principal en parlant à Ding Dong qui vous apprend que chaque année durant la période de Pwâk une île flottante fait son apparition et que vous pouvez vous y rendre via la cloche ailée géante."
+        "position": "[1,-4]",
+        "source_text": "La quête se lance en [1,-4] sur le monde principal en parlant à Ding Dong qui vous apprend que chaque année durant la période de Pwâk une île flottante fait son apparition et que vous pouvez vous y rendre via la cloche ailée géante."
       }
     },
     "2067": {
@@ -1490321,7 +1490562,10 @@
         "La quête se lance dans la seconde partie des bureaux en cliquant sur le tableau blanc en bas de la pièce. Vous y trouvez une note qui demande à vérifier la présence des vingt nouveaux gobelins implantées en Astrub, Amakna et la Foire du Trool",
         "Vous lancez la quête en cliquant « Partir pour le Monde des Douze afin de trouver les vingt Gobelins » ​sur la deuxième page de la note"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-11,-37]",
+        "source_text": "Rendez-vous dans la salle des Bureaux d’Ankama."
+      },
       "preparation": [
         "8 x combats (seul)"
       ],
@@ -1528737,8 +1528981,8 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Maisial qui vous apprend qu’il a désormais la confirmation qu’une guerre va ravager les plaines de Cania mais que son issue est incertaine car celle-ci ne devait normalement pas avoir lieu car en effet Maisial a beau voyager dans le futur ou le passé il ne trouve aucun écrits mentionnant cette guerre. Pour éviter cette guerre il faudra donc aller interroger Kanigroula qui est celle qui jouera un rôle fondamental dans cette guerre.",
-          "position": "[-13,-22]",
+          "content": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Maisial qui vous apprend qu’il a désormais la confirmation qu’une guerre va ravager les plaines de Cania mais que son issue est incertaine car celle-ci ne devait normalement pas avoir lieu car en effet Maisial a beau voyager dans le futur ou le passé il ne trouve aucun écrits mentionnant cette guerre. Pour éviter cette guerre il faudra donc aller interroger Kanigroula qui est celle qui jouera un rôle fondamental dans cette guerre.",
+          "position": "[15,-20]",
           "data": {
             "npc": "",
             "interaction": "",
@@ -1530571,8 +1530815,8 @@
           "description": "",
           "objectives": [
             {
-              "text": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Maisial qui vous apprend qu’il a désormais la confirmation qu’une guerre va ravager les plaines de Cania mais que son issue est incertaine car celle-ci ne devait normalement pas avoir lieu car en effet Maisial a beau voyager dans le futur ou le passé il ne trouve aucun écrits mentionnant cette guerre. Pour éviter cette guerre il faudra donc aller interroger Kanigroula qui est celle qui jouera un rôle fondamental dans cette guerre.",
-              "position": "[-13,-22]",
+              "text": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Maisial qui vous apprend qu’il a désormais la confirmation qu’une guerre va ravager les plaines de Cania mais que son issue est incertaine car celle-ci ne devait normalement pas avoir lieu car en effet Maisial a beau voyager dans le futur ou le passé il ne trouve aucun écrits mentionnant cette guerre. Pour éviter cette guerre il faudra donc aller interroger Kanigroula qui est celle qui jouera un rôle fondamental dans cette guerre.",
+              "position": "[15,-20]",
               "npc": "",
               "interaction": "",
               "combat": false,
@@ -1533012,8 +1533256,8 @@
         "NOTE : Pour parler à Kanigroula et continuer la quête il y a un prérequis qui est d’avoir terminé la quête Chachyène de vie . (Il se peut qu’il y ait d’autres prérequis comme avoir terminé un ou tous les succès du donjon Kanigroula ou avoir terminé la série de quêtes du succès La voyageuse imprudente. Si tel est le cas merci de nous le confirmer en commentaire.)"
       ],
       "launch_position": {
-        "position": "[-13,-22]",
-        "source_text": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Maisial qui vous apprend qu’il a désormais la confirmation qu’une guerre va ravager les plaines de Cania mais que son issue est incertaine car celle-ci ne devait normalement pas avoir lieu car en effet Maisial a beau voyager dans le futur ou le passé il ne trouve aucun écrits mentionnant cette guerre. Pour éviter cette guerre il faudra donc aller interroger Kanigroula qui est celle qui jouera un rôle fondamental dans cette guerre."
+        "position": "[15,-20]",
+        "source_text": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Maisial qui vous apprend qu’il a désormais la confirmation qu’une guerre va ravager les plaines de Cania mais que son issue est incertaine car celle-ci ne devait normalement pas avoir lieu car en effet Maisial a beau voyager dans le futur ou le passé il ne trouve aucun écrits mentionnant cette guerre. Pour éviter cette guerre il faudra donc aller interroger Kanigroula qui est celle qui jouera un rôle fondamental dans cette guerre."
       },
       "preparation": [
         "4 x combats (seul)",
@@ -1533109,8 +1533353,8 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Martalo « Parler de la mission que vous a confiée Maisial ». Il vous apprend qu’il tente toujours de décrypter les écrits des membres du conseil s’étant opposés aux 4 cavaliers.",
-          "position": "[-13,-22]",
+          "content": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Martalo « Parler de la mission que vous a confiée Maisial ». Il vous apprend qu’il tente toujours de décrypter les écrits des membres du conseil s’étant opposés aux 4 cavaliers.",
+          "position": "[15,-20]",
           "data": {
             "npc": "",
             "interaction": "",
@@ -1534097,8 +1534341,8 @@
           "description": "",
           "objectives": [
             {
-              "text": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Martalo « Parler de la mission que vous a confiée Maisial ». Il vous apprend qu’il tente toujours de décrypter les écrits des membres du conseil s’étant opposés aux 4 cavaliers.",
-              "position": "[-13,-22]",
+              "text": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Martalo « Parler de la mission que vous a confiée Maisial ». Il vous apprend qu’il tente toujours de décrypter les écrits des membres du conseil s’étant opposés aux 4 cavaliers.",
+              "position": "[15,-20]",
               "npc": "",
               "interaction": "",
               "combat": false,
@@ -1535406,8 +1535650,8 @@
         "Les sentiers de la guerre"
       ],
       "launch_position": {
-        "position": "[-13,-22]",
-        "source_text": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Martalo « Parler de la mission que vous a confiée Maisial ». Il vous apprend qu’il tente toujours de décrypter les écrits des membres du conseil s’étant opposés aux 4 cavaliers."
+        "position": "[15,-20]",
+        "source_text": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Martalo « Parler de la mission que vous a confiée Maisial ». Il vous apprend qu’il tente toujours de décrypter les écrits des membres du conseil s’étant opposés aux 4 cavaliers."
       },
       "preparation": [
         "1 x combat (réalisable en groupe)"
@@ -1542123,8 +1542367,8 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Martalo pour « L’interroger à propos de ce qui l’inquiète ». Martalo va alors vous parler d’un veilleur nommé Joullier qui est déjà venu dans ce sanctuaire et a même rencontré les membres du conseil mais que celui-ci est désormais introuvable. Cependant Martalo sent sa présence et sait donc qu’il est toujours vivant. Joullier a donc probablement été capturé par les Cavaliers et il est donc nécessaire de le libérer afin d’éviter que les Cavaliers n’obtiennent des informations sur les Veilleurs. Le seul moyen de le contacter serait via son Chronoglob cependant celui-ci semble être en possession d’un Miséreux et serait désormais dans le désert de Misère.",
-          "position": "[-13,-22]",
+          "content": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Martalo pour « L’interroger à propos de ce qui l’inquiète ». Martalo va alors vous parler d’un veilleur nommé Joullier qui est déjà venu dans ce sanctuaire et a même rencontré les membres du conseil mais que celui-ci est désormais introuvable. Cependant Martalo sent sa présence et sait donc qu’il est toujours vivant. Joullier a donc probablement été capturé par les Cavaliers et il est donc nécessaire de le libérer afin d’éviter que les Cavaliers n’obtiennent des informations sur les Veilleurs. Le seul moyen de le contacter serait via son Chronoglob cependant celui-ci semble être en possession d’un Miséreux et serait désormais dans le désert de Misère.",
+          "position": "[15,-20]",
           "data": {
             "npc": "",
             "interaction": "",
@@ -1543412,8 +1543656,8 @@
           "description": "",
           "objectives": [
             {
-              "text": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Martalo pour « L’interroger à propos de ce qui l’inquiète ». Martalo va alors vous parler d’un veilleur nommé Joullier qui est déjà venu dans ce sanctuaire et a même rencontré les membres du conseil mais que celui-ci est désormais introuvable. Cependant Martalo sent sa présence et sait donc qu’il est toujours vivant. Joullier a donc probablement été capturé par les Cavaliers et il est donc nécessaire de le libérer afin d’éviter que les Cavaliers n’obtiennent des informations sur les Veilleurs. Le seul moyen de le contacter serait via son Chronoglob cependant celui-ci semble être en possession d’un Miséreux et serait désormais dans le désert de Misère.",
-              "position": "[-13,-22]",
+              "text": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Martalo pour « L’interroger à propos de ce qui l’inquiète ». Martalo va alors vous parler d’un veilleur nommé Joullier qui est déjà venu dans ce sanctuaire et a même rencontré les membres du conseil mais que celui-ci est désormais introuvable. Cependant Martalo sent sa présence et sait donc qu’il est toujours vivant. Joullier a donc probablement été capturé par les Cavaliers et il est donc nécessaire de le libérer afin d’éviter que les Cavaliers n’obtiennent des informations sur les Veilleurs. Le seul moyen de le contacter serait via son Chronoglob cependant celui-ci semble être en possession d’un Miséreux et serait désormais dans le désert de Misère.",
+              "position": "[15,-20]",
               "npc": "",
               "interaction": "",
               "combat": false,
@@ -1545118,8 +1545362,8 @@
         "Rêves translucides"
       ],
       "launch_position": {
-        "position": "[-13,-22]",
-        "source_text": "La quête se lance à la suite de la précédente en [-13,-22] dans le Sanctuaire du dernier espoir auprès de Martalo pour « L’interroger à propos de ce qui l’inquiète ». Martalo va alors vous parler d’un veilleur nommé Joullier qui est déjà venu dans ce sanctuaire et a même rencontré les membres du conseil mais que celui-ci est désormais introuvable. Cependant Martalo sent sa présence et sait donc qu’il est toujours vivant. Joullier a donc probablement été capturé par les Cavaliers et il est donc nécessaire de le libérer afin d’éviter que les Cavaliers n’obtiennent des informations sur les Veilleurs. Le seul moyen de le contacter serait via son Chronoglob cependant celui-ci semble être en possession d’un Miséreux et serait désormais dans le désert de Misère."
+        "position": "[15,-20]",
+        "source_text": "La quête se lance à la suite de la précédente en [15,-20] dans le Sanctuaire du dernier espoir auprès de Martalo pour « L’interroger à propos de ce qui l’inquiète ». Martalo va alors vous parler d’un veilleur nommé Joullier qui est déjà venu dans ce sanctuaire et a même rencontré les membres du conseil mais que celui-ci est désormais introuvable. Cependant Martalo sent sa présence et sait donc qu’il est toujours vivant. Joullier a donc probablement été capturé par les Cavaliers et il est donc nécessaire de le libérer afin d’éviter que les Cavaliers n’obtiennent des informations sur les Veilleurs. Le seul moyen de le contacter serait via son Chronoglob cependant celui-ci semble être en possession d’un Miséreux et serait désormais dans le désert de Misère."
       },
       "preparation": [
         "5 x combats (seul)",
@@ -1631284,7 +1631528,10 @@
         "Voir le Dark Vlad et mourir... ou pas",
         "Sang d'encre"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[22,-29]",
+        "source_text": "Rendez-vous au Village de Pandala."
+      },
       "preparation": [
         "1 x Donjon Tombe du Shogun Tofugawa",
         "1 x combat (seul)",
@@ -1660373,7 +1660620,7 @@
         "level": "40",
         "title": "Protection divine",
         "startNpc": "Ronald le sage",
-        "startCoords": "{23,-4]",
+        "startCoords": "[23,-4]",
         "startMapImage": "/images/quete/146/2.jpg",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -1776375,8 +1776622,8 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance en [-55,-15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre). En fonction de vos avancées précédentes les dialogues avec Otomaï vont un peu être différents :",
-          "position": "[-55,-15]",
+          "content": "La quête se lance en [-55,15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre). En fonction de vos avancées précédentes les dialogues avec Otomaï vont un peu être différents :",
+          "position": "[-55,15]",
           "data": {
             "npc": "",
             "interaction": "",
@@ -1777521,8 +1777768,8 @@
         }
       ],
       "launch_position": {
-        "position": "[-55,-15]",
-        "source_text": "La quête se lance en [-55,-15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre). En fonction de vos avancées précédentes les dialogues avec Otomaï vont un peu être différents :"
+        "position": "[-55,15]",
+        "source_text": "La quête se lance en [-55,15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre). En fonction de vos avancées précédentes les dialogues avec Otomaï vont un peu être différents :"
       }
     },
     "2443": {
@@ -1777788,8 +1778035,8 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance en [-55,-15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre ou utilisez 1 x Potion d'Otomaï) pour lui annoncer les mauvaises nouvelles que vous avez apprises « Annoncer à Otomaï que ses craintes concernant le mal endormi étaient fondées et résumer ce que vous avez appris ». Face à cette révélation, Otomaï vous apprend que la grande pierre rouge évoquée par le bwork n'est autre que un bloc d'ambre pétrifié par le souffle de Terrakourial dans lequel est enfermé le mal que Hell Mina et le Dark Vlad tentent de délivrer. Votre devoir va donc être de vous assurer que la prison soit réparée mais il vous faudra aussi neutraliser la menace.\nPour cela, Otomaï vous tend un coffret avec un anneau en forme de dragon à l'intérieur. Ce bijou aurait été créé par Terrakourial lorsqu'il était jeune et vous permettra de transformer votre corps pour vous permettre de ne faire qu'un avec la résine primordiale de la forêt dans laquelle est enfermée le mal. Cependant, pour que cela soit possible il faudra dans un premier temps réunir trois ambres et les purifier avec l'anneau afin de pouvoir résister au souffle du dragon.",
-          "position": "[-55,-15]",
+          "content": "La quête se lance en [-55,15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre ou utilisez 1 x Potion d'Otomaï) pour lui annoncer les mauvaises nouvelles que vous avez apprises « Annoncer à Otomaï que ses craintes concernant le mal endormi étaient fondées et résumer ce que vous avez appris ». Face à cette révélation, Otomaï vous apprend que la grande pierre rouge évoquée par le bwork n'est autre que un bloc d'ambre pétrifié par le souffle de Terrakourial dans lequel est enfermé le mal que Hell Mina et le Dark Vlad tentent de délivrer. Votre devoir va donc être de vous assurer que la prison soit réparée mais il vous faudra aussi neutraliser la menace.\nPour cela, Otomaï vous tend un coffret avec un anneau en forme de dragon à l'intérieur. Ce bijou aurait été créé par Terrakourial lorsqu'il était jeune et vous permettra de transformer votre corps pour vous permettre de ne faire qu'un avec la résine primordiale de la forêt dans laquelle est enfermée le mal. Cependant, pour que cela soit possible il faudra dans un premier temps réunir trois ambres et les purifier avec l'anneau afin de pouvoir résister au souffle du dragon.",
+          "position": "[-55,15]",
           "data": {
             "npc": "",
             "interaction": "use",
@@ -1778022,8 +1778269,8 @@
         }
       ],
       "launch_position": {
-        "position": "[-55,-15]",
-        "source_text": "La quête se lance en [-55,-15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre ou utilisez 1 x Potion d'Otomaï) pour lui annoncer les mauvaises nouvelles que vous avez apprises « Annoncer à Otomaï que ses craintes concernant le mal endormi étaient fondées et résumer ce que vous avez appris ». Face à cette révélation, Otomaï vous apprend que la grande pierre rouge évoquée par le bwork n'est autre que un bloc d'ambre pétrifié par le souffle de Terrakourial dans lequel est enfermé le mal que Hell Mina et le Dark Vlad tentent de délivrer. Votre devoir va donc être de vous assurer que la prison soit réparée mais il vous faudra aussi neutraliser la menace.\nPour cela, Otomaï vous tend un coffret avec un anneau en forme de dragon à l'intérieur. Ce bijou aurait été créé par Terrakourial lorsqu'il était jeune et vous permettra de transformer votre corps pour vous permettre de ne faire qu'un avec la résine primordiale de la forêt dans laquelle est enfermée le mal. Cependant, pour que cela soit possible il faudra dans un premier temps réunir trois ambres et les purifier avec l'anneau afin de pouvoir résister au souffle du dragon."
+        "position": "[-55,15]",
+        "source_text": "La quête se lance en [-55,15] auprès de Otomaï tout en haut de l'arbre Hakam (voir notre guide chemin vers Otomaï pour s'y rendre ou utilisez 1 x Potion d'Otomaï) pour lui annoncer les mauvaises nouvelles que vous avez apprises « Annoncer à Otomaï que ses craintes concernant le mal endormi étaient fondées et résumer ce que vous avez appris ». Face à cette révélation, Otomaï vous apprend que la grande pierre rouge évoquée par le bwork n'est autre que un bloc d'ambre pétrifié par le souffle de Terrakourial dans lequel est enfermé le mal que Hell Mina et le Dark Vlad tentent de délivrer. Votre devoir va donc être de vous assurer que la prison soit réparée mais il vous faudra aussi neutraliser la menace.\nPour cela, Otomaï vous tend un coffret avec un anneau en forme de dragon à l'intérieur. Ce bijou aurait été créé par Terrakourial lorsqu'il était jeune et vous permettra de transformer votre corps pour vous permettre de ne faire qu'un avec la résine primordiale de la forêt dans laquelle est enfermée le mal. Cependant, pour que cela soit possible il faudra dans un premier temps réunir trois ambres et les purifier avec l'anneau afin de pouvoir résister au souffle du dragon."
       }
     },
     "2444": {
