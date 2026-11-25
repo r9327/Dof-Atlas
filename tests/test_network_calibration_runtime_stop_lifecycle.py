@@ -77,5 +77,21 @@ class NetworkCalibrationRuntimeStopLifecycleTests(unittest.TestCase):
         self.assertFalse(runtime.is_running)
 
 
+    def test_failed_calibration_pause_blocks_new_reader_until_cleanup(self):
+        from unittest.mock import patch
+
+        source = _BlockingProtocolSource()
+        runtime = ProtocolCalibrationRuntime(source, _IdleCalibration(), read_timeout=0.05)
+        with patch.object(source, "stop", return_value=False):
+            self.assertTrue(runtime.start())
+            self.assertTrue(source.read_started.wait(1.0))
+            self.assertFalse(runtime.stop(join_timeout=1.0))
+            self.assertEqual(runtime.start_failure_reason, "calibration_cleanup_failed")
+            self.assertFalse(runtime.start())
+        self.assertTrue(runtime.stop())
+        self.assertTrue(runtime.start())
+        self.assertTrue(runtime.stop())
+
+
 if __name__ == "__main__":
     unittest.main()

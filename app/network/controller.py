@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 from app.core.logger import get_runtime_logger
+from app.core.network_presentation import capture_retry_allowed
 from app.network.build_fingerprint import ActiveProtocolBuildFingerprintProvider
 from app.quest_catalog import QuestCatalog
 
@@ -75,8 +76,8 @@ class NetworkRuntimeController:
         with self._lock:
             runtime = self._runtime
             reason = self._last_reason
-            if runtime is not None and not runtime.is_running:
-                reason = runtime.start_failure_reason or "runtime_stopped"
+            if runtime is not None and not runtime.is_running and capture_retry_allowed(reason):
+                reason = getattr(runtime, "start_failure_reason", "") or "runtime_stopped"
         return self._status(reason)
 
     def configure_context(
@@ -103,8 +104,9 @@ class NetworkRuntimeController:
         with self._lock:
             runtime = self._runtime
             context = self._context
+            last_reason = self._last_reason
         if runtime is not None and runtime.is_running:
-            return self._status("running")
+            return self._status("running" if capture_retry_allowed(last_reason) else last_reason)
         if context is None:
             with self._lock:
                 self._last_reason = "waiting_context"

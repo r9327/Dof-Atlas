@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Callable, Protocol, runtime_checkable
 
 from app.network.events import BusinessNetworkEvent
 
@@ -29,4 +29,22 @@ class NetworkEventSource(Protocol):
         ...
 
 
-__all__ = ["NetworkEventSource"]
+def cleanup_capture_reader(source, reset: Callable[[], None], logger, *, label: str) -> bool:
+    """Attempt both shutdown operations; never certify cleanup on an exception."""
+    stopped = True
+    try:
+        if source.stop() is False:
+            logger.error("%s source refused shutdown.", label)
+            stopped = False
+    except Exception:
+        logger.exception("%s source shutdown failed.", label)
+        stopped = False
+    try:
+        reset()
+    except Exception:
+        logger.exception("%s volatile state reset failed.", label)
+        stopped = False
+    return stopped
+
+
+__all__ = ["NetworkEventSource", "cleanup_capture_reader"]

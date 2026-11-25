@@ -121,6 +121,7 @@ class NetworkControllerTests(unittest.TestCase):
         with patch("app.network.bootstrap.build_windows_network_runtime") as build:
             status = self.controller.start_if_ready()
         self.assertTrue(status.running)
+        self.assertEqual(status.reason, "runtime_stop_failed")
         build.assert_not_called()
 
     def test_stale_runtime_cleanup_failure_blocks_new_bootstrap(self) -> None:
@@ -146,6 +147,7 @@ class NetworkControllerTests(unittest.TestCase):
         self.assertFalse(status.running)
         self.assertEqual(status.reason, "runtime_start_cleanup_failed")
         self.assertIs(self.controller._runtime, runtime)
+        self.assertEqual(self.controller.status().reason, "runtime_start_cleanup_failed")
 
     def test_successful_stop_allows_clean_restart(self) -> None:
         self.configure()
