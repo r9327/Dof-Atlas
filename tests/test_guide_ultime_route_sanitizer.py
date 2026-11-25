@@ -64,7 +64,7 @@ class RouteSanitizerTests(unittest.TestCase):
             123: {"id": 123, "posX": SENTINEL_COORD, "posY": SENTINEL_COORD}
         }
         location = self.adapter._start_location(1)
-        self.assertEqual(location.map_id, 123)
+        self.assertIsNone(location.map_id)
         self.assertEqual((location.x, location.y), (4, -3))
 
 

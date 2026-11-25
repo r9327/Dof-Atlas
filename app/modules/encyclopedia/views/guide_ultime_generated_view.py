@@ -139,8 +139,8 @@ class GuideUltimeCard(QFrame):
             return
         body = self._section(root, title)
         for row in values:
-            qid = self._safe_int(row.get("quest_id"))
-            oid = self._safe_int(row.get("objective_id"))
+            qid = optional_int(row.get("quest_id"))
+            oid = optional_int(row.get("objective_id"))
             checked = self.service.action_completed(self.character_key, row)
             text = str(row.get("title") or row.get("quest_name") or "Action")
             line = QCheckBox(text)
@@ -159,7 +159,7 @@ class GuideUltimeCard(QFrame):
 
     def _add_progress_also(self, root: QVBoxLayout) -> None:
         progress = self.card.get("progresse_aussi") if isinstance(self.card.get("progresse_aussi"), dict) else {}
-        quest_ids = [self._safe_int(value) for value in progress.get("quest_ids", []) or []]
+        quest_ids = [optional_int(value) for value in progress.get("quest_ids", []) or []]
         quest_ids = [value for value in quest_ids if value is not None]
         monster = [row for row in self.card.get("succes_monstres_a_faire", []) or [] if isinstance(row, dict)]
         dungeon = [row for row in self.card.get("succes_donjon_a_faire", []) or [] if isinstance(row, dict)]
@@ -187,7 +187,7 @@ class GuideUltimeCard(QFrame):
             body.addWidget(label)
 
     def _add_success_line(self, body: QVBoxLayout, row: dict[str, Any], kind: str) -> None:
-        aid = self._safe_int(row.get("achievement_id"))
+        aid = optional_int(row.get("achievement_id"))
         done = bool(aid is not None and self.service.achievement_progress.is_achievement_completed(self.character_key, aid))
         name = str(row.get("name") or f"Succès #{aid}")
         label = QLabel(f"{'✓ ' if done else ''}Succès {kind} — {name}")
@@ -205,7 +205,7 @@ class GuideUltimeCard(QFrame):
         for index, row in enumerate(rows):
             key = self.service.resource_key(self.card, row, index, self.index)
             checked = self.service.manual_checked(self.character_key, key)
-            quantity = self._safe_int(row.get("quantity")) or 1
+            quantity = optional_int(row.get("quantity")) or 1
             name = str(row.get("name") or "Ressource")
             recommendation = str(row.get("recommended_source") or row.get("acquisition_default") or row.get("source") or "").strip()
             text = f"{quantity} × {name}"
@@ -280,10 +280,6 @@ class GuideUltimeCard(QFrame):
     def _toggle_manual(self, key: str, value: bool) -> None:
         self.service.set_manual_checked(self.character_key, key, bool(value))
         self.manualChanged.emit()
-
-    @staticmethod
-    def _safe_int(value: Any) -> int | None:
-        return optional_int(value)
 
 
 class GuideUltimeGeneratedView(QWidget):
@@ -564,4 +560,3 @@ class GuideUltimeGeneratedView(QWidget):
 
     def _clear_cards(self) -> None:
         clear_unity_widget_layout(self.cards_layout, detach_widgets=False)
-

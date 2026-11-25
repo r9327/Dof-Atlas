@@ -8,6 +8,9 @@ from typing import Any
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QLabel, QVBoxLayout
 
+from app.core.map_coordinates import SENTINEL_COORD
+from app.core.numbers import optional_int
+from app.core.text import normalize_key as normalize_text
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     clean_requirement_line,
     clean_text,
@@ -15,10 +18,8 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_start_info,
 )
 from app.modules.encyclopedia.views.guide_ultime_generated_view import GuideUltimeCard
-from app.core.text import normalize_key as normalize_text
 
 
-SENTINEL_COORD = -2147483648
 COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
 
 
@@ -190,8 +191,8 @@ class GuideUltimeWalkthroughCard(GuideUltimeCard):
             self._add_action_row(body, row, start_rows=start_rows)
 
     def _add_action_row(self, body: QVBoxLayout, row: dict[str, Any], *, start_rows: bool) -> None:
-        qid = self._safe_int(row.get("quest_id"))
-        oid = self._safe_int(row.get("objective_id"))
+        qid = optional_int(row.get("quest_id"))
+        oid = optional_int(row.get("objective_id"))
         quest_name = str(row.get("quest_name") or "").strip()
         if qid is not None:
             quest_name = self.walkthrough.quest_name(qid) or quest_name or f"Quête #{qid}"
@@ -229,11 +230,11 @@ class GuideUltimeWalkthroughCard(GuideUltimeCard):
             qid
             for section in ("a_prendre", "a_faire_ici")
             for row in self.card.get(section, []) or []
-            if isinstance(row, dict) and (qid := self._safe_int(row.get("quest_id"))) is not None
+            if isinstance(row, dict) and (qid := optional_int(row.get("quest_id"))) is not None
         }
         quest_rows: list[tuple[int, str]] = []
         for raw in progress.get("quest_ids", []) or []:
-            qid = self._safe_int(raw)
+            qid = optional_int(raw)
             if qid is None or qid in primary_quests:
                 continue
             name = self.walkthrough.quest_name(qid)

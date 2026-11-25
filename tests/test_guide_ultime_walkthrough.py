@@ -94,7 +94,7 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
             start_criterion="",
             zones=["Zone test"],
             source_solution_steps=[QuestStep(id=-1, name="La rencontre", description="Présentez-vous au capitaine.", objectives=[source_objective])],
-            steps=[QuestStep(id=1, name="", description="", objectives=[QuestObjective(id=4201, text="Parler au PNJ", type_id=1)])],
+            steps=[QuestStep(id=1, name="", description="", objectives=[QuestObjective(id=4201, text=source_objective.text, type_id=1)])],
             source_info={
                 "launch_position": {"position": "[5,6]"},
                 "source_meta": {"startNpc": "Garde Départ", "startCoords": "[5,6]", "zone": "Zone test"},
@@ -163,7 +163,7 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
                 return ("character:101", "character:202")
 
             @staticmethod
-            def available_characters():
+            def available_travel_characters():
                 return (
                     SimpleNamespace(key="character:101", connected=True),
                     SimpleNamespace(key="character:202", connected=True),

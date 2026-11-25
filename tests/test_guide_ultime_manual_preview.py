@@ -7,9 +7,10 @@ from pathlib import Path
 
 from app.modules.encyclopedia.services.guide_ultime_manual_route import load_manual_chapter
 from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import GuideUltimeManualRuntimeService
+from app.ui.components import AtlasGuideSheetHeader
+from app.ui.entity_link_roles import entity_link_colors
+from app.ui.theme import PALETTE
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-    NPC_COLOR,
-    RESOURCE_COLOR,
     GuideUltimeManualCard,
     GuideUltimeManualView,
 )
@@ -223,9 +224,10 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
             npc_names,
             ["Lailait"],
         )
-        self.assertIn(f"color:{NPC_COLOR}", rich)
+        colors = entity_link_colors(PALETTE)
+        self.assertIn(f"color:{colors['npc']}", rich)
         self.assertIn("<b>Ganymède</b>", rich)
-        self.assertIn(f"color:{RESOURCE_COLOR}", rich)
+        self.assertIn(f"color:{colors['item']}", rich)
         self.assertIn("<b>Lailait</b>", rich)
 
     def test_generic_role_is_not_highlighted_as_npc(self):
@@ -254,11 +256,11 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
 
     def test_manual_ui_uses_single_guide_button_without_breadcrumb(self):
         source = inspect.getsource(SharedGuideManualView._build_ui)
-        header_source = inspect.getsource(SharedGuideManualView._build_compact_header)
+        header_source = inspect.getsource(AtlasGuideSheetHeader.__init__)
         button_source = inspect.getsource(GuideUltimeManualView._guide_button_clicked)
 
         self.assertNotIn('setObjectName("GuideBreadcrumb")', source)
-        self.assertIn('AtlasButton("←")', header_source)
+        self.assertIn('atlas_guide_arrow_icon("left")', header_source)
         self.assertIn('setAccessibleName("Fiche actuelle ou catalogue des guides")', header_source)
         self.assertIn('setObjectName("GuideManualGuideButton")', header_source)
         self.assertIn("self.view_index != self.active_index", button_source)
@@ -326,7 +328,7 @@ class GuideUltimeManualPreviewTests(unittest.TestCase):
         show_index = inspect.getsource(GuideUltimeManualView._show_index)
 
         self.assertIn('setObjectName("GuideManualNavPage")', build)
-        self.assertIn('f"FICHE {index + 1}', refresh)
+        self.assertIn("self.sheet_header.set_page(index + 1, total_cards)", refresh)
         self.assertIn("reset_scroll=True", show_index)
         self.assertIn("_reset_scroll_to_top", render)
 

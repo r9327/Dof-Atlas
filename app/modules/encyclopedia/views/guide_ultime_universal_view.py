@@ -24,7 +24,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
 )
 from app.core.numbers import optional_int
 from app.core.map_coordinates import (
-    BRACKETED_POSITION_RE, SENTINEL_COORD, normalize_coordinate_pair,
+    BRACKETED_POSITION_RE, normalize_coordinate_pair,
     normalize_direct_guide_travel, travel_command_from_pair,
 )
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_scroll_area, set_unity_widget_property, set_unity_progress_counts
@@ -169,7 +169,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
         return label
 
     def _add_start_instruction(self, body: QVBoxLayout, row: dict[str, Any]) -> None:
-        qid = self._safe_int(row.get("quest_id"))
+        qid = optional_int(row.get("quest_id"))
         name = str(row.get("quest_name") or row.get("title") or "").strip()
         if qid is not None:
             name = self.walkthrough.quest_name(qid) or name or f"Quête #{qid}"
@@ -192,8 +192,8 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
         self._append_action_label(body, text, done)
 
     def _add_action_row(self, body: QVBoxLayout, row: dict[str, Any], *, start_rows: bool) -> None:
-        qid = self._safe_int(row.get("quest_id"))
-        oid = self._safe_int(row.get("objective_id"))
+        qid = optional_int(row.get("quest_id"))
+        oid = optional_int(row.get("objective_id"))
         checked = self.service.action_completed(self.character_key, row)
         detail = self.walkthrough.objective(qid, oid) if qid is not None and oid is not None else ObjectiveWalkthrough()
         instruction = detail.text or str(row.get("title") or "Action à faire").strip()
@@ -219,7 +219,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
 
         body = self._section(root, "PENDANT LE COMBAT / DONJON")
         for row in monster + dungeon:
-            aid = self._safe_int(row.get("achievement_id"))
+            aid = optional_int(row.get("achievement_id"))
             done = bool(
                 aid is not None
                 and self.service.achievement_progress.is_achievement_completed(self.character_key, aid)
@@ -255,8 +255,8 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
             return
 
         coords = ""
-        x = self._safe_int(candidate.get("x"))
-        y = self._safe_int(candidate.get("y"))
+        x = optional_int(candidate.get("x"))
+        y = optional_int(candidate.get("y"))
         normalized = normalize_coordinate_pair(str(x), str(y)) if x is not None and y is not None else None
         if normalized is not None:
             coords = f"[{normalized}]"
@@ -495,7 +495,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         cards = route_order_cards(self.service.route)
         if not cards:
             return None
-        return min(cards, key=lambda row: self._safe_int(row.get("rank")) or 9999)
+        return min(cards, key=lambda row: optional_int(row.get("rank")) or 9999)
 
     def _card_requires_first_order_choice(self, card: dict[str, Any]) -> bool:
         if self.service.selected_order_name(self.character_key):
@@ -505,7 +505,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             return False
         option_ids = {
             qid
-            for qid in (self._safe_int(row.get("quest_id")) for row in route_order_options(first))
+            for qid in (optional_int(row.get("quest_id")) for row in route_order_options(first))
             if qid is not None
         }
         if not option_ids:
@@ -517,13 +517,13 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
                 continue
             values = {
                 value
-                for value in (self._safe_int(raw) for raw in gate.values())
+                for value in (optional_int(raw) for raw in gate.values())
                 if value is not None
             }
             if option_ids.intersection(values):
                 return True
             gate_type = str(gate.get("gate_type") or "").casefold()
-            rank = self._safe_int(gate.get("rank") or gate.get("order_rank") or gate.get("alignment_level"))
+            rank = optional_int(gate.get("rank") or gate.get("order_rank") or gate.get("alignment_level"))
             if "order" in gate_type and rank in {1, 20}:
                 return True
         return False
@@ -660,7 +660,3 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
                 event.accept()
                 return True
         return super().eventFilter(watched, event)
-
-    @staticmethod
-    def _safe_int(value: Any) -> int | None:
-        return optional_int(value)
