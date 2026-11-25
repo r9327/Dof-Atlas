@@ -51,6 +51,7 @@ from app.modules.encyclopedia.services import (
     QuestProgressService,
 )
 from app.modules.encyclopedia.services.image_service import read_scaled_image
+from app.modules.encyclopedia.views.guide_image_runtime_policy import SOLUTION_DECODE_MAX_SIZE
 from app.modules.encyclopedia.views.guide_home_image_cache import (
     get_cached_scaled_pixmap,
     store_scaled_pixmap,
@@ -221,20 +222,6 @@ class _AsyncImageDelivery(QObject):
 _ASYNC_IMAGE_DELIVERY: _AsyncImageDelivery | None = None
 
 
-def _decode_qimage(payload: bytes, kind: str) -> QImage:
-    started = time.perf_counter()
-    image = QImage.fromData(payload)
-    LOGGER.debug(
-        "QImage decode kind=%s bytes=%d width=%d height=%d worker_ms=%.3f",
-        kind,
-        len(payload),
-        image.width(),
-        image.height(),
-        (time.perf_counter() - started) * 1000.0,
-    )
-    return image
-
-
 def _ensure_async_image_delivery() -> _AsyncImageDelivery:
     global _ASYNC_IMAGE_DELIVERY
     if _ASYNC_IMAGE_DELIVERY is None:
@@ -264,11 +251,12 @@ def _decode_guide_image(target_ref, paths: tuple[str, ...], size: QSize) -> None
 
 
 def _decode_solution_image(target_ref, image_path: str) -> None:
-    try:
-        payload = Path(image_path).read_bytes()
-    except OSError:
-        payload = b""
-    image = _decode_qimage(payload, "solution")
+    started = time.perf_counter()
+    image = read_scaled_image(Path(image_path), SOLUTION_DECODE_MAX_SIZE)
+    LOGGER.debug(
+        "scaled image decode kind=solution width=%d height=%d worker_ms=%.3f",
+        image.width(), image.height(), (time.perf_counter() - started) * 1000.0,
+    )
     delivery = _ASYNC_IMAGE_DELIVERY
     if delivery is not None:
         delivery.solutionImageDecoded.emit(target_ref, image)

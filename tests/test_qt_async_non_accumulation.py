@@ -17,7 +17,6 @@ from PySide6.QtWidgets import QApplication
 from shiboken6 import isValid
 
 import app.modules.encyclopedia.views.guides_view as guides_module
-import app.modules.encyclopedia.views.guide_image_runtime_policy as guide_image_policy
 from app.pages import organizer_page
 import app.pages.organizer.character_sessions as organizer_sessions
 from app.modules.encyclopedia.models import Guide
@@ -85,19 +84,16 @@ class QtAsyncNonAccumulationTests(unittest.TestCase):
             label = SolutionImageLabel(str(path))
             main_thread = threading.get_ident()
             decode_threads: list[tuple[str, int]] = []
-            real_decode = guide_image_policy.decode_scaled_image
+            real_decode = guides_module.read_scaled_image
 
-            def tracked_decode(image_path, size, *, kind: str = "image"):
+            def tracked_decode(image_path, size):
+                kind = "solution" if size == guides_module.SOLUTION_DECODE_MAX_SIZE else "guide"
                 decode_threads.append((kind, threading.get_ident()))
-                return real_decode(image_path, size, kind=kind)
+                return real_decode(image_path, size)
 
-            # The Phase 8 runtime replaces the legacy full-raster byte decoder
-            # with QImageReader-backed scaled decoding. Install that policy
-            # explicitly so this test remains order-independent.
-            guide_image_policy.install_guide_image_runtime_policy(guides_module)
             with patch.object(
-                guide_image_policy,
-                "decode_scaled_image",
+                guides_module,
+                "read_scaled_image",
                 side_effect=tracked_decode,
             ):
                 guide_future = guides_module.SOLUTION_IMAGE_EXECUTOR.submit(

@@ -81,7 +81,8 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
     def test_guide_succes_and_catalogue_routes_share_the_same_renderer(self) -> None:
         source = ROUTER.read_text(encoding="utf-8")
         assert 'CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})' in source
-        assert source.count("view = SharedGuideManualView(") == 2
+        assert source.count("view = SharedGuideManualView(") == 1
+        assert source.count("self._build_manual_route_reader(service)") == 2
         # Any added guide entry must reuse SharedGuideManualView, not a fork.
         assert "SharedGuideManualView(" in source
         assert "class Sylvestre" not in source
@@ -111,7 +112,7 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
                 assert role in controls, role
                 assert f'setObjectName("{role}")' not in renderer
             assert "global_details_button.hide()" not in renderer
-        assert 'self.setObjectName("GuideMetricDropdown")' in controls
+        assert 'object_name="GuideMetricDropdown"' in controls
         assert "AtlasGuideDisclosure(" in controls
         assert "AtlasGuideSheetHeader(" in shared
 

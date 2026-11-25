@@ -535,6 +535,7 @@ def owners_for(path: str) -> frozenset[str]:
         "tests/test_guides_home_render_cache.py",
         "app/modules/encyclopedia/views/guides_view.py",
         "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
+        "app/modules/encyclopedia/views/guide_image_runtime_policy.py",
         "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
         "app/modules/encyclopedia/views/guide_ultime_walkthrough_card.py",
         "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
@@ -549,6 +550,7 @@ def owners_for(path: str) -> frozenset[str]:
         # Unity widgets are both direct consumers. No sibling wildcard.
         return frozenset({"guides", "ui"})
     if path in {
+        "app/modules/encyclopedia/views/__init__.py",
         "app/modules/encyclopedia/views/encyclopedia_page.py",
         "tests/test_encyclopedia_page.py",
         "app/modules/encyclopedia/views/guide_catalog_view.py",

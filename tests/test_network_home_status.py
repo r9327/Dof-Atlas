@@ -239,7 +239,10 @@ class NetworkHomeStatusTests(unittest.TestCase):
     def test_retry_visibility_reflects_active_and_safe_error_states(self) -> None:
         from unittest.mock import Mock
 
-        page = Mock()
+        page = Mock(
+            _network_summary=HomePage._network_summary,
+            _network_explanation=HomePage._network_explanation,
+        )
         page.network_indicator.property.return_value = "idle"
         for reason, visible in (
             ("capture_elevation_cancelled", True),
@@ -274,7 +277,10 @@ class NetworkHomeStatusTests(unittest.TestCase):
     def test_home_offers_activation_when_capture_is_waiting_for_catalogue(self) -> None:
         from unittest.mock import Mock
 
-        page = Mock()
+        page = Mock(
+            _network_summary=HomePage._network_summary,
+            _network_explanation=HomePage._network_explanation,
+        )
         page.network_indicator.property.return_value = "pending"
         status = self._status(reason="capture_ready_waiting_context")
         HomePage._on_network_status(page, status)

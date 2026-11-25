@@ -210,6 +210,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         ]
         shell._connected_characters.return_value = shell._known_characters.return_value
         shell.character_icon_path.return_value = ""
+        shell.character_combo.count.side_effect = lambda: shell.character_combo.addItem.call_count
         shell.character_combo.blockSignals.return_value = False
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
@@ -235,6 +236,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         ]
         shell._connected_characters.return_value = shell._known_characters.return_value
         shell.character_icon_path.return_value = ""
+        shell.character_combo.count.side_effect = lambda: shell.character_combo.addItem.call_count
         shell.character_combo.blockSignals.return_value = False
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
@@ -265,6 +267,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         ]
         shell._connected_characters.return_value = shell._known_characters.return_value
         shell.character_icon_path.return_value = ""
+        shell.character_combo.count.side_effect = lambda: shell.character_combo.addItem.call_count
         shell.character_combo.blockSignals.return_value = False
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
@@ -324,6 +327,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         ]
         shell._connected_characters.return_value = shell._known_characters.return_value
         shell.character_icon_path.return_value = ""
+        shell.character_combo.count.side_effect = lambda: shell.character_combo.addItem.call_count
         shell.character_combo.blockSignals.return_value = False
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
@@ -349,6 +353,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         ]
         shell._connected_characters.return_value = shell._known_characters.return_value
         shell.character_icon_path.return_value = ""
+        shell.character_combo.count.side_effect = lambda: shell.character_combo.addItem.call_count
         shell.character_combo.blockSignals.return_value = False
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
@@ -590,6 +595,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         # providers: neither a real user profile nor a huge catalog is opened.
         app = QApplication.instance() or QApplication([])
         shell = type("MinimalAtlasShell", (), {})()
+        shell._post_preload_services_started = False
         shell.stack = QStackedWidget()
         home, encyclopedia = QWidget(), QWidget()
         home.release_encyclopedia_context = Mock()

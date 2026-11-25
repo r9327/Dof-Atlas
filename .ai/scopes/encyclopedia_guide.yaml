@@ -15,6 +15,7 @@ working_set:
   - app/modules/encyclopedia/views/guides_view.py
   - app/modules/encyclopedia/views/manual_route_guides_view.py
   - app/modules/encyclopedia/views/guide_ultime_generated_view.py
+  - app/modules/encyclopedia/views/guide_image_runtime_policy.py
   - app/modules/encyclopedia/views/guide_ultime_walkthrough_card.py
   - app/modules/encyclopedia/views/guide_ultime_manual_view.py
   - app/modules/encyclopedia/views/guide_ultime_universal_view.py

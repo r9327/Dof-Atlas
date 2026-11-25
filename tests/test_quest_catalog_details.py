@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import closing
+from contextlib import closing
 import tempfile
 import threading
 import time
@@ -131,7 +132,7 @@ class QuestDetailsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             index_path = root / "quest_ids.sqlite3"
-            with sqlite3.connect(index_path) as connection:
+            with closing(sqlite3.connect(index_path)) as connection, connection:
                 connection.execute(
                     "CREATE TABLE quests (id INTEGER PRIMARY KEY, name TEXT)"
                 )

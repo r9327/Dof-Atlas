@@ -192,13 +192,12 @@ class PerformanceGuardrailTests(unittest.TestCase):
         self.assertIn("_atlas_async_image_loader = True", source)
         self.assertIn("SOLUTION_IMAGE_EXECUTOR.submit", source)
         self.assertIn("read_scaled_image", _called_attributes(guide_worker))
-        self.assertIn("read_bytes", _called_attributes(solution_worker))
-        self.assertIn("_decode_qimage", _called_attributes(solution_worker))
+        self.assertIn("read_scaled_image", _called_attributes(solution_worker))
         reader = _function_node("app/modules/encyclopedia/services/image_service.py", "read_scaled_image")
         self.assertIn("QImageReader", _called_attributes(reader))
         self.assertNotIn("read_scaled_image", _called_attributes(guide_delivery))
-        self.assertNotIn("_decode_qimage", _called_attributes(solution_delivery))
-        self.assertIn("QImage.fromData(payload)", source)
+        self.assertNotIn("read_scaled_image", _called_attributes(solution_delivery))
+        self.assertIn("SOLUTION_DECODE_MAX_SIZE", source)
         self.assertNotIn("QImage(path)", source)
 
     def test_perf_baseline_keeps_startup_quests_ram_and_idle_cpu_metrics(self) -> None:
@@ -234,8 +233,8 @@ class PerformanceGuardrailTests(unittest.TestCase):
 
     def test_qimage_decode_emits_non_blocking_debug_measurement(self) -> None:
         source = _source("app/modules/encyclopedia/views/guides_view.py")
-        self.assertIn("def _decode_qimage", source)
-        self.assertIn("QImage decode kind=%s bytes=%d width=%d height=%d worker_ms=%.3f", source)
+        self.assertIn("def _decode_solution_image", source)
+        self.assertIn("scaled image decode kind=solution width=%d height=%d worker_ms=%.3f", source)
 
     def test_deterministic_resource_budget_failure_is_fatal_to_ci(self) -> None:
         source = _source(".github/workflows/app-ci.yml")
