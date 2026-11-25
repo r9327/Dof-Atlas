@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 from app.core.numbers import optional_int as _safe_int
-from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, extract_bracketed_coordinates
+from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, extract_bracketed_coordinates, SENTINEL_COORD
 
 from app.core.doduda_rows import array_rows as _array
 from app.modules.encyclopedia.services.adventure_route_adapter import AdventureRouteAdapter
 from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
 
 
-SENTINEL_COORD = -2147483648
 
 
 

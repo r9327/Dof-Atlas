@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import re
 from time import perf_counter
 from typing import TYPE_CHECKING
 
-from app.core.map_coordinates import normalize_coordinate_pair
+from app.core.map_coordinates import parse_zaap_command
 from app.macros.input_tools import send_chat_command
 from app.macros.mirror_plan import is_dofus_unity_process, mirror_latency_percentiles_ms
 from app.windows.focus import activate_window
@@ -12,21 +11,6 @@ from app.windows.unity_windows import foreground_window, is_unity_window
 
 if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
-
-
-_ZAAP_COMMAND_RE = re.compile(r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)$", re.IGNORECASE)
-
-
-def parse_zaap_command(value: str) -> tuple[int, int] | None:
-    match = _ZAAP_COMMAND_RE.fullmatch(str(value or "").strip())
-    if match is None:
-        return None
-    # Use the same bounded, signed coordinate contract as Guide and Travel.
-    canonical = normalize_coordinate_pair(*match.groups())
-    if canonical is None:
-        return None
-    x, y = canonical.split(",")
-    return int(x), int(y)
 
 
 def zaap_command(x: int, y: int) -> str:

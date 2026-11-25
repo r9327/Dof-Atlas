@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 from PySide6.QtCore import QEvent, Qt, Signal
@@ -25,12 +24,14 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     QuestWalkthroughIndex,
 )
 from app.core.numbers import optional_int
-from app.core.map_coordinates import BRACKETED_POSITION_RE
+from app.core.map_coordinates import (
+    BRACKETED_POSITION_RE, SENTINEL_COORD, normalize_coordinate_pair,
+    normalize_direct_guide_travel, travel_command_from_pair,
+)
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_progress_bar, configure_unity_scroll_area, set_unity_widget_property, set_unity_progress_counts
 
 
 _LOGGER = logging.getLogger(__name__)
-SENTINEL_COORD = -2147483648
 TRAVEL_COORD_RE = BRACKETED_POSITION_RE
 
 _GENERIC_GATE_TOKENS = (
@@ -257,8 +258,9 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
         coords = ""
         x = self._safe_int(candidate.get("x"))
         y = self._safe_int(candidate.get("y"))
-        if x is not None and y is not None and x != SENTINEL_COORD and y != SENTINEL_COORD:
-            coords = f"[{x},{y}]"
+        normalized = normalize_coordinate_pair(str(x), str(y)) if x is not None and y is not None else None
+        if normalized is not None:
+            coords = f"[{normalized}]"
         zone = str(candidate.get("subzone") or candidate.get("zone") or candidate.get("destination") or "").strip()
         if not coords and not zone:
             return
@@ -384,21 +386,11 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         # A saved selection is not evidence that an identity is still connected.
         # Only direct, structurally valid /travel commands reach the launcher.
         # Zaaps require independently verified routing; never infer one here.
-        normalized = str(command or "").strip()
+        raw = str(command or "").strip()
+        normalized = normalize_direct_guide_travel(raw)
         callback = self.travel_callback
-        command_match = re.fullmatch(r"/travel (-?\d+),(-?\d+)", normalized)
-        known_destination = False
-        if command_match is not None and all(
-            len(value.lstrip("-")) <= 10 for value in command_match.groups()
-        ):
-            # Dofus map positions are represented as signed 32-bit values;
-            # exclude the special no-position sentinel from game input.
-            x, y = (int(value) for value in command_match.groups())
-            known_destination = all(
-                SENTINEL_COORD < coordinate < 2**31 for coordinate in (x, y)
-            )
-        if not callable(callback) or not known_destination:
-            QApplication.clipboard().setText(normalized)
+        if not callable(callback) or normalized is None:
+            QApplication.clipboard().setText(raw)
             return False
 
         try:
@@ -653,13 +645,14 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         labels.extend(root.findChildren(QLabel))
         for label in labels:
             match = TRAVEL_COORD_RE.search(label.text())
-            if not match:
+            command = travel_command_from_pair(*match.groups()) if match is not None else None
+            if command is None:
+                if bool(label.property("travelCopyEnabled")):
+                    label.setProperty("travelCommand", None)
+                    label.unsetCursor()
+                    label.setToolTip("")
+                    set_unity_widget_property(label, "travelCopyEnabled", False)
                 continue
-            x = self._safe_int(match.group(1))
-            y = self._safe_int(match.group(2))
-            if x is None or y is None or x == SENTINEL_COORD or y == SENTINEL_COORD:
-                continue
-            command = f"/travel {x},{y}"
             label.setProperty("travelCommand", command)
             label.setCursor(Qt.PointingHandCursor)
             label.setToolTip(

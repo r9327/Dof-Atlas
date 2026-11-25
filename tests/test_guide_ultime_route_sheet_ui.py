@@ -71,6 +71,25 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
             listener.deleteLater()
             app.processEvents()
 
+    def test_reused_label_loses_stale_travel_action_on_invalid_coordinate(self):
+        app = QApplication.instance() or QApplication([])
+        class Filter(QObject):
+            travel_callback = None
+        listener = Filter()
+        label = QLabel("Position [3,-6]")
+        try:
+            GuideUltimeUniversalView._make_positions_copyable(listener, label)
+            self.assertTrue(label.property("travelCopyEnabled"))
+            for invalid in ("[2147483648,1]", "sans position", "[" + "9" * 5000 + ",1]"):
+                label.setText(invalid)
+                GuideUltimeUniversalView._make_positions_copyable(listener, label)
+                self.assertFalse(bool(label.property("travelCopyEnabled")))
+                self.assertFalse(label.property("travelCommand"))
+        finally:
+            label.deleteLater()
+            listener.deleteLater()
+            app.processEvents()
+
     def test_missing_coordinate_never_dispatches_travel_to_game(self):
         app = QApplication.instance() or QApplication([])
         calls = []

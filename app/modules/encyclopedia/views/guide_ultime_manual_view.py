@@ -25,9 +25,9 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     COMBAT_OBJECTIVE_TYPES,
     quest_items_from_objectives,
 )
-from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView, SENTINEL_COORD
+from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.core.numbers import coerce_positive_int
-from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE
+from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE, normalize_coordinate_pair, travel_command_from_link
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
@@ -501,14 +501,7 @@ class GuideUltimeManualCard(QFrame):
             name = unquote(value.removeprefix("item-copy:")).strip()
             return name or None
         if value.startswith("travel-copy:"):
-            raw = value.removeprefix("travel-copy:")
-            match = re.fullmatch(r"(-?\d+),(-?\d+)", raw)
-            if not match:
-                return None
-            x, y = int(match.group(1)), int(match.group(2))
-            if SENTINEL_COORD in (x, y):
-                return None
-            return f"/travel {x},{y}"
+            return travel_command_from_link(value, manual=True)
         return None
 
     def _copy_link_target(self, href: str) -> None:
@@ -633,10 +626,10 @@ class GuideUltimeManualCard(QFrame):
             spans.append((start, end, kind, payload))
 
         for match in _COORD_RE.finditer(plain):
-            x, y = int(match.group(1)), int(match.group(2))
-            # Missing map locations are plain text, never actionable links.
-            if SENTINEL_COORD not in (x, y):
-                add_span(match.start(), match.end(), "position", f"{x},{y}")
+            coordinates = normalize_coordinate_pair(*match.groups())
+            # Invalid, missing or oversized locations remain documentary text.
+            if coordinates is not None:
+                add_span(match.start(), match.end(), "position", coordinates)
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
             for match in pattern.finditer(plain):

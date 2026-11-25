@@ -142,6 +142,10 @@ class GuideUltimeManualClickableEntityTests(unittest.TestCase):
         self.assertIn('href="travel-copy:3,-6"', rendered)
         self.assertIn("[-2147483648,5]", rendered)
 
+    def test_unbounded_manual_coordinate_links_do_not_raise_or_copy(self) -> None:
+        for raw in ("2147483648", "-2147483649", "9" * 5000):
+            self.assertIsNone(GuideUltimeManualCard._copy_text_for_link(f"travel-copy:{raw},0"))
+
     def test_coordinate_link_builds_travel_command(self) -> None:
         self.assertEqual(
             GuideUltimeManualCard._copy_text_for_link("travel-copy:-12,34"),

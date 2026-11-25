@@ -69,6 +69,11 @@ class GuideTravelPreflightTests(unittest.TestCase):
             "/zaap 1,2 ; /travel 3,-6",
         )
 
+    def test_macro_parsers_reexport_the_qt_free_coordinate_contract(self):
+        from app.core import map_coordinates
+        self.assertIs(normalize_guide_travel_command, map_coordinates.normalize_guide_travel_command)
+        self.assertIs(parse_zaap_command, map_coordinates.parse_zaap_command)
+
     def test_zaap_parser_shares_guide_and_travel_coordinate_rules(self):
         self.assertEqual(parse_zaap_command("/zaap 003,-06"), (3, -6))
         for text in (

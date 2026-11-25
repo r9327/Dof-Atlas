@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING
 
 from app.core.character_identity import is_character_key
-from app.core.map_coordinates import normalize_coordinate_pair
+from app.core.map_coordinates import normalize_guide_travel_command
 from app.macros.input_tools import send_chat_command
 from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.focus import activate_window
@@ -13,29 +12,6 @@ from app.windows.unity_windows import foreground_window, is_unity_window
 if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
     from app.core.settings import AtlasClient
-
-
-_TRAVEL_RE = re.compile(r"^/travel\s+(-?\d+)\s*,\s*(-?\d+)$", re.IGNORECASE)
-_GUIDE_SEQUENCE_RE = re.compile(
-    r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)\s*;\s*/travel\s+(-?\d+)\s*,\s*(-?\d+)$",
-    re.IGNORECASE,
-)
-def normalize_guide_travel_command(value: str) -> str | None:
-    text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
-    match = _TRAVEL_RE.fullmatch(text)
-    if match is not None:
-        position = normalize_coordinate_pair(*match.groups())
-        return f"/travel {position}" if position is not None else None
-
-    match = _GUIDE_SEQUENCE_RE.fullmatch(text)
-    if match is None:
-        return None
-    parts = match.groups()
-    zaap = normalize_coordinate_pair(*parts[:2])
-    destination = normalize_coordinate_pair(*parts[2:])
-    if zaap is None or destination is None:
-        return None
-    return f"/zaap {zaap} ; /travel {destination}"
 
 
 class TravelMacro:

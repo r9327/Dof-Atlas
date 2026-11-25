@@ -37,6 +37,7 @@ from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
 from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE
+from app.core.map_coordinates import travel_command_from_link
 from app.modules.encyclopedia.models import Guide, GuideChapter, GuidePart, GuideSeries, GuideStep
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -4115,10 +4116,7 @@ def linkify_travel_text(text: str) -> str:
 
 
 def copy_travel_link(href: str) -> None:
-    match = re.fullmatch(r"atlas-travel:(-?\d+),(-?\d+)", str(href or ""))
-    if match is None:
-        return
-    command = _vm_call("travel_command", f"[{match.group(1)},{match.group(2)}]")
+    command = travel_command_from_link(href)
     if command:
         QApplication.clipboard().setText(command)
 

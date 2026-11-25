@@ -27,6 +27,26 @@ class NormalizeCoordinatePairTests(unittest.TestCase):
                 self.assertIn(source_alias, source)
                 self.assertNotIn('re.compile(r"\\[\\s*(-?\\d+)', source)
 
+    def test_shared_copy_and_dispatch_parser_boundaries(self):
+        from app.core.map_coordinates import (
+            exact_map_coordinates, normalize_direct_guide_travel, normalize_guide_travel_command,
+            parse_zaap_command, travel_command_from_link, travel_command_from_position,
+        )
+        self.assertEqual(travel_command_from_position("Aller en [003, -06]"), "/travel 3,-6")
+        self.assertEqual(travel_command_from_link("atlas-travel:003,-06"), "/travel 3,-6")
+        self.assertEqual(travel_command_from_link("travel-copy:003,-06", manual=True), "/travel 3,-6")
+        self.assertEqual(normalize_direct_guide_travel("/travel 003,-06"), "/travel 3,-6")
+        self.assertIsNone(normalize_direct_guide_travel("/zaap 1,2 ; /travel 3,-6"))
+        self.assertEqual(normalize_guide_travel_command("/zaap 01,2 ; /travel 003,-06"), "/zaap 1,2 ; /travel 3,-6")
+        self.assertEqual(parse_zaap_command("/zaap 03,-06"), (3, -6))
+        self.assertEqual(exact_map_coordinates({"x": 3, "y": -6}), (3, -6))
+        for invalid in ("2147483648", "-2147483648", "9" * 5000):
+            self.assertIsNone(travel_command_from_position(f"[{invalid},0]"))
+            self.assertIsNone(travel_command_from_link(f"travel-copy:{invalid},0", manual=True))
+            self.assertIsNone(normalize_direct_guide_travel(f"/travel {invalid},0"))
+        for value in ({"x": True, "y": 1}, {"x": "1", "y": 2}, {"x": -(2**31), "y": 0}):
+            self.assertIsNone(exact_map_coordinates(value))
+
     def test_source_bracketed_coordinate_keeps_original_search_contract(self):
         for raw, expected in (("[ -3, 004 ]", "-3,4"),
                               ("Étape en [2, -10] zone", "2,-10"),

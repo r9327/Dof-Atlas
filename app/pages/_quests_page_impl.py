@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
-from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair
+from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE, normalize_coordinate_pair, TRAVEL_URL_RE, travel_command_from_link
 from app.core.numbers import clamped_percent, format_grouped_int, optional_int
 from app.core.json_store import InvalidPersistentJsonError
 from app.core.file_stamp import mtime_ctime_size_stamp
@@ -106,7 +106,6 @@ def _quest_item_row(*args, **kwargs):
     return item_row(*args, **kwargs)
 
 
-TRAVEL_URL_RE = re.compile(r"atlas-travel:(-?\d+),(-?\d+)")
 QUEST_PANEL_ITEM_OBJECTIVE_TYPES = {2, 3, 17}
 KEY_LAST_SELECTED_QUEST_ID = "encyclopedia_last_quest_id"
 MIN_QUEST_SEARCH_CHARS = 5
@@ -1491,8 +1490,4 @@ def travel_command_from_url(url: QUrl) -> str:
     text = url.toString()
     if url.scheme() != "atlas-travel":
         return ""
-    match = TRAVEL_URL_RE.fullmatch(text)
-    if not match:
-        return ""
-    coordinates = normalize_coordinate_pair(*match.groups())
-    return f"/travel {coordinates}" if coordinates is not None else ""
+    return travel_command_from_link(text) or ""

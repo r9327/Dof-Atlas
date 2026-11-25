@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import DATA_DIR
 from app.core.character_identity import is_character_key
+from app.core.map_coordinates import exact_map_coordinates
 from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.services.guide_continuous_navigation import (
     ContinuousGuideNavigation,
@@ -291,16 +292,7 @@ class ContinuousGuideRoutePanel(QWidget):
 
     @staticmethod
     def _exact_coordinates(value: object) -> tuple[int, int] | None:
-        if not isinstance(value, Mapping):
-            return None
-        x, y = value.get("x"), value.get("y")
-        if (
-            type(x) is not int or type(y) is not int
-            or not all(-(2**31) < coordinate < 2**31 for coordinate in (x, y))
-        ):
-            # Do not turn overflowed/missing map coordinates into game input.
-            return None
-        return x, y
+        return exact_map_coordinates(value)
 
     def set_verified_travel_plans(
         self, plans: Mapping[str, Mapping[str, object]],

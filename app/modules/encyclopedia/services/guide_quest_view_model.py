@@ -10,7 +10,7 @@ from typing import Iterable
 from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
-from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, normalize_coordinate_pair, declared_quest_start
+from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, normalize_coordinate_pair, declared_quest_start, travel_command_from_position
 from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
@@ -1091,13 +1091,7 @@ def first_position_from_quest(
 
 
 def travel_command(position: str) -> str:
-    match = COORD_RE.search(str(position or ""))
-    if match is None:
-        return ""
-    # Reuse the same verified numeric contract as Quest start positions.
-    # Objective hints may be copied, but unknown maps must not be sent.
-    normalized = _canonical_source_coordinate(match.group(0))
-    return f"/travel {normalized[1:-1]}" if normalized else ""
+    return travel_command_from_position(position) or ""
 
 
 def clean_requirement_line(value: str) -> str:

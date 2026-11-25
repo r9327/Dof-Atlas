@@ -6,9 +6,22 @@ source coordinates or DOFUS chat commands). Never import Qt or Windows here.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
+
+from app.core.numbers import INT32_MIN, INT32_MAX
 
 
+SENTINEL_COORD = INT32_MIN
 BRACKETED_POSITION_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
+TRAVEL_URL_RE = re.compile(r"atlas-travel:(-?\d+),(-?\d+)")
+_PAIR_RE = re.compile(r"(-?\d+),(-?\d+)")
+_DIRECT_GUIDE_RE = re.compile(r"/travel (-?\d+),(-?\d+)")
+_TRAVEL_RE = re.compile(r"^/travel\s+(-?\d+)\s*,\s*(-?\d+)$", re.IGNORECASE)
+_ZAAP_COMMAND_RE = re.compile(r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)$", re.IGNORECASE)
+_GUIDE_SEQUENCE_RE = re.compile(
+    r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)\s*;\s*/travel\s+(-?\d+)\s*,\s*(-?\d+)$",
+    re.IGNORECASE,
+)
 
 
 def extract_bracketed_coordinates(value: object) -> tuple[int, int] | None:
@@ -31,7 +44,7 @@ def extract_bracketed_position(value: object) -> str | None:
 
 
 def normalize_coordinate_pair(
-    x: str, y: str, *, lower_exclusive: int = -(2**31),
+    x: str, y: str, *, lower_exclusive: int = SENTINEL_COORD,
 ) -> str | None:
     """Return canonical signed coordinates without accepting overflow.
 
@@ -45,9 +58,68 @@ def normalize_coordinate_pair(
         first, second = (int(part) for part in parts)
     except (TypeError, ValueError, OverflowError):
         return None
-    if not all(lower_exclusive < value < 2**31 for value in (first, second)):
+    if not all(lower_exclusive < value <= INT32_MAX for value in (first, second)):
         return None
     return f"{first},{second}"
+
+
+def exact_map_coordinates(value: object) -> tuple[int, int] | None:
+    """Runtime evidence must carry exact signed integer coordinates, not hints."""
+    if not isinstance(value, Mapping):
+        return None
+    x, y = value.get("x"), value.get("y")
+    if type(x) is not int or type(y) is not int:
+        return None
+    return (x, y) if all(SENTINEL_COORD < n <= INT32_MAX for n in (x, y)) else None
+
+
+def travel_command_from_pair(x: str, y: str) -> str | None:
+    position = normalize_coordinate_pair(x, y)
+    return f"/travel {position}" if position is not None else None
+
+
+def travel_command_from_position(value: object) -> str | None:
+    """Copy the first explicitly bracketed source coordinate; never infer a map."""
+    match = BRACKETED_POSITION_RE.search(str(value or ""))
+    return travel_command_from_pair(*match.groups()) if match is not None else None
+
+
+def travel_command_from_link(value: object, *, manual: bool = False) -> str | None:
+    text = str(value or "")
+    if manual:
+        if not text.startswith("travel-copy:"):
+            return None
+        match = _PAIR_RE.fullmatch(text.removeprefix("travel-copy:"))
+    else:
+        match = TRAVEL_URL_RE.fullmatch(text)
+    return travel_command_from_pair(*match.groups()) if match is not None else None
+
+
+def normalize_direct_guide_travel(value: object) -> str | None:
+    """Strict UI command: a source hint can never authorize a Zaap sequence."""
+    match = _DIRECT_GUIDE_RE.fullmatch(str(value or "").strip())
+    return travel_command_from_pair(*match.groups()) if match is not None else None
+
+
+def normalize_guide_travel_command(value: str) -> str | None:
+    """Validate direct travel or a separately authorized Zaap/travel sequence."""
+    text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
+    match = _TRAVEL_RE.fullmatch(text)
+    if match is not None:
+        return travel_command_from_pair(*match.groups())
+    match = _GUIDE_SEQUENCE_RE.fullmatch(text)
+    if match is None:
+        return None
+    parts = match.groups()
+    zaap = normalize_coordinate_pair(*parts[:2])
+    destination = travel_command_from_pair(*parts[2:])
+    return f"/zaap {zaap} ; {destination}" if zaap is not None and destination is not None else None
+
+
+def parse_zaap_command(value: str) -> tuple[int, int] | None:
+    match = _ZAAP_COMMAND_RE.fullmatch(str(value or "").strip())
+    canonical = normalize_coordinate_pair(*match.groups()) if match is not None else None
+    return tuple(map(int, canonical.split(","))) if canonical is not None else None
 
 
 def canonical_declared_coordinate(value: object) -> str:
