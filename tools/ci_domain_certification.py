@@ -267,6 +267,7 @@ PR365_REVIEWED_DOMAIN_GROUPS = (
         "app/network/calibration_runtime.py",
         "app/network/calibrated_mapping_install.py",
         "app/network/character_resolver.py",
+        "app/network/character_runtime_decoder.py",
         "app/network/contracts.py",
         "app/network/correlated_identity_decoder.py",
         "app/network/current_protocol_profile.py",

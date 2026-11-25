@@ -3,6 +3,7 @@ scope: network_capture
 kind: shared_infrastructure
 working_set:
   - app/network/
+  - tests/test_network_bootstrap.py
   - app/ui/network_bridge.py
 shared_dependencies:
   - persistence_identity

@@ -134,7 +134,7 @@ class NetworkBootstrapTests(unittest.TestCase):
             logger=self.logger,
         )
 
-    def test_network_uses_compact_success_points_without_load_all(self) -> None:
+    def test_network_bootstrap_leaves_success_catalogue_cold(self) -> None:
         class PointsOnlyAchievementProvider(EmptyAchievementProvider):
             def __init__(self) -> None:
                 self.points_reads = 0
@@ -159,7 +159,7 @@ class NetworkBootstrapTests(unittest.TestCase):
             logger=self.logger,
         )
         self.assertTrue(result.ready)
-        self.assertEqual(provider.points_reads, 1)
+        self.assertEqual(provider.points_reads, 0)
 
     def test_success_point_index_reads_old_compact_cache_without_rich_objects(self) -> None:
         from unittest.mock import patch

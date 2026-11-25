@@ -169,32 +169,6 @@ def build_windows_network_runtime(
                 catchup_ready=catchup_ready,
             )
 
-    # Network needs static point values only. The compact provider reads its
-    # generation-matched scalar index instead of load_all(), which otherwise
-    # materializes every rich Success/objective/reward on capture startup.
-    # Older providers keep their original compatible path.
-    try:
-        point_index = getattr(achievement_provider, "achievement_points_index", None)
-        if callable(point_index):
-            achievement_points_by_id = {
-                ident: points
-                for ident, points in point_index().items()
-                if type(ident) is int and ident > 0
-                and type(points) is int and points >= 0
-            }
-        else:
-            achievement_points_by_id = {
-                int(achievement.id): max(0, int(achievement.points))
-                for achievement in achievement_provider.load_all()
-                if int(achievement.id) > 0
-            }
-    except Exception:
-        # Failure to build the optional profile index must never disable the
-        # already-verified identity/quest runtime. It only means points stay
-        # unavailable until the catalogue can be loaded successfully.
-        log.exception("Achievement point index unavailable for character network profile.")
-        achievement_points_by_id = {}
-
     effective_character_resolver = character_resolver or CharacterSlotResolver()
     known_session_recovery = VerifiedKnownSessionRecovery(
         effective_character_resolver,
@@ -209,7 +183,6 @@ def build_windows_network_runtime(
         decoder = DiagnosticProtocolMessageDecoder(decoder, logger=log)
         decoder = CharacterRuntimeProtocolMessageDecoder(
             decoder,
-            achievement_points_by_id=achievement_points_by_id,
             logger=log,
         )
         decoder = KnownSessionProtocolMessageDecoder(

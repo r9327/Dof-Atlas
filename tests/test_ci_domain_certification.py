@@ -1152,7 +1152,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_pr365_reviewed_paths_keep_closed_world_ownership(self):
         from tools.ci_domain_certification import PR365_REVIEWED_DOMAIN_OWNERS
 
-        self.assertEqual(len(PR365_REVIEWED_DOMAIN_OWNERS), 78)
+        self.assertEqual(len(PR365_REVIEWED_DOMAIN_OWNERS), 79)
         for path, expected in PR365_REVIEWED_DOMAIN_OWNERS.items():
             with self.subTest(path=path):
                 self.assertEqual(owners_for(path), expected)
