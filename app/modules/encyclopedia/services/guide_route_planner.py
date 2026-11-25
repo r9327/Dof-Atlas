@@ -14,6 +14,7 @@ from enum import StrEnum
 from typing import Iterable, Mapping
 
 from app.core.character_identity import require_character_key
+from app.core.map_coordinates import exact_map_coordinates
 from app.modules.encyclopedia.services.adventure_route_engine import (
     AdventureRouteEngine,
     RouteAction,
@@ -38,18 +39,14 @@ class CaptureKind(StrEnum):
     DROP = "drop"
 
 
-# Doduda uses INT32_MIN as an absent coordinate.  A manual Ganymede hint
-# must not become a /travel command just because both fields are integers.
-_MISSING_GAME_COORDINATE = -(2**31)
-
-
 def _has_exact_game_coordinates(location: RouteLocation) -> bool:
-    return (
-        type(location.x) is int
-        and type(location.y) is int
-        and location.x != _MISSING_GAME_COORDINATE
-        and location.y != _MISSING_GAME_COORDINATE
-    )
+    # Share the dispatcher's signed integer and sentinel contract.
+    return exact_map_coordinates({"x": location.x, "y": location.y}) is not None
+
+
+def _same_verified_destination(first: RouteLocation, second: RouteLocation) -> bool:
+    # An equal map ID alone does not establish equal coordinates.
+    return first.key == second.key and (first.x, first.y) == (second.x, second.y)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,7 +74,8 @@ class VerifiedZaapRoute:
             raise ValueError("verified Zaap destination requires exact coordinates")
         if not _has_exact_game_coordinates(self.zaap):
             raise ValueError("verified Zaap location requires exact coordinates")
-        if not self.world.strip() or not self.evidence.strip():
+        if (not isinstance(self.world, str) or not self.world.strip()
+                or not isinstance(self.evidence, str) or not self.evidence.strip()):
             raise ValueError("verified Zaap route requires world and evidence")
         keys = frozenset(require_character_key(key) for key in self.eligible_character_keys)
         if not keys:
@@ -103,10 +101,12 @@ class GuideTravelPlan:
         if not keys or len(keys) != len(set(keys)):
             raise ValueError("travel plan requires unique explicit participant keys")
         object.__setattr__(self, "participant_keys", keys)
+        if not isinstance(self.evidence, str) or not self.evidence.strip():
+            raise ValueError("travel plan requires explicit evidence")
         if self.mode is TravelMode.ZAAP_THEN_TRAVEL:
             if self.zaap is None or not _has_exact_game_coordinates(self.zaap):
                 raise ValueError("zaap_then_travel requires exact Zaap coordinates")
-            if not self.world.strip() or not self.evidence.strip():
+            if not isinstance(self.world, str) or not self.world.strip():
                 raise ValueError("zaap_then_travel requires world and evidence")
         elif self.zaap is not None:
             raise ValueError("direct travel cannot carry a Zaap")
@@ -527,7 +527,7 @@ class GuideRoutePlanner:
             (
                 route
                 for route in zaap_routes
-                if route.destination.key == destination.key
+                if _same_verified_destination(route.destination, destination)
                 and set(participant_keys).issubset(route.eligible_character_keys)
                 and all(
                     worlds_by_character.get(key) == route.world
@@ -546,7 +546,7 @@ class GuideRoutePlanner:
                 zaap=route.zaap,
                 evidence=route.evidence,
             )
-        if any(route.destination.key == destination.key for route in zaap_routes):
+        if any(_same_verified_destination(route.destination, destination) for route in zaap_routes):
             supplied_worlds = {
                 worlds_by_character.get(key, "") for key in participant_keys
             }

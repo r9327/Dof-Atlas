@@ -757,10 +757,15 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(events, [
             ("/zaap -32,-56 ; /travel 5,-18", ("character:1", "character:2")),
         ])
+        # A mutation of the caller-owned payload is not a new authorization.
+        plan["destination"]["x"] = 99
+        panel.request_current_travel()
+        self.assertEqual(events, [events[0], events[0]])
+        events.pop()
         for bad_coordinate in (-(2**31), -(2**31) - 1, 2**31):
             with self.subTest(destination=bad_coordinate):
                 plan["destination"]["x"] = bad_coordinate
-                panel.refresh()
+                panel.set_verified_travel_plans({"ganymede_2205_step_0001": plan})
                 self.assertFalse(panel.travel_button.isEnabled())
                 panel.request_current_travel()
                 self.assertEqual(len(events), 1)
@@ -768,7 +773,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         for bad_coordinate in (-(2**31), -(2**31) - 1, 2**31):
             with self.subTest(zaap=bad_coordinate):
                 plan["zaap"]["y"] = bad_coordinate
-                panel.refresh()
+                panel.set_verified_travel_plans({"ganymede_2205_step_0001": plan})
                 self.assertFalse(panel.travel_button.isEnabled())
                 panel.request_current_travel()
                 self.assertEqual(len(events), 1)
