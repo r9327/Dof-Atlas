@@ -517,6 +517,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._catalog_loading = False
+        self._last_catalogue_load_source = "NOT_LOADED"
         self._progress_objectives: dict[int, str] = {}
         self._compat_cache_id: int | None = None
         self._compat_cache: Achievement | None = None
@@ -564,6 +565,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         """Drop reconstructible Success runtime data while keeping the provider reusable."""
 
         self._loaded = False
+        self._last_catalogue_load_source = "NOT_LOADED"
         self._achievements = []
         self._by_id = {}
         self._categories = {}
@@ -995,90 +997,96 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
     def _load_from_compact_subprocess(self) -> None:
         """Compatibility fallback used only when controlled preload did not build the cache."""
 
-        with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as error_output:
-            process = subprocess.Popen(
-                [
-                    sys.executable,
-                    "-m",
-                    "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
-                    _DUMP_COMPACT_FLAG,
-                ],
-                cwd=ROOT_DIR,
-                stdout=subprocess.PIPE,
-                stderr=error_output,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                env=_utf8_subprocess_env(),
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
-            )
+        # File-backed output keeps the child catalogue and the parent compact
+        # rows from overlapping in RAM. A blocking pipe iterator previously
+        # made the nominal timeout ineffective until EOF.
+        with (
+            tempfile.TemporaryFile(mode="w+t", encoding="utf-8", errors="replace") as rows_output,
+            tempfile.TemporaryFile(mode="w+t", encoding="utf-8", errors="replace") as error_output,
+        ):
             try:
-                categories: dict[int, AchievementCategory] = {}
-                achievements: list[Achievement] = []
-                progress_objectives: dict[int, str] = {}
-                assert process.stdout is not None
-                retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
-                for raw_line in process.stdout:
-                    line = raw_line.strip()
-                    if not line:
-                        continue
-                    row = json.loads(line)
-                    if not isinstance(row, dict):
-                        continue
-                    kind = str(row.get("kind") or "")
-                    value = row.get("value")
-                    if kind == "category" and isinstance(value, dict):
-                        category = AchievementCategory(
-                            id=int(value["id"]),
-                            name=str(value.get("name") or ""),
-                            parent_id=int(value.get("parent_id") or 0),
-                            order=int(value.get("order") or 0),
-                            achievement_ids=tuple(
-                                int(item)
-                                for item in value.get("achievement_ids", [])
-                                if isinstance(item, int)
-                            ),
-                        )
-                        categories[category.id] = category
-                    elif kind == "achievement" and isinstance(value, dict):
-                        category_id = safe_int(value.get("category_id"), 0) or 0
-                        if int(category_id) not in retained_ids:
-                            continue
-                        achievement = _achievement_from_dict(value)
-                        achievements.append(achievement)
-                        raw_progress = value.get("progress_objectives")
-                        if isinstance(raw_progress, list) and raw_progress:
-                            progress_objectives[int(achievement.id)] = json.dumps(
-                                raw_progress,
-                                ensure_ascii=False,
-                                separators=(",", ":"),
-                            )
-
-                return_code = process.wait(timeout=10)
-                if return_code != 0:
-                    error_output.seek(0)
-                    stderr = error_output.read(8192)
-                    raise RuntimeError(
-                        "Extraction compacte des succès impossible"
-                        + (f": {stderr.strip()}" if stderr.strip() else "")
+                completed = subprocess.run(
+                    [
+                        sys.executable, "-m",
+                        "app.modules.encyclopedia.providers.memory_bound_achievement_provider",
+                        _DUMP_COMPACT_FLAG,
+                    ],
+                    cwd=ROOT_DIR,
+                    stdout=rows_output,
+                    stderr=error_output,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=_utf8_subprocess_env(),
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+                    timeout=90,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeError("Extraction compacte des succès interrompue après 90 s") from exc
+            if completed.returncode != 0:
+                error_output.seek(0)
+                stderr = error_output.read(8192)
+                raise RuntimeError(
+                    "Extraction compacte des succès impossible"
+                    + (f": {stderr.strip()}" if stderr.strip() else "")
+                )
+            rows_output.seek(0)
+            categories: dict[int, AchievementCategory] = {}
+            achievements: list[Achievement] = []
+            progress_objectives: dict[int, str] = {}
+            retained_ids = {int(value) for value in RETAINED_TOP_CATEGORY_IDS}
+            for raw_line in rows_output:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                if not isinstance(row, dict):
+                    continue
+                kind = str(row.get("kind") or "")
+                value = row.get("value")
+                if kind == "category" and isinstance(value, dict):
+                    category = AchievementCategory(
+                        id=int(value["id"]),
+                        name=str(value.get("name") or ""),
+                        parent_id=int(value.get("parent_id") or 0),
+                        order=int(value.get("order") or 0),
+                        achievement_ids=tuple(
+                            int(item)
+                            for item in value.get("achievement_ids", [])
+                            if isinstance(item, int)
+                        ),
                     )
-                if not achievements:
-                    raise RuntimeError("Extraction compacte des succès vide")
-                self._install_compact_rows(categories, achievements, progress_objectives)
-            finally:
-                try:
-                    if process.poll() is None:
-                        process.kill()
-                        process.wait(timeout=5)
-                finally:
-                    if process.stdout is not None:
-                        process.stdout.close()
+                    categories[category.id] = category
+                elif kind == "achievement" and isinstance(value, dict):
+                    category_id = safe_int(value.get("category_id"), 0) or 0
+                    if int(category_id) not in retained_ids:
+                        continue
+                    achievement = _achievement_from_dict(value)
+                    achievements.append(achievement)
+                    raw_progress = value.get("progress_objectives")
+                    if isinstance(raw_progress, list) and raw_progress:
+                        progress_objectives[int(achievement.id)] = json.dumps(
+                            raw_progress,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        )
+
+            if not achievements:
+                raise RuntimeError("Extraction compacte des succès vide")
+            self._install_compact_rows(categories, achievements, progress_objectives)
+
+    @property
+    def last_catalogue_load_source(self) -> str:
+        """Observed successful catalogue load path; never infer cache hits from timing."""
+        return self._last_catalogue_load_source
 
     def _load(self) -> None:
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
         if current_data_dir != default_data_dir:
             self._load_in_process()
+            self._last_catalogue_load_source = "IN_PROCESS_CUSTOM"
             return
         if _achievement_compact_cache_valid(
             ACHIEVEMENT_COMPACT_CACHE,
@@ -1088,6 +1096,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 # Packaged Windows can consume the compact Success catalogue.
                 # Avoid materializing the full raw graph in the UI heap.
                 self._load_from_compact_cache()
+                self._last_catalogue_load_source = "COMPACT_CACHE"
                 return
             except (OSError, UnicodeError, ValueError, TypeError, KeyError, RuntimeError) as exc:
                 logging.getLogger(__name__).warning(
@@ -1096,8 +1105,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         if bool(getattr(sys, "frozen", False)):
             # The frozen executable cannot launch a Python -m child.
             self._load_in_process()
+            self._last_catalogue_load_source = "IN_PROCESS_FROZEN"
             return
         self._load_from_compact_subprocess()
+        self._last_catalogue_load_source = "DISPOSABLE_WORKER"
 
     def _compact_value_by_id(self, achievement_id: int) -> dict[str, object] | None:
         achievement_id = int(achievement_id)

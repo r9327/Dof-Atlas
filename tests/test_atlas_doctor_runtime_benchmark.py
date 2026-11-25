@@ -169,6 +169,27 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertNotIn("achievements_open_ms", benchmark["distributions"])
         self.assertEqual(benchmark["after"], benchmark["medians"])
 
+    def test_success_catalogue_strata_never_infer_cold_cache_from_sample_order(self):
+        samples = [self.sample(head="sha", startup_ms=100, rss_mb=100) for _ in range(4)]
+        cases = (
+            (False, "DISPOSABLE_WORKER", 19000),
+            (False, "COMPACT_CACHE", 80),
+            (True, "COMPACT_CACHE", 30),
+            (None, "UNKNOWN", 120),
+        )
+        for sample, (loaded, source, timing) in zip(samples, cases):
+            sample["metrics"]["achievements_open_ms"] = timing
+            if loaded is not None:
+                sample["success_catalogue"] = {
+                    "before_open": {"loaded": loaded},
+                    "after_open": {"loaded": True, "load_source": source},
+                }
+        strata = aggregate_samples(samples)["success_catalogue_strata"]
+        for label, expected in (("DISPOSABLE_WORKER", 19000), ("COMPACT_CACHE", 80),
+                                ("ALREADY_LOADED", 30), ("UNKNOWN", 120)):
+            self.assertEqual(strata[label]["sample_count"], 1)
+            self.assertEqual(strata[label]["distributions"]["achievements_open_ms"]["p95"], expected)
+
     def test_reject_mixed_sha_or_qt_environment_before_benchmark_aggregation(self) -> None:
         first = self.sample(head="a1", startup_ms=100, rss_mb=95)
         different = self.sample(head="b2", startup_ms=120, rss_mb=96)
@@ -287,6 +308,8 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertEqual(metrics["achievements_open_ms"]["delta_percent"], -50)
         self.assertNotIn("first_achievement_detail_ms", metrics)
         self.assertEqual(paired["comparison"]["status"], "PASS")
+        self.assertFalse(paired["catalogue_strata_comparable"])
+        self.assertIn("UNKNOWN", paired["baseline_catalogue_strata"])
 
     def test_same_runner_comparison_rejects_incomplete_or_unbalanced_samples(self):
         from tools.atlas_doctor_lib.perf import _paired_success_comparison

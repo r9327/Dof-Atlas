@@ -296,6 +296,14 @@ def _paired_success_comparison(current: dict[str, Any], baseline: dict[str, Any]
         "candidate_sample_count": after["sample_count"],
         "baseline_distributions": before["distributions"],
         "candidate_distributions": after["distributions"],
+        "baseline_catalogue_strata": before["success_catalogue_strata"],
+        "candidate_catalogue_strata": after["success_catalogue_strata"],
+        "catalogue_strata_comparable": (
+            "UNKNOWN" not in before["success_catalogue_strata"]
+            and "UNKNOWN" not in after["success_catalogue_strata"]
+            and {key: row["sample_count"] for key, row in before["success_catalogue_strata"].items()}
+            == {key: row["sample_count"] for key, row in after["success_catalogue_strata"].items()}
+        ),
         "comparison": comparison,
     }
 

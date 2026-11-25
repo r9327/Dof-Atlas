@@ -48,59 +48,46 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
         self.assertEqual(rows[1]["value"]["id"], 123)
         self.assertEqual(rows[1]["value"]["name"], "Succès de contrôle")
 
-    def test_malformed_stream_kills_child_and_closes_stdout(self) -> None:
-        process = Mock()
-        process.stdout = io.StringIO("not json\\n")
-        process.poll.return_value = None
+    def test_malformed_completed_output_never_installs_and_closes_tempfiles(self):
+        provider = Mock()
+        handles = []
+        def run(*_args, **kwargs):
+            handles.extend((kwargs["stdout"], kwargs["stderr"]))
+            kwargs["stdout"].write("not json\n")
+            self.assertEqual(kwargs["timeout"], 90)
+            self.assertNotEqual(kwargs["stdout"], subprocess.PIPE)
+            return subprocess.CompletedProcess([], 0)
 
         with patch(
-            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.Popen",
-            return_value=process,
-        ) as start:
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+            side_effect=run,
+        ):
             with self.assertRaises(json.JSONDecodeError):
-                MemoryBoundAchievementProvider._load_from_compact_subprocess(object())
+                MemoryBoundAchievementProvider._load_from_compact_subprocess(provider)
+        provider._install_compact_rows.assert_not_called()
+        self.assertTrue(all(handle.closed for handle in handles))
 
-        self.assertNotEqual(start.call_args.kwargs["stderr"], subprocess.PIPE)
-        self.assertEqual(start.call_args.kwargs["env"]["PYTHONUTF8"], "1")
-        self.assertEqual(start.call_args.kwargs["env"]["PYTHONIOENCODING"], "utf-8")
-        self.assertTrue(process.stdout.closed)
-        process.kill.assert_called_once()
-        process.wait.assert_called_once_with(timeout=5)
-
-    def test_error_output_is_file_backed_and_failure_keeps_diagnostic(self) -> None:
-        process = Mock()
-        process.stdout = io.StringIO("")
-        process.poll.return_value = 2
-        process.wait.return_value = 2
-
-        def launch(*_args, **kwargs):
-            errors = kwargs["stderr"]
-            self.assertTrue(callable(getattr(errors, "fileno", None)))
-            errors.write("synthetic subprocess failure\\n")
-            errors.flush()
-            return process
+    def test_error_output_is_file_backed_and_failure_keeps_diagnostic(self):
+        handles = []
+        def run(*_args, **kwargs):
+            handles.extend((kwargs["stdout"], kwargs["stderr"]))
+            kwargs["stderr"].write("synthetic subprocess failure\n")
+            return subprocess.CompletedProcess([], 2)
 
         with patch(
-            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.Popen",
-            side_effect=launch,
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+            side_effect=run,
         ):
             with self.assertRaisesRegex(RuntimeError, "synthetic subprocess failure"):
                 MemoryBoundAchievementProvider._load_from_compact_subprocess(object())
+        self.assertTrue(all(handle.closed for handle in handles))
 
-        self.assertTrue(process.stdout.closed)
-        process.kill.assert_not_called()
-
-    def test_worker_overrides_ambient_legacy_stdout_encoding(self) -> None:
-        process = Mock()
-        process.stdout = io.StringIO("")
-        process.poll.return_value = 2
-        process.wait.return_value = 2
-
+    def test_worker_overrides_ambient_legacy_stdout_encoding(self):
         with (
             patch.dict(os.environ, {"PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}),
             patch(
-                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.Popen",
-                return_value=process,
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 2),
             ) as start,
         ):
             with self.assertRaises(RuntimeError):
@@ -109,6 +96,44 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
         child_env = start.call_args.kwargs["env"]
         self.assertEqual(child_env["PYTHONIOENCODING"], "utf-8")
         self.assertEqual(child_env["PYTHONUTF8"], "1")
+
+    def test_timeout_does_not_parse_partial_output_or_install_catalogue(self):
+        provider = Mock()
+        handles = []
+        def run(*args, **kwargs):
+            handles.extend((kwargs["stdout"], kwargs["stderr"]))
+            kwargs["stdout"].write("partial")
+            raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+        with patch(
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+            side_effect=run,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "interrompue après 90 s"):
+                MemoryBoundAchievementProvider._load_from_compact_subprocess(provider)
+        provider._install_compact_rows.assert_not_called()
+        self.assertTrue(all(handle.closed for handle in handles))
+
+    def test_completed_worker_output_installs_rows_once_after_process_exit(self):
+        from app.modules.encyclopedia.achievement_catalog_policy import RETAINED_TOP_CATEGORY_IDS
+        provider = Mock()
+        category_id = next(iter(RETAINED_TOP_CATEGORY_IDS))
+        def run(*_args, **kwargs):
+            provider._install_compact_rows.assert_not_called()
+            for row in (
+                {"kind": "category", "value": {"id": category_id, "name": "Catégorie"}},
+                {"kind": "achievement", "value": {"id": 123, "name": "Succès", "category_id": category_id}},
+            ):
+                kwargs["stdout"].write(json.dumps(row) + "\n")
+            return subprocess.CompletedProcess([], 0)
+
+        with patch(
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.subprocess.run",
+            side_effect=run,
+        ):
+            MemoryBoundAchievementProvider._load_from_compact_subprocess(provider)
+        provider._install_compact_rows.assert_called_once()
+        self.assertEqual([row.id for row in provider._install_compact_rows.call_args.args[1]], [123])
 
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
@@ -968,6 +993,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
         ):
             provider._load()
             fallback.assert_called_once_with()
+            self.assertEqual(provider.last_catalogue_load_source, "DISPOSABLE_WORKER")
 
     def test_compact_builder_publishes_quest_index_without_duplicate_or_bad_refs(self):
         from types import SimpleNamespace

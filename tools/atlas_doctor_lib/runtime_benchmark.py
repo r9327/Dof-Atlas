@@ -201,6 +201,18 @@ def _open_runtime(
     return milliseconds(started), max_ui_block_ms
 
 
+def _achievement_catalogue_observation(window: Any) -> dict[str, Any]:
+    """Inspect an existing provider only, without loading a catalogue or cache."""
+    page = _current_encyclopedia_page(window)
+    service = getattr(page, "service", None)
+    peek = getattr(service, "peek_achievement_provider", None)
+    provider = peek() if callable(peek) else None
+    return {
+        "loaded": bool(getattr(provider, "_loaded", False)),
+        "load_source": str(getattr(provider, "last_catalogue_load_source", "UNKNOWN")),
+    }
+
+
 def _first_achievement_detail(app: Any, window: Any) -> tuple[float, int, float]:
     page = _current_encyclopedia_page(window)
     if page is None:
@@ -323,11 +335,13 @@ def measure_sample(root: Path) -> dict[str, Any]:
         _pump_events(app, 0.05)
         rss_after_quests_mb = current_rss_mb()
 
+        achievement_catalogue_before = _achievement_catalogue_observation(window)
         achievements_open_ms, achievements_ui_block_ms = _open_runtime(
             app, window, ACHIEVEMENTS_TAB
         )
         _pump_events(app, 0.05)
         rss_after_achievements_mb = current_rss_mb()
+        achievement_catalogue_after = _achievement_catalogue_observation(window)
         achievement_detail_ms, achievement_id, achievement_detail_block_ms = (
             _first_achievement_detail(app, window)
         )
@@ -410,6 +424,10 @@ def measure_sample(root: Path) -> dict[str, Any]:
                 "git_head": git_head(root),
             },
             "metrics": metrics,
+            "success_catalogue": {
+                "before_open": achievement_catalogue_before,
+                "after_open": achievement_catalogue_after,
+            },
         }
     finally:
         shutdown = getattr(window, "_shutdown_background_services", None)
@@ -486,6 +504,27 @@ def _achievement_distributions(samples: list[dict[str, Any]]) -> dict[str, dict[
     return output
 
 
+def _success_catalogue_strata(samples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Keep distinct loading paths separate; older evidence stays UNKNOWN."""
+    groups: dict[str, list[dict[str, Any]]] = {}
+    known_sources = {"COMPACT_CACHE", "DISPOSABLE_WORKER", "IN_PROCESS_CUSTOM", "IN_PROCESS_FROZEN"}
+    for sample in samples:
+        observation = sample.get("success_catalogue") or {}
+        before = observation.get("before_open") or {}
+        after = observation.get("after_open") or {}
+        if before.get("loaded") is True:
+            label = "ALREADY_LOADED"
+        elif before.get("loaded") is False and after.get("loaded") is True and after.get("load_source") in known_sources:
+            label = after["load_source"]
+        else:
+            label = "UNKNOWN"
+        groups.setdefault(label, []).append(sample)
+    return {
+        label: {"sample_count": len(rows), "distributions": _achievement_distributions(rows)}
+        for label, rows in sorted(groups.items())
+    }
+
+
 def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
     if not samples:
         raise ValueError("At least one runtime sample is required.")
@@ -509,6 +548,7 @@ def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
         "sample_count": len(samples),
         "samples": samples,
         "distributions": _achievement_distributions(samples),
+        "success_catalogue_strata": _success_catalogue_strata(samples),
         "medians": medians,
         # Doctor compare/report historically reads benchmark.after. Keep that
         # compatibility key while making medians the explicit canonical aggregate.
