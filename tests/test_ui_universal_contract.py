@@ -14,8 +14,7 @@ from pathlib import Path
 from app.ui.theme import atlas_stylesheet
 from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
-    UI_INTERACTION_QSS_SELECTORS, UI_MUTUALIZATION_TARGETS,
-    inspect_ui_mutualization_sources, validate_ui_index,
+    UI_INTERACTION_QSS_SELECTORS, validate_ui_index,
 )
 from app.ui.unity_palette import (
     UNITY_UI_FAMILY_INDEX, UNITY_UI_CONSUMERS,
@@ -25,6 +24,178 @@ from app.ui.organizer_style import ORGANIZER_STYLE_TEMPLATE
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+# Static source inventory used by the UI contract tests.
+UI_MUTUALIZATION_TARGETS = (
+    ("Boutons", "buttons", "AtlasButton", r"\bAtlasButton\s*\("),
+    ("Menus de sélection", "fields", "AtlasComboBox", r"\bAtlasComboBox\s*\("),
+    ("Sélecteurs numériques", "fields", "QSpinBox + fit_unity_number_spinbox",
+     r"\b(?:QSpinBox|fit_unity_number_spinbox)\s*\("),
+    ("Fenêtres et popups classiques", "dialogs", "AtlasDialog + composition partagée",
+     r"\b(?:AtlasDialog|AtlasImagePopup|present_transient_dialog|exec_transient_dialog)\s*\(|\bclass\s+\w+\s*\(\s*AtlasDialog\s*\)|\.add_(?:header|scroll_rows|action_row)\s*\("),
+    ("Cases à cocher", "fields", "QCheckBox + thème Unity", r"\bQCheckBox\s*\("),
+    ("Champs de texte", "fields", "QLineEdit + thème Unity", r"\bQLineEdit\s*\("),
+    ("Barres de progression", "statuses", "QProgressBar / AtlasGuideProgressDonut + thème Unity",
+     r"\b(?:QProgressBar|configure_unity_progress_bar|AtlasGuideProgressDonut|_GuideProgressDonut)\s*\("),
+    ("Panneaux et modules", "panels", "AtlasPanelToggle / QFrame",
+     r"\b(?:AtlasPanelToggle|QFrame|QGroupBox)\s*\("),
+    ("Titres et sous-titres", "headers", "AtlasPageTitle / AtlasDialogHeader",
+     r"\b(?:AtlasPageTitle|AtlasDialogHeader)\s*\(|\.add_header\s*\("),
+    ("Bordures et arrondis", "surfaces", "Tokens du thème Unity",
+     r"\.setObjectName\s*\(\s*['\"](?:card|Panel|QuestPanel)['\"]\s*\)"),
+    ("Glass et ombres", "panels", "Tokens et helper Unity",
+     r"\b(?:apply_unity_panel_shadow|apply_unity_shadow)\s*\("),
+    ("Icônes et logos", "assets", "Assets Unity existants",
+     r"\b(?:unity_original_preview_icon|atlas_application_icon|atlas_guide_symbol_icon|_guide_symbol_icon|atlas_quest_shortcut_icon|_quest_shortcut_icon)\s*\("),
+    ("Navigation et fil d'Ariane", "breadcrumbs", "AtlasBreadcrumb / AtlasPageNavigator",
+     r"\b(?:AtlasBreadcrumb|AtlasPageNavigator)\s*\("),
+    ("Onglets et sous-menus", "navigation", "QTabWidget / QMenu / AtlasPanelToggle",
+     r"\b(?:QTabWidget|QMenu|AtlasPanelToggle|fill_unity_navigation_menu)\s*\("),
+    ("Listes et tableaux", "data_views", "Qt listes / tableaux / arbres",
+     r"\b(?:QTreeWidget|QTableWidget|QListWidget)\s*\("),
+    ("Infobulles", "assets", "QToolTip via thème Unity", r"\.setToolTip\s*\("),
+    ("Badges et statuts", "statuses", "AtlasStatusBadge",
+     r"\bAtlasStatusBadge\s*\("),
+    ("Scrollbars et resize", "scroll_resize", "Qt scroll / splitter + règles Unity",
+     r"\b(?:QScrollArea|QScrollBar|QSplitter|configure_unity_scroll_area)\s*\(|\.add_scroll_rows\s*\("),
+)
+
+_AUDIT_AGGREGATE_ZONES = frozenset({
+    "Outils", "Dev UI", "Popups et dialogues", "Overlays et démarrage",
+    "Launcher",  # Tk uses a Qt-free adapter; no Qt constructors to count.
+})
+
+
+def inspect_ui_mutualization_sources(
+    root: Path,
+) -> tuple[dict[str, object], ...]:
+    """Measure declared source references; never claim a runtime migration PASS.
+
+    """
+    source_cache: dict[str, str | None] = {}
+    consumers = {
+        module: tuple(info["paths"])
+        for module, info in UI_CONSUMER_INDEX.items()
+        if module not in _AUDIT_AGGREGATE_ZONES
+    }
+    for paths in consumers.values():
+        for path in paths:
+            if path in source_cache:
+                continue
+            try:
+                source_cache[path] = (root / path).read_text(encoding="utf-8")
+            except OSError:
+                source_cache[path] = None
+
+    # Only two families currently have a meaningful direct-Qt constructor
+    # duplication check. Other roles may legitimately use native Qt widgets.
+    # AST ignores imports, class declarations, comments and string literals.
+    raw_qt_calls: dict[str, list[tuple[str, int]]] = {
+        "QPushButton": [],
+        "QComboBox": [],
+        "QDialog": [],
+    }
+    local_style_calls: list[tuple[str, int]] = []
+    literal_width_calls: list[tuple[str, int, int]] = []
+    for path, source in source_cache.items():
+        if source is None:
+            continue
+        try:
+            tree = ast.parse(source, filename=path)
+        except SyntaxError:
+            source_cache[path] = None
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = (
+                func.id if isinstance(func, ast.Name)
+                else func.attr if isinstance(func, ast.Attribute)
+                else ""
+            )
+            if name in raw_qt_calls:
+                raw_qt_calls[name].append((path, node.lineno))
+            if name == "setStyleSheet" and path != "main.py":
+                local_style_calls.append((path, node.lineno))
+            if (
+                name == "setFixedWidth" and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and type(node.args[0].value) is int
+                and node.args[0].value > 0
+            ):
+                literal_width_calls.append(
+                    (path, node.lineno, node.args[0].value)
+                )
+
+    craft_source = source_cache.get("app/pages/craft_page.py")
+    craft_dialog_classes = (
+        "CraftResourceDialog", "ItemSetDialog", "LevelingDialog", "RouteDialog",
+    )
+    craft_shared_count = (
+        sum(
+            bool(re.search(
+                rf"class\s+{name}\s*\(\s*AtlasDialog\s*\)",
+                craft_source,
+            ))
+            for name in craft_dialog_classes
+        )
+        if craft_source is not None else None
+    )
+    craft_local_qdialog_count = (
+        sum(
+            bool(re.search(
+                rf"class\s+{name}\s*\(\s*QDialog\s*\)",
+                craft_source,
+            ))
+            for name in craft_dialog_classes
+        )
+        if craft_source is not None else None
+    )
+    results: list[dict[str, object]] = []
+    for label, family, component, signature in UI_MUTUALIZATION_TARGETS:
+        matcher = re.compile(signature)
+        detected: list[str] = []
+        incomplete: list[str] = []
+        for module, paths in consumers.items():
+            if any(source_cache[path] is None for path in paths):
+                incomplete.append(module)
+            if any(
+                source_cache[path] is not None
+                and matcher.search(source_cache[path]) is not None
+                for path in paths
+            ):
+                detected.append(module)
+        results.append({
+            "label": label,
+            "family": family,
+            "component": component,
+            "qss_rules": len(UI_FAMILY_QSS_SELECTORS[family]),
+            "source_consumers": tuple(detected),
+            "unreadable_consumers": tuple(incomplete),
+            "style_owner": UNITY_UI_FAMILY_INDEX[family]["style_owner"],
+            "raw_qt_constructors": (
+                tuple(raw_qt_calls["QPushButton"]) if label == "Boutons"
+                else tuple(raw_qt_calls["QComboBox"])
+                if label == "Menus de sélection" else None
+            ),
+            "local_style_calls": (
+                tuple(sorted(local_style_calls)) if label == "Bordures et arrondis"
+                else None
+            ),
+            "literal_width_calls": (
+                tuple(sorted(literal_width_calls))
+                if label == "Scrollbars et resize" else None
+            ),
+            "native_dialog_calls": (
+                tuple(sorted(raw_qt_calls["QDialog"]))
+                if family == "dialogs" else None
+            ),
+            "craft_shared_dialogs": craft_shared_count if family == "dialogs" else None,
+            "craft_local_qdialogs": craft_local_qdialog_count if family == "dialogs" else None,
+        })
+    return tuple(results)
 
 
 class UiUniversalContractTests(unittest.TestCase):
@@ -363,6 +534,10 @@ class UiUniversalContractTests(unittest.TestCase):
 
     def test_eighteen_needs_reuse_existing_family_index_and_measured_sources(self):
         self.assertEqual(len(UI_MUTUALIZATION_TARGETS), 18)
+        self.assertEqual(len({row[0] for row in UI_MUTUALIZATION_TARGETS}), 18)
+        for label, family, component, _signature in UI_MUTUALIZATION_TARGETS:
+            self.assertTrue(label and component)
+            self.assertIn(family, UI_FAMILY_QSS_SELECTORS)
         audit = inspect_ui_mutualization_sources(REPO_ROOT)
         self.assertEqual(len(audit), 18)
         self.assertEqual(
