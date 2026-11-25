@@ -8,10 +8,13 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
 
 from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem, format_number
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, configure_unity_tool_button, set_unity_widget_property
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+from functools import lru_cache
 from app.ui.theme import PALETTE
 
 
+@lru_cache(maxsize=1)
 def _fallback_item_icon() -> QIcon:
     """Render the same item glyph that the legacy Guide view used."""
 
@@ -31,12 +34,8 @@ def _fallback_item_icon() -> QIcon:
 
 def _apply_item_row_state(row: QFrame, image: QToolButton, checked: bool) -> None:
     state = "done" if checked else "todo"
-    row.setProperty("state", state)
-    image.setProperty("state", state)
     for widget in (row, image):
-        widget.style().unpolish(widget)
-        widget.style().polish(widget)
-        widget.update()
+        set_unity_widget_property(widget, "state", state)
 
 
 def item_row(
@@ -62,12 +61,15 @@ def item_row(
     if leading_widget is not None:
         layout.addWidget(leading_widget, 0, Qt.AlignVCenter)
 
-    icon = QIcon(item.image_path) if item.image_path and Path(item.image_path).exists() else _fallback_item_icon()
-    image = QToolButton()
-    image.setObjectName("GuideItemIcon")
-    image.setFixedSize(26, 26)
-    image.setIconSize(QSize(20, 20))
-    image.setIcon(icon)
+    image = configure_unity_tool_button(
+        QToolButton(), object_name="GuideItemIcon", box=(26, 26), icon_size=20,
+    )
+    icon = QIcon()
+    if item.image_path:
+        pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(item.image_path), image.iconSize())
+        if not pixmap.isNull():
+            icon = QIcon(pixmap)
+    image.setIcon(icon if not icon.isNull() else _fallback_item_icon())
     if checked is not None:
         image.setCheckable(True)
         image.setChecked(bool(checked))

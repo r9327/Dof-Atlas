@@ -609,7 +609,7 @@ UNITY_MODULE_GEOMETRY_PX = {
         "root_spacing": 6, "header_margins": (8, 8, 10, 8),
         "header_spacing": 10, "title_spacing": 2,
         "saved_right_width": 300, "center_min_width": 340,
-        "prerequisite_row_spacing": 7, "prerequisite_marker_width": 18,
+        "prerequisite_row_spacing": 7, "prerequisite_marker_width": UNITY_CONTROL_SIZES_PX["guide_tree_state_width"],
         "right_min_width": 240, "right_max_width": 380,
         "initial_splitter_sizes": (680, 300),
         "panel_padding": 8, "panel_spacing": 6, "content_spacing": 6,

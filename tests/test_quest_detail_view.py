@@ -172,6 +172,26 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         finally:
             sheet.deleteLater()
 
+    def test_plain_and_linked_prerequisites_share_marker_geometry(self):
+        from PySide6.QtWidgets import QLabel, QPushButton
+        from app.modules.encyclopedia.views.guides_view import prerequisite_row
+        sheet = QuestDetailView(object(), object(), object())
+        try:
+            plain = prerequisite_row("Une condition", False)
+            linked = sheet._prerequisite_row("Quête précédente", False, 42)
+            for row in (plain, linked):
+                self.assertEqual(row.objectName(), "GuidePrerequisiteRow")
+                marker = row.layout().itemAt(0).widget()
+                self.assertEqual(marker.property("state"), "todo")
+                self.assertEqual(marker.text(), "○")
+            self.assertEqual(plain.layout().spacing(), linked.layout().spacing())
+            self.assertEqual(plain.layout().itemAt(0).widget().width(),
+                             linked.layout().itemAt(0).widget().width())
+            plain.deleteLater()
+            linked.deleteLater()
+        finally:
+            sheet.deleteLater()
+
     def test_start_coordinate_is_not_falsely_certified_from_an_objective(self) -> None:
         quest = QuestRecord(
             id=42, name="Quête de test", category="Quêtes",

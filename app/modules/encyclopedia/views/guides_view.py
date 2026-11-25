@@ -66,7 +66,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import (
-    AtlasBreadcrumb, AtlasButton, AtlasPanelToggle,
+    AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, atlas_prerequisite_row,
     AtlasImagePopup, AtlasGuideReadingHeader, clear_unity_widget_layout, configure_unity_tool_button,
     configure_unity_progress_bar, configure_unity_scroll_area,
     refresh_unity_widget_style, present_transient_dialog,
@@ -3276,45 +3276,13 @@ class GuidesView(QWidget):
         return rows
 
     def _quest_id_from_requirement_line(self, line: str) -> int | None:
-        key = normalize_text(clean_text(line))
-        prefix = next(
-            (value for value in ("quete_terminee_", "quete_active_")
-             if key.startswith(value)), "",
-        )
-        if not prefix or self.quest_catalog is None:
-            return None
-        target = key[len(prefix):]
-        catalog = self.quest_catalog
-        quests = catalog.quests
-        # Prerequisites in the right panel may resolve dozens of names. The
-        # previous implementation scanned every Quest (up to ~2k) per line,
-        # while Qt was rendering Guide widgets. Build once per catalog; the
-        # rich Guide view and this index are both disposed on catalogue Home.
-        stamp = (id(catalog), id(quests), len(quests))
-        if getattr(self, "_quest_name_id_index_stamp", None) != stamp:
-            lookup: dict[str, int] = {}
-            for quest in quests:
-                lookup.setdefault(normalize_text(quest.name), int(quest.id))
-            self._quest_name_id_index = lookup
-            self._quest_name_id_index_stamp = stamp
-        return self._quest_name_id_index.get(target)
+        return _vm_call("resolve_quest_requirement", line, self.quest_catalog, owner=self)
 
     def _guide_prerequisite_row(
         self, text: str, quest_id: int | None, success_id: int | None = None,
     ) -> QWidget:
         if quest_id is None and success_id is None:
             return prerequisite_row(text, None)
-        row = QFrame()
-        row.setObjectName("GuidePrerequisiteRow")
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(7)
-        marker = QLabel("")
-        marker.setObjectName("GuideTreeState")
-        marker.setProperty("state", "neutral")
-        marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
-        marker.setAlignment(Qt.AlignCenter)
-        layout.addWidget(marker, 0, Qt.AlignTop)
         button = AtlasButton(
             clean_text(text),
             variant="guide_achievement_link" if success_id is not None else "guide_quest_link",
@@ -3333,8 +3301,7 @@ class GuidesView(QWidget):
                 lambda _checked=False, qid=int(quest_id):
                 self.open_prerequisite_from_guide(qid)
             )
-        layout.addWidget(button, 1)
-        return row
+        return atlas_prerequisite_row(button)
 
     def toggle_chapter(self, chapter_id: str) -> None:
         guide = self.current_guide()
@@ -4030,19 +3997,7 @@ def solution_header(progress: ProgressCount | None = None) -> QWidget:
 
 
 def prerequisite_row(text: str, done: bool | None) -> QWidget:
-    row = QFrame()
-    row.setObjectName("GuidePrerequisiteRow")
-    layout = QHBoxLayout(row)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(7)
-    marker = QLabel("✓" if done is True else "○" if done is False else "")
-    marker.setObjectName("GuideTreeState")
-    marker.setProperty("state", "done" if done is True else "todo" if done is False else "neutral")
-    marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
-    marker.setAlignment(Qt.AlignCenter)
-    layout.addWidget(marker, 0, Qt.AlignTop)
-    layout.addWidget(text_label(text, "GuideInfoLine"), 1)
-    return row
+    return atlas_prerequisite_row(text_label(text, "GuideInfoLine"), done)
 
 
 def activity_chip_grid(labels: Iterable[str]) -> QWidget:

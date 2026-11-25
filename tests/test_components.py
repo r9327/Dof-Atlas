@@ -284,6 +284,28 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             counter.deleteLater()
 
+    def test_quest_item_icon_uses_shared_decoder_and_fallback(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtGui import QImage
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        from app.modules.encyclopedia.widgets.quest_item_row import item_row
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "item.png"
+            image = QImage(200, 100, QImage.Format_ARGB32)
+            image.fill(0xFF336699)
+            self.assertTrue(image.save(str(path)))
+            item = DisplayItem(name="Test", quantity=2, item_id=1, image_path=str(path))
+            with patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled",
+                              wraps=ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled) as decode:
+                row = item_row(item, checked=False)
+                button = row.findChild(QToolButton, "GuideItemIcon")
+                self.assertFalse(button.icon().isNull())
+                decode.assert_called_once_with(path, button.iconSize())
+                row.deleteLater()
+
     def test_guide_cover_reuses_bounded_thumbnail_decoder(self):
         import tempfile
         from pathlib import Path

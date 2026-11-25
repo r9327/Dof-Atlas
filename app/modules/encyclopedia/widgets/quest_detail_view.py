@@ -34,11 +34,12 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_items_from_objectives,
     quest_rewards,
     quest_start_info,
+    resolve_quest_requirement,
 )
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton, AtlasGuideReadingHeader, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
+from app.ui.components import AtlasButton, AtlasGuideReadingHeader, atlas_prerequisite_row, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
@@ -431,66 +432,17 @@ class QuestDetailView(QWidget):
         return widgets, progress
 
     def _quest_id_from_requirement_line(self, line: str) -> int | None:
-        key = normalize_text(clean_text(line))
-        prefix = next(
-            (
-                value
-                for value in ("quete_terminee_", "quete_active_")
-                if key.startswith(value)
-            ),
-            "",
-        )
-        if not prefix:
-            return None
-        target = key[len(prefix) :]
-        if not target:
-            return None
-
-        provider = self.quest_provider
-        provider_id = id(provider)
-        cached = getattr(self, "_requirement_quest_name_index", None)
-        if not (
-            isinstance(cached, tuple)
-            and len(cached) == 2
-            and cached[0] == provider_id
-            and isinstance(cached[1], dict)
-        ):
-            by_name: dict[str, int] = {}
-            for quest in provider.list_quests():
-                name = normalize_text(getattr(quest, "name", ""))
-                try:
-                    quest_id = int(getattr(quest, "id"))
-                except (TypeError, ValueError):
-                    continue
-                if name:
-                    # Preserve the old linear-search contract: first matching quest
-                    # in provider order wins if malformed data contains duplicates.
-                    by_name.setdefault(name, quest_id)
-            cached = (provider_id, by_name)
-            self._requirement_quest_name_index = cached
-        return cached[1].get(target)
+        return resolve_quest_requirement(line, self.quest_provider, owner=self)
 
     def _prerequisite_row(self, text: str, completed: bool | None, linked_id: int | None) -> QWidget:
         ui = _guide_ui()
         if linked_id is None:
             return ui.prerequisite_row(text, completed)
-        row = QFrame()
-        row.setObjectName("GuidePrerequisiteRow")
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(QUEST_DETAIL_GEOMETRY["prerequisite_row_spacing"])
-        marker = QLabel("✓" if completed is True else "○" if completed is False else "")
-        marker.setObjectName("GuideTreeState")
-        marker.setProperty("state", "done" if completed is True else "todo" if completed is False else "neutral")
-        marker.setFixedWidth(QUEST_DETAIL_GEOMETRY["prerequisite_marker_width"])
-        marker.setAlignment(Qt.AlignCenter)
-        layout.addWidget(marker, 0, Qt.AlignTop)
         button = AtlasButton(clean_text(text))
         button.setObjectName("QuestPrerequisiteButton")
         button.setToolTip("Ouvrir dans l'onglet Quêtes")
         button.clicked.connect(lambda _checked=False, target_id=int(linked_id): self.open_prerequisite_quest(target_id))
-        layout.addWidget(button, 1)
-        return row
+        return atlas_prerequisite_row(button, completed)
 
     def _item_row(self, quest_id: int, item: Any) -> QWidget:
         item_id = int(item.item_id) if item.item_id is not None else None

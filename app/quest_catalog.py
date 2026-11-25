@@ -206,6 +206,20 @@ class QuestAchievementSeries:
     quest_ids: tuple[int, ...]
 
 
+def build_quest_requirement_name_index(quests) -> dict[str, int]:
+    """Preserve first authored match; skip malformed names/IDs."""
+    result: dict[str, int] = {}
+    for quest in quests:
+        name = normalize_text(getattr(quest, "name", ""))
+        try:
+            ident = int(getattr(quest, "id", None))
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if name:
+            result.setdefault(name, ident)
+    return result
+
+
 class QuestCatalog:
     def __init__(
         self,
@@ -219,6 +233,17 @@ class QuestCatalog:
         self.errors = errors or []
         self.by_id = {quest.id: quest for quest in quests}
         self.achievement_series = tuple(achievement_series)
+        self._requirement_name_index: tuple[tuple[int, int], dict[str, int]] | None = None
+
+    def requirement_name_id(self, normalized_name: str) -> int | None:
+        """One lazy name index for all hosts of this catalogue generation."""
+        quests = self.quests
+        stamp = (id(quests), len(quests))
+        cached = getattr(self, "_requirement_name_index", None)
+        if cached is None or cached[0] != stamp:
+            cached = (stamp, build_quest_requirement_name_index(quests))
+            self._requirement_name_index = cached
+        return cached[1].get(normalized_name)
 
     @classmethod
     def load(

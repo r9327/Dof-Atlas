@@ -180,6 +180,24 @@ def set_unity_widget_object_name(widget: QWidget, object_name: str) -> bool:
     return True
 
 
+def atlas_prerequisite_row(content: QWidget, completed: bool | None = None) -> QFrame:
+    """Canonical marker/layout for plain, Quest and Achievement prerequisites."""
+    row = QFrame()
+    row.setObjectName("GuidePrerequisiteRow")
+    layout = QHBoxLayout(row)
+    layout.setContentsMargins(0, 0, 0, 0)
+    geometry = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
+    layout.setSpacing(geometry["prerequisite_row_spacing"])
+    marker = QLabel("✓" if completed is True else "○" if completed is False else "")
+    marker.setObjectName("GuideTreeState")
+    marker.setProperty("state", "done" if completed is True else "todo" if completed is False else "neutral")
+    marker.setFixedWidth(geometry["prerequisite_marker_width"])
+    marker.setAlignment(Qt.AlignCenter)
+    layout.addWidget(marker, 0, Qt.AlignTop)
+    layout.addWidget(content, 1)
+    return row
+
+
 def configure_unity_tool_button(
     button: QToolButton, *, object_name: str | None = None,
     box: tuple[int, int] | None = None, icon_size: int | None = None,

@@ -1094,6 +1094,41 @@ def travel_command(position: str) -> str:
     return travel_command_from_position(position) or ""
 
 
+def quest_requirement_target(line: str) -> str:
+    """Extract an explicitly named Quest prerequisite, not a guessed relation."""
+    key = normalize_text(clean_text(line))
+    for prefix in ("quete_terminee_", "quete_active_"):
+        if key.startswith(prefix):
+            return key[len(prefix):]
+    return ""
+
+
+def resolve_quest_requirement(line: str, source, *, owner=None) -> int | None:
+    """Use the catalogue-owned index; preserve lightweight custom providers."""
+    target = quest_requirement_target(line)
+    if not target or source is None:
+        return None
+    resolver = getattr(source, "requirement_name_id", None)
+    if callable(resolver):
+        return resolver(target)
+    # Small injected providers/catalogues used by compatibility hosts may not
+    # expose the catalogue API. Keep their local index scoped to the host.
+    from app.quest_catalog import build_quest_requirement_name_index
+    getter = getattr(source, "list_quests", None)
+    rows = getattr(source, "quests", None)
+    if rows is None:
+        if not callable(getter):
+            return None
+        rows = getter()
+    stamp = (id(source), id(rows), len(rows))
+    cached = getattr(owner, "_compat_requirement_index", None) if owner is not None else None
+    if cached is None or cached[0] != stamp:
+        cached = (stamp, build_quest_requirement_name_index(rows))
+        if owner is not None:
+            owner._compat_requirement_index = cached
+    return cached[1].get(target)
+
+
 def clean_requirement_line(value: str) -> str:
     text = clean_text(value)
     normalized = re.sub(r"^Quete terminee\s*:\s*", "", text, flags=re.IGNORECASE)

@@ -12,6 +12,28 @@ from app.core.progress_coordinator import empty_progress_payload
 
 
 class CoreSharedStateTests(unittest.TestCase):
+    def test_quest_requirement_index_is_catalogue_owned_and_rebuilds_on_replacement(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from app.quest_catalog import QuestCatalog
+        from app.modules.encyclopedia.providers.quest_provider import QuestProvider
+        from app.modules.encyclopedia.services.guide_quest_view_model import resolve_quest_requirement
+        from app.quest_catalog import build_quest_requirement_name_index
+        rows = [SimpleNamespace(id=1, name="Première quête"),
+                SimpleNamespace(id=2, name="Première quête")]
+        catalogue = QuestCatalog(rows)
+        first, second = QuestProvider(catalogue), QuestProvider(catalogue)
+        with patch("app.quest_catalog.build_quest_requirement_name_index",
+                   wraps=build_quest_requirement_name_index) as index:
+            self.assertEqual(resolve_quest_requirement("Quête terminée : Première quête", first), 1)
+            self.assertEqual(resolve_quest_requirement("Quête active : Première quête", second), 1)
+            self.assertEqual(resolve_quest_requirement("Quête terminée : Première quête", catalogue), 1)
+            self.assertIsNone(resolve_quest_requirement("Première quête", catalogue))
+            index.assert_called_once()
+            catalogue.quests = [SimpleNamespace(id=3, name="Première quête")]
+            self.assertEqual(resolve_quest_requirement("Quête terminée : Première quête", second), 3)
+            self.assertEqual(index.call_count, 2)
+
     def test_progress_write_failure_never_exposes_unsaved_completion(self):
         from unittest.mock import patch
         from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
