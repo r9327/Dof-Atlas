@@ -81,6 +81,48 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         finally:
             card.deleteLater()
 
+    def test_success_objective_edit_updates_effective_progress_without_rebuilding(self):
+        import tempfile
+        from pathlib import Path
+        from app.modules.encyclopedia.models.achievement import Achievement, AchievementObjective
+        from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
+        from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
+        from app.modules.encyclopedia.widgets.achievement_summary_widget import AchievementSummaryWidget
+        from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
+        from PySide6.QtWidgets import QProgressBar
+        achievement = Achievement(
+            id=10, original_id=10, name="Test", description="", category_id=1,
+            category_name="Quêtes", subcategory_id=None, subcategory_name="", level=1, points=1,
+            objectives=(
+                AchievementObjective(1, 10, "Objectif", ""),
+                AchievementObjective(2, 10, "Interne", "", objective_type="critère PL"),
+                AchievementObjective(3, 10, "Interne", "", objective_type="critère BI"),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            service = AchievementProgressService(Path(tmp) / "progress.json")
+            key = "character:1"
+            changed = []
+            widget = AchievementDetailWidget(achievement, service, key, completion_changed_callback=changed.append)
+            try:
+                row = widget.findChild(AchievementObjectiveWidget)
+                self.assertIsNotNone(row)
+                self.assertEqual(widget.progress_bar.value(), 0)
+                row.check.setChecked(True)
+                self.assertEqual(widget.progress_bar.value(), 100)
+                self.assertIn("1 / 1", widget.progress_text.text())
+                self.assertIs(widget.findChild(AchievementObjectiveWidget), row)
+                summary = AchievementSummaryWidget(achievement, service.state_for(key))
+                try:
+                    self.assertEqual(summary.findChild(QProgressBar).value(), 100)
+                finally:
+                    summary.deleteLater()
+                row.check.setChecked(False)
+                self.assertEqual(widget.progress_bar.value(), 0)
+                self.assertEqual(changed, [False, False])
+            finally:
+                widget.deleteLater()
+
     def test_shared_progress_bar_supports_indeterminate_and_native_text(self):
         from PySide6.QtWidgets import QProgressBar
         from app.ui.components import configure_unity_progress_bar

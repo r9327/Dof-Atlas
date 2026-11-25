@@ -1295,14 +1295,10 @@ def achievement_context_section(achievements: list[Any], achievement_state: Any,
     for achievement in achievements[:8]:
         aid = int(getattr(achievement, "id", 0) or 0)
         objectives = list(getattr(achievement, "objectives", ()) or ())
-        completed = bool(achievement_state.is_achievement_completed(aid)) if achievement_state is not None and aid else False
-        done_objectives = (
-            sum(1 for objective in objectives if achievement_state.is_objective_completed(aid, int(getattr(objective, "id", 0) or 0)))
-            if achievement_state is not None and aid
-            else 0
+        from app.modules.encyclopedia.services.achievement_progress_logic import achievement_progress_snapshot
+        done_objectives, total_objectives, _completed, percent = achievement_progress_snapshot(
+            achievement, achievement_state,
         )
-        total_objectives = len(objectives)
-        percent = 100 if completed else clamped_percent(done_objectives, total_objectives)
         objective_rows = []
         for objective in objectives[:12]:
             oid = int(getattr(objective, "id", 0) or 0)

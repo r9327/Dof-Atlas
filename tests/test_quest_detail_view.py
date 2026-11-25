@@ -172,6 +172,35 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         finally:
             sheet.deleteLater()
 
+    def test_preparation_toggle_updates_existing_rows_and_caption_only(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+        from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem
+        from app.modules.encyclopedia.widgets.quest_item_row import item_row
+        with tempfile.TemporaryDirectory() as tmp:
+            service = QuestProgressService(Path(tmp) / "quest.json")
+            sheet = QuestDetailView(object(), object(), service, character_key="character:1")
+            sheet.current_quest_id = 42
+            first = item_row(DisplayItem(7, "Objet", 2), checked=False)
+            second = item_row(DisplayItem(7, "Objet", 1), checked=False)
+            sheet._preparation_rows = [(7, first), (7, second)]
+            sheet.header.set_optional_sections([("Préparation", "0/2", [first, second])])
+            button = sheet.header.optional_section_buttons["Préparation"]
+            button.setChecked(True)
+            try:
+                with patch.object(sheet, "show_quest", side_effect=AssertionError("document rebuilt")):
+                    sheet.set_item_completed(42, 7, True)
+                self.assertEqual(button.text(), "Préparation  2/2")
+                self.assertTrue(button.isChecked())
+                self.assertTrue(first.findChild(QToolButton, "GuideItemIcon").isChecked())
+                self.assertTrue(second.findChild(QToolButton, "GuideItemIcon").isChecked())
+                self.assertTrue(service.is_item_completed("character:1", 42, 7))
+            finally:
+                sheet.deleteLater()
+
     def test_plain_and_linked_prerequisites_share_marker_geometry(self):
         from PySide6.QtWidgets import QLabel, QPushButton
         from app.modules.encyclopedia.views.guides_view import prerequisite_row

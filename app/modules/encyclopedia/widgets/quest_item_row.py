@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QPoint, QSize, Qt
+from PySide6.QtCore import QPoint, QSignalBlocker, QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
 
@@ -36,6 +36,16 @@ def _apply_item_row_state(row: QFrame, image: QToolButton, checked: bool) -> Non
     state = "done" if checked else "todo"
     for widget in (row, image):
         set_unity_widget_property(widget, "state", state)
+
+
+def set_item_row_checked(row: QWidget, checked: bool) -> None:
+    """Refresh an existing preparation row without emitting a second edit."""
+    image = row.findChild(QToolButton, "GuideItemIcon")
+    if image is None or not image.isCheckable():
+        return
+    with QSignalBlocker(image):
+        image.setChecked(bool(checked))
+    _apply_item_row_state(row, image, bool(checked))
 
 
 def item_row(
@@ -108,4 +118,4 @@ def item_row(
     return row
 
 
-__all__ = ["item_row"]
+__all__ = ["item_row", "set_item_row_checked"]

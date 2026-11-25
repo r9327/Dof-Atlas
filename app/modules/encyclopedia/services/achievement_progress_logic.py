@@ -11,6 +11,35 @@ def achievement_progress_percent(completed: bool, done: int, total: int) -> int:
     return 100 if completed else clamped_percent(done, total)
 
 
+def achievement_objective_counts_for_progress(achievement: Any, objective: Any) -> bool:
+    """One existing Success progress policy, including hidden QQ counters."""
+    kind = str(getattr(objective, "objective_type", "") or "").strip().casefold()
+    category = str(getattr(achievement, "category_name", "") or "").casefold()
+    return kind not in {"critère pl", "critère ea"} and not (
+        kind == "critère bi" and category == "quêtes"
+    )
+
+
+def achievement_progress_snapshot(
+    achievement: Any, state: Any, overrides: Mapping[int, bool] | None = None,
+) -> tuple[int, int, bool, int]:
+    """Return counts and effective completion from the same progress snapshot."""
+    aid = int(getattr(achievement, "id", 0) or 0)
+    overrides = overrides or {}
+    objectives = tuple(objective for objective in getattr(achievement, "objectives", ()) or ()
+                       if achievement_objective_counts_for_progress(achievement, objective))
+    done = 0
+    for objective in objectives:
+        oid = int(objective.id)
+        if oid in overrides:
+            done += bool(overrides[oid])
+        elif state is not None and aid:
+            done += bool(state.is_objective_completed(aid, oid))
+    total = len(objectives)
+    completed = bool(state.is_achievement_completed(aid)) if state is not None and aid else False
+    return done, total, completed, achievement_progress_percent(completed, done, total)
+
+
 def derive_completion_state(
     character: Mapping[str, Any],
 ) -> tuple[frozenset[int], dict[int, frozenset[int]]]:
@@ -36,4 +65,7 @@ def derive_completion_state(
     )
 
 
-__all__ = ["achievement_progress_percent", "derive_completion_state"]
+__all__ = [
+    "achievement_progress_percent", "achievement_objective_counts_for_progress",
+    "achievement_progress_snapshot", "derive_completion_state",
+]

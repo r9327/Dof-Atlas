@@ -37,7 +37,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     resolve_quest_requirement,
 )
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
-from app.modules.encyclopedia.widgets.quest_item_row import item_row
+from app.modules.encyclopedia.widgets.quest_item_row import item_row, set_item_row_checked
 from app.quest_catalog import QuestRecord, normalize_text
 from app.ui.components import AtlasButton, AtlasGuideReadingHeader, atlas_prerequisite_row, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
@@ -104,6 +104,7 @@ class QuestDetailView(QWidget):
         self.open_prerequisite_callback = open_prerequisite
         self.navigate_entity_callback = navigate_entity
         self.current_quest_id: int | None = None
+        self._preparation_rows: list[tuple[int, QWidget]] = []
         self.context = QuestViewContext()
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -219,6 +220,7 @@ class QuestDetailView(QWidget):
 
     def clear(self, message: str = "") -> None:
         self.current_quest_id = None
+        self._preparation_rows.clear()
         self.title_label.setText("Quêtes")
         self.title_label.setToolTip("Quêtes")
         self.meta_label.clear()
@@ -347,12 +349,14 @@ class QuestDetailView(QWidget):
         ui = _guide_ui()
         prerequisite_rows, progress = self._prerequisite_rows(quest, step)
         required_items = quest_items(guide, quest) if guide is not None else quest_items_from_objectives(quest)
+        self._preparation_rows.clear()
         preparation_rows = [self._item_row(quest.id, item) for item in required_items]
-        tracked = [item for item in required_items if item.item_id is not None]
-        ready = sum(
-            self.quest_progress_service.is_item_completed(self.character_key, int(quest.id), int(item.item_id))
-            for item in tracked
-        )
+        self._preparation_rows = [
+            (int(item.item_id), row) for item, row in zip(required_items, preparation_rows)
+            if item.item_id is not None
+        ]
+        ready = self._sync_preparation_rows(int(quest.id))
+        tracked = self._preparation_rows
         rewards = quest_rewards(quest, achievements)
         self.header.set_optional_sections([
             ("Prérequis", f"{progress.completed}/{progress.total}" if progress.total else "", prerequisite_rows),
@@ -466,6 +470,20 @@ class QuestDetailView(QWidget):
         row.setObjectName("GuideQuestItemRow")
         return row
 
+    def _sync_preparation_rows(self, quest_id: int) -> int:
+        """Keep duplicate display rows in sync with one persisted item ID."""
+        ready = 0
+        states: dict[int, bool] = {}
+        for item_id, row in self._preparation_rows:
+            if item_id not in states:
+                states[item_id] = self.quest_progress_service.is_item_completed(
+                    self.character_key, quest_id, item_id,
+                )
+            checked = states[item_id]
+            set_item_row_checked(row, checked)
+            ready += checked
+        return ready
+
     def set_item_completed(self, quest_id: int, item_id: int, completed: bool) -> None:
         self.quest_progress_service.set_item_completed(
             self.character_key,
@@ -473,7 +491,12 @@ class QuestDetailView(QWidget):
             int(item_id),
             bool(completed),
         )
-        self.show_quest(int(quest_id), self.context)
+        if int(quest_id) == self.current_quest_id:
+            ready = self._sync_preparation_rows(int(quest_id))
+            total = len(self._preparation_rows)
+            self.header.set_optional_section_count("Préparation", f"{ready}/{total}" if total else "")
+        else:
+            self.show_quest(int(quest_id), self.context)
         self.questProgressChanged.emit(int(quest_id))
 
     def open_related_quest(self, quest_id: int) -> bool:

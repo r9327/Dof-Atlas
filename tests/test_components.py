@@ -284,6 +284,24 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             counter.deleteLater()
 
+    def test_optional_drawer_count_update_preserves_rows_and_open_state(self):
+        from PySide6.QtWidgets import QLabel
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Test", overview=True)
+        row = QLabel("Objet")
+        try:
+            header.set_optional_sections([("Préparation", "0/1", [row])])
+            button = header.optional_section_buttons["Préparation"]
+            button.setChecked(True)
+            self.assertTrue(header.set_optional_section_count("Préparation", "1/1"))
+            self.assertIs(header.optional_section_buttons["Préparation"], button)
+            self.assertTrue(button.isChecked())
+            self.assertEqual(button.text(), "Préparation  1/1")
+            self.assertIsNotNone(row.parent())
+            self.assertFalse(header.set_optional_section_count("Absent", "1/1"))
+        finally:
+            header.deleteLater()
+
     def test_quest_item_icon_uses_shared_decoder_and_fallback(self):
         import tempfile
         from pathlib import Path

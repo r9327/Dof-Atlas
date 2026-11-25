@@ -1286,6 +1286,16 @@ class AtlasGuideReadingHeader(QFrame):
                 widget.hide()
                 widget.deleteLater()
 
+    def set_optional_section_count(self, name: str, count: str) -> bool:
+        """Update only the caption; preserve drawer, scroll, focus and rows."""
+        button = self.optional_section_buttons.get(name)
+        if button is None:
+            return False
+        text = f"{name}  {count}" if count else name
+        if button.text() != text:
+            button.setText(text)
+        return True
+
     def set_optional_sections(
         self, sections: list[tuple[str, str, list[QWidget]]], *, preserve_open: bool = False,
     ) -> None:
