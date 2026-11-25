@@ -1273,6 +1273,11 @@ class AtlasWindow(QMainWindow):
         # even if their connected-combo projection did not change.
         if not network_refresh or projection_changed or self.current_character_key != previous_key:
             self.sync_selected_character_to_pages()
+        else:
+            # A local DOFUS window can remain open after its capture session
+            # disappeared. The combo is unchanged, but connection-dependent
+            # Guide actions still need to recheck their current evidence.
+            self._refresh_visible_guide_connections()
         self._refresh_runtime_hotkeys_for_client_mapping()
 
     @staticmethod
@@ -1445,6 +1450,20 @@ class AtlasWindow(QMainWindow):
             profiles = default_profiles()
         profiles[KEY_SELECTED_CHARACTER] = self.current_character_key
         write_json(PROFILE_FILE, profiles)
+
+    def _refresh_visible_guide_connections(self) -> None:
+        """Recheck Guide commands without loading pages or repainting progress."""
+        if "Quetes" in self.page_factories:
+            return
+        page = self.page_widgets.get("Quetes")
+        if page is None or not page.isVisible():
+            return
+        if not isinstance(page, _resolve_encyclopedia_page()):
+            return
+        guide = getattr(page, "guides_view", None)
+        refresh = getattr(guide, "refresh_connection_state", None)
+        if callable(refresh):
+            refresh()
 
     def sync_selected_character_to_pages(self) -> None:
         page = self.page_widgets.get("Quetes")

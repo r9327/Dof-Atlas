@@ -276,9 +276,37 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         shell.persist_selected_character.assert_not_called()
         shell.character_combo.clear.assert_not_called()
         shell.sync_selected_character_to_pages.assert_not_called()
+        shell._refresh_visible_guide_connections.assert_called_once_with()
         # Client-window hotkeys still need reconciling even when the
         # account and its UI projection have not changed.
         shell._refresh_runtime_hotkeys_for_client_mapping.assert_called_once()
+
+    def test_network_guide_refresh_never_materializes_or_repaints_hidden_pages(self):
+        from types import SimpleNamespace
+
+        class Page:
+            def __init__(self):
+                self.visible = True
+                self.guides_view = Mock()
+            def isVisible(self):
+                return self.visible
+
+        page = Page()
+        shell = SimpleNamespace(page_factories={"Quetes": object()},
+                                page_widgets={"Quetes": page})
+        with patch("main._resolve_encyclopedia_page", return_value=Page) as resolve:
+            AtlasWindow._refresh_visible_guide_connections(shell)
+            resolve.assert_not_called()
+            shell.page_factories.clear()
+            page.visible = False
+            AtlasWindow._refresh_visible_guide_connections(shell)
+            resolve.assert_not_called()
+            page.guides_view.refresh_connection_state.assert_not_called()
+            page.visible = True
+            AtlasWindow._refresh_visible_guide_connections(shell)
+            page.guides_view.refresh_connection_state.assert_called_once_with()
+            page.guides_view.refresh_external_progress.assert_not_called()
+            page.guides_view.set_character_key.assert_not_called()
 
     def test_new_verified_class_updates_live_pages_without_rewriting_selection(self):
         from app.quest_catalog import QuestCharacter
