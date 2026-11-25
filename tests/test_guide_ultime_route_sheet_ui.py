@@ -95,7 +95,7 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
         calls = []
         view = SimpleNamespace(
             participant_service=SimpleNamespace(
-                available_characters=lambda: (
+                available_travel_characters=lambda: (
                     SimpleNamespace(key="character:1", connected=True),
                 ),
             ),
@@ -119,7 +119,7 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
 
         view = SimpleNamespace(
             participant_service=SimpleNamespace(
-                available_characters=lambda: (
+                available_travel_characters=lambda: (
                     SimpleNamespace(key="character:1", connected=True),
                 ),
             ),
@@ -140,7 +140,7 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
         calls = []
         view = SimpleNamespace(
             participant_service=SimpleNamespace(
-                available_characters=lambda: (
+                available_travel_characters=lambda: (
                     SimpleNamespace(key="character:1", connected=True),
                 ),
             ),
@@ -164,7 +164,7 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
 
         view = SimpleNamespace(
             participant_service=SimpleNamespace(
-                available_characters=missing_registry,
+                available_travel_characters=missing_registry,
             ),
             selected_participant_keys=lambda: ("character:1",),
             travel_callback=lambda command, keys: calls.append((command, keys)),
@@ -184,7 +184,7 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
         calls = []
         view = SimpleNamespace(
             participant_service=SimpleNamespace(
-                available_characters=lambda: (
+                available_travel_characters=lambda: (
                     SimpleNamespace(key="character:1", connected=True),
                 ),
             ),
@@ -202,6 +202,34 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
                 )
                 self.assertEqual(calls, [])
                 self.assertEqual(app.clipboard().text(), command)
+
+    def test_travel_uses_live_roster_not_saved_window_snapshot(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        row = SimpleNamespace(key="character:1", connected=True)
+        roster = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_characters=lambda: (row,),
+                available_travel_characters=lambda: tuple(roster),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        self.assertFalse(GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6"))
+        self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+        roster.extend((row, SimpleNamespace(key="character:1", connected=False)))
+        with patch("app.modules.encyclopedia.views.guide_ultime_universal_view._LOGGER.exception"):
+            self.assertFalse(GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6"))
+        self.assertEqual(calls, [])
+        roster.pop()
+        self.assertTrue(GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6"))
+        self.assertEqual(calls, [("/travel 3,-6", ("character:1",))])
+
+    def test_route_sheet_reuses_generated_shared_progress_header(self):
+        build = inspect.getsource(GuideUltimeUniversalView._build_ui)
+        self.assertIn("self._build_route_progress_header(", build)
+        self.assertNotIn("configure_unity_progress_bar(", build)
 
     def test_single_route_sheet_is_rendered(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)

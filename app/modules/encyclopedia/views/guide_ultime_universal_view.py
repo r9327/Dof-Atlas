@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -28,7 +27,7 @@ from app.core.map_coordinates import (
     BRACKETED_POSITION_RE, SENTINEL_COORD, normalize_coordinate_pair,
     normalize_direct_guide_travel, travel_command_from_pair,
 )
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_progress_bar, configure_unity_scroll_area, set_unity_widget_property, set_unity_progress_counts
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_scroll_area, set_unity_widget_property, set_unity_progress_counts
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -394,15 +393,11 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             return False
 
         try:
-            available = getattr(self.participant_service, "available_characters", None)
-            characters = available() if callable(available) else ()
-            eligible = {
-                row.key
-                for row in (characters or ())
-                if bool(getattr(row, "connected", False))
-            }
-            recipients = tuple(
-                key for key in self.selected_participant_keys() if key in eligible
+            from app.services.guide_participant_service import connected_travel_recipients
+
+            available = self.participant_service.available_travel_characters
+            recipients = connected_travel_recipients(
+                available(), self.selected_participant_keys(),
             )
         except Exception:
             _LOGGER.exception("Lecture des personnages connectés impossible")
@@ -441,25 +436,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.breadcrumb.add_current("Guide Ultime")
         root.addWidget(self.breadcrumb)
 
-        header = QFrame()
-        header.setObjectName("GuideRouteHeader")
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(14, 8, 14, 8)
-        header_layout.setSpacing(8)
-        title = QLabel("GUIDE ULTIME — FICHE DE ROUTE")
-        title.setObjectName("GuideRouteTitle")
-        header_layout.addWidget(title)
-        header_layout.addStretch(1)
-        self.route_progress_label = QLabel()
-        self.route_progress_label.setObjectName("GuideRoutePercent")
-        header_layout.addWidget(self.route_progress_label)
-        root.addWidget(header)
-
-        self.route_bar = configure_unity_progress_bar(
-            QProgressBar(), object_name="GuideRouteProgress",
-            height_role="progress_route",
-        )
-        root.addWidget(self.route_bar)
+        self._build_route_progress_header(root, "GUIDE ULTIME — FICHE DE ROUTE")
 
         self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
         self.scroll.setObjectName("GuideRouteScroll")

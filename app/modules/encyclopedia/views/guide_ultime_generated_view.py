@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
@@ -17,8 +16,8 @@ from PySide6.QtWidgets import (
 
 from app.core.numbers import optional_int
 from app.ui.components import (
-    AtlasButton, AtlasComboBox, AtlasPageNavigator,
-    clear_unity_widget_layout, configure_unity_progress_bar, configure_unity_scroll_area,
+    AtlasButton, AtlasComboBox, AtlasGuideReadingHeader, AtlasPageNavigator,
+    clear_unity_widget_layout, configure_unity_scroll_area,
     set_unity_progress_counts,
 )
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
@@ -316,27 +315,8 @@ class GuideUltimeGeneratedView(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(8)
 
-        self.progress_frame = QFrame()
-        self.progress_frame.setObjectName("GuideUltimeProgressHeader")
-        progress_layout = QVBoxLayout(self.progress_frame)
-        progress_layout.setContentsMargins(14, 12, 14, 12)
-        progress_layout.setSpacing(6)
-
-        top = QHBoxLayout()
-        title = QLabel("GUIDE ULTIME")
-        title.setObjectName("GuideUltimeTitle")
-        top.addWidget(title)
-        top.addStretch(1)
-        self.route_progress_label = QLabel()
-        self.route_progress_label.setObjectName("GuideUltimeProgressText")
-        top.addWidget(self.route_progress_label)
-        progress_layout.addLayout(top)
-
-        self.route_bar = configure_unity_progress_bar(
-            QProgressBar(), object_name="GuideUltimeProgressBar",
-            height_role="progress_generated_route",
-        )
-        progress_layout.addWidget(self.route_bar)
+        self._build_route_progress_header(root, "GUIDE ULTIME")
+        progress_layout = self.reading_header.content_layout
 
         self.progress_details = QLabel()
         self.progress_details.setObjectName("GuideUltimeProgressDetails")
@@ -356,8 +336,6 @@ class GuideUltimeGeneratedView(QWidget):
         branch_row.addWidget(self.order_combo)
         branch_row.addStretch(1)
         progress_layout.addLayout(branch_row)
-        root.addWidget(self.progress_frame)
-
         nav = QFrame()
         nav.setObjectName("GuideUltimeNav")
         nav_layout = QHBoxLayout(nav)
@@ -393,6 +371,15 @@ class GuideUltimeGeneratedView(QWidget):
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
 
+
+    def _build_route_progress_header(self, root: QVBoxLayout, title: str) -> None:
+        # Historical generated routes have no certified preparation or team
+        # progress model. Reuse the real overview shell without inventing one.
+        self.reading_header = AtlasGuideReadingHeader(title, overview=True, show_cover=False)
+        self.progress_frame = self.reading_header
+        self.route_bar = self.reading_header.global_progress_bar
+        self.route_progress_label = self.reading_header.global_progress_label
+        root.addWidget(self.reading_header)
 
     def set_character_key(self, character_key: str) -> None:
         normalized = character_key or ""

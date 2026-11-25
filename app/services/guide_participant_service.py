@@ -18,6 +18,22 @@ from app.pages.quest_character_cache import cached_load_quest_characters as load
 from app.services.profile_settings_service import ProfileSettingsService
 
 
+def connected_travel_recipients(rows, selected_keys) -> tuple[str, ...]:
+    """Project a unique, currently connected roster in explicit selection order."""
+    selected = tuple(selected_keys)
+    if len(set(selected)) != len(selected) or any(not is_character_key(key) for key in selected):
+        raise ValueError("Identité de sélection ambiguë")
+    connections = {}
+    for row in rows:
+        key = getattr(row, "key", None)
+        if key not in selected:
+            continue
+        if key in connections:
+            raise ValueError("Identité de connexion ambiguë")
+        connections[key] = getattr(row, "connected", False) is True
+    return tuple(key for key in selected if connections.get(key, False))
+
+
 class GuideParticipantService:
     """Persist explicit ID-backed Guide movement participants."""
 
@@ -115,4 +131,4 @@ class GuideParticipantService:
         return selected
 
 
-__all__ = ["GuideParticipantService"]
+__all__ = ["GuideParticipantService", "connected_travel_recipients"]

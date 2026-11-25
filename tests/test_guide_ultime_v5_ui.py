@@ -293,6 +293,20 @@ class GuideUltimeV5UITests(unittest.TestCase):
         finally:
             view.deleteLater()
 
+    def test_generated_progress_header_uses_real_common_overview(self):
+        from app.ui.components import AtlasGuideReadingHeader
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            self.assertIsInstance(view.reading_header, AtlasGuideReadingHeader)
+            self.assertIs(view.route_bar, view.reading_header.global_progress_bar)
+            self.assertIs(view.route_progress_label, view.reading_header.global_progress_label)
+            self.assertEqual(view.reading_header.objectName(), "GuideHeader")
+            self.assertTrue(view.reading_header.guide_icon_label.isHidden())
+            self.assertIsNotNone(view.order_combo.parentWidget())
+            self.assertFalse(hasattr(view.reading_header, "preparation_button"))
+        finally:
+            view.deleteLater()
+
     def test_generated_guide_uses_shared_scroll_without_changing_navigation(self):
         view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
         try:

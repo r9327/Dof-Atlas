@@ -27,6 +27,7 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
     visible_object_references,
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+from app.services.guide_participant_service import connected_travel_recipients
 from app.ui.components import (
     AtlasGuideReadingHeader, AtlasGuideParticipantPortrait, configure_unity_scroll_area, configure_unity_tool_button,
 )
@@ -362,20 +363,14 @@ class ContinuousGuideRoutePanel(QWidget):
                 if callable(self._available_characters_provider)
                 else self.available_characters
             )
-            connections = {}
-            for row in rows:
-                key = getattr(row, "key", None)
-                if key not in selected:
-                    continue
-                if key in connections:
-                    return None, "Identité de connexion ambiguë"
-                connections[key] = getattr(row, "connected", False) is True
-            online = {key for key, connected in connections.items() if connected}
+            online = connected_travel_recipients(rows, selected)
+        except ValueError:
+            return None, "Identité de connexion ambiguë"
         except Exception:
             from app.core.logger import get_runtime_logger
             get_runtime_logger().exception("Guide participant connection lookup failed")
             return None, "État de connexion indisponible"
-        if any(key not in online for key in selected):
+        if online != selected:
             return None, "Un ou plusieurs personnages sélectionnés sont hors ligne"
         destination = self._exact_coordinates(plan.get("destination"))
         if destination is None:

@@ -145,6 +145,21 @@ class GuideParticipantServiceTests(unittest.TestCase):
                 self.assertEqual(service.selected_keys(), ("character:1", "character:2"))
                 self.assertTrue(rows[0].connected)
 
+    def test_connected_travel_projection_rejects_duplicate_identities(self):
+        from app.quest_catalog import QuestCharacter
+        from app.services.guide_participant_service import connected_travel_recipients
+
+        rows = [QuestCharacter("character:1", "Alpha", 1, True),
+                QuestCharacter("character:2", "Beta", 2, False)]
+        self.assertEqual(connected_travel_recipients(rows, ("character:2", "character:1")),
+                         ("character:1",))
+        with self.assertRaises(ValueError):
+            connected_travel_recipients([*rows, rows[0]], ("character:1",))
+        with self.assertRaises(ValueError):
+            connected_travel_recipients(rows, ("character:1", "character:1"))
+        with self.assertRaises(ValueError):
+            connected_travel_recipients(rows, ("slot:1",))
+
     def test_selection_read_write_normalizes_whitespace_and_deduplicates(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
