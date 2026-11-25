@@ -99,17 +99,21 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "SharedGuideManualView(" in source
         assert "ContinuousGuideRoutePanel(" in continuous_router
         assert 'replacement_status") == "TRUSTED_SOURCE_STEPS"' in continuous_router
+        controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")
         for renderer in (continuous, shared):
+            assert "AtlasGuideReadingHeader(" in renderer
+            assert ".global_progress_bar" in renderer
+            assert ".preparation_button" in renderer
+            assert ".participants_button" in renderer
+            # The role names belong to the real shared component, not copies.
             for role in ("GuideCompactHeader", "GuideGlobalProgress",
                          "GuideParticipantsButton", "GuideCompactPreparationProgress"):
-                assert role in renderer, (role, renderer[:80])
-        # Drawer geometry/arrow behaviour now lives in the indexed shared
-        # component instead of duplicating an object name in every renderer.
-        controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+                assert role in controls, role
+                assert f'setObjectName("{role}")' not in renderer
+            assert "global_details_button.hide()" not in renderer
         assert 'self.setObjectName("GuideMetricDropdown")' in controls
-        assert "AtlasGuideDisclosure(" in shared
-        assert "GuideMetricDropdown" in continuous
-        assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
+        assert "AtlasGuideDisclosure(" in controls
+        assert "AtlasGuideSheetHeader(" in shared
 
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
         for path in UI_STYLES.rglob("*.py") if UI_STYLES.exists() else ():

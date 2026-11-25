@@ -754,6 +754,44 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_all_95_source_containers_reuse_one_empty_reader_without_game_data(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
+        from app.ui.components import AtlasGuideReadingHeader, AtlasGuideSheetHeader
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            listings = load_ganymede_listings()
+            combo = page.guide_source_preview_combo
+            header = page.guide_sample_compact_header
+            sheet = page.guide_source_preview_sheet
+            self.assertEqual(len(listings), 95)
+            self.assertEqual(combo.count(), len(listings))
+            self.assertIsInstance(header, AtlasGuideReadingHeader)
+            self.assertIsInstance(sheet, AtlasGuideSheetHeader)
+            for index, listing in enumerate(listings):
+                with self.subTest(source_id=listing.source_id):
+                    combo.setCurrentIndex(index)
+                    self.assertEqual(combo.currentData(), listing.source_id)
+                    self.assertIs(page.guide_sample_compact_header, header)
+                    self.assertIs(page.guide_source_preview_sheet, sheet)
+                    self.assertEqual(header.guide_title_label.text(), listing.title)
+                    self.assertEqual(header.guide_title_label.toolTip(), listing.title)
+                    self.assertIn(f"ID source {listing.source_id}", page.guide_source_preview_status.text())
+                    self.assertEqual(header.global_progress_label.text(), "—")
+                    self.assertFalse(header.global_details_button.isEnabled())
+                    self.assertTrue(header.preparation_column.isHidden())
+                    self.assertTrue(header.summary_column.isHidden())
+                    self.assertEqual(header.summary_panel.count(), 0)
+                    self.assertFalse(header.participants_button.isEnabled())
+                    self.assertEqual(sheet.page_jump.maximum(), 0)
+                    self.assertFalse(sheet.page_jump.isEnabled())
+                    self.assertFalse(listing.playable)
+                    self.assertEqual(header.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_unification_contract_previews_breadcrumb_alerts_and_backdrop(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.unity_palette import (

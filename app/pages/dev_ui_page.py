@@ -1807,14 +1807,43 @@ class DevUiPage(QWidget):
         guide_cards.addWidget(self.guide_sample_active_route, 1)
         section.addLayout(guide_cards)
 
-        self.guide_sample_compact_header = QFrame()
-        self.guide_sample_compact_header.setObjectName("GuideCompactHeader")
-        compact_layout = QVBoxLayout(self.guide_sample_compact_header)
-        compact_layout.addWidget(QLabel("Guide compact · mêmes bordures"))
-        apply_unity_panel_shadow(
-            self.guide_sample_compact_header, **UNITY_PANEL_SHADOW
+        # Real source identities, one reusable empty reader. Metadata is
+        # never promoted to a playable route, page count or player progress.
+        from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
+
+        try:
+            self._guide_preview_listings = load_ganymede_listings()
+        except (OSError, ValueError, KeyError, TypeError):
+            self._guide_preview_listings = ()
+        self.guide_source_preview_combo = AtlasComboBox()
+        self.guide_source_preview_combo.setSizeAdjustPolicy(
+            self.guide_source_preview_combo.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
         )
+        self.guide_source_preview_combo.setMinimumContentsLength(20)
+        self.guide_source_preview_combo.setAccessibleName("Sélectionner un conteneur Guide (aperçu)")
+        for listing in self._guide_preview_listings:
+            self.guide_source_preview_combo.addItem(listing.title, listing.source_id)
+        self.guide_source_preview_combo.setEnabled(bool(self._guide_preview_listings))
+        self.guide_source_preview_status = QLabel()
+        self.guide_source_preview_status.setObjectName("MutedLabel")
+        self.guide_source_preview_status.setWordWrap(True)
+        section.addWidget(self.guide_source_preview_status)
+        section.addWidget(self.guide_source_preview_combo)
+
+        self.guide_sample_compact_header = AtlasGuideReadingHeader(
+            "Guide indisponible", show_cover=False,
+        )
+        self.guide_sample_compact_header.set_metric_available("preparation", False)
+        self.guide_sample_compact_header.set_metric_available("summary", False)
+        self.guide_sample_compact_header.global_details_button.setEnabled(False)
+        self.guide_sample_compact_header.participants_button.setEnabled(False)
         section.addWidget(self.guide_sample_compact_header)
+        self.guide_source_preview_sheet = AtlasGuideSheetHeader(total=0)
+        self.guide_source_preview_sheet.back_button.setEnabled(False)
+        self.guide_source_preview_sheet.title_label.hide()
+        section.addWidget(self.guide_source_preview_sheet)
+        self.guide_source_preview_combo.currentIndexChanged.connect(self._select_guide_source_preview)
+        self._select_guide_source_preview(self.guide_source_preview_combo.currentIndex())
 
         self.preview_quest_start_position = QLabel(
             "Position de lancement : [4,-18]"
@@ -1920,6 +1949,18 @@ class DevUiPage(QWidget):
         )
         guide_layout.addWidget(self.guide_ultime_combo, 0, Qt.AlignVCenter)
         section.addWidget(self.guide_ultime_sample)
+
+    def _select_guide_source_preview(self, index: int) -> None:
+        listings = self._guide_preview_listings
+        if not 0 <= index < len(listings):
+            self.guide_source_preview_status.setText("Index Ganymède indisponible · aucun contenu chargé")
+            self.guide_sample_compact_header.set_guide_title("Guide indisponible")
+            return
+        listing = listings[index]
+        self.guide_sample_compact_header.set_guide_title(listing.title)
+        self.guide_source_preview_status.setText(
+            f"Conteneur {index + 1}/{len(listings)} · ID source {listing.source_id} · aperçu sans contenu"
+        )
 
     def _build_ui_assets(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "assets")

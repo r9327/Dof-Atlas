@@ -2441,8 +2441,7 @@ class GuidesView(QWidget):
             )
             else _display_guide_level_text(guide)
         )
-        self.detail_header_title.setText(title)
-        self.detail_header_title.setToolTip(title)
+        self.detail_header.set_guide_title(title)
         self.detail_header_meta.setText(level)
         self.detail_header_meta.setVisible(bool(level))
         progress = self.progress_calculator.guide_progress(

@@ -1266,6 +1266,11 @@ class AtlasGuideReadingHeader(QFrame):
             else "Afficher Préparation et Sommaire"
         )
 
+    def set_guide_title(self, title: str) -> None:
+        """Keep the visible title and its full accessible hover text in sync."""
+        self.guide_title_label.setText(title)
+        self.guide_title_label.setToolTip(title)
+
     def set_overview_progress(self, completed: int, total: int, *, visible: bool = True) -> None:
         """Present real catalogue counts only; unavailable totals stay unknown."""
         self.global_progress_title.setVisible(visible)

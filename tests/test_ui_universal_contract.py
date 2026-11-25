@@ -488,10 +488,13 @@ class UiUniversalContractTests(unittest.TestCase):
             self.assertIn(name, UNITY_UI_FAMILY_INDEX["guides"]["components"])
             self.assertIn("#" + name, UI_FAMILY_QSS_SELECTORS["guides"])
             self.assertIn("#" + name, atlas_stylesheet())
-            self.assertIn(
-                f'self.{attribute}.setObjectName("{name}")',
-                gallery_source,
-            )
+            if attribute == "guide_sample_compact_header":
+                self.assertIn("self.guide_sample_compact_header = AtlasGuideReadingHeader(", gallery_source)
+            else:
+                self.assertIn(
+                    f'self.{attribute}.setObjectName("{name}")',
+                    gallery_source,
+                )
         self.assertIn("guides", UI_INTERACTION_QSS_SELECTORS)
         self.assertIn("AlmanaxCalendar",
                       UNITY_UI_FAMILY_INDEX["advanced_fields"]["components"])
