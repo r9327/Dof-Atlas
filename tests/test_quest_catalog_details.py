@@ -38,7 +38,7 @@ class QuestDetailsTests(unittest.TestCase):
         cases = (
             ([], "NO_NATIVE_START_MAP", []),
             ([{"mapId": 10}, None], "INVALID_NATIVE_START_MAP", [10]),
-            ([{"mapId": 11}, {"mapId": 10}], "MULTIPLE_NATIVE_START_MAPS", [10, 11]),
+            ([{"mapId": 11}, {"mapId": 10}], "COINCIDENT_NATIVE_START_MAPS", [10, 11]),
             ([{"mapId": 99}], "NATIVE_MAP_ROW_MISSING", [99]),
             ([{"mapId": 12}], "INVALID_NATIVE_MAP_COORDINATES", [12]),
             ([{"mapId": 10}, {"mapId": "10"}], "UNIQUE_NATIVE_START_MAP", [10]),
@@ -49,7 +49,18 @@ class QuestDetailsTests(unittest.TestCase):
                 self.assertEqual(review["reason"], reason)
                 self.assertEqual(review["map_ids"], ids)
                 self.assertEqual(bool(qc.native_quest_start_evidence({"startPosition": starts}, maps)),
-                                 reason == "UNIQUE_NATIVE_START_MAP")
+                                 reason in {"UNIQUE_NATIVE_START_MAP", "COINCIDENT_NATIVE_START_MAPS"})
+
+    def test_coincident_start_maps_supply_coordinates_without_inventing_map_identity(self):
+        from app.core.map_coordinates import quest_launch_position_evidence
+        quest = {"startPosition": [{"mapId": 10}, {"mapId": 11}]}
+        maps = {10: {"posX": 1, "posY": 2}, 11: {"posX": 1, "posY": 2}}
+        evidence = qc.native_quest_start_evidence(quest, maps)
+        self.assertEqual(evidence, {"native_start": {"map_ids": [10, 11], "position": "[1,2]"}})
+        self.assertEqual(quest_launch_position_evidence(evidence)[:2], ("[1,2]", "NATIVE_START_DECLARED"))
+        maps[11]["posX"] = 3
+        self.assertEqual(qc.native_quest_start_evidence(quest, maps), {})
+        self.assertEqual(qc.native_quest_start_evidence(quest, {10: maps[10]}), {})
 
     def test_source_map_coordinates_never_coerce_invalid_positions(self):
         # A valid source map may recover coordinates that the objective lacks.

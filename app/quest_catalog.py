@@ -903,23 +903,28 @@ def native_quest_start_review(quest: Mapping, maps: Mapping) -> dict[str, Any]:
     map_ids = sorted(ids)
     if malformed:
         return {"reason": "INVALID_NATIVE_START_MAP", "map_ids": map_ids}
-    if len(map_ids) != 1:
+    positions = set()
+    for map_id in map_ids:
+        row = maps.get(map_id)
+        if not isinstance(row, dict):
+            return {"reason": "NATIVE_MAP_ROW_MISSING", "map_ids": map_ids}
+        if any(type(row.get(key)) not in (int, str) for key in ("posX", "posY")):
+            return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
+        position = canonical_declared_coordinate(f"[{row['posX']},{row['posY']}]")
+        if not position:
+            return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
+        positions.add(position)
+    if len(positions) != 1:
         return {"reason": "MULTIPLE_NATIVE_START_MAPS", "map_ids": map_ids}
-    map_id = map_ids[0]
-    row = maps.get(map_id)
-    if not isinstance(row, dict):
-        return {"reason": "NATIVE_MAP_ROW_MISSING", "map_ids": map_ids}
-    if any(type(row.get(key)) not in (int, str) for key in ("posX", "posY")):
-        return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
-    position = canonical_declared_coordinate(f"[{row['posX']},{row['posY']}]")
-    if not position:
-        return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
-    return {"reason": "UNIQUE_NATIVE_START_MAP", "map_ids": map_ids, "position": position}
+    reason = "UNIQUE_NATIVE_START_MAP" if len(map_ids) == 1 else "COINCIDENT_NATIVE_START_MAPS"
+    return {"reason": reason, "map_ids": map_ids, "position": positions.pop()}
 
 
 def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]:
     """Recover only a unique explicitly declared game start map."""
     review = native_quest_start_review(quest, maps)
+    if review["reason"] == "COINCIDENT_NATIVE_START_MAPS":
+        return {"native_start": {"map_ids": review["map_ids"], "position": review["position"]}}
     if review["reason"] != "UNIQUE_NATIVE_START_MAP":
         return {}
     return {"native_start": {"map_id": review["map_ids"][0], "position": review["position"]}}

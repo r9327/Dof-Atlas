@@ -166,9 +166,15 @@ def quest_launch_position_evidence(source_info: object) -> tuple[str, str, tuple
     info = source_info if isinstance(source_info, dict) else {}
     native = info.get("native_start")
     map_id = native.get("map_id") if isinstance(native, dict) else None
+    map_ids = native.get("map_ids") if isinstance(native, dict) else None
+    coincident = (
+        map_id is None and isinstance(map_ids, list) and len(map_ids) > 1
+        and all(type(ident) is int and ident > 0 for ident in map_ids)
+        and len(set(map_ids)) == len(map_ids)
+    )
     native_position = (
         canonical_declared_coordinate(native.get("position"))
-        if type(map_id) is int and map_id > 0 else ""
+        if (type(map_id) is int and map_id > 0) or coincident else ""
     )
     if not native_position:
         return primary, status, positions
