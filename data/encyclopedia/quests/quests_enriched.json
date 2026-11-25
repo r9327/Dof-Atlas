@@ -120098,6 +120098,11 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "position": "[-35,-57]",
+        "source_text": "À la bibliothèque de Bonta, choisissez d’attaquer le Tacticien de Bonta à la fin d’Un maître ès pion.",
+        "source_url": "https://www.dofuspourlesnoobs.com/assassinat-effectue.html"
       }
     },
     "273": {
@@ -397749,7 +397754,10 @@
         "Niveau recommandé : 160",
         "Lavomatique"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-71,-83]",
+        "source_text": "Parlez à Lave Azza devant l’entrée de l’Hypogée de l’Obsidiantre."
+      },
       "preparation": [
         "1 x Donjon Hypogée de l'Obsidiantre"
       ],
@@ -398678,7 +398686,10 @@
         "Niveau recommandé : 190",
         "Le pic qui glace"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "position": "[-63,-75]",
+        "source_text": "Rejoignez l’entrée de l’Antichambre des Gloursons par le Mont Torrideau, puis parlez à Willy La Bille."
+      },
       "preparation": [
         "1 x Donjon Antichambre des Gloursons"
       ],
@@ -418918,6 +418929,11 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "position": "[-47,42]",
+        "source_text": "Parlez à Nevark le Chasseur au village de Vulkania.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-safari-des-acircmes.html"
       }
     },
     "738": {
@@ -418954,6 +418970,11 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "position": "[-47,42]",
+        "source_text": "Parlez à Nevark le Chasseur au village de Vulkania.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-safari-des-acircmes.html"
       }
     },
     "739": {
@@ -418990,6 +419011,11 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "position": "[-47,42]",
+        "source_text": "Parlez à Nevark le Chasseur au village de Vulkania.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-safari-des-acircmes.html"
       }
     },
     "740": {
@@ -419026,6 +419052,11 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "position": "[-47,42]",
+        "source_text": "Parlez à Nevark le Chasseur au village de Vulkania.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-safari-des-acircmes.html"
       }
     },
     "741": {
