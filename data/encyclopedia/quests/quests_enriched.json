@@ -367263,7 +367263,7 @@
         {
           "order": 1,
           "type": "position",
-          "content": "Lundi [-68,-46].",
+          "content": "Trouvez le Chasseur blessé à la position indiquée pour le jour de la semaine.\n\nLundi [-68,-46].",
           "position": "[-68,-46]",
           "data": {
             "npc": "",
@@ -367857,7 +367857,7 @@
         {
           "order": 1,
           "type": "position",
-          "content": "Lundi [-65,-63].",
+          "content": "Attendez au moins 13 heures après avoir terminé Blessure de chasse. Le Chasseur blessé change de position selon le jour de la semaine.\n\nLundi [-65,-63].",
           "position": "[-65,-63]",
           "data": {
             "npc": "",
@@ -368446,7 +368446,7 @@
         {
           "order": 1,
           "type": "position",
-          "content": "Lundi [-56,-66].",
+          "content": "Attendez au moins 13 heures après avoir terminé Chasse dangereuse. Le Chasseur blessé change de position selon le jour de la semaine.\n\nLundi [-56,-66].",
           "position": "[-56,-66]",
           "data": {
             "npc": "",
@@ -545923,7 +545923,7 @@
         {
           "order": 5,
           "type": "combat",
-          "content": "Il suffit de vaincre les 4 boss ci-contre dans leur donjon (l'ordre n'a pas d'importance) :",
+          "content": "Entrez dans l’un des quatre donjons de Frigost 3 et lancez la quête en parlant à un PNJ à l’intérieur.\n\nIl suffit de vaincre les 4 boss ci-contre dans leur donjon (l'ordre n'a pas d'importance) :",
           "data": {
             "npc": "",
             "interaction": "fight",
@@ -948364,7 +948364,7 @@
         {
           "order": 1,
           "type": "position",
-          "content": "Allez à l'avant-poste en [-1,-6] afin de vous débarrasser de cette malédiction.",
+          "content": "Obtenez une Carte Rongée sur les monstres du Temple de Kerubim, à Ecaflipus, puis double-cliquez sur la carte pour lancer la quête.\n\nAllez à l'avant-poste en [-1,-6] afin de vous débarrasser de cette malédiction.",
           "position": "[-1,-6]",
           "data": {
             "npc": "",
@@ -1285144,7 +1285144,7 @@
         {
           "order": 3,
           "type": "position",
-          "content": "Commencez par aller récupérer une roche appelée le nécronyx en [-10,-31] en cliquant sur la pierre.",
+          "content": "Utilisez la statue de votre temple de classe pour rejoindre le Domaine des dieux. Parlez à Gobanos le forgeron au sous-sol pour lancer la quête.\n\nCommencez par aller récupérer une roche appelée le nécronyx en [-10,-31] en cliquant sur la pierre.",
           "position": "[-10,-31]",
           "data": {
             "npc": "",
