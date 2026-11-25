@@ -114,6 +114,37 @@ class GuideParticipantServiceTests(unittest.TestCase):
             finally:
                 cache.clear_quest_character_cache()
 
+    def test_travel_requires_current_transport_and_local_window_without_losing_selection(self):
+        from unittest.mock import patch
+        from app.network.character_runtime_state import CharacterRuntimeStateStore
+        from app.quest_catalog import QuestCharacter
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            bindings.write_text(json.dumps({"characters": {
+                "1": {"name": "Alpha", "source": "verified_network_identity"},
+                "2": {"name": "Beta", "source": "verified_network_identity"},
+            }}))
+            service = GuideParticipantService(root / "profile.json", root / "clients.json", bindings)
+            service.save_selected_keys(("character:1", "character:2"))
+            rows = (QuestCharacter("character:1", "Alpha", 1, True),
+                    QuestCharacter("character:2", "Beta", 2, False))
+            state = CharacterRuntimeStateStore()
+            with patch.object(service, "available_characters", return_value=rows), \
+                    patch("app.network.character_runtime_state.character_runtime_state", return_value=state):
+                self.assertEqual([row.connected for row in service.available_travel_characters()],
+                                 [False, False])
+                state.identify(session_id="a", character_key="character:1", character_id=1, name="Alpha")
+                state.identify(session_id="b", character_key="character:2", character_id=2, name="Beta")
+                self.assertEqual([row.connected for row in service.available_travel_characters()],
+                                 [True, False])
+                state.close_session("a")
+                self.assertEqual([row.connected for row in service.available_travel_characters()],
+                                 [False, False])
+                self.assertEqual(service.selected_keys(), ("character:1", "character:2"))
+                self.assertTrue(rows[0].connected)
+
     def test_selection_read_write_normalizes_whitespace_and_deduplicates(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

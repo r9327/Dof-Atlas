@@ -1795,7 +1795,7 @@ class GuidesView(QWidget):
             self.guide_progress_service,
             keys,
             available_characters=characters,
-            available_characters_provider=self.guide_participant_service.available_characters,
+            available_characters_provider=self.guide_participant_service.available_travel_characters,
             guide_title=guide.title, image_path=guide.image_path,
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)

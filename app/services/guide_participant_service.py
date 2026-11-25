@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from app.constants import (
@@ -72,6 +73,19 @@ class GuideParticipantService:
                     and clients_revision == file_revision(self.client_index_path)):
                 return tuple(row for row in rows if row.key in verified)
         return ()
+
+    def available_travel_characters(self) -> tuple[QuestCharacter, ...]:
+        """Require live transport as well as the verified local window roster.
+
+        Selection and manual progression retain offline characters; only
+        automatic travel consumes this stricter read model.
+        """
+        from app.network.character_runtime_state import character_runtime_state
+
+        rows = self.available_characters()
+        connected = character_runtime_state().connected_character_keys()
+        return tuple(replace(row, connected=row.connected and row.key in connected)
+                     for row in rows)
 
     def _validated_selected_keys(self, values) -> tuple[str, ...]:
         """Single filter for selection read/write; keep offline verified IDs."""
