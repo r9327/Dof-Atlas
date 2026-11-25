@@ -1051,6 +1051,58 @@ class UnitySkinTests(unittest.TestCase):
 class EncyclopediaQuestLoadingUITests(unittest.TestCase):
     """Shared Qt UI regression: abandoned Quest hydration remains inert."""
 
+    def test_recovered_guide_provider_replaces_loading_view_provider(self) -> None:
+        from threading import Event
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.views.encyclopedia_page import (
+            EncyclopediaPage, _GuideStagePayload,
+        )
+
+        old_provider, recovered_provider = object(), object()
+        view = Mock(provider=old_provider)
+        def hydrate(**_kwargs):
+            self.assertIs(view.provider, recovered_provider)
+            return True
+        view.hydrate_runtime.side_effect = hydrate
+        page = SimpleNamespace(
+            _runtime_released=Event(), _related_preload_started=True,
+            service=SimpleNamespace(guide_provider=old_provider),
+            _related_preload_gate=Mock(), ensure_guides_view=lambda: view,
+            quest_page=None, get_achievements_view=lambda: None,
+            _achievement_ready=False, open_pending_lazy_tab=Mock(),
+            status_callback=Mock(),
+        )
+        payload = _GuideStagePayload(recovered_provider, None, {}, "character:1")
+        EncyclopediaPage.collect_related_preload(page, payload)
+        self.assertIs(page.service.guide_provider, recovered_provider)
+        self.assertTrue(page._guide_runtime_ready)
+        self.assertTrue(page._related_ready)
+        page._related_preload_gate.mark_ready.assert_called_once_with()
+        page.open_pending_lazy_tab.assert_called_once_with()
+
+    def test_failed_guide_catalogue_render_can_be_retried(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+
+        provider = Mock()
+        provider.load_all.return_value = [object()]
+        probe = SimpleNamespace(
+            provider=provider, _runtime_ready=False,
+            _populate_library_tree=Mock(),
+            refresh_home=Mock(side_effect=[OSError("catalogue unavailable"), None]),
+            status_callback=Mock(),
+        )
+        with self.assertRaises(OSError):
+            GuideCatalogView.hydrate_runtime(probe)
+        self.assertFalse(probe._runtime_ready)
+        probe.status_callback.assert_not_called()
+        self.assertTrue(GuideCatalogView.hydrate_runtime(probe))
+        self.assertTrue(probe._runtime_ready)
+        self.assertEqual(probe.refresh_home.call_count, 2)
+        self.assertEqual(provider.load_all.call_count, 2)
+
     def test_abandoned_quest_result_never_mounts_inactive_view(self) -> None:
         from queue import Queue
         from unittest.mock import Mock

@@ -1107,6 +1107,10 @@ class EncyclopediaPage(QWidget):
 
         view = self.ensure_guides_view()
         try:
+            # The worker may have replaced a provider whose catalogue was
+            # unavailable. A pre-existing loading view must use that exact
+            # recovered provider, not try the failed instance a second time.
+            view.provider = result.guide_provider
             view.hydrate_runtime(
                 graph=result.graph,
                 initial_progress_by_guide=result.progress_by_guide,

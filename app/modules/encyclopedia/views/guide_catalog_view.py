@@ -250,8 +250,15 @@ class GuideCatalogView(QWidget):
         if initial_progress_character_key:
             self._initial_progress_character_key = str(initial_progress_character_key)
         self._runtime_ready = True
-        self._populate_library_tree()
-        self.refresh_home()
+        try:
+            self._populate_library_tree()
+            self.refresh_home()
+        except Exception:
+            # refresh_home needs the ready flag while building the catalogue,
+            # but a partial render is not a successful hydration. Keep retry
+            # available so the next worker result can actually rebuild it.
+            self._runtime_ready = False
+            raise
         self.status_callback(f"{len(self.guides)} guide(s) chargés.")
         return True
 
