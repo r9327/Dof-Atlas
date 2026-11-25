@@ -1511,6 +1511,10 @@ class DevUiPageTests(unittest.TestCase):
             UNITY_ICON_NAMES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
         )
 
+        from app.ui.theme import atlas_stylesheet
+
+        self.addCleanup(self.app.setStyleSheet, self.app.styleSheet())
+        self.app.setStyleSheet(atlas_stylesheet())
         page = DevUiPage(on_back=lambda: None)
         try:
             self.assertEqual(page.preview_main_color_roles, UNITY_MAIN_ROLES)
@@ -1544,6 +1548,7 @@ class DevUiPageTests(unittest.TestCase):
                 {"control_compact", "control_normal", "control_large"},
             )
             for role, button in page.preview_metric_buttons.items():
+                button.ensurePolished()
                 self.assertEqual(button.height(), UNITY_SIZES_PX[role])
             for role, label in page.preview_metric_icons.items():
                 self.assertEqual(label.pixmap().width(), UNITY_SIZES_PX[role])

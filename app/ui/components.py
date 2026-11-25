@@ -343,6 +343,8 @@ class AtlasButton(QPushButton):
         super().__init__(text, parent)
         self.setCursor(Qt.PointingHandCursor)
         self.setMinimumHeight(UNITY_SIZES_PX["control_compact"])
+        if size == "compact":
+            self.setProperty("atlasCompactButton", True)
         if size is not None:
             self.setFixedHeight(UNITY_SIZES_PX[f"control_{size}"])
         if variant:

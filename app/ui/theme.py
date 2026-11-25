@@ -947,6 +947,11 @@ QPushButton, QToolButton {
     min-height: 22px;
 }
 
+QPushButton[atlasCompactButton="true"] {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
 QPushButton:hover, QToolButton:hover {
     background: @PANEL_HOVER;
     border-color: @BORDER_STRONG;
