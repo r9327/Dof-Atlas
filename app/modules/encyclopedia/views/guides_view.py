@@ -2226,69 +2226,6 @@ class GuidesView(QWidget):
 
 
 
-    def _refresh_guide_columns_after_progress(
-        self,
-        guide: Guide,
-        center_pos: int,
-        left_pos: int,
-        right_pos: int,
-    ) -> None:
-        self._populate_guide_left(guide)
-        self._populate_series_quests(guide)
-        self._populate_guide_info(guide)
-
-        def restore_scrolls() -> None:
-            center_bar = (
-                self.center_scroll
-                .verticalScrollBar()
-            )
-
-            left_bar = (
-                self.left_scroll
-                .verticalScrollBar()
-            )
-
-            right_bar = (
-                self.right_scroll
-                .verticalScrollBar()
-            )
-
-            center_bar.setValue(
-                min(
-                    center_pos,
-                    center_bar.maximum(),
-                )
-            )
-
-            left_bar.setValue(
-                min(
-                    left_pos,
-                    left_bar.maximum(),
-                )
-            )
-
-            right_bar.setValue(
-                min(
-                    right_pos,
-                    right_bar.maximum(),
-                )
-            )
-
-        # First pass after widget replacement.
-        _single_shot(
-            self,
-            0,
-            restore_scrolls,
-        )
-
-        # Second pass after Qt recalculates
-        # the final scroll ranges.
-        _single_shot(
-            self,
-            50,
-            restore_scrolls,
-        )
-
     def _refresh_current_view(self, preserve_scroll: bool = False) -> None:
         self.refresh_home()
         if self.current_guide_id and self.current_quest_id is not None:
@@ -2533,14 +2470,6 @@ class GuidesView(QWidget):
     def _first_series_from_chapter(chapter: GuideChapter) -> GuideSeries | None:
         series = sorted(chapter.series, key=lambda item: (item.order, normalize_text(item.title)))
         return series[0] if series else None
-
-    def _progress_for_steps(self, guide: Guide, steps: Iterable[GuideStep]) -> tuple[int, int]:
-        progress = self.progress_calculator.quest_steps_progress(
-            guide,
-            steps,
-            self.current_character_key,
-        )
-        return progress.completed, progress.total
 
     def _progress_count_for_steps(self, guide: Guide, steps: Iterable[GuideStep]) -> ProgressCount:
         return self.progress_calculator.quest_steps_progress(
@@ -3318,16 +3247,6 @@ class GuidesView(QWidget):
                 return step
         return None
 
-    def _first_guide_position(self, guide: Guide) -> str:
-        for quest_id in guide.quest_ids:
-            quest = self.quest_catalog.by_id.get(int(quest_id))
-            if quest is None:
-                continue
-            position = first_position_from_quest(quest)
-            if position:
-                return position
-        return ""
-
     def _ensure_chapters_initialized(self, guide: Guide) -> None:
         if guide.id in self.expanded_chapters:
             return
@@ -3883,18 +3802,6 @@ def _progress_state(progress: ProgressCount) -> str:
     return guide_progress_style_state(progress.completed, progress.total)
 
 
-def _unique_texts(lines: Iterable[str]) -> tuple[str, ...]:
-    result: list[str] = []
-    seen: set[str] = set()
-    for line in lines:
-        text = clean_text(line)
-        key = normalize_text(text)
-        if text and key not in seen:
-            seen.add(key)
-            result.append(text)
-    return tuple(result)
-
-
 def _guide_pixmap(guide: Guide) -> QPixmap | None:
     return _pixmap_from_paths(
         [
@@ -3903,22 +3810,6 @@ def _guide_pixmap(guide: Guide) -> QPixmap | None:
             str(getattr(getattr(guide, "reward_item", None), "image_path", "") or ""),
         ]
     )
-
-
-def _quest_pixmap(quest) -> QPixmap | None:
-    if quest is None:
-        return None
-    paths: list[str] = []
-    for step in getattr(quest, "steps", []):
-        for objective in getattr(step, "objectives", []):
-            path = str(getattr(objective, "image_path", "") or "")
-            if path:
-                paths.append(path)
-    for reward in getattr(quest, "rewards", []):
-        path = str(getattr(reward, "image_path", "") or "")
-        if path:
-            paths.append(path)
-    return _pixmap_from_paths(paths)
 
 
 def _pixmap_from_paths(paths: Iterable[str]) -> QPixmap | None:

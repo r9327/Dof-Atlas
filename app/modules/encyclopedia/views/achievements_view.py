@@ -857,29 +857,6 @@ class AchievementsView(QWidget):
             return ()
         return (EntityRef("quest", quest_id, quest.name),)
 
-    def _achievement_ordered_quest_ids(self) -> tuple[int, ...]:
-        achievement_id = self.current_achievement_id
-        if achievement_id is None:
-            return ()
-        achievement = self.provider.get_by_id(int(achievement_id))
-        if achievement is None:
-            return ()
-
-        ordered: list[int] = []
-        seen: set[int] = set()
-        for ref in self.effective_quest_refs(achievement):
-            try:
-                quest_id = int(getattr(ref, "entity_id"))
-            except (TypeError, ValueError):
-                continue
-            if quest_id <= 0 or quest_id in seen:
-                continue
-            if self.quest_provider.get_quest(quest_id) is None:
-                continue
-            seen.add(quest_id)
-            ordered.append(quest_id)
-        return tuple(ordered)
-
     def show_empty(self) -> None:
         self.current_achievement_id = None
         self.close_detail_panel()

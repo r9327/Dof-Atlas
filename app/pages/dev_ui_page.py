@@ -120,6 +120,7 @@ class DevUiPage(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        validate_ui_index()
         self.setObjectName("DevUiPage")
         self.setProperty("atlasUnityPage", True)
         self._preview_dialog: AtlasDialog | AtlasImagePopup | None = None
@@ -274,7 +275,6 @@ class DevUiPage(QWidget):
         self._apply_gallery_geometry(event.size().width())
 
     def _section(self, parent_layout: QVBoxLayout, family_key: str) -> QVBoxLayout:
-        validate_ui_index()
         details = UNITY_UI_FAMILY_INDEX[family_key]
         group = QGroupBox(details["title"])
         group.setProperty("atlasUiFamily", family_key)
@@ -304,6 +304,18 @@ class DevUiPage(QWidget):
         self.gallery_sections.append(group)
         self.gallery_family_widgets[family_key] = group
         return layout
+
+    @staticmethod
+    def _catalog_table(
+        row_count: int, columns: tuple[str, ...], *resize_modes: QHeaderView.ResizeMode,
+    ) -> QTableWidget:
+        table = QTableWidget(row_count, len(columns))
+        table.setHorizontalHeaderLabels(columns)
+        table.verticalHeader().hide()
+        header = table.horizontalHeader()
+        for index, mode in enumerate(resize_modes):
+            header.setSectionResizeMode(index, mode)
+        return table
 
     @staticmethod
     def _expand_catalog_table(table: QTableWidget) -> None:
@@ -1476,12 +1488,10 @@ class DevUiPage(QWidget):
             *((f"GUIDE_READING_{key.upper()}", f"{value}px")
               for key, value in UNITY_GUIDE_READING_METRICS_PX.items()),
         )
-        self.preview_metrics = QTableWidget(len(metric_rows), 2)
-        self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
-        self.preview_metrics.verticalHeader().hide()
-        self.preview_metrics.horizontalHeader().setStretchLastSection(False)
-        self.preview_metrics.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.preview_metrics.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.preview_metrics = self._catalog_table(
+            len(metric_rows), ("Token commun", "Valeur"),
+            QHeaderView.ResizeToContents, QHeaderView.Stretch,
+        )
         for index, (name, value) in enumerate(metric_rows):
             self.preview_metrics.setItem(index, 0, QTableWidgetItem(name))
             self.preview_metrics.setItem(index, 1, QTableWidgetItem(value))
@@ -2074,15 +2084,10 @@ class DevUiPage(QWidget):
             "Popups et dialogues": "12 cas de capture, pas 12 composants",
             "Overlays et démarrage": "Radial, splash et préchargement",
         }
-        self.preview_scope = QTableWidget(len(modules), 3)
-        self.preview_scope.setHorizontalHeaderLabels(
-            ("Module", "Source de style cible", "Exemple partagé")
+        self.preview_scope = self._catalog_table(
+            len(modules), ("Module", "Source de style cible", "Exemple partagé"),
+            QHeaderView.ResizeToContents, QHeaderView.ResizeToContents, QHeaderView.Stretch,
         )
-        self.preview_scope.verticalHeader().hide()
-        self.preview_scope.horizontalHeader().setStretchLastSection(False)
-        self.preview_scope.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.preview_scope.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.preview_scope.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         for index, module in enumerate(modules):
             self.preview_scope.setItem(index, 0, QTableWidgetItem(module))
             consumer = UI_CONSUMER_INDEX[module]
@@ -2122,18 +2127,11 @@ class DevUiPage(QWidget):
         )
         secondary_title.setObjectName("PanelTitle")
         section.addWidget(secondary_title)
-        self.preview_secondary_surfaces = QTableWidget(len(secondary), 3)
-        self.preview_secondary_surfaces.setHorizontalHeaderLabels(
-            ("Zone", "UI existante", "Fichier propriétaire")
+        self.preview_secondary_surfaces = self._catalog_table(
+            len(secondary), ("Zone", "UI existante", "Fichier propriétaire"),
+            QHeaderView.ResizeToContents, QHeaderView.ResizeToContents,
         )
-        self.preview_secondary_surfaces.verticalHeader().hide()
         self.preview_secondary_surfaces.horizontalHeader().setStretchLastSection(True)
-        self.preview_secondary_surfaces.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeToContents
-        )
-        self.preview_secondary_surfaces.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeToContents
-        )
         for index, (module, label, path) in enumerate(secondary):
             for column, value in enumerate(
                 (module, label, path.rsplit("/", 1)[-1])
@@ -2178,12 +2176,10 @@ class DevUiPage(QWidget):
         )
         contract_label.setObjectName("PanelTitle")
         section.addWidget(contract_label)
-        self.preview_contract = QTableWidget(len(UNITY_UI_UNIFICATION_CONTRACT), 2)
-        self.preview_contract.setHorizontalHeaderLabels(("Élément prévu", "Famille UI"))
-        self.preview_contract.verticalHeader().hide()
-        self.preview_contract.horizontalHeader().setStretchLastSection(False)
-        self.preview_contract.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.preview_contract.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.preview_contract = self._catalog_table(
+            len(UNITY_UI_UNIFICATION_CONTRACT), ("Élément prévu", "Famille UI"),
+            QHeaderView.Stretch, QHeaderView.ResizeToContents,
+        )
         for index, (label, family) in enumerate(UNITY_UI_UNIFICATION_CONTRACT):
             self.preview_contract.setItem(index, 0, QTableWidgetItem(label))
             family_item = QTableWidgetItem(UNITY_UI_FAMILY_INDEX[family]["title"])
