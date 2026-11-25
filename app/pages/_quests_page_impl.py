@@ -92,10 +92,6 @@ def clean_requirement_line(*args, **kwargs):
     return _quest_vm().clean_requirement_line(*args, **kwargs)
 
 
-def format_number(*args, **kwargs):
-    return _quest_vm().format_number(*args, **kwargs)
-
-
 def _display_item(*args, **kwargs):
     return _quest_vm().DisplayItem(*args, **kwargs)
 
@@ -1135,7 +1131,7 @@ class QuestsPage(QWidget):
         )
         row.setObjectName("QuestItemRow")
         layout = row.layout()
-        required_label = QLabel(f"/ {format_number(required)}")
+        required_label = QLabel(f"/ {format_grouped_int(required)}")
         required_label.setObjectName("MutedLabel")
         quantity = configure_unity_number_spinbox(
             QSpinBox(), minimum=0, maximum=required,
@@ -1429,7 +1425,7 @@ def rewards_section(quest: QuestRecord) -> str:
 
 def reward_label(reward: Any) -> str:
     if getattr(reward, "kind", "item") == "kamas":
-        return f"{format_number(int(reward.quantity or 0))} Kamas"
+        return f"{format_grouped_int(int(reward.quantity or 0))} Kamas"
     if getattr(reward, "kind", "item") == "job":
         return f"Métier : {reward.name}"
     if getattr(reward, "kind", "item") == "spell":
@@ -1438,7 +1434,7 @@ def reward_label(reward: Any) -> str:
         return f"Titre : {reward.name}"
     if getattr(reward, "kind", "item") == "emote":
         return f"Émote : {reward.name}"
-    quantity = f"x{format_number(int(reward.quantity))} " if int(reward.quantity or 1) > 1 else ""
+    quantity = f"x{format_grouped_int(int(reward.quantity))} " if int(reward.quantity or 1) > 1 else ""
     return quantity + str(reward.name)
 
 

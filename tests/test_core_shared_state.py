@@ -341,7 +341,7 @@ class CoreSharedStateTests(unittest.TestCase):
             path = Path(tmp)
             cache.clear_quest_character_cache()
             try:
-                with patch.object(cache, "_semantic_session_order", return_value=("beta", "alpha")) as order:
+                with patch.object(cache, "load_character_order", return_value=("beta", "alpha")) as order:
                     with patch.object(cache, "_ORIGINAL_LOAD_QUEST_CHARACTERS", return_value=rows) as load:
                         first = cache.cached_load_quest_characters(path / "profile", path / "clients")
                         self.assertEqual([row.label for row in first], ["Beta", "Alpha"])

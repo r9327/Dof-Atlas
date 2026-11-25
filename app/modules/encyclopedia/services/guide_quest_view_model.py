@@ -622,9 +622,9 @@ def display_rewards_from_achievement(achievement: Achievement) -> list[DisplayRe
 def reward_label(reward: DisplayReward) -> str:
     quantity = int(reward.quantity or 0)
     if reward.kind == "xp":
-        return f"{format_number(quantity)} XP"
+        return f"{format_grouped_int(quantity)} XP"
     if reward.kind == "kamas":
-        return f"{format_number(quantity)} Kamas"
+        return f"{format_grouped_int(quantity)} Kamas"
     if reward.kind == "achievement_points":
         return f"{quantity} points de succès"
     prefixes = {
@@ -639,7 +639,7 @@ def reward_label(reward: DisplayReward) -> str:
     if prefix:
         return f"{prefix} : {reward.name}"
     if quantity > 1:
-        return f"x{format_number(quantity)} {reward.name}"
+        return f"x{format_grouped_int(quantity)} {reward.name}"
     return reward.name
 
 
@@ -1183,10 +1183,6 @@ def _normalize_clean_text(raw: str) -> str:
     text = text.replace("\r", " ").replace("\n", " ")
     text = re.sub(r"\s+", " ", text).strip()
     return text
-
-
-def format_number(value: int) -> str:
-    return format_grouped_int(value)
 
 
 def _positive_level(value: int | None) -> int | None:

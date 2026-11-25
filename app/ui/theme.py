@@ -800,11 +800,7 @@ QSplitter#AchievementCatalogSplitter::handle {
    Never let a plain QWidget hide it with the application root background. */
 QWidget#AtlasTransparentHost,
 QWidget#CharacterEquipmentGrid,
-QWidget#CharacterEquipmentCenter {
-    background: transparent;
-    border: none;
-}
-
+QWidget#CharacterEquipmentCenter,
 #DialogToolbar {
     background: transparent;
     border: none;

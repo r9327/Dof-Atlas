@@ -29,8 +29,10 @@ def resolved_mtime_size_stamp(path: Path) -> tuple[str, int, int]:
     return (str(target.resolve()), *mtime_size_stamp(target))
 
 
-def mtime_ctime_size_stamp(path: Path) -> tuple[int, int, int] | None:
+def mtime_ctime_size_stamp(path: Path | None) -> tuple[int, int, int] | None:
     """Preserve the stronger progress reload signature; absent file is None."""
+    if path is None:
+        return None
     try:
         stat = Path(path).stat()
     except OSError:
@@ -39,7 +41,7 @@ def mtime_ctime_size_stamp(path: Path) -> tuple[int, int, int] | None:
 
 
 
-def mtime_ctime_size_stamp_or_zero(path: Path) -> tuple[int, int, int]:
+def mtime_ctime_size_stamp_or_zero(path: Path | None) -> tuple[int, int, int]:
     """Return the canonical three-field UI cache stamp with missing-file zero."""
     return mtime_ctime_size_stamp(path) or (0, 0, 0)
 

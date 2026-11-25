@@ -7,7 +7,8 @@ from PySide6.QtCore import QSignalBlocker, QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
 
-from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem, format_number
+from app.core.numbers import format_grouped_int
+from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem
 from app.ui.components import AtlasButton, configure_unity_tool_button, set_unity_widget_property
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.guide_glyphs import atlas_icon
@@ -95,7 +96,7 @@ def item_row(
     )
     layout.addWidget(name, 0)
     if item.quantity is not None:
-        quantity = QLabel(f"x{format_number(item.quantity)}")
+        quantity = QLabel(f"x{format_grouped_int(item.quantity)}")
         quantity.setObjectName("GuideItemQuantity")
         layout.addWidget(quantity, 0, Qt.AlignVCenter)
     layout.addStretch(1)

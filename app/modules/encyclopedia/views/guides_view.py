@@ -128,10 +128,6 @@ def first_position_from_quest(*args, **kwargs):
     return _vm_call("first_position_from_quest", *args, **kwargs)
 
 
-def format_number(*args, **kwargs):
-    return _vm_call("format_number", *args, **kwargs)
-
-
 def guide_activities(*args, **kwargs):
     return _vm_call("guide_activities", *args, **kwargs)
 

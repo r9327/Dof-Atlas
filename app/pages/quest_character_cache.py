@@ -24,14 +24,6 @@ _CACHE: OrderedDict[tuple[object, ...], tuple[_quest_catalog.QuestCharacter, ...
 _MAX_CACHE_ENTRIES = 16
 
 
-def _file_stamp(path: Path | None) -> tuple[int, int, int]:
-    return mtime_ctime_size_stamp_or_zero(path) if path is not None else (0, 0, 0)
-
-
-def _semantic_session_order(profile_path: Path) -> tuple[str, ...]:
-    return load_character_order(profile_path)
-
-
 def _resolved_binding_path(
     profile_path: Path,
     client_index_path: Path,
@@ -57,11 +49,11 @@ def quest_character_source_signature(
     resolved_binding = _resolved_binding_path(profile_path, client_index_path, binding_path)
     return (
         str(profile_path),
-        _semantic_session_order(profile_path),
+        load_character_order(profile_path),
         str(client_index_path),
-        _file_stamp(client_index_path),
+        mtime_ctime_size_stamp_or_zero(client_index_path),
         str(resolved_binding) if resolved_binding is not None else "",
-        _file_stamp(resolved_binding),
+        mtime_ctime_size_stamp_or_zero(resolved_binding),
         slot_count,
         bool(connected_only),
         # Preserve the historical signature fields while also detecting an
@@ -112,8 +104,8 @@ def cached_load_quest_characters(
     frozen = tuple(replace(row) for row in ordered)
     # Avoid caching a roster read across a concurrent client/binding rewrite.
     # The logical order remains the single captured snapshot for this call.
-    if (_file_stamp(client_index_path) != signature[3]
-            or _file_stamp(_resolved_binding_path(profile_path, client_index_path, binding_path)) != signature[5]
+    if (mtime_ctime_size_stamp_or_zero(client_index_path) != signature[3]
+            or mtime_ctime_size_stamp_or_zero(_resolved_binding_path(profile_path, client_index_path, binding_path)) != signature[5]
             or file_revision(client_index_path) != signature[8]
             or file_revision(_resolved_binding_path(profile_path, client_index_path, binding_path)) != signature[9]):
         return _clone_characters(frozen)
