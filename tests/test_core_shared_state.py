@@ -12,6 +12,55 @@ from app.core.progress_coordinator import empty_progress_payload
 
 
 class CoreSharedStateTests(unittest.TestCase):
+    def test_progress_write_failure_never_exposes_unsaved_completion(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
+        from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
+        from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
+        key = "character:1"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            quest = QuestProgressService(root / "quest.json")
+            guide = GuideProgressService(root / "guide.json")
+            achievement = AchievementProgressService(root / "achievement.json")
+            cases = (
+                (quest, "app.modules.encyclopedia.services.quest_progress_service.save_quest_progress",
+                 lambda: quest.set_quest_completed(key, 7, True), lambda: quest.is_quest_completed(key, 7)),
+                (guide, "app.modules.encyclopedia.services.guide_progress_service.write_json_atomic",
+                 lambda: guide.set_manual_step_completed(key, "guide", "step", True),
+                 lambda: guide.is_manual_step_completed(key, "guide", "step")),
+                (achievement, "app.modules.encyclopedia.services.serialized_achievement_progress_service.write_json_atomic",
+                 lambda: achievement.set_achievement_completed(key, 7, True),
+                 lambda: achievement.is_achievement_completed(key, 7)),
+            )
+            for service, writer, mutate, read in cases:
+                with self.subTest(service=type(service).__name__):
+                    generation = service._coordinator.generation
+                    self.assertFalse(read())
+                    with patch(writer, side_effect=OSError("disk full")):
+                        with self.assertRaisesRegex(OSError, "disk full"):
+                            mutate()
+                    self.assertEqual(service._coordinator.generation, generation)
+                    self.assertFalse(read())
+                    self.assertTrue(mutate())
+                    self.assertTrue(read())
+
+    def test_shared_progress_mapping_keeps_read_and_mutation_separate(self):
+        from app.core.progress_coordinator import (
+            read_progress_mapping, mutable_progress_mapping, update_progress_flag,
+        )
+        row = {"broken": None}
+        self.assertEqual(read_progress_mapping(row, "missing"), {})
+        self.assertEqual(read_progress_mapping(row, "broken"), {})
+        self.assertEqual(row, {"broken": None})
+        flags = mutable_progress_mapping(row, "broken")
+        flags["legacy"] = 1
+        self.assertTrue(update_progress_flag(flags, "legacy", True))
+        self.assertFalse(update_progress_flag(flags, "legacy", True))
+        self.assertTrue(update_progress_flag(flags, "legacy", False))
+        self.assertFalse(update_progress_flag(flags, "legacy", False))
+        self.assertEqual(row, {"broken": {}})
+
     def test_quest_progress_int_adapter_keeps_legacy_coercion(self) -> None:
         from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
         for value, expected in (("12", 12), (True, 1), (-2, -2), (None, None), ("bad", None)):

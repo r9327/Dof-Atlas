@@ -11,7 +11,7 @@ from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
     mutable_progress_character, progress_characters_for_validation, progress_mapping_values_error, read_progress_character,
-    validate_progress_character_keys,
+    read_progress_mapping, mutable_progress_mapping, update_progress_flag,
 )
 from app.quest_catalog import save_quest_progress
 
@@ -95,21 +95,10 @@ class QuestProgressService(CoordinatedProgressReader):
         with self._coordinator.lock:
             self.progress = load_quest_progress(self.path)
             character = self._mutable_character(key)
-            done = character.get("done")
-            if not isinstance(done, dict):
-                done = {}
-                character["done"] = done
-            key = str(int(quest_id))
-            if completed:
-                if done.get(key) is True:
-                    self._accept_loaded_snapshot_locked()
-                    return False
-                done[key] = True
-            else:
-                if key not in done:
-                    self._accept_loaded_snapshot_locked()
-                    return False
-                done.pop(key, None)
+            done = mutable_progress_mapping(character, "done")
+            if not update_progress_flag(done, str(int(quest_id)), completed):
+                self._accept_loaded_snapshot_locked()
+                return False
             self._write_locked()
             return True
 
@@ -145,22 +134,10 @@ class QuestProgressService(CoordinatedProgressReader):
         with self._coordinator.lock:
             self.progress = load_quest_progress(self.path)
             character = self._mutable_character(key)
-            done = character.get("done")
-            if not isinstance(done, dict):
-                done = {}
-                character["done"] = done
-
+            done = mutable_progress_mapping(character, "done")
             changed = False
             for quest_id in sorted(normalized):
-                key = str(quest_id)
-                if completed:
-                    if done.get(key) is True:
-                        continue
-                    done[key] = True
-                    changed = True
-                elif key in done:
-                    done.pop(key, None)
-                    changed = True
+                changed = update_progress_flag(done, str(quest_id), completed) or changed
 
             if not changed:
                 # Keep this instance synchronized with the latest peer-written
@@ -184,8 +161,8 @@ class QuestProgressService(CoordinatedProgressReader):
         if cached is not None:
             return cached
         character = self._read_character(key[0])
-        rows = character.get("completed_quest_objectives", {})
-        values = rows.get(str(key[1]), []) if isinstance(rows, dict) else []
+        rows = read_progress_mapping(character, "completed_quest_objectives")
+        values = rows.get(str(key[1]), [])
         snapshot = valid_list_int_ids(values)
         self._completed_objective_ids_cache[key] = snapshot
         return snapshot
@@ -213,10 +190,7 @@ class QuestProgressService(CoordinatedProgressReader):
         with self._coordinator.lock:
             self.progress = load_quest_progress(self.path)
             character = self._mutable_character(key)
-            rows = character.setdefault("completed_quest_objectives", {})
-            if not isinstance(rows, dict):
-                rows = {}
-                character["completed_quest_objectives"] = rows
+            rows = mutable_progress_mapping(character, "completed_quest_objectives")
             key = str(int(quest_id))
             values = set(valid_list_int_ids(rows.get(key, [])))
             previous = set(values)
@@ -248,8 +222,8 @@ class QuestProgressService(CoordinatedProgressReader):
         if cached is not None:
             return cached
         character = self._read_character(key[0])
-        items = character.get("quest_items", {})
-        quest_items = items.get(str(key[1]), {}) if isinstance(items, dict) else {}
+        items = read_progress_mapping(character, "quest_items")
+        quest_items = read_progress_mapping(items, str(key[1]))
         snapshot = valid_truthy_int_ids(quest_items)
         self._completed_item_ids_cache[key] = snapshot
         return snapshot
@@ -277,30 +251,15 @@ class QuestProgressService(CoordinatedProgressReader):
         with self._coordinator.lock:
             self.progress = load_quest_progress(self.path)
             character = self._mutable_character(key)
-            items = character.setdefault("quest_items", {})
-            if not isinstance(items, dict):
-                items = {}
-                character["quest_items"] = items
+            items = mutable_progress_mapping(character, "quest_items")
             quest_key = str(int(quest_id))
-            quest_items = items.setdefault(quest_key, {})
-            if not isinstance(quest_items, dict):
-                quest_items = {}
-                items[quest_key] = quest_items
-            item_key = str(int(item_id))
-            if completed:
-                if quest_items.get(item_key) is True:
-                    self._accept_loaded_snapshot_locked()
-                    return False
-                quest_items[item_key] = True
-            else:
-                if item_key not in quest_items:
-                    if not quest_items:
-                        items.pop(quest_key, None)
-                    self._accept_loaded_snapshot_locked()
-                    return False
-                quest_items.pop(item_key, None)
-                if not quest_items:
-                    items.pop(quest_key, None)
+            quest_items = mutable_progress_mapping(items, quest_key)
+            changed = update_progress_flag(quest_items, str(int(item_id)), completed)
+            if not quest_items:
+                items.pop(quest_key, None)
+            if not changed:
+                self._accept_loaded_snapshot_locked()
+                return False
             self._write_locked()
             return True
 
@@ -317,8 +276,9 @@ class QuestProgressService(CoordinatedProgressReader):
             self._write_locked()
 
     def _write_locked(self) -> None:
-        self._validate_write_snapshot()
-        save_quest_progress(self.progress, self.path)
+        self._persist_progress_snapshot_locked(
+            lambda: save_quest_progress(self.progress, self.path),
+        )
         self._accept_snapshot_locked(changed=True)
 
     def _accept_loaded_snapshot_locked(self) -> None:
@@ -336,9 +296,6 @@ class QuestProgressService(CoordinatedProgressReader):
         if not isinstance(character.get("done"), dict):
             character["done"] = {}
         return character
-
-    def _validate_write_snapshot(self) -> None:
-        validate_progress_character_keys(self.progress)
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:

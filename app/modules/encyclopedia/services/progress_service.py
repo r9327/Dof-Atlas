@@ -9,6 +9,7 @@ from typing import Any, Iterable
 
 from app.constants import DATA_DIR
 from app.core.numbers import optional_int, valid_list_int_ids
+from app.core.progress_coordinator import mutable_progress_mapping
 from local_dofus_data.utils import now_iso, save_json_atomic
 from app.modules.encyclopedia.models.progress_state import ProgressState
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
@@ -82,10 +83,7 @@ class AchievementProgressService:
         if not str(character_key or "").strip():
             return
         character = self._character(character_key)
-        objectives = character.setdefault("completed_objectives", {})
-        if not isinstance(objectives, dict):
-            objectives = {}
-            character["completed_objectives"] = objectives
+        objectives = mutable_progress_mapping(character, "completed_objectives")
         key = str(int(achievement_id))
         values = set(valid_list_int_ids(objectives.get(key, [])))
         if completed:

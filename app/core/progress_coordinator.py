@@ -223,6 +223,34 @@ def progress_mapping_values_error(
     return None
 
 
+def read_progress_mapping(parent: dict[str, Any], field: str) -> dict[str, Any]:
+    """Read a nested progress map without repairing or creating persistent state."""
+    value = parent.get(field, {})
+    return value if isinstance(value, dict) else {}
+
+
+def mutable_progress_mapping(parent: dict[str, Any], field: str) -> dict[str, Any]:
+    """Create or repair a nested map only on an explicit mutation path."""
+    value = parent.get(field)
+    if not isinstance(value, dict):
+        value = {}
+        parent[field] = value
+    return value
+
+
+def update_progress_flag(rows: dict[str, Any], key: str, completed: bool) -> bool:
+    """Apply one boolean flag; preserve the legacy exact-True/no-op contract."""
+    if completed:
+        if rows.get(key) is True:
+            return False
+        rows[key] = True
+    else:
+        if key not in rows:
+            return False
+        rows.pop(key)
+    return True
+
+
 def read_progress_character(
     payload: dict[str, Any], character_key: object,
 ) -> dict[str, Any]:
@@ -309,6 +337,23 @@ class CoordinatedProgressReader:
         )
         self._disk_signature = self._current_disk_signature()
         self._coordinated_invalidate()
+
+    def _validate_write_snapshot(self) -> None:
+        validate_progress_character_keys(self.progress)
+
+    def _persist_progress_snapshot_locked(self, writer) -> None:
+        """A rejected write must never leave an uncommitted snapshot readable.
+
+        The next read reloads under the existing coordinator. Never publish a
+        generation for a failed write, including validation or disk errors.
+        """
+        try:
+            self._validate_write_snapshot()
+            writer()
+        except Exception:
+            self._seen_generation = -1
+            self._coordinated_invalidate()
+            raise
 
     def _ensure_fresh(self) -> None:
         if self._seen_generation == self._coordinator.generation:

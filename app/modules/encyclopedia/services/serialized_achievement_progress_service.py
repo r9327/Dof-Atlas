@@ -10,7 +10,7 @@ from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
     progress_characters_for_validation, progress_mapping_values_error,
-    validate_progress_character_keys,
+    read_progress_character, read_progress_mapping,
 )
 from app.modules.encyclopedia.services.progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
@@ -77,9 +77,8 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
         if not key:
             return None
         self._ensure_fresh()
-        characters = self.progress.get("characters", {})
-        character = characters.get(key, {}) if isinstance(characters, dict) else {}
-        value = character.get("alignment_order") if isinstance(character, dict) else None
+        character = read_progress_character(self.progress, key)
+        value = character.get("alignment_order")
         if not isinstance(value, dict):
             return None
         side = str(value.get("side") or "").strip().casefold()
@@ -114,8 +113,9 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
         """Persist a compatibility snapshot only when no peer changed the file."""
         with self._coordinator.lock:
             self._require_current_snapshot_locked("Achievement")
-            self._validate_write_snapshot()
-            write_json_atomic(self.path, self.progress)
+            self._persist_progress_snapshot_locked(
+                lambda: write_json_atomic(self.path, self.progress),
+            )
             self._accept_snapshot_locked(changed=True)
 
     def set_achievement_completed(self, character_key: str, achievement_id: int, completed: bool) -> bool:
@@ -141,8 +141,8 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
         with self._coordinator.lock:
             self._replace_snapshot_locked(self._coordinator.generation)
             character = self._character(key)
-            rows = character.get("completed_objectives", {})
-            values = rows.get(str(int(achievement_id)), []) if isinstance(rows, dict) else []
+            rows = read_progress_mapping(character, "completed_objectives")
+            values = rows.get(str(int(achievement_id)), [])
             completed_ids = valid_list_int_ids(values)
             objective_id = int(objective_id)
             if (objective_id in completed_ids) == bool(completed):
@@ -202,9 +202,6 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
                 quest_progress_service,
                 guide_provider,
             )
-
-    def _validate_write_snapshot(self) -> None:
-        validate_progress_character_keys(self.progress)
 
 
 def _achievement_progress_schema_error(payload: Any) -> str | None:

@@ -10,7 +10,7 @@ from app.core.progress_coordinator import (
     CoordinatedProgressReader, coordinator_for,
     complete_progress_root, empty_progress_payload as _empty_progress,
     mutable_progress_character, progress_characters_for_validation, progress_mapping_values_error, read_progress_character,
-    validate_progress_character_keys,
+    read_progress_mapping, mutable_progress_mapping,
 )
 
 
@@ -135,27 +135,20 @@ class GuideProgressService(CoordinatedProgressReader):
             self._accept_snapshot_locked(changed=True)
 
     def _save_unlocked(self) -> None:
-        self._validate_write_snapshot()
-        write_json_atomic(self.path, self.progress)
+        self._persist_progress_snapshot_locked(
+            lambda: write_json_atomic(self.path, self.progress),
+        )
 
     def _load(self) -> dict[str, Any]:
         return complete_progress_root(read_json_resilient(self.path, _empty_progress()))
 
     def _manual_steps_map(self, character_key: str) -> dict[str, list[str]]:
         character = mutable_progress_character(self.progress, character_key)
-        manual_steps = character.setdefault("manual_steps", {})
-        if not isinstance(manual_steps, dict):
-            manual_steps = {}
-            character["manual_steps"] = manual_steps
-        return manual_steps
+        return mutable_progress_mapping(character, "manual_steps")
 
     def _read_manual_steps_map(self, character_key: str) -> dict[str, list[str]]:
         character = read_progress_character(self.progress, character_key)
-        manual_steps = character.get("manual_steps", {})
-        return manual_steps if isinstance(manual_steps, dict) else {}
-
-    def _validate_write_snapshot(self) -> None:
-        validate_progress_character_keys(self.progress)
+        return read_progress_mapping(character, "manual_steps")
 
 def _guide_progress_schema_error(payload: Any) -> str | None:
     characters, error = progress_characters_for_validation(payload)
