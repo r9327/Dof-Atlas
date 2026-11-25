@@ -256,6 +256,31 @@ class GuideUltimeV5UITests(unittest.TestCase):
         finally:
             host.deleteLater()
 
+    def test_generated_window_reuses_card_completion_evaluation(self):
+        from unittest.mock import patch
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            with patch.object(self.v5, "card_state", wraps=self.v5.card_state) as state:
+                view._render_window()
+                evaluated = [call.args[2] for call in state.call_args_list]
+                self.assertEqual(len(evaluated), len(set(evaluated)))
+                self.assertGreater(view.rendered_card_count, 0)
+        finally:
+            view.deleteLater()
+
+    def test_order_projection_preserves_authored_rank_order_and_first_match(self):
+        from app.modules.encyclopedia.services.guide_ultime_generated_service import route_order_names, route_order_quest_ids
+        route = {"conditional_branches": {"order_cards": [
+            None, {"options": [None, {"order": "Œil Attentif", "quest_id": 1},
+                               {"order": "Œil Attentif", "quest_id": 999}]},
+            {"options": [{"order": "ŒIL ATTENTIF", "quest_id": 2},
+                         {"order": "Cœur Vaillant", "quest_id": 3}]},
+        ]}}
+        self.assertEqual(tuple(route_order_names(route).values()), ("Œil Attentif", "Cœur Vaillant"))
+        self.assertEqual(route_order_quest_ids(route, "ŒIL ATTENTIF"), (1, 2))
+        self.assertEqual(route_order_quest_ids(route, ""), ())
+        self.assertEqual(route_order_names({}), {})
+
     def test_generated_order_refresh_keeps_outer_signal_block(self):
         view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
         try:

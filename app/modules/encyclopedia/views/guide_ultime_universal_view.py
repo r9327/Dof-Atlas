@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.views.guide_ultime_generated_view import GuideUltimeGeneratedView
+from app.modules.encyclopedia.services.guide_ultime_generated_service import route_order_cards, route_order_options
 from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     GuideUltimeWalkthroughCard,
     ObjectiveWalkthrough,
@@ -25,7 +26,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
 )
 from app.core.numbers import optional_int
 from app.core.map_coordinates import BRACKETED_POSITION_RE
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_progress_bar, configure_unity_scroll_area, set_unity_widget_property
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator, configure_unity_progress_bar, configure_unity_scroll_area, set_unity_widget_property, set_unity_progress_counts
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -511,14 +512,10 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
 
     def _refresh_header(self) -> None:
         progress = self.service.progress(self.character_key)
-        percent = progress.common_percent
-        if percent is None:
-            self.route_bar.setRange(0, 0)
-            self.route_progress_label.setText("Progression indisponible")
-        else:
-            self.route_bar.setRange(0, max(1, progress.common_total))
-            self.route_bar.setValue(min(progress.common_completed, progress.common_total))
-            self.route_progress_label.setText(f"{percent} %")
+        percent = set_unity_progress_counts(
+            self.route_bar, progress.common_completed, progress.common_total, busy_when_empty=True,
+        )
+        self.route_progress_label.setText("Progression indisponible" if percent is None else f"{percent} %")
 
     def _sync_order_combo(self) -> None:
         # L'Ordre n'est jamais demandé dans l'en-tête. Le choix apparaît seulement
@@ -526,10 +523,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         return
 
     def _first_order_card(self) -> dict[str, Any] | None:
-        branches = self.service.route.get("conditional_branches")
-        if not isinstance(branches, dict):
-            return None
-        cards = [row for row in branches.get("order_cards", []) or [] if isinstance(row, dict)]
+        cards = route_order_cards(self.service.route)
         if not cards:
             return None
         return min(cards, key=lambda row: self._safe_int(row.get("rank")) or 9999)
@@ -542,7 +536,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             return False
         option_ids = {
             qid
-            for qid in (self._safe_int(row.get("quest_id")) for row in first.get("options", []) or [] if isinstance(row, dict))
+            for qid in (self._safe_int(row.get("quest_id")) for row in route_order_options(first))
             if qid is not None
         }
         if not option_ids:
@@ -582,9 +576,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         combo = AtlasComboBox()
         combo.setObjectName("GuideRouteInlineOrderCombo")
         combo.addItem("Choisir maintenant", "")
-        for row in first.get("options", []) or []:
-            if not isinstance(row, dict):
-                continue
+        for row in route_order_options(first):
             name = str(row.get("order") or "").strip()
             if name:
                 combo.addItem(name, name)

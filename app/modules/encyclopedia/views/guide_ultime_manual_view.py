@@ -34,6 +34,7 @@ from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
 from app.ui.components import (
     AtlasButton, clear_unity_widget_layout, set_unity_widget_property,
     atlas_quest_shortcut_icon as _quest_shortcut_icon, configure_unity_tool_button,
+    set_unity_progress_counts,
 )
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 
@@ -714,14 +715,11 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
 
     def _refresh_header(self) -> None:
         completed, total = self.service.route_sheet_progress(self.character_key)
-        if total <= 0:
-            self.route_bar.setRange(0, 0)
+        percent = set_unity_progress_counts(self.route_bar, completed, total, busy_when_empty=True)
+        if percent is None:
             self.route_progress_label.setText("")
             self.nav_page_label.setText("")
             return
-        self.route_bar.setRange(0, total)
-        self.route_bar.setValue(min(completed, total))
-        percent = min(100, round(completed * 100 / total))
         page = max(1, min(total, int(self.view_index) + 1))
         self.nav_page_label.setText(f"Page {page} / {total}")
         self.route_progress_label.setText(f"{percent} %")

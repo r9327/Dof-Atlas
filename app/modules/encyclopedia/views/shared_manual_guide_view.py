@@ -51,6 +51,7 @@ from app.ui.components import (
     AtlasGuideReadingHeader, AtlasGuideSheetHeader,
     AtlasGuidePreparationRow, AtlasGuidePreparationPanel, AtlasGuidePreparationSummary,
     AtlasGuideReadingNav, AtlasGuideValidationButton, atlas_preparation_copy_button,
+    set_unity_progress_counts,
 )
 
 
@@ -1432,11 +1433,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         total = len(self._preparation_needs)
         ready = (sum(1 for need in self._preparation_needs if self._need_ready(need))
                  if ready_count is None else ready_count)
-        self.preparation_bar.setRange(0, max(1, total))
-        self.preparation_bar.setValue(ready)
-        self.preparation_progress_label.setText(
-            f"{clamped_percent(ready, total)} %" if total else "—"
-        )
+        percent = set_unity_progress_counts(self.preparation_bar, ready, total)
+        self.preparation_progress_label.setText(f"{percent} %" if percent is not None else "—")
 
     def _participant_toggled(self, character_key: str, checked: bool) -> None:
         selected = list(self.selected_participant_keys())
@@ -1556,16 +1554,13 @@ class SharedGuideManualView(GuideUltimeManualView):
                     completed = self._common_sheet_count(keys, self.service.cards, self._card_complete)
             else:
                 completed = min(done for done, _total in progress_rows)
-            percent = clamped_percent(completed, total)
+            percent = set_unity_progress_counts(self.global_progress_bar, completed, total)
             self.progress_donut.set_percent(percent)
-            self.global_progress_bar.setRange(0, max(1, total))
-            self.global_progress_bar.setValue(completed)
             self.global_progress_label.setText(f"{percent} %")
             self.donut_count_label.setText(f"{completed} fiches validées")
         else:
             self.progress_donut.set_percent(None)
-            self.global_progress_bar.setRange(0, 1)
-            self.global_progress_bar.setValue(0)
+            set_unity_progress_counts(self.global_progress_bar, 0, 0)
             self.global_progress_label.setText("—")
             self.donut_count_label.setText("Fiches à valider")
 

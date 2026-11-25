@@ -7,6 +7,7 @@ from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
     _norm,
     _safe_int,
+    route_order_names, route_order_quest_ids,
 )
 
 
@@ -141,43 +142,15 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         return index, self.cards[index]
 
     def bonta_order_names(self) -> tuple[str, ...]:
-        available: dict[str, str] = {}
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            for row in card.get("options", []) or []:
-                if not isinstance(row, dict):
-                    continue
-                name = str(row.get("order") or "").strip()
-                if name:
-                    available.setdefault(_norm(name), name)
-        return tuple(
-            available[_norm(expected)]
-            for expected in BONTA_ORDERS
-            if _norm(expected) in available
-        )
+        available = route_order_names(self.route)
+        return tuple(available[_norm(expected)] for expected in BONTA_ORDERS
+                     if _norm(expected) in available)
 
     def selected_order_quest_ids(self, character_key: str) -> tuple[int, ...]:
         selected = self.selected_order_name(character_key)
         if not selected or _norm(selected) not in {_norm(value) for value in self.bonta_order_names()}:
             return ()
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        ids: list[int] = []
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            option = next(
-                (
-                    row for row in card.get("options", []) or []
-                    if isinstance(row, dict) and _norm(row.get("order")) == _norm(selected)
-                ),
-                None,
-            )
-            qid = _safe_int(option.get("quest_id")) if option else None
-            if qid is not None:
-                ids.append(qid)
-        return tuple(ids[:5])
+        return route_order_quest_ids(self.route, selected)[:5]
 
     def class_gate_satisfied(
         self,

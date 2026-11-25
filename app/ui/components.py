@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import APP_ICON_PATH
 from app.core.file_stamp import mtime_ctime_size_stamp
-from app.core.numbers import clamp_int32
+from app.core.numbers import clamp_int32, clamped_percent, INT32_MAX
 from app.ui.unity_palette import (
     UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX,
     UNITY_PALETTE,
@@ -238,6 +238,26 @@ def configure_unity_progress_bar(
     if display_format is not None:
         bar.setFormat(display_format)
     return bar
+
+
+def set_unity_progress_counts(
+    bar: QProgressBar, completed: int, total: int, *, busy_when_empty: bool = False,
+) -> int | None:
+    """One bounded count projection; the caller owns wording and empty state."""
+    if total <= 0:
+        bar.setRange(0, 0 if busy_when_empty else 1)
+        if not busy_when_empty:
+            bar.setValue(0)
+        return None
+    completed = max(0, min(completed, total))
+    if total > INT32_MAX:
+        # Very large source totals cannot cross Qt's signed-native boundary.
+        bar.setRange(0, 100)
+        bar.setValue(clamped_percent(completed, total))
+    else:
+        bar.setRange(0, total)
+        bar.setValue(completed)
+    return clamped_percent(completed, total)
 
 
 def clear_unity_widget_layout(
@@ -1217,8 +1237,7 @@ class AtlasGuideReadingHeader(QFrame):
         self.global_progress_title.setVisible(visible)
         self.global_progress_label.setVisible(visible)
         self.global_progress_bar.setVisible(visible)
-        self.global_progress_bar.setRange(0, max(1, total))
-        self.global_progress_bar.setValue(max(0, min(completed, total)))
+        set_unity_progress_counts(self.global_progress_bar, completed, total)
         self.global_progress_label.setText(f"{completed}/{total}" if total > 0 else "—")
 
     def set_global_detail_lines(self, lines: tuple[str, ...]) -> None:

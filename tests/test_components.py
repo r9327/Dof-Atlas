@@ -346,6 +346,22 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             counter.deleteLater()
 
+    def test_count_projection_distinguishes_empty_busy_and_large_totals(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import set_unity_progress_counts
+        bar = QProgressBar()
+        try:
+            self.assertEqual(set_unity_progress_counts(bar, 3, 4), 75)
+            self.assertEqual((bar.minimum(), bar.maximum(), bar.value()), (0, 4, 3))
+            self.assertIsNone(set_unity_progress_counts(bar, 0, 0))
+            self.assertEqual((bar.maximum(), bar.value()), (1, 0))
+            self.assertIsNone(set_unity_progress_counts(bar, 0, 0, busy_when_empty=True))
+            self.assertEqual((bar.minimum(), bar.maximum()), (0, 0))
+            self.assertEqual(set_unity_progress_counts(bar, 2**39, 2**40), 50)
+            self.assertEqual((bar.maximum(), bar.value()), (100, 50))
+        finally:
+            bar.deleteLater()
+
     def test_progress_geometry_and_format_use_shared_configuration(self) -> None:
         from PySide6.QtWidgets import QProgressBar
         from app.ui.components import configure_unity_progress_bar

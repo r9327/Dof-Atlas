@@ -29,6 +29,43 @@ def _read_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def route_order_cards(route: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    """The authored order cards are shared by the generated and runtime readers."""
+    branches = route.get("conditional_branches")
+    if not isinstance(branches, dict):
+        return ()
+    return tuple(card for card in branches.get("order_cards", []) or () if isinstance(card, dict))
+
+
+def route_order_options(card: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    return tuple(row for row in card.get("options", []) or () if isinstance(row, dict))
+
+
+def route_order_names(route: dict[str, Any]) -> dict[str, str]:
+    """Normalize each authored name once, retaining source order and spelling."""
+    names: dict[str, str] = {}
+    for card in route_order_cards(route):
+        for row in route_order_options(card):
+            name = str(row.get("order") or "").strip()
+            if name:
+                names.setdefault(_norm(name), name)
+    return names
+
+
+def route_order_quest_ids(route: dict[str, Any], selected: str) -> tuple[int, ...]:
+    if not selected:
+        return ()
+    normalized = _norm(selected)
+    ids = []
+    for card in route_order_cards(route):
+        option = next((row for row in route_order_options(card)
+                       if _norm(row.get("order")) == normalized), None)
+        qid = _safe_int(option.get("quest_id")) if option is not None else None
+        if qid is not None:
+            ids.append(qid)
+    return tuple(ids)
+
+
 @dataclass(frozen=True, slots=True)
 class GuideUltimeProgress:
     common_completed: int
@@ -324,18 +361,7 @@ class GuideUltimeGeneratedService:
         return matches[0] if len(matches) == 1 else None
 
     def bonta_order_names(self) -> tuple[str, ...]:
-        names: list[str] = []
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            for row in card.get("options", []) or []:
-                if not isinstance(row, dict):
-                    continue
-                name = str(row.get("order") or "").strip()
-                if name and _norm(name) not in {_norm(value) for value in names}:
-                    names.append(name)
-        return tuple(names[:3])
+        return tuple(route_order_names(self.route).values())[:3]
 
     def selected_order_name(self, character_key: str) -> str:
         choice = self.achievement_progress.alignment_order_choice(character_key)
@@ -351,22 +377,7 @@ class GuideUltimeGeneratedService:
         self.achievement_progress.set_alignment_order_choice(character_key, "bonta", matched)
 
     def selected_order_quest_ids(self, character_key: str) -> tuple[int, ...]:
-        selected = self.selected_order_name(character_key)
-        if not selected:
-            return ()
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        ids: list[int] = []
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            option = next(
-                (row for row in card.get("options", []) or [] if isinstance(row, dict) and _norm(row.get("order")) == _norm(selected)),
-                None,
-            )
-            qid = _safe_int(option.get("quest_id")) if option else None
-            if qid is not None:
-                ids.append(qid)
-        return tuple(ids)
+        return route_order_quest_ids(self.route, self.selected_order_name(character_key))
 
     def _collect_common_quest_ids(self) -> tuple[int, ...]:
         return tuple(dict.fromkeys(qid for card in self.cards for qid in self.card_quest_ids(card)))

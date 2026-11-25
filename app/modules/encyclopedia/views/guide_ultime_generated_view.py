@@ -19,9 +19,10 @@ from app.core.numbers import optional_int
 from app.ui.components import (
     AtlasButton, AtlasComboBox, AtlasPageNavigator,
     clear_unity_widget_layout, configure_unity_progress_bar, configure_unity_scroll_area,
+    set_unity_progress_counts,
 )
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
-    GuideUltimeGeneratedService,
+    GuideUltimeGeneratedService, GuideUltimeCardState,
 )
 
 
@@ -45,6 +46,7 @@ class GuideUltimeCard(QFrame):
         quest_toggle: QuestToggle,
         objective_toggle: ObjectiveToggle,
         parent: QWidget | None = None,
+        state: GuideUltimeCardState | None = None,
     ) -> None:
         super().__init__(parent)
         self.service = service
@@ -55,7 +57,8 @@ class GuideUltimeCard(QFrame):
         self.compact = compact
         self.quest_toggle = quest_toggle
         self.objective_toggle = objective_toggle
-        state = service.card_state(character_key, card, index)
+        if state is None:
+            state = service.card_state(character_key, card, index)
         self.setObjectName("GuideUltimeCard")
         self.setProperty("state", "active" if active else "done" if state.complete else "future")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
@@ -439,14 +442,12 @@ class GuideUltimeGeneratedView(QWidget):
 
     def _refresh_header(self) -> None:
         progress = self.service.progress(self.character_key)
-        percent = progress.common_percent
-        if percent is None:
-            self.route_bar.setRange(0, 0)
-            self.route_progress_label.setText("Route commune — progression indisponible")
-        else:
-            self.route_bar.setRange(0, max(1, progress.common_total))
-            self.route_bar.setValue(min(progress.common_completed, progress.common_total))
-            self.route_progress_label.setText(f"{percent} %")
+        percent = set_unity_progress_counts(
+            self.route_bar, progress.common_completed, progress.common_total, busy_when_empty=True,
+        )
+        self.route_progress_label.setText(
+            "Route commune — progression indisponible" if percent is None else f"{percent} %"
+        )
         details = [f"{progress.common_completed} / {progress.common_total} quêtes de la route commune"]
         if progress.qq_required:
             details.append(f"QQ : {progress.qq_completed} / {progress.qq_required} quêtes validées")
@@ -500,12 +501,11 @@ class GuideUltimeGeneratedView(QWidget):
         self.cards_layout.addWidget(frame)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 0
-        self.route_bar.setRange(0, 1)
-        self.route_bar.setValue(0)
+        set_unity_progress_counts(self.route_bar, 0, 0)
         self.route_progress_label.setText("Source V5 absente")
         self.progress_details.setText("Aucune progression inventée.")
 
-    def _visible_indices(self) -> list[int]:
+    def _visible_indices(self, states: dict[int, GuideUltimeCardState] | None = None) -> list[int]:
         if not self.service.cards:
             return []
         start = max(0, self.view_index - self.WINDOW_BEFORE)
@@ -513,6 +513,8 @@ class GuideUltimeGeneratedView(QWidget):
         result: list[int] = []
         for index in range(start, stop):
             state = self.service.card_state(self.character_key, self.service.cards[index], index)
+            if states is not None:
+                states[index] = state
             if self.filter_mode == "À faire" and state.complete and index != self.view_index:
                 continue
             if self.filter_mode == "Terminé" and not state.complete and index != self.view_index:
@@ -527,10 +529,10 @@ class GuideUltimeGeneratedView(QWidget):
         self._clear_cards()
         if not self.service.cards:
             return
-        indices = self._visible_indices()
+        states: dict[int, GuideUltimeCardState] = {}
+        indices = self._visible_indices(states)
         for index in indices:
             card = self.service.cards[index]
-            state = self.service.card_state(self.character_key, card, index)
             active = index == self.active_index
             compact = index != self.view_index and not active
             widget = GuideUltimeCard(
@@ -540,6 +542,7 @@ class GuideUltimeGeneratedView(QWidget):
                 index,
                 active=active,
                 compact=compact,
+                state=states.get(index),
                 quest_toggle=self._set_quest,
                 objective_toggle=self._set_objective,
             )
@@ -555,11 +558,6 @@ class GuideUltimeGeneratedView(QWidget):
 
     def _set_quest(self, quest_id: int, completed: bool) -> None:
         self.service.quest_progress.set_quest_completed(self.character_key, int(quest_id), bool(completed))
-        self.service.achievement_progress.sync_from_quest_progress(
-            self.character_key,
-            getattr(self, "achievement_provider", None) or _NullAchievementProvider(),
-            self.service.quest_progress,
-        ) if False else None
 
     def _set_objective(self, quest_id: int, objective_id: int, completed: bool) -> None:
         self.service.quest_progress.set_objective_completed(
@@ -580,8 +578,3 @@ class GuideUltimeGeneratedView(QWidget):
     def _clear_cards(self) -> None:
         clear_unity_widget_layout(self.cards_layout, detach_widgets=False)
 
-
-
-class _NullAchievementProvider:
-    def load_retained(self):
-        return ()
