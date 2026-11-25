@@ -614,6 +614,43 @@ def native_start_coverage(
     }
 
 
+def native_instruction_coverage(missing_ids: Iterable[int], sources: QuestSources) -> dict[str, Any]:
+    """Audit the actual game-objective fallback for documentary gaps only.
+
+    Reuse the reader's instruction filter and the canonical native compiler.
+    Bounded batches prevent holding the full rich Quest catalogue in memory.
+    Never count a title, a raw criterion or a bare coordinate as an instruction.
+    """
+    from app.quest_catalog import QuestCatalog
+    from app.modules.encyclopedia.services.guide_quest_view_model import quest_fallback_instruction_steps
+
+    ids = sorted(set(int(value) for value in missing_ids))
+    recovered: list[int] = []
+    unresolved: list[int] = []
+    for offset in range(0, len(ids), 32):
+        batch = ids[offset:offset + 32]
+        catalog = QuestCatalog._load_source(
+            RAW_QUEST_DATA_DIR, quest_ids=set(batch), sources=sources,
+            include_enrichment=False,
+        )
+        for quest_id in batch:
+            record = catalog.by_id.get(quest_id)
+            if record is None:
+                raise ValueError(f"Native Quest {quest_id} missing from source compiler")
+            target = recovered if quest_fallback_instruction_steps(record) else unresolved
+            target.append(quest_id)
+        del catalog
+    return {
+        "status": "MEASURED",
+        "evidence": "LOCAL_GAME_OBJECTIVES_NOT_DOCUMENTARY_WALKTHROUGH",
+        "quests_considered": len(ids),
+        "recovered_from_native_objective_quest_ids": recovered,
+        "still_missing_instruction_quest_ids": unresolved,
+        "counts": {"WITH_NATIVE_FALLBACK": len(recovered),
+                   "WITHOUT_NATIVE_FALLBACK": len(unresolved)},
+    }
+
+
 def base_result(quest: Any, mapping_row: dict[str, Any], local_row: dict[str, Any]) -> dict[str, Any]:
     candidates = mapping_row.get("dofus_pour_les_noobs", []) or []
     if mapping_row.get("status") == "ambiguous" or len(candidates) > 1:
@@ -1192,6 +1229,8 @@ def main(argv: list[str] | None = None) -> int:
         "--local-coverage-only", action="store_true",
         help="Rapport de couverture locale des départs et instructions, sans Guides/Succès ni requêtes web.",
     )
+    parser.add_argument("--native-instruction-coverage", action="store_true",
+                        help="Avec --local-coverage-only, vérifier aussi les objectifs natifs des quêtes sans instructions documentaires.")
     parser.add_argument("--sample-size", type=int, default=50)
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--refresh", action="store_true")
@@ -1232,6 +1271,11 @@ def main(argv: list[str] | None = None) -> int:
                 sources.rows(RAW_QUEST_DATA_DIR / "quests.json"),
                 sources.rows(RAW_QUEST_DATA_DIR / "maps_information.json"),
             )
+            native_instructions = None
+            if args.native_instruction_coverage:
+                native_instructions = native_instruction_coverage(
+                    coverage["missing_instruction_quest_ids"], sources,
+                )
         finally:
             sources.close()
         payload = {
@@ -1239,11 +1283,19 @@ def main(argv: list[str] | None = None) -> int:
             **coverage,
             "native_start_coverage": native_coverage,
         }
+        if native_instructions is not None:
+            payload["native_instruction_coverage"] = native_instructions
+            missing_starts = {row["quest_id"] for row in native_coverage["needs_review"]}
+            payload["remaining_missing_both_quest_ids"] = [
+                quest_id for quest_id in native_instructions["still_missing_instruction_quest_ids"]
+                if quest_id in missing_starts
+            ]
         write_json_file(args.json_output, payload)
         print(json.dumps({
             "quests_considered": coverage["quests_considered"],
             "counts": coverage["counts"],
             "native_start_counts": native_coverage["counts"],
+            "native_instruction_counts": native_instructions["counts"] if native_instructions is not None else None,
         }, ensure_ascii=False, indent=2))
         return 0
     payload = build_audit(args.online, max(30, min(args.sample_size, 50)), args.workers, args.refresh, args.cache)

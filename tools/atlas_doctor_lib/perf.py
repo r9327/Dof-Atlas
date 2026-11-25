@@ -271,9 +271,21 @@ def _paired_success_comparison(current: dict[str, Any], baseline: dict[str, Any]
                         if key in report["medians"]},
         }
     comparison = compare_to_baseline(comparable(after), comparable(before))
-    if len(comparison.get("metrics", [])) != len(_COMPARABLE_SUCCESS_METRICS):
+    incomplete_metrics = []
+    for label, report in (("candidate", after), ("baseline", before)):
+        for metric in _COMPARABLE_SUCCESS_METRICS:
+            for index, sample in enumerate(report["samples"], 1):
+                value = (sample.get("metrics") or {}).get(metric)
+                if (not isinstance(value, (int, float)) or isinstance(value, bool)
+                        or not 0 <= float(value) < float("inf")):
+                    incomplete_metrics.append(f"{label}:{index}:{metric}")
+    if incomplete_metrics or len(comparison.get("metrics", [])) != len(_COMPARABLE_SUCCESS_METRICS):
         comparison["status"] = "UNAVAILABLE"
-        comparison["reason"] = "Missing comparable Success first-view metrics"
+        comparison["reason"] = "Missing or invalid comparable Success first-view metrics"
+        comparison["incomplete_samples"] = incomplete_metrics
+    if before["sample_count"] != after["sample_count"]:
+        comparison["status"] = "UNAVAILABLE"
+        comparison["reason"] = "Different numbers of baseline and candidate samples"
     return {
         "scope": "SUCCESS_FIRST_VIEW_ONLY",
         "run_id": os.environ.get("GITHUB_RUN_ID", "local"),
@@ -392,8 +404,8 @@ def _local_quest_coverage(root: Path) -> dict[str, Any]:
         output = Path(temp) / "coverage.json"
         subprocess.run(
             [sys.executable, "-m", "app.modules.encyclopedia.tools.audit_quests_guides_semantic",
-             "--local-coverage-only", "--json-output", str(output)],
-            cwd=root, env=_runtime_environment(root), check=True, capture_output=True, timeout=90,
+             "--local-coverage-only", "--native-instruction-coverage", "--json-output", str(output)],
+            cwd=root, env=_runtime_environment(root), check=True, capture_output=True, timeout=180,
         )
         return json.loads(output.read_text(encoding="utf-8"))
 

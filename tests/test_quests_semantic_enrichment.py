@@ -129,6 +129,55 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         self.assertEqual(report["recovered_from_native_map_quest_ids"], [3])
         self.assertEqual([row["quest_id"] for row in report["needs_review"]], [1, 2, 6])
 
+    def test_native_instruction_audit_compiles_only_documentary_gaps_in_bounded_batches(self):
+        from unittest.mock import Mock, patch
+        from types import SimpleNamespace
+        from app.quest_catalog import QuestObjective, QuestStep
+        from app.modules.encyclopedia.tools.audit_quests_guides_semantic import native_instruction_coverage
+
+        sources = Mock()
+        calls = []
+        def compile_batch(_data_dir, *, quest_ids, sources, include_enrichment):
+            self.assertFalse(include_enrichment)
+            calls.append(set(quest_ids))
+            rows = {}
+            for ident in quest_ids:
+                text = "Parler au garde." if ident % 2 else "Objectif 42"
+                rows[ident] = QuestRecord(
+                    ident, "Quête locale", "Quêtes", 1, 1, "",
+                    steps=[QuestStep(1, "Étape 1", "", objectives=[
+                        QuestObjective(id=1, text=text, type_id=0),
+                    ])],
+                )
+            return SimpleNamespace(by_id=rows)
+        with patch.object(QuestCatalog, "_load_source", side_effect=compile_batch):
+            report = native_instruction_coverage([*range(1, 66), 1], sources)
+        self.assertEqual([len(batch) for batch in calls], [32, 32, 1])
+        self.assertEqual(report["quests_considered"], 65)
+        self.assertEqual(report["recovered_from_native_objective_quest_ids"], list(range(1, 66, 2)))
+        self.assertEqual(report["still_missing_instruction_quest_ids"], list(range(2, 66, 2)))
+        with patch.object(QuestCatalog, "_load_source", return_value=SimpleNamespace(by_id={})):
+            with self.assertRaisesRegex(ValueError, "Native Quest 1 missing"):
+                native_instruction_coverage([1], sources)
+
+    def test_waypoint_and_placeholder_fallback_do_not_hide_native_instructions(self):
+        from app.quest_catalog import QuestObjective, QuestSolutionBlock, QuestStep
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_blocks_have_instructions, quest_fallback_instruction_steps, quest_solution_blocks,
+        )
+        quest = QuestRecord(1, "Quête locale", "Quêtes", 1, 1, "",
+                            steps=[QuestStep(1, "Étape 1", "Parler au garde.")])
+        quest.source_solution_steps = [QuestStep(-1, "Étape 1", "[3,4]", objectives=[
+            QuestObjective(id=-1, text="Objectif 99", type_id=0),
+        ])]
+        quest.solution_blocks = [QuestSolutionBlock(order=1, block_type="text", content="Objectif 99")]
+        self.assertFalse(quest_blocks_have_instructions(quest_solution_blocks(quest)))
+        fallback = quest_fallback_instruction_steps(quest)
+        self.assertEqual(len(fallback), 1)
+        self.assertEqual(fallback[0].description, "Parler au garde.")
+        quest.steps = []
+        self.assertEqual(quest_fallback_instruction_steps(quest), ())
+
     def test_local_coverage_closes_sqlite_readers_after_audit_error(self):
         from types import SimpleNamespace
         from unittest.mock import Mock, patch

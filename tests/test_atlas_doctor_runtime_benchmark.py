@@ -276,6 +276,29 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertNotIn("first_achievement_detail_ms", metrics)
         self.assertEqual(paired["comparison"]["status"], "PASS")
 
+    def test_same_runner_comparison_rejects_incomplete_or_unbalanced_samples(self):
+        from tools.atlas_doctor_lib.perf import _paired_success_comparison
+
+        def sample(sha, value):
+            row = self.sample(head=sha, startup_ms=10, rss_mb=10)
+            row["metrics"].update(achievements_open_ms=value,
+                                  achievements_open_max_ui_block_ms=12,
+                                  rss_after_achievements_mb=90)
+            return row
+        before = {"samples": [sample("old", 100), sample("old", 100)]}
+        for invalid in (None, float("nan"), float("inf"), -1, True):
+            with self.subTest(invalid=invalid):
+                after = {"samples": [sample("new", 50), sample("new", invalid)]}
+                paired = _paired_success_comparison(after, before)
+                self.assertEqual(paired["comparison"]["status"], "UNAVAILABLE")
+                self.assertIn("candidate:2:achievements_open_ms",
+                              paired["comparison"]["incomplete_samples"])
+        unequal = _paired_success_comparison({"samples": [sample("new", 50)]}, before)
+        self.assertEqual(unequal["comparison"]["status"], "UNAVAILABLE")
+        paired = _paired_success_comparison({"samples": [sample("new", 50), sample("new", 60)]}, before)
+        self.assertEqual(paired["comparison"]["status"], "PASS")
+        self.assertEqual(paired["candidate_distributions"]["achievements_open_max_ui_block_ms"]["p95"], 12)
+
     def test_quest_coverage_evidence_rejects_changed_sha_or_incomplete_inventory(self):
         from tools.atlas_doctor_lib import perf
         root = Path("candidate")

@@ -443,6 +443,7 @@ def _median_tree(values: list[Any]) -> Any:
 
 _SUCCESS_DISTRIBUTION_METRICS = (
     "achievements_open_ms",
+    "achievements_open_max_ui_block_ms",
     "first_achievement_detail_ms",
     "first_achievement_detail_max_ui_block_ms",
     "rss_after_achievements_mb",

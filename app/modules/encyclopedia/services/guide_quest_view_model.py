@@ -814,11 +814,18 @@ def quest_solution_steps(
     return tuple(rows)
 
 
+def meaningful_quest_instruction(value: str) -> bool:
+    """An objective number, heading or waypoint is not actionable text."""
+    return bool(
+        value and not _canonical_source_coordinate(value)
+        and not re.fullmatch(r"(?:Objectif|Étape|Etape)\s+\d+", value, re.IGNORECASE)
+    )
+
+
 def quest_blocks_have_instructions(blocks: Iterable[DisplaySolutionBlock]) -> bool:
     """A heading, illustration or bare waypoint is not an instruction."""
     return any(
-        block.content
-        and not _canonical_source_coordinate(block.content)
+        meaningful_quest_instruction(block.content)
         and block.block_type not in {"image", "heading", "title", "subtitle", "section_heading"}
         for block in blocks
     )
@@ -829,7 +836,8 @@ def quest_fallback_instruction_steps(quest: QuestRecord) -> tuple[SolutionStep, 
     def meaningful(steps: Iterable[SolutionStep]) -> tuple[SolutionStep, ...]:
         return tuple(
             step for step in steps
-            if step.description or any(objective.text for objective in step.objectives)
+            if meaningful_quest_instruction(step.description)
+            or any(meaningful_quest_instruction(objective.text) for objective in step.objectives)
         )
 
     steps = meaningful(quest_solution_steps(quest))
