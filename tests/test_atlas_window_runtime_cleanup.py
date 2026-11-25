@@ -23,6 +23,21 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
+    def test_topmost_projection_preserves_outer_signal_block(self):
+        from types import SimpleNamespace
+        from PySide6.QtWidgets import QCheckBox
+        app = QApplication.instance() or QApplication([])
+        checkbox = QCheckBox()
+        shell = SimpleNamespace(settings_topmost_check=checkbox, topmost_enabled=True)
+        try:
+            for previous in (True, False):
+                checkbox.blockSignals(previous)
+                AtlasWindow.update_topmost_button(shell)
+                self.assertEqual(checkbox.signalsBlocked(), previous)
+                self.assertTrue(checkbox.isChecked())
+        finally:
+            checkbox.deleteLater()
+
     def test_network_closed_session_updates_connected_list_without_selection(self):
         shell = Mock()
         AtlasWindow.on_network_connections_changed(

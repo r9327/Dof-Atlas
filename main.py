@@ -13,7 +13,7 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Callable
 from weakref import WeakSet
 
-from PySide6.QtCore import QDate, QDateTime, QObject, QEvent, QPoint, QSize, Qt, QTime, QTimer, Signal
+from PySide6.QtCore import QSignalBlocker, QDate, QDateTime, QObject, QEvent, QPoint, QSize, Qt, QTime, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QColor, QCursor, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -3012,9 +3012,8 @@ class AtlasWindow(QMainWindow):
 
     def update_topmost_button(self) -> None:
         if hasattr(self, "settings_topmost_check"):
-            self.settings_topmost_check.blockSignals(True)
-            self.settings_topmost_check.setChecked(self.topmost_enabled)
-            self.settings_topmost_check.blockSignals(False)
+            with QSignalBlocker(self.settings_topmost_check):
+                self.settings_topmost_check.setChecked(self.topmost_enabled)
 
     def update_runtime_badge(self, connected: bool) -> None:
         # UI-side callbacks (including Mirror toggle) must never override

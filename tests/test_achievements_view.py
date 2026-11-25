@@ -243,6 +243,23 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         finally:
             area.deleteLater()
 
+    def test_filter_projection_preserves_block_and_canonical_numeric_range(self):
+        from app.modules.encyclopedia.widgets.filter_panel import AchievementFilterPanel
+        panel = AchievementFilterPanel()
+        try:
+            panel.category_combo.blockSignals(True)
+            panel.subcategory_combo.blockSignals(True)
+            panel.set_categories([])
+            self.assertTrue(panel.category_combo.signalsBlocked())
+            self.assertTrue(panel.subcategory_combo.signalsBlocked())
+            self.assertEqual((panel.min_level.minimum(), panel.min_level.maximum(), panel.min_level.value()), (0, 999, 0))
+            self.assertEqual((panel.max_level.minimum(), panel.max_level.maximum(), panel.max_level.value()), (0, 999, 999))
+            panel.set_category_cards([("Test", 1, 2)])
+            panel.set_category_cards([])
+            self.assertEqual(panel.category_layout.count(), 1)  # only the stretch
+        finally:
+            panel.deleteLater()
+
     def test_category_scroll_uses_shared_policy_without_losing_frame(self):
         from app.modules.encyclopedia.widgets.filter_panel import AchievementFilterPanel
         from PySide6.QtWidgets import QScrollArea

@@ -326,6 +326,22 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
 
+    def test_participant_projection_preserves_outer_signal_block(self):
+        characters = [SimpleNamespace(key="character:1", label="Alpha", connected=True, class_key="feca")]
+        panel = ContinuousGuideRoutePanel(
+            _source_route(), self.store, ("character:1",), available_characters=characters,
+        )
+        self.addCleanup(panel.deleteLater)
+        action = panel._character_actions["character:1"]
+        button = panel.character_icon_buttons["character:1"]
+        action.blockSignals(True)
+        button.blockSignals(True)
+        panel.refresh()
+        self.assertTrue(action.signalsBlocked())
+        self.assertTrue(button.signalsBlocked())
+        self.assertTrue(action.isChecked())
+        self.assertTrue(button.isChecked())
+
     def test_class_portraits_are_clickable_and_follow_stable_character_keys(self):
         characters = [
             SimpleNamespace(key="character:1", label="Alpha", connected=True, class_key="feca"),

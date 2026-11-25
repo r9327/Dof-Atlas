@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMenu, QScrollArea, QToolButton, QVBoxLayout, QWidget,
@@ -428,20 +428,16 @@ class ContinuousGuideRoutePanel(QWidget):
         self.participants_button.setText(f"Mes personnages ({len(selected)})")
         self.participants_button.setAccessibleName(self.participants_button.text())
         for key, action in self._character_actions.items():
-            was_blocked = action.blockSignals(True)
-            try:
-                action.setChecked(key in selected)
-            finally:
-                action.blockSignals(was_blocked)
+            with QSignalBlocker(action):
+                if action.isChecked() != (key in selected):
+                    action.setChecked(key in selected)
         for key, button in self.character_icon_buttons.items():
             button.set_progress(
                 self.navigation.completed_count(key), position.total_steps
             )
-            was_blocked = button.blockSignals(True)
-            try:
-                button.setChecked(key in selected)
-            finally:
-                button.blockSignals(was_blocked)
+            with QSignalBlocker(button):
+                if button.isChecked() != (key in selected):
+                    button.setChecked(key in selected)
         current = position.viewed_step_id
         actual = position.actual_step_id
         self.actual_button.setEnabled(actual is not None)

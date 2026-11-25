@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -17,7 +17,7 @@ from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.models.achievement import AchievementCategory
 from app.ui.components import (
     AtlasComboBox, configure_unity_progress_bar, configure_unity_scroll_area,
-    fit_unity_number_spinbox,
+    configure_unity_number_spinbox, clear_unity_widget_layout,
 )
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
@@ -41,17 +41,15 @@ class AchievementFilterPanel(QWidget):
 
         self.category_combo = AtlasComboBox()
         self.subcategory_combo = AtlasComboBox()
-        self.min_level = QSpinBox()
-        self.max_level = QSpinBox()
+        self.min_level = configure_unity_number_spinbox(
+            QSpinBox(), minimum=0, maximum=999, value=0,
+        )
+        self.max_level = configure_unity_number_spinbox(
+            QSpinBox(), minimum=0, maximum=999, value=999,
+        )
         self.state_combo = AtlasComboBox()
         self.hide_completed = QCheckBox("Masquer les succès terminés")
 
-        self.min_level.setRange(0, 999)
-        self.max_level.setRange(0, 999)
-        self.max_level.setValue(999)
-        # Same compact numerical width contract as Guides, Quêtes and Craft.
-        fit_unity_number_spinbox(self.min_level)
-        fit_unity_number_spinbox(self.max_level)
         self.state_combo.addItems(["Tous", "Terminés", "Non terminés"])
 
         for label, widget in (
@@ -85,20 +83,15 @@ class AchievementFilterPanel(QWidget):
 
     def set_categories(self, categories: list[AchievementCategory]) -> None:
         self.categories = list(categories)
-        self.category_combo.blockSignals(True)
-        self.category_combo.clear()
-        self.category_combo.addItem("Toutes", 0)
-        for category in self.parent_categories():
-            self.category_combo.addItem(category.name, category.id)
-        self.category_combo.blockSignals(False)
+        with QSignalBlocker(self.category_combo):
+            self.category_combo.clear()
+            self.category_combo.addItem("Toutes", 0)
+            for category in self.parent_categories():
+                self.category_combo.addItem(category.name, category.id)
         self.rebuild_subcategories()
 
     def set_category_cards(self, summaries: list[tuple[str, int, int]]) -> None:
-        while self.category_layout.count():
-            item = self.category_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.category_layout, detach_widgets=False)
         for name, completed, total in summaries:
             card = QFrame()
             card.setObjectName("CategoryProgressCard")
@@ -140,13 +133,12 @@ class AchievementFilterPanel(QWidget):
 
     def rebuild_subcategories(self) -> None:
         parent_id = int(self.category_combo.currentData() or 0)
-        self.subcategory_combo.blockSignals(True)
-        self.subcategory_combo.clear()
-        self.subcategory_combo.addItem("Toutes", 0)
-        for category in self.categories:
-            if parent_id and category.parent_id == parent_id:
-                self.subcategory_combo.addItem(category.name, category.id)
-        self.subcategory_combo.blockSignals(False)
+        with QSignalBlocker(self.subcategory_combo):
+            self.subcategory_combo.clear()
+            self.subcategory_combo.addItem("Toutes", 0)
+            for category in self.categories:
+                if parent_id and category.parent_id == parent_id:
+                    self.subcategory_combo.addItem(category.name, category.id)
 
     @staticmethod
     def _label(text: str) -> QLabel:

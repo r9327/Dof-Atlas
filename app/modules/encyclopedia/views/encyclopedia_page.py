@@ -8,7 +8,7 @@ from queue import Empty, Queue
 from threading import Event, Thread, current_thread
 from typing import TYPE_CHECKING, Callable
 
-from PySide6.QtCore import QTimer, Qt, Signal
+from PySide6.QtCore import QSignalBlocker, QTimer, Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
 
 from app.background_work import background_io_priority
@@ -479,9 +479,8 @@ class EncyclopediaPage(QWidget):
         was_lazy_slot = self._lazy_slots.get(label) is self.tabs.widget(index)
         if was_lazy_slot and label in {GUIDES_TAB, ACHIEVEMENTS_TAB} and not self._related_ready:
             fallback = self._last_ready_tab_index
-            self.tabs.blockSignals(True)
-            self.tabs.setCurrentIndex(fallback)
-            self.tabs.blockSignals(False)
+            with QSignalBlocker(self.tabs):
+                self.tabs.setCurrentIndex(fallback)
             self.request_related_preload(label)
             self.status_callback(f"Préparation de {label} en arrière-plan...")
             return

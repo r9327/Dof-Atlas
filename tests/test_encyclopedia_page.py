@@ -29,6 +29,25 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         self.addCleanup(tabs.deleteLater)
         return page
 
+    def test_lazy_related_tab_fallback_keeps_outer_signal_block(self):
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.constants import GUIDES_TAB
+        page = self.make_page()
+        index = 2
+        page.tabs.setTabText(index, GUIDES_TAB)
+        page._initializing = False
+        page._related_ready = False
+        page._last_ready_tab_index = 0
+        page._lazy_slots[GUIDES_TAB] = page.tabs.widget(index)
+        page.request_related_preload = Mock()
+        page.status_callback = Mock()
+        page.tabs.setCurrentIndex(index)
+        page.tabs.blockSignals(True)
+        EncyclopediaPage._on_tab_changed_base(page, index)
+        self.assertTrue(page.tabs.signalsBlocked())
+        self.assertEqual(page.tabs.currentIndex(), 0)
+        page.request_related_preload.assert_called_once_with(GUIDES_TAB)
+
     def test_released_encyclopedia_drops_queued_results_and_never_joins_worker(self):
         from queue import Queue
         from threading import Event
