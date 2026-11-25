@@ -20,6 +20,40 @@ class GuideManualStructuredRuntimeTests(unittest.TestCase):
         }
         return service
 
+    def test_guide_launch_actions_never_promote_objective_or_conflicting_start(self):
+        from types import SimpleNamespace
+        from app.quest_catalog import QuestRecord, QuestStep, QuestObjective
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import GuideCatalogManualRuntimeService
+        from app.modules.encyclopedia.services.guide_ultime_route_adapter import GuideUltimeRouteAdapter
+        from app.modules.encyclopedia.services.guide_quest_view_model import quest_start_info
+
+        quest = QuestRecord(101, "Quête A", "Test", 1, 1, "", steps=[
+            QuestStep(id=1, name="Objectif", description="", objectives=[
+                QuestObjective(id=1, text="Aller au lieu", type_id=0, map_label="[5,6]"),
+            ]),
+        ])
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        step = SimpleNamespace(id="q101")
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.position, "[5,6]")
+        self.assertEqual(info.declared_launch_position, "")
+        cards = service._quest_segments(step, quest, finalize=False)
+        self.assertEqual(cards[0]["position"], "")
+        self.assertIn("Position de lancement à confirmer", cards[0]["sections"]["now"][0]["text"])
+        self.assertTrue(any(row.get("position") == "[5,6]" for card in cards
+                            for row in card["sections"]["now"]))
+        adapter = object.__new__(GuideUltimeRouteAdapter)
+        adapter.catalog = SimpleNamespace(by_id={101: quest})
+        adapter.raw_quests = {101: {"startPosition": [{"mapId": 10}]}}
+        adapter.raw_maps = {10: {"posX": 1, "posY": 2}}
+        quest.source_info = {"native_start": {"map_id": 10, "position": "[1,2]"},
+                             "source_meta": {"startCoords": "[3,4]"}}
+        self.assertEqual(service._quest_segments(step, quest, finalize=False)[0]["position"], "")
+        self.assertIsNone(adapter._start_location(101).x)
+        quest.source_info["source_meta"]["startCoords"] = "[1,2]"
+        self.assertEqual(service._quest_segments(step, quest, finalize=False)[0]["position"], "[1,2]")
+        self.assertEqual((adapter._start_location(101).x, adapter._start_location(101).y), (1, 2))
+
     def test_first_incomplete_uses_one_rule_for_generated_and_manual_routes(self):
         from types import SimpleNamespace
         from unittest.mock import Mock

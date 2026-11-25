@@ -283,7 +283,10 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         self.assertEqual(quest_launch_position_evidence(quest.source_info)[:2],
                          ("[-3,4]", "NATIVE_START_DECLARED"))
         quest.source_info["source_meta"] = {"startCoords": "[6,7]"}
-        self.assertEqual(quest_start_info(quest, include_map_images=False).position, "[-3,4]")
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.position, "[-3,4]")
+        self.assertEqual(info.declared_launch_position, "")
+        self.assertEqual(info.launch_status, "CONFLICTING_DECLARED_START")
         self.assertEqual(QuestDetailView._start_position_heading(quest, "[-3,4]"),
                          "Départ à vérifier (sources incohérentes)")
         quest.source_info["source_meta"] = {"startCoords": "inconnue"}

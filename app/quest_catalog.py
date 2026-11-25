@@ -887,35 +887,42 @@ def map_label(
     return ""
 
 
-def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]:
-    """Recover a launch coordinate only from a unique explicit game start map.
-
-    Do not promote objective maps, infer a map from a zone, or choose the first
-    of several quest start maps. Preserve the local map ID for provenance.
-    """
+def native_quest_start_review(quest: Mapping, maps: Mapping) -> dict[str, Any]:
+    """Report why a declared native start is usable or requires source review."""
     starts = array_value(quest.get("startPosition"))
     if not starts:
-        return {}
+        return {"reason": "NO_NATIVE_START_MAP", "map_ids": []}
     ids: set[int] = set()
-    for start in starts:
-        if not isinstance(start, dict):
-            return {}
-        ident = exact_native_integer(start.get("mapId"), (1 << 63) - 1)
+    malformed = False
+    for row in starts:
+        ident = exact_native_integer(row.get("mapId"), (1 << 63) - 1) if isinstance(row, dict) else None
         if ident is None:
-            return {}
-        ids.add(ident)
-    if len(ids) != 1:
-        return {}
-    map_id = next(iter(ids))
+            malformed = True
+        else:
+            ids.add(ident)
+    map_ids = sorted(ids)
+    if malformed:
+        return {"reason": "INVALID_NATIVE_START_MAP", "map_ids": map_ids}
+    if len(map_ids) != 1:
+        return {"reason": "MULTIPLE_NATIVE_START_MAPS", "map_ids": map_ids}
+    map_id = map_ids[0]
     row = maps.get(map_id)
-    if not isinstance(row, dict) or any(
-        type(row.get(key)) not in (int, str) for key in ("posX", "posY")
-    ):
-        return {}
+    if not isinstance(row, dict):
+        return {"reason": "NATIVE_MAP_ROW_MISSING", "map_ids": map_ids}
+    if any(type(row.get(key)) not in (int, str) for key in ("posX", "posY")):
+        return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
     position = canonical_declared_coordinate(f"[{row['posX']},{row['posY']}]")
     if not position:
+        return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
+    return {"reason": "UNIQUE_NATIVE_START_MAP", "map_ids": map_ids, "position": position}
+
+
+def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]:
+    """Recover only a unique explicitly declared game start map."""
+    review = native_quest_start_review(quest, maps)
+    if review["reason"] != "UNIQUE_NATIVE_START_MAP":
         return {}
-    return {"native_start": {"map_id": map_id, "position": position}}
+    return {"native_start": {"map_id": review["map_ids"][0], "position": review["position"]}}
 
 
 def resolve_objective(

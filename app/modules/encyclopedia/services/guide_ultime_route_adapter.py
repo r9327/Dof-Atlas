@@ -4,7 +4,8 @@ from typing import Any, Mapping
 from app.core.numbers import optional_int as _safe_int
 from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, extract_bracketed_coordinates, SENTINEL_COORD
 
-from app.core.doduda_rows import array_rows as _array
+from app.core.map_coordinates import quest_launch_position_evidence
+from app.quest_catalog import native_quest_start_evidence
 from app.modules.encyclopedia.services.adventure_route_adapter import AdventureRouteAdapter
 from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
 
@@ -47,31 +48,30 @@ class GuideUltimeRouteAdapter(AdventureRouteAdapter):
 
     def _start_location(self, quest_id: int) -> RouteLocation:
         raw = self.raw_quests.get(int(quest_id), {})
-        map_ids: list[int] = []
-        for row in _array(raw.get("startPosition")):
-            if not isinstance(row, dict):
-                continue
-            ident = _safe_map_id(row.get("mapId"))
-            if ident is not None and ident not in map_ids:
-                map_ids.append(ident)
-
         quest = self.catalog.by_id.get(int(quest_id))
         source_info = getattr(quest, "source_info", {}) if quest is not None else {}
         source_info = source_info if isinstance(source_info, dict) else {}
-        launch = source_info.get("launch_position") if isinstance(source_info.get("launch_position"), dict) else {}
         meta = source_info.get("source_meta") if isinstance(source_info.get("source_meta"), dict) else {}
-        documentary = _coord_from_text(launch.get("position")) or _coord_from_text(meta.get("startCoords"))
         zone = str(meta.get("zone") or "").strip()
         if not zone and quest is not None:
             zones = list(getattr(quest, "zones", ()) or ())
             zone = str(zones[0] if zones else "").strip()
-
-        if len(map_ids) == 1:
-            fallback = {"x": documentary[0], "y": documentary[1]} if documentary else None
-            return self._location_from_map(map_ids[0], fallback, zone=zone)
-        if documentary is not None:
-            return RouteLocation(x=documentary[0], y=documentary[1], zone=zone, label=f"[{documentary[0]},{documentary[1]}]")
-        return RouteLocation(zone=zone, label="Départ de quête à confirmer")
+        # The same native compiler and conflict policy as the live Quest
+        # sheet. Do not turn an ambiguous documentary coordinate into GPS.
+        native = native_quest_start_evidence(raw, self.raw_maps)
+        evidence = {"launch_position": source_info.get("launch_position"),
+                    "source_meta": meta, **native}
+        position, status, _ = quest_launch_position_evidence(evidence)
+        if status not in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"}:
+            return RouteLocation(zone=zone, label="Départ de quête à confirmer")
+        coordinates = _coord_from_text(position)
+        if coordinates is None:
+            return RouteLocation(zone=zone, label="Départ de quête à confirmer")
+        return RouteLocation(
+            map_id=native.get("native_start", {}).get("map_id"),
+            x=coordinates[0], y=coordinates[1], zone=zone,
+            label=f"[{coordinates[0]},{coordinates[1]}]",
+        )
 
     def _location_from_map(
         self,

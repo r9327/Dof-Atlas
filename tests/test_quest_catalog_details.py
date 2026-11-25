@@ -32,6 +32,25 @@ def record(quest_id):
 
 
 class QuestDetailsTests(unittest.TestCase):
+    def test_native_start_review_identifies_source_blockers_without_guessing(self):
+        maps = {10: {"posX": 1, "posY": 2}, 11: {"posX": 1, "posY": 2},
+                12: {"posX": True, "posY": 2}}
+        cases = (
+            ([], "NO_NATIVE_START_MAP", []),
+            ([{"mapId": 10}, None], "INVALID_NATIVE_START_MAP", [10]),
+            ([{"mapId": 11}, {"mapId": 10}], "MULTIPLE_NATIVE_START_MAPS", [10, 11]),
+            ([{"mapId": 99}], "NATIVE_MAP_ROW_MISSING", [99]),
+            ([{"mapId": 12}], "INVALID_NATIVE_MAP_COORDINATES", [12]),
+            ([{"mapId": 10}, {"mapId": "10"}], "UNIQUE_NATIVE_START_MAP", [10]),
+        )
+        for starts, reason, ids in cases:
+            with self.subTest(starts=starts):
+                review = qc.native_quest_start_review({"startPosition": starts}, maps)
+                self.assertEqual(review["reason"], reason)
+                self.assertEqual(review["map_ids"], ids)
+                self.assertEqual(bool(qc.native_quest_start_evidence({"startPosition": starts}, maps)),
+                                 reason == "UNIQUE_NATIVE_START_MAP")
+
     def test_source_map_coordinates_never_coerce_invalid_positions(self):
         # A valid source map may recover coordinates that the objective lacks.
         maps = {17: {"posX": "-03", "posY": "04"}}

@@ -33,7 +33,6 @@ from app.modules.encyclopedia.services.guide_catalog_route_store import (
 )
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     clean_requirement_line,
-    first_position_from_quest,
     quest_items_from_objectives,
     quest_solution_steps,
     quest_start_info,
@@ -453,11 +452,9 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         quest_id = int(quest.id)
         quest_name = str(getattr(quest, "name", "") or f"Quête #{quest_id}")
         start = quest_start_info(quest, include_map_images=False)
-        start_position = str(
-            start.position
-            or first_position_from_quest(quest, start_info=start)
-            or ""
-        ).strip()
+        # Objective hints remain available on their own rows, but cannot
+        # become a start-map assertion or the location of a launch action.
+        start_position = start.declared_launch_position
         zone = str(
             start.zone
             or (quest.zones[0] if getattr(quest, "zones", ()) else "")
@@ -501,12 +498,14 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             )
 
         location = " — ".join(value for value in (start_position, zone) if value)
-        if start.npc:
-            text = f"Prends la quête « {quest_name} » auprès de {start.npc}."
+        if start.declared_launch_npc:
+            text = f"Prends la quête « {quest_name} » auprès de {start.declared_launch_npc}."
             if location:
                 text += f" {location}"
         else:
             text = f"Commence / poursuis la quête « {quest_name} »."
+        if not start_position:
+            text += " Position de lancement à confirmer."
         first["sections"]["now"].append(
             self._line("action", start_position, text)
         )

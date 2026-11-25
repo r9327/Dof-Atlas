@@ -79,6 +79,9 @@ class QuestStartInfo:
     zone: str = ""
     map_image_path: str = ""
     map_image_paths: tuple[str, ...] = ()
+    declared_launch_position: str = ""
+    declared_launch_npc: str = ""
+    launch_status: str = "NO_DECLARED_START"
 
 
 @dataclass(frozen=True, slots=True)
@@ -719,7 +722,11 @@ def quest_start_info(
     # Normalize local source coordinates once: Guide copy links and /travel
     # expect [x,y], regardless of whitespace or zero-padding in the source.
     # A placeholder must not suppress a valid second source or objective hint.
-    position, _start_status, _declarations = quest_launch_position_evidence(source_info)
+    position, start_status, _declarations = quest_launch_position_evidence(source_info)
+    declared_launch_position = (
+        position if start_status in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"} else ""
+    )
+    declared_launch_npc = npc
     source_zone = clean_text(source_meta.get("zone"))
     zone = next(
         (value for value in quest.zones if source_zone and normalize_text(source_zone) in normalize_text(value)),
@@ -757,6 +764,9 @@ def quest_start_info(
         zone=zone,
         map_image_path=map_image_path,
         map_image_paths=map_image_paths,
+        declared_launch_position=declared_launch_position,
+        declared_launch_npc=declared_launch_npc,
+        launch_status=start_status,
     )
 
 

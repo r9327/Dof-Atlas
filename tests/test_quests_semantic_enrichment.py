@@ -128,6 +128,12 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         self.assertEqual(report["counts"]["NO_DECLARED_START"], 2)
         self.assertEqual(report["recovered_from_native_map_quest_ids"], [3])
         self.assertEqual([row["quest_id"] for row in report["needs_review"]], [1, 2, 6])
+        self.assertEqual(report["native_review_reasons"], {
+            "UNIQUE_NATIVE_START_MAP": 1, "NATIVE_QUEST_ROW_MISSING": 1,
+            "MULTIPLE_NATIVE_START_MAPS": 1,
+        })
+        self.assertEqual(report["needs_review"][0]["declared_positions"], ["[9,9]", "[1,2]"])
+        self.assertEqual(report["needs_review"][2]["native_review"]["map_ids"], [10, 11])
 
     def test_native_instruction_audit_compiles_only_documentary_gaps_in_bounded_batches(self):
         from unittest.mock import Mock, patch

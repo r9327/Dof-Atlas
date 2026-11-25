@@ -21,7 +21,7 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     request_bytes,
 )
 from app.core.map_coordinates import declared_quest_start, quest_launch_position_evidence
-from app.quest_catalog import native_quest_start_evidence, normalize_text, read_json_file, write_json_file
+from app.quest_catalog import native_quest_start_evidence, native_quest_start_review, normalize_text, read_json_file, write_json_file
 from app.quest_source_index import QuestSources
 
 
@@ -580,6 +580,7 @@ def native_start_coverage(
     counts: Counter[str] = Counter()
     recovered: list[int] = []
     needs_review: list[dict[str, Any]] = []
+    review_reasons: Counter[str] = Counter()
     for quest_id in sorted(set(int(value) for value in quest_ids)):
         raw_quest = quests.get(quest_id)
         native = native_quest_start_evidence(raw_quest, maps) if isinstance(raw_quest, Mapping) else {}
@@ -592,7 +593,7 @@ def native_start_coverage(
             "source_meta": row.get("source_meta"),
             **native,
         }
-        position, status, _ = quest_launch_position_evidence(evidence)
+        position, status, declarations = quest_launch_position_evidence(evidence)
         counts[status] += 1
         if native:
             counts["WITH_UNIQUE_NATIVE_MAP"] += 1
@@ -601,15 +602,22 @@ def native_start_coverage(
         if status == "NATIVE_START_DECLARED" and declared_quest_start(row)[1] == "NO_DECLARED_START":
             recovered.append(quest_id)
         if status not in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"}:
+            native_review = native_quest_start_review(
+                raw_quest, maps,
+            ) if isinstance(raw_quest, Mapping) else {"reason": "NATIVE_QUEST_ROW_MISSING", "map_ids": []}
+            review_reasons[native_review["reason"]] += 1
             needs_review.append({
                 "quest_id": quest_id, "status": status,
                 "position_for_review": position,
+                "declared_positions": list(dict.fromkeys(value for value in declarations if value)),
+                "native_review": native_review,
             })
     return {
         "evidence": "LOCAL_NATIVE_AND_DOCUMENTARY_NOT_LIVE_NETWORK_VERIFIED",
         "quests_considered": counts["WITH_UNIQUE_NATIVE_MAP"] + counts["WITHOUT_UNIQUE_NATIVE_MAP"],
         "counts": dict(sorted(counts.items())),
         "recovered_from_native_map_quest_ids": recovered,
+        "native_review_reasons": dict(sorted(review_reasons.items())),
         "needs_review": needs_review,
     }
 

@@ -935,6 +935,9 @@ def main() -> int:
             summary["quests_considered"] = coverage["quests_considered"]
             summary["documentary_counts"] = coverage["counts"]
             summary["native_start_counts"] = coverage["native_start_coverage"]["counts"]
+            summary["native_review_reasons"] = coverage["native_start_coverage"].get("native_review_reasons", {})
+            summary["native_instruction_counts"] = coverage.get("native_instruction_coverage", {}).get("counts", {})
+            summary["remaining_missing_both_count"] = len(coverage.get("remaining_missing_both_quest_ids", []))
         print("QUEST_SOURCE_COVERAGE " + json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0
 
