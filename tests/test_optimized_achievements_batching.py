@@ -278,10 +278,10 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
 
     def test_one_damaged_row_does_not_hide_healthy_successes_in_batch(self) -> None:
         class DamagedRowBatch(_BatchFakeProvider):
-            def catalogue_rows_by_ids(self, ids):
-                rows = super().catalogue_rows_by_ids(ids)
-                rows[1] = None  # Simulate a stale/corrupt compact row.
-                return rows
+            def catalogue_row_by_id(self, achievement_id):
+                if achievement_id == 2:
+                    return None  # The compact index cannot supply this row.
+                return super().catalogue_row_by_id(achievement_id)
 
             def get_by_id(self, achievement_id):
                 if achievement_id == 2:

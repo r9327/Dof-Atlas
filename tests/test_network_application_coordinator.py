@@ -645,7 +645,7 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         coordinator = NetworkApplicationCoordinator(lambda: ())
         with (
             patch("app.network.application_coordinator.record_validation",
-                  side_effect=coordinator._stop_event.set),
+                  side_effect=lambda *_args, **_kwargs: coordinator._stop_event.set()),
             patch.object(coordinator.logger, "info") as logged,
         ):
             coordinator._publish_status(NetworkApplicationStatus(True, False, "running"))

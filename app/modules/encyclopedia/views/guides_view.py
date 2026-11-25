@@ -4058,9 +4058,9 @@ def linkify_travel_text(text: str) -> str:
             # A missing/out-of-range map is documentary text, not a button.
             return match.group(0)
         coordinates = command.removeprefix("/travel ")
-        return "<b>" + entity_link_markup(
+        return entity_link_markup(
             f"[{coordinates}]", "position", f"atlas-travel:{coordinates}", PALETTE,
-        ) + "</b>"
+        )
 
     return TRAVEL_COORD_RE.sub(replace, escaped)
 

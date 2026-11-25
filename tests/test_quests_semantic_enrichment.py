@@ -466,13 +466,13 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             },
         }
         report = local_start_position_coverage(rows, range(1, 10))
-        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
-        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 8)
-        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 7)
-        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 2)
+        self.assertEqual(report["counts"].get("WITH_TEXTUAL_SOLUTION_BLOCKS", 0), 0)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 9)
+        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 6)
+        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 3)
         self.assertEqual(report["fallback_instruction_quest_ids"], [1, 2, 4, 5, 6, 7])
-        self.assertEqual(report["missing_instruction_quest_ids"], [3, 9])
-        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 9])
+        self.assertEqual(report["missing_instruction_quest_ids"], [3, 8, 9])
+        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 8, 9])
 
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]

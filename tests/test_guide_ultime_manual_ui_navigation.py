@@ -172,6 +172,9 @@ class _FakeParticipantService:
     def selected_keys(self):
         return tuple(self.selected)
 
+    def available_travel_characters(self):
+        return self.available_characters()
+
     def save_selected_keys(self, values):
         self.selected = list(values)
         return tuple(self.selected)
@@ -208,7 +211,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             inspect.getsource(SharedGuideManualView._clear_cards),
         )
         self.assertIn(
-            "clear_unity_widget_layout(self.global_details_layout, hide_widgets=True)",
+            "self.reading_header.set_global_detail_lines(",
             inspect.getsource(SharedGuideManualView._refresh_global_details),
         )
         self.assertIn(

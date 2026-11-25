@@ -610,7 +610,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.refresh()
         self.assertFalse(panel.travel_button.isEnabled())
         plan["source_step_id"] = step_id
-        panel.refresh()
+        panel.set_verified_travel_plans({step_id: plan})
         self.assertTrue(panel.travel_button.isEnabled())
         panel.set_verified_travel_plans({})
         self.assertFalse(panel.travel_button.isEnabled())
