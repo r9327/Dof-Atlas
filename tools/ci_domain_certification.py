@@ -111,6 +111,7 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tools/atlas_perf_attribution.py",
     "tools/benchmark_atlas_exhaustive.py",
     "tools/doctor_quick_app_probe.py",
+    "tests/test_doctor_quick_app_probe.py",
     "tests/test_atlas_exhaustive_benchmark.py",
     "tests/test_atlas_doctor_full_scope.py",
     "tools/doctor_scenario_runner.py",
