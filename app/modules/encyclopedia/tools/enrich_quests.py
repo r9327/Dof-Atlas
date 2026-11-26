@@ -21,7 +21,7 @@ from xml.etree import ElementTree
 from PIL import Image
 
 from app.constants import DATA_DIR, ROOT_DIR
-from app.core.map_coordinates import normalize_coordinate_pair
+from app.core.map_coordinates import BRACKETED_POSITION_RE, normalize_coordinate_pair
 from app.quest_catalog import (
     QuestCatalog,
     build_image_index,
@@ -800,7 +800,7 @@ def extract_dpln_page_v2(payload: bytes, url: str, title: str) -> dict[str, Any]
             ExtractedBlock(
                 dpln_block_type(raw_text, tag, flags),
                 content=raw_text,
-                position=first_coord(raw_text),
+                position=current.position,
                 data={
                     "npc": current.npc,
                     "interaction": current.interaction,
@@ -1028,8 +1028,9 @@ def looks_like_action(text: str) -> bool:
 
 
 def first_coord(text: str) -> str:
-    match = re.search(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]", text or "")
-    return f"[{int(match.group(1))},{int(match.group(2))}]" if match else ""
+    match = BRACKETED_POSITION_RE.search(text or "")
+    position = normalize_coordinate_pair(*match.groups()) if match else None
+    return f"[{position}]" if position is not None else ""
 
 
 def first_attr(text: str, attr: str) -> str:

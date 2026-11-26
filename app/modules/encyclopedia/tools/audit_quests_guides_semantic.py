@@ -483,6 +483,7 @@ def local_start_position_coverage(
         row = enriched.get(str(quest_id))
         first = ""
         second = ""
+        launch_text = ""
         if not isinstance(row, dict):
             status = "NO_ENRICHMENT"
         else:
@@ -492,6 +493,7 @@ def local_start_position_coverage(
             metadata = metadata if isinstance(metadata, dict) else {}
             first = str(launch.get("position") or "").strip()
             second = str(metadata.get("startCoords") or "").strip()
+            launch_text = str(launch.get("source_text") or "").strip()
             _primary, status, _positions = declared_quest_start(row)
         blocks = (
             row.get("solution_blocks")
@@ -546,7 +548,10 @@ def local_start_position_coverage(
                 ),
             })
         if status != "LOCAL_START_DECLARED":
-            needs_review.append({"quest_id": quest_id, "status": status})
+            review = {"quest_id": quest_id, "status": status}
+            if launch_text:
+                review["source_text"] = launch_text[:500]
+            needs_review.append(review)
     return {
         "evidence": "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED",
         "quests_considered": sum(

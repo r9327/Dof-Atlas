@@ -17,6 +17,7 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     dpln_mapping_confidence,
     enrichment_row_is_current,
     extract_dpln_page_v2,
+    first_coord,
     launch_position_from_text,
     merge_required_items,
     parse_quantity_line,
@@ -56,6 +57,24 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         ):
             with self.subTest(source=source):
                 self.assertEqual(launch_position_from_text(source)["position"], "[1,2]")
+
+    def test_documentary_waypoints_use_the_same_coordinate_validation(self):
+        self.assertEqual(first_coord("Parler en [ 003, -06 ]"), "[3,-6]")
+        for value in ("[-2147483648,0]", "[2147483648,0]", "[" + "9" * 5000 + ",2]", "[1,2!]"):
+            with self.subTest(value=value[:40]):
+                self.assertEqual(first_coord(value), "")
+
+    def test_local_review_preserves_ambiguous_launch_source_text(self):
+        source = "Position de lancement : A [1,2] ou B [3,4]."
+        report = local_start_position_coverage({
+            "10": {"launch_position": {"source_text": source}},
+            "20": {"launch_position": {"source_text": "x" * 600}},
+            "30": {"launch_position": {"position": "[1,2]", "source_text": source}},
+        }, [10, 20, 30])
+        self.assertEqual(report["needs_review"], [
+            {"quest_id": 10, "status": "NO_DECLARED_START", "source_text": source},
+            {"quest_id": 20, "status": "NO_DECLARED_START", "source_text": "x" * 500},
+        ])
 
     def test_local_only_audit_never_hydrates_guides_successes_or_web(self):
         from contextlib import redirect_stdout
