@@ -55,6 +55,10 @@ class HomeNetworkIndicatorTests(unittest.TestCase):
                     replacement.save(str(skin), "PNG")
                     page.set_character("character:1", "Alpha", str(skin))
                     self.assertNotEqual(page._character_icon_signature, before)
+                    portrait = page.character_portrait.icon()
+                    size = page.character_portrait.iconSize()
+                    self.assertEqual(portrait.pixmap(size, QIcon.Disabled).toImage(),
+                                     portrait.pixmap(size, QIcon.Normal).toImage())
         finally:
             page.deleteLater()
 

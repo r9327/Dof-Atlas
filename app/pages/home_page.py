@@ -1171,4 +1171,9 @@ class HomePage(QWidget):
         else:
             from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
             pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(selected, self.character_portrait.iconSize())
-            self.character_portrait.setIcon(QIcon(pixmap) if not pixmap.isNull() else QIcon())
+            icon = QIcon(pixmap)
+            # This decorative button is disabled, but its artwork needs the
+            # original class colors just like the portrait in the selector.
+            if not pixmap.isNull():
+                icon.addPixmap(pixmap, QIcon.Disabled)
+            self.character_portrait.setIcon(icon)

@@ -16,6 +16,7 @@ working_set:
   - tests/test_atlas_window_runtime_cleanup.py
   - tests/_pyside_shell_base.py
   - tests/test_character_shell.py
+  - tests/test_home_page.py
   - tests/test_shell_home_character_compact.py
   - tests/test_ui_universal_contract.py
   - tests/test_unity_skin.py
