@@ -31,6 +31,32 @@ Delivery Guard only verifies accounting and declared evidence. Doctor, required
 Phase checks, release proofs, independent review, and real-PC acceptance remain
 separate. A green Delivery Guard result is not a feature/phase certificate.
 
+## Permanent PR numbering and delivery order
+
+Every pull request in this repository, including closed, merged, Draft and
+permanent PRs, has an immutable PR-only serial in its title: `[PR NNN]`
+(minimum three digits, no reset or reuse). GitHub's native issue/PR number
+remains the canonical identifier for links, contracts, scripts and evidence.
+Issues do not consume a PR-only serial. The historical migration assigned
+001–330 in ascending native PR-number order through #431.
+
+Before opening a PR, check existing work and dependencies, and establish the
+logical delivery order. Create new PRs in dependency order where possible.
+Allocate the next serial from the complete PR history (including closed and
+merged PRs), not from the open list or issue counter. Recheck immediately
+after creation; if concurrent creation caused a collision, reconcile only
+the new conflicting allocations in native PR-number order. Never renumber
+historical PRs when priorities change. Retain the original descriptive title.
+
+For active delivery work, append a separate `[L01]`, `[L02]`, etc. after
+the serial, following the current agreed roadmap and actual dependencies.
+Update delivery ranks when the roadmap changes; use `[PERMANENT]` for
+standing diagnostic/sync PRs and `[LEGACY]` for superseded work pending
+review. Small independent housekeeping PRs may omit a delivery rank.
+Do not infer merge permission from a rank, close PRs automatically,
+change native references or bypass Delivery Guard/CI. Keep the existing
+roadmap canonical; no duplicate registry, bot or workflow is required.
+
 ## Universal PR CI cadence (all current and future PRs)
 
 **Finish the entire scoped PR before running its GitHub CI certification.**
