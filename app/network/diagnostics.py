@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 _NETWORK_DEBUG_ENV = "ATLAS_NETWORK_DEBUG"
 _NETWORK_DEBUG_DEEP_ENV = "ATLAS_NETWORK_DEBUG_DEEP"
+_ZAAP_DIAGNOSTICS_ENV = "ATLAS_ZAAP_DIAGNOSTICS"
 _MAX_DEBUG_SEQUENCE = 4096
 _MAX_DEBUG_TEXT = 512
 _MAX_DEEP_SCALAR_FIELDS = 32
@@ -107,6 +108,20 @@ def network_debug_log(logger: Logger, tag: str, /, **fields: Any) -> None:
 
     if not network_debug_enabled():
         return
+    _write_diagnostic(logger, tag, fields)
+
+
+def zaap_diagnostics_enabled() -> bool:
+    """Enable the narrow travel capture without enabling general packet logs."""
+    return _env_truthy(os.environ.get(_ZAAP_DIAGNOSTICS_ENV))
+
+
+def log_zaap_observation(logger: Logger, /, **fields: Any) -> None:
+    if zaap_diagnostics_enabled():
+        _write_diagnostic(logger, "[NETWORK][ZAAP][OBSERVED]", fields)
+
+
+def _write_diagnostic(logger: Logger, tag: str, fields: Mapping[str, Any]) -> None:
     normalized_tag = str(tag or "[NETWORK][DEBUG]").strip()
     payload: dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
@@ -329,8 +344,10 @@ __all__ = [
     "NetworkDebugGate",
     "ProtocolDiagnosticsCollector",
     "ProtocolTypeDiagnostic",
+    "log_zaap_observation",
     "network_debug_enabled",
     "network_debug_log",
     "protocol_payload_scalar_samples",
     "protocol_payload_summary",
+    "zaap_diagnostics_enabled",
 ]

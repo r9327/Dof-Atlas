@@ -199,6 +199,8 @@ def build_windows_network_runtime(
             raw_source,
             logger=log,
             phase="runtime",
+            build_sha256=build_sha256,
+            active_build_provider=fingerprint_provider,
         )
         source = DecodedNetworkEventSource(diagnostic_source, decoder, logger=log)
         bridge = InstrumentedNetworkProgressBridge(

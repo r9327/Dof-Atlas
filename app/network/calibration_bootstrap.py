@@ -114,6 +114,8 @@ def build_windows_protocol_calibration(
             raw_source,
             logger=log,
             phase="calibration",
+            build_sha256=build_sha256,
+            active_build_provider=fingerprint_provider,
         )
         runtime = ProtocolCalibrationRuntime(source, calibration, logger=log)
     except Exception:
