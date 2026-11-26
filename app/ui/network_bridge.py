@@ -14,14 +14,21 @@ _WINDOW_SCAN_INTERVAL_SECONDS = 2.0
 
 
 @lru_cache(maxsize=1)
-def _live_dofus_handles(_scan_interval: int) -> tuple[int, ...]:
+def _live_dofus_sessions(_scan_interval: int) -> tuple[tuple[int, str], ...]:
+    from app.core.text import clean_auto_group_name
     from app.macros.mirror_plan import is_dofus_unity_process
+    from app.quest_catalog import is_generic_dofus_client_name
     from app.windows_embed import scan_unity_sessions
 
-    return tuple(dict.fromkeys(
-        row["hwnd"] for row in scan_unity_sessions()
-        if is_dofus_unity_process(row["hwnd"])
-    ))
+    sessions = {}
+    for row in scan_unity_sessions():
+        hwnd = row["hwnd"]
+        if is_dofus_unity_process(hwnd):
+            title = str(row.get("nom") or "")
+            sessions[hwnd] = (
+                "" if is_generic_dofus_client_name(title) else clean_auto_group_name(title)
+            )
+    return tuple(sessions.items())
 
 
 if TYPE_CHECKING:
@@ -43,6 +50,7 @@ class NetworkUiBridge(QObject):
     characterActivated = Signal(str)
     charactersIdentified = Signal(object)
     connectionsChanged = Signal(object)
+    localSessionsChanged = Signal(object)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -52,6 +60,8 @@ class NetworkUiBridge(QObject):
         from app.network.application_coordinator import NetworkApplicationCoordinator
         from app.network.character_runtime_state import character_runtime_state
 
+        self._local_sessions: tuple[str, ...] = ()
+        self._published_local_sessions: tuple[str, ...] = ()
         self.coordinator = NetworkApplicationCoordinator(self._window_handles)
         # The decoded transport read model also changes on an entire capture
         # reset or verified recovery, without an individual progress event.
@@ -176,6 +186,12 @@ class NetworkUiBridge(QObject):
     def _poll(self) -> None:
         if self._stopped:
             return
+        local_sessions = self._local_sessions
+        if local_sessions != self._published_local_sessions:
+            self._published_local_sessions = local_sessions
+            self.localSessionsChanged.emit(local_sessions)
+            if self._stopped:
+                return
         current_network_keys = self._character_runtime_state.connected_character_keys()
         membership_changes = current_network_keys ^ self._observed_network_keys
         self._observed_network_keys = current_network_keys
@@ -271,10 +287,11 @@ class NetworkUiBridge(QObject):
                 return
             self.progressChanged.emit(character_key)
 
-    @staticmethod
-    def _window_handles() -> tuple[int, ...]:
+    def _window_handles(self) -> tuple[int, ...]:
         try:
-            return _live_dofus_handles(int(monotonic() // _WINDOW_SCAN_INTERVAL_SECONDS))
+            sessions = _live_dofus_sessions(int(monotonic() // _WINDOW_SCAN_INTERVAL_SECONDS))
+            self._local_sessions = tuple(label for _hwnd, label in sessions)
+            return tuple(hwnd for hwnd, _label in sessions)
         except Exception:
             from app.core.logger import get_runtime_logger
             get_runtime_logger().exception("Network window handle lookup failed.")

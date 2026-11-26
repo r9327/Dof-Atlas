@@ -261,6 +261,7 @@ class HomePage(QWidget):
         self._guide_ultime_runtime_allowed = False
         self.character_key = ""
         self.character_label = "Aucun personnage connecté"
+        self._local_dofus_sessions: tuple[str, ...] = ()
         self.character_icon_path = ""
         self._character_icon_signature = None
         self.current_guide_id = ""
@@ -269,6 +270,7 @@ class HomePage(QWidget):
         self.network_bridge = network_ui_bridge()
         self.network_bridge.statusChanged.connect(self._on_network_status)
         self.network_bridge.progressChanged.connect(self._on_network_progress_changed)
+        self.network_bridge.localSessionsChanged.connect(self._on_local_dofus_sessions)
 
         root = QHBoxLayout(self)
         page_margin = HOME_GEOMETRY["page_margin"]
@@ -304,6 +306,7 @@ class HomePage(QWidget):
         identity_text.addStretch(1)
         self.character_name = QLabel(self.character_label)
         self.character_name.setObjectName("HomeCharacterName")
+        self.character_name.setTextFormat(Qt.PlainText)
         self.character_name.setWordWrap(True)
         identity_text.addWidget(self.character_name)
         self.character_progress = QLabel("Guide terminé : 0 %")
@@ -613,9 +616,29 @@ class HomePage(QWidget):
         self.character_key = next_key
         self.character_label = next_label
         self.character_icon_path = next_icon_path
-        self.character_name.setText(self.character_label)
+        self._update_character_name()
         self._update_character_icon()
         self.refresh_progress()
+
+    def _on_local_dofus_sessions(self, sessions: tuple[str, ...]) -> None:
+        self._local_dofus_sessions = sessions
+        self._update_character_name()
+
+    def _update_character_name(self) -> None:
+        sessions = self._local_dofus_sessions
+        if self.character_key or not sessions:
+            self.character_name.setText(self.character_label)
+            self.character_name.setToolTip("")
+            return
+        names = tuple(dict.fromkeys(name for name in sessions if name))
+        if len(sessions) == 1:
+            label = f"{names[0]}\nSession DOFUS détectée" if names else "Session DOFUS détectée"
+        else:
+            label = f"{len(sessions)} sessions DOFUS détectées"
+        self.character_name.setText(label)
+        self.character_name.setToolTip(
+            "\n".join((*names, "Identité réseau en attente de vérification."))
+        )
 
     def apply_encyclopedia_context(
         self,

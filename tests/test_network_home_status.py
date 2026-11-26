@@ -288,6 +288,22 @@ class NetworkHomeStatusTests(unittest.TestCase):
         page.network_retry.setVisible.assert_called_once_with(False)
         self.assertIn("automatiquement", HomePage._network_explanation(status))
 
+    def test_home_displays_local_session_without_assigning_progress_identity(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        page = SimpleNamespace(
+            character_name=Mock(), character_key="", character_label="Aucun personnage connecté",
+        )
+        page._update_character_name = lambda: HomePage._update_character_name(page)
+        HomePage._on_local_dofus_sessions(page, ("Héros",))
+        page.character_name.setText.assert_called_with("Héros\nSession DOFUS détectée")
+        self.assertEqual(page.character_key, "")
+        page.character_key = "character:42"
+        page.character_label = "Personnage vérifié"
+        HomePage._on_local_dofus_sessions(page, ("Autre fenêtre", ""))
+        page.character_name.setText.assert_called_with("Personnage vérifié")
+
         self.assertEqual(
             HomePage._network_summary(self._status(reason="network_context_loading")),
             ("Chargement Réseau…", "pending"),
