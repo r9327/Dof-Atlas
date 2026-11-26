@@ -140,6 +140,18 @@ def documentary_coordinate_candidates(text: str) -> set[str | None]:
     }
 
 
+def quest_launch_instruction(source_info: object) -> str:
+    """Read an independently sourced instruction, without deriving a map from it."""
+    launch = source_info.get("launch_position") if isinstance(source_info, dict) else None
+    if not isinstance(launch, dict):
+        return ""
+    instruction = launch.get("instruction")
+    source_url = launch.get("source_url")
+    if not isinstance(instruction, str) or not isinstance(source_url, str) or not source_url.startswith("https://"):
+        return ""
+    return instruction.strip()
+
+
 def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]]:
     """Return declared start, source status and the two normalized declarations.
 
@@ -154,6 +166,10 @@ def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]
     )
     positions = tuple(canonical_declared_coordinate(value) for value in raw)
     if not any(raw):
+        # Item use, conditional starts and special access have a useful
+        # instruction but cannot supply a single travel destination.
+        if quest_launch_instruction(info):
+            return "", "DOCUMENTED_START", positions
         status = "NO_DECLARED_START"
     elif any(value and not position for value, position in zip(raw, positions)):
         status = "INVALID_START_COORDINATES"
@@ -183,6 +199,8 @@ def quest_launch_position_evidence(source_info: object) -> tuple[str, str, tuple
     Contradictory documentary declarations remain visible as review evidence.
     """
     primary, status, positions = declared_quest_start(source_info)
+    if status == "DOCUMENTED_START":
+        return "", status, positions
     info = source_info if isinstance(source_info, dict) else {}
     native = info.get("native_start")
     map_id = native.get("map_id") if isinstance(native, dict) else None

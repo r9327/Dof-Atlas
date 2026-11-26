@@ -54,6 +54,21 @@ class GuideManualStructuredRuntimeTests(unittest.TestCase):
         self.assertEqual(service._quest_segments(step, quest, finalize=False)[0]["position"], "[1,2]")
         self.assertEqual((adapter._start_location(101).x, adapter._start_location(101).y), (1, 2))
 
+        instruction = "Passez par la statue de votre temple, puis parlez au forgeron."
+        quest.source_info = {
+            "native_start": {"map_id": 10, "position": "[1,2]"},
+            "launch_position": {"instruction": instruction, "source_url": "https://example.org/quete"},
+        }
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.launch_status, "DOCUMENTED_START")
+        self.assertEqual(info.declared_launch_position, "")
+        self.assertEqual(info.position, "[5,6]")
+        cards = service._quest_segments(step, quest)
+        self.assertEqual(cards[0]["position"], "")
+        self.assertEqual(cards[0]["sections"]["now"][0],
+                         {"kind": "action", "position": "", "text": instruction})
+        self.assertIsNone(adapter._start_location(101).x)
+
     def test_first_incomplete_uses_one_rule_for_generated_and_manual_routes(self):
         from types import SimpleNamespace
         from unittest.mock import Mock

@@ -21,6 +21,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     GuideUltimeWalkthroughCard,
     ObjectiveWalkthrough,
     QuestWalkthroughIndex,
+    launch_instruction_html,
 )
 from app.core.numbers import optional_int
 from app.core.map_coordinates import (
@@ -177,6 +178,12 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
 
         npc = position = zone = ""
         if qid is not None:
+            instruction = self.walkthrough.start_instruction(qid)
+            if instruction:
+                label = self._append_action_label(body, launch_instruction_html(instruction), done)
+                label.setTextFormat(Qt.RichText)
+                label.setProperty("documentaryLaunchInstruction", True)
+                return
             npc, position, zone = self.walkthrough.start_details(qid)
         if not position:
             position = self._row_position(row)
@@ -621,6 +628,8 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         labels = [root] if isinstance(root, QLabel) else []
         labels.extend(root.findChildren(QLabel))
         for label in labels:
+            if label.property("documentaryLaunchInstruction"):
+                continue
             match = TRAVEL_COORD_RE.search(label.text())
             command = travel_command_from_pair(*match.groups()) if match is not None else None
             if command is None:

@@ -89427,7 +89427,6 @@
         "level": "35",
         "title": "L'île des naufragés",
         "startNpc": "Capitaine Kradoc",
-        "startCoords": "[15,28]",
         "startMapImage": "/images/quete/96/2.jpg",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -90132,7 +90131,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Reparlez au capitaine Kradoc à Sufokia [15,28] après « Le nouveau monde ». Après les trois combats en mer, la quête commence en lui parlant sur l’île des Naufragés [-43,2!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/licircle-des-naufrageacutes.html"
+      }
     },
     "233": {
       "quest_id": 233,
@@ -262676,6 +262679,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Demandez à combattre chaque Dopeul à un maître de temple de classe. Au temple Forgelance [33,-84], vous pouvez demander à Mikado Peule de lancer les deux quêtes en même temps.",
+        "source_url": "https://www.dofuspourlesnoobs.com/chasse-au-dopeul-forgelance.html"
       }
     },
     "474": {
@@ -266239,6 +266246,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Si vous avez le statut Premium de l’ancien coffret collector, parlez à Bob l’Enutrof dans la maison Premium en [-21,-18].",
+        "source_url": "https://nokazu.fr/encyclopedie/dofus2/quetes_hors_succes"
       }
     },
     "495": {
@@ -300254,7 +300265,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Utilisez la Plume Vibrante de mansot dans vos objets utilisables. Elle se récupère sur les mansots du Lac gelé.",
+        "source_url": "https://www.dofuspourlesnoobs.com/un-gros-cube-un-pti-cube.html"
+      }
     },
     "556": {
       "quest_id": 556,
@@ -340655,7 +340670,6 @@
         "level": "110",
         "title": "Souvenir, souvenir",
         "startNpc": "-",
-        "startCoords": "-",
         "startMapImage": "",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -340898,7 +340912,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Récupérez une Vieille peluche Féca sur les Boufmouths des Champs de glace, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/souvenir-souvenir.html"
+      }
     },
     "600": {
       "quest_id": 600,
@@ -340939,7 +340957,6 @@
         "level": 0,
         "title": "Bricoleur de génie",
         "startNpc": "-",
-        "startCoords": "-",
         "startMapImage": "",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -341178,7 +341195,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Récupérez une Gomme à mâcher sur les monstres de la Forêt des pins perdus, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/bricoleur-de-geacutenie.html"
+      }
     },
     "601": {
       "extraction_version": 2,
@@ -341388,7 +341409,10 @@
         "Niveau 130+",
         "Niveau recommandé 150"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez un Coffre familial sur les monstres du Berceau d’Alma, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/bijoux-de-famille.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer la quête, il vous faut posséder un coffre familial qui se drop à un taux de base de 1% sur les monstres du berceau d'Alma sur l'Île de Frigost"
@@ -341690,7 +341714,10 @@
         "Niveau recommandé 170",
         "Quête journalière"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez un Livre scellé dans la Crevasse Perge ou le Village enseveli, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/obscurantisme.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer la quête, il vous faut posséder un livre scellé qui se drop à un taux de base de 1% dans la crevasse Perge et le village enseveli sur l'Île de Frigost"
@@ -342915,7 +342942,10 @@
         "Succes requis: Meulou (Premier)",
         "Niveau recommandé 180"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez la Clef végétale pétrifiée dans la Forêt pétrifiée, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/monstre-aux-plantes.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "1 x combat (réalisable en groupe)",
@@ -343352,7 +343382,10 @@
         "Succes requis: Meulou (Premier)",
         "Niveau recommandé 190"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez un Crystal de résonance sur les monstres des Crocs de verre, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/la-transe-du-crystal.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer la quête, il vous faut posséder un crystal de résonance qui se drop à un taux de base de 1% sur les monstres des crocs de verre sur l'Île de Frigost"
@@ -343594,7 +343627,10 @@
         "Niveau recommandé 160",
         "Un volcan s'éteint"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez une Broche en nacre sur les monstres des Larmes d’Ouronigride, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/art-nacre.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer la quête, il vous faut posséder une broche en nacre qui se drop à un taux de base de 1% sur les monstres des larmes d'Ouronigride sur l'Île de Frigost"
@@ -344004,7 +344040,10 @@
         "Niveau recommandé 190",
         "Quête journalière"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez un Œuf de larve sur les monstres du Mont Torrideau ou de la Ruche des Gloursons, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/glourmandise.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer la quête, il vous faut posséder un Oeuf de larve qui se drop à un taux de base de 1% sur les monstres du Mont Torrideau et de la ruche des gloursons sur l'Île de Frigost"
@@ -344647,7 +344686,10 @@
         "À la recherche de Dan Lavy",
         "Il vous faut être 7 personnages pour réussir la quête (avoir la quête ou l'avoir terminée)"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez la Clef secrète de l’Hypogée de l’Obsidiantre sur l’Obsidiantre, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/inferno.html"
+      },
       "preparation": [
         "1 x combat (réalisable en groupe)"
       ],
@@ -345349,7 +345391,10 @@
         "À qui profite le Boufmouth",
         "Il vous faut être 8 personnages pour réussir la quête (avoir la quête ou l'avoir terminée)"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Double-cliquez sur la Clef secrète de la crevasse Perge, obtenue sur le Tengu Givrefoux, puis cliquez sur le bloc de glace dans la Crevasse Perge [-78,-78!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/tous-pour-un.html"
+      },
       "preparation": [
         "Avoir drop la Clef secrète de la crevasse Perge sur le Tengu Givrefoux à un taux de base de 5%",
         "1 x combat (réalisable en groupe)"
@@ -346504,7 +346549,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Récupérez la Clef secrète des crocs de verre sur le Kolosso, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-travail-cest-la-santeacute.html"
+      }
     },
     "612": {
       "quest_id": 612,
@@ -356297,7 +356346,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Après « Lavomatique », parlez à Givrihaltès dans les Cavernes Givrefoux [-76,-75!] pour entrer dans la Tanière Givrefoux.",
+        "source_url": "https://www.dofuspourlesnoobs.com/cest-frais-mais-cest-pas-grave.html"
+      }
     },
     "624": {
       "extraction_version": 2,
@@ -357850,6 +357903,11 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Prenez l’avis du Comte dans la tour de la milice à l’entrée du château de Harebourg [-68,-76], après avoir lancé « Les marcheurs blancs ».",
+        "source_url": "https://www.dofuspourlesnoobs.com/les-marcheurs-blancs.html",
+        "position": "[-68,-76]"
       }
     },
     "631": {
@@ -367772,7 +367830,10 @@
         "Rien",
         "La position de lancement de la quête varie en fonction du jour de la semaine"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Parlez au Chasseur blessé à l’emplacement du jour. Lundi [-68,-46], mardi [-70,-48], mercredi [-58,-53], jeudi [-65,-48], vendredi [-58,-57], samedi [-61,-52], dimanche [-62,-49].",
+        "source_url": "https://www.dofuspourlesnoobs.com/blessure-de-chasse.html"
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -368368,7 +368429,10 @@
         "Rien",
         "La quête se lance au minimum 13 heures après avoir terminé la précédente. Tout comme la première quête, la position de lancement varie en fonction du jour de la semaine"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Parlez au Chasseur blessé à l’emplacement du jour. Lundi [-65,-63], mardi [-61,-62], mercredi [-64,-58], jeudi [-69,-60], vendredi [-71,-53], samedi [-70,-57], dimanche [-74,-54]. Attendez au moins 13 heures après la quête précédente.",
+        "source_url": "https://www.dofuspourlesnoobs.com/chasse-dangereuse.html"
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -368957,7 +369021,10 @@
         "Rien",
         "Cette quête se lance au minimum 13 heures après avoir terminé la seconde quête du chasseur blessé. Comme les deux autres, les positions du chasseur et donc de lancement varient en fonction du jour de la semaine"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Parlez au Chasseur blessé à l’emplacement du jour. Lundi [-56,-66], mardi [-53,-63], mercredi [-57,-69], jeudi [-60,-65], vendredi [-53,-67], samedi [-58,-60], dimanche [-54,-60]. Attendez au moins 13 heures après la quête précédente.",
+        "source_url": "https://www.dofuspourlesnoobs.com/rentrer-brocouille.html"
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -390023,7 +390090,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Équipez l’Amulette Ementaire pour lancer la quête.",
+        "source_url": "https://www.dofuspourlesnoobs.com/et-lemmental.html"
+      }
     },
     "677": {
       "extraction_version": 2,
@@ -394681,6 +394752,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Parlez à Lesson au Village enseveli, en [-76,-74] en journée. Le jeu permet aussi le lancement en [-75,-74] la nuit.",
+        "source_url": "https://nokazu.fr/encyclopedie/dofus2/quetes_hors_succes"
       }
     },
     "680": {
@@ -398011,7 +398086,10 @@
         "Niveau recommandé : 170",
         "C'est frais, mais c'est pas grave"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Après « C’est frais, mais c’est pas grave », parlez à Givrihaltès dans les Cavernes Givrefoux [-76,-75!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/porte-tengu-givrefoux-treacutesor.html"
+      },
       "preparation": [
         "1 x Donjon Tanière Givrefoux"
       ],
@@ -416675,8 +416753,9 @@
         "Aucune"
       ],
       "launch_position": {
-        "position": "[8,-5]",
-        "source_text": "La quête se lance au Port de Madrestam en [8,-5] auprès de la Capitaine Jeanne Heuway qui travaille pour l'Agence Touriste et vous invite à embarquer sur son bateau Le Voyageur afin de rejoindre l'archipel touristique de Vulkania pour la modique somme de 10 kamas."
+        "source_text": "La quête se lance au Port de Madrestam en [8,-5] auprès de la Capitaine Jeanne Heuway qui travaille pour l'Agence Touriste et vous invite à embarquer sur son bateau Le Voyageur afin de rejoindre l'archipel touristique de Vulkania pour la modique somme de 10 kamas.",
+        "instruction": "Parlez à la capitaine Jeanne Heuway au port de Madrestam [8,-5] pour embarquer vers Vulkania.",
+        "source_url": "https://www.dofuspourlesnoobs.com/premier-contact.html"
       },
       "preparation": [],
       "required_items": [],
@@ -448368,7 +448447,6 @@
         "level": "56",
         "title": "Voyage au centre du Wabbit",
         "startNpc": "Carnet de voyage déchiré",
-        "startCoords": "-",
         "startMapImage": "/images/quete/197/1.jpg",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -448815,7 +448893,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Dans le livre récupéré pendant « Expédition culinaire », cliquez sur le lien à la fin pour lancer la quête.",
+        "source_url": "https://www.dofuspourlesnoobs.com/voyage-au-centre-du-wabbit.html"
+      }
     },
     "843": {
       "quest_id": 843,
@@ -475035,7 +475117,6 @@
         "level": "60",
         "title": "Gelée bien eue",
         "startNpc": "Alain Deix",
-        "startCoords": "[2,-1]",
         "startMapImage": "https://nprujxwstlfevahfnytz.supabase.co/storage/v1/object/public/quest-assets/gelee-bien-eue/start-map-1770846764666.png",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -475297,7 +475378,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Parlez à Alain Deix dans la taverne du village d’Amakna [2,-1] et acceptez d’explorer la Gelaxième Dimension.",
+        "source_url": "https://www.dofuspourlesnoobs.com/geleacutee-bien-eue.html"
+      }
     },
     "907": {
       "quest_id": 907,
@@ -475338,7 +475423,6 @@
         "level": "70",
         "title": "Chéri fais-moi peur",
         "startNpc": "Alain Dex",
-        "startCoords": "[2,-1]",
         "startMapImage": "https://nprujxwstlfevahfnytz.supabase.co/storage/v1/object/public/quest-assets/cheri-fais-moi-peur/start-map-1770847664636.png",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -475685,7 +475769,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Parlez à Alain Deix dans la taverne du village d’Amakna [2,-1] et acceptez d’enquêter sur le Dofus du Gourlo.",
+        "source_url": "https://www.dofuspourlesnoobs.com/cheacuteri-fais-moi-peur.html"
+      }
     },
     "908": {
       "quest_id": 908,
@@ -483462,7 +483550,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï. Cette fiche correspond à la difficulté touriste.",
+        "source_url": "https://www.dofuspourlesnoobs.com/kilukru-pour-touristeamateurspeacutecialisteexpert.html"
+      }
     },
     "927": {
       "quest_id": 927,
@@ -483499,6 +483591,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï. Cette fiche correspond à la difficulté amateur.",
+        "source_url": "https://www.dofuspourlesnoobs.com/kilukru-pour-touristeamateurspeacutecialisteexpert.html"
       }
     },
     "928": {
@@ -483536,6 +483632,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï. Cette fiche correspond à la difficulté spécialiste.",
+        "source_url": "https://www.dofuspourlesnoobs.com/kilukru-pour-touristeamateurspeacutecialisteexpert.html"
       }
     },
     "929": {
@@ -483573,6 +483673,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï. Cette fiche correspond à la difficulté expert.",
+        "source_url": "https://www.dofuspourlesnoobs.com/kilukru-pour-touristeamateurspeacutecialisteexpert.html"
       }
     },
     "930": {
@@ -483919,7 +484023,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/gare-aux-krokilles-juveacutenilesnovicesmaturesveacuteneacuterables.html"
+      }
     },
     "931": {
       "quest_id": 931,
@@ -483956,6 +484064,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/gare-aux-krokilles-juveacutenilesnovicesmaturesveacuteneacuterables.html"
       }
     },
     "932": {
@@ -483993,6 +484105,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/gare-aux-krokilles-juveacutenilesnovicesmaturesveacuteneacuterables.html"
       }
     },
     "933": {
@@ -484030,6 +484146,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/gare-aux-krokilles-juveacutenilesnovicesmaturesveacuteneacuterables.html"
       }
     },
     "934": {
@@ -486960,7 +487080,9 @@
         "Le Secret de la Baie Tarad"
       ],
       "launch_position": {
-        "source_text": "La quête se lance sur Vulkania en [-50,44] auprès de Matt Hematik si vous avez dénoncé Régisse ou sinon en [-47,44] auprès de Régisse Kardestin si vous avez fait chanté Régisse. Pour ma part c’est Régisse « Lui dire que vous cherchez un travail bien rémunéré » . Régisse vous demande alors de récupérer des documents volés à l’agence « Accepter ». Il vous explique un de ses plans pour coincer le voleur qui serait de l’attirer avec des Koeurs de Krokille que vous trouverez sur l’îlot Sans Nom."
+        "source_text": "La quête se lance sur Vulkania en [-50,44] auprès de Matt Hematik si vous avez dénoncé Régisse ou sinon en [-47,44] auprès de Régisse Kardestin si vous avez fait chanté Régisse. Pour ma part c’est Régisse « Lui dire que vous cherchez un travail bien rémunéré » . Régisse vous demande alors de récupérer des documents volés à l’agence « Accepter ». Il vous explique un de ses plans pour coincer le voleur qui serait de l’attirer avec des Koeurs de Krokille que vous trouverez sur l’îlot Sans Nom.",
+        "instruction": "Si vous avez dénoncé Régisse, parlez à Matt Hematik en [-50,44]. Si vous l’avez fait chanter, parlez à Régisse Kardestin en [-47,44].",
+        "source_url": "https://www.dofuspourlesnoobs.com/des-koeurs-du-tonnerre.html"
       },
       "preparation": [
         "2 x combats (réalisable en groupe)"
@@ -487935,7 +488057,9 @@
         "La quête se lance après avoir rejoint l'un des deux camps de l'archipel de Vulkania"
       ],
       "launch_position": {
-        "source_text": "Pour le camp de Kohrog la quête se lance en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas).\nPour le camp de Lantamaï la quête se lance en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas)."
+        "source_text": "Pour le camp de Kohrog la quête se lance en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas).\nPour le camp de Lantamaï la quête se lance en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas).",
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/cristal-rasha.html"
       },
       "preparation": [],
       "required_items": [],
@@ -514499,7 +514623,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Lancez pour la première fois de la journée une quête de récolte de la Bourgade figurant dans la liste de la solution.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-calendrier-des-reacutecoltes.html"
+      }
     },
     "1269": {
       "quest_id": 1269,
@@ -514576,7 +514704,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Lancez pour la première fois de la journée une quête d’artisanat de la Bourgade figurant dans la liste de la solution.",
+        "source_url": "https://www.dofuspourlesnoobs.com/jaurais-voulu-ecirctre-un-artisan.html"
+      }
     },
     "1270": {
       "extraction_version": 2,
@@ -544540,7 +544672,10 @@
         "Avoir une Bouteille de Cocalane",
         "Quête journalière"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez une Bouteille de Cocalane dans les Jardins d’Hiver, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/passer-du-cocalane.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer cette quête, il faut droper une Bouteille de Cocalane à un taux de base de 1% sur les monstres de la zone Jardins d'Hiver"
@@ -544783,7 +544918,10 @@
         "Avoir une Serviette égarée",
         "Quête journalière"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez une Serviette égarée sur les monstres des Remparts à vent, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-jour-de-la-serviette.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer la quête, vous devez avoir drop une Serviette égarée, qui se drop à un taux de base de 1% sur les monstres de la zone Remparts à vent"
@@ -545133,7 +545271,10 @@
         "Avoir un String en poils de nez",
         "Quête journalière"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez un String en poils de nez dans la Tannerie Écarlate, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/un-string-de-caractegravere.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "Pour lancer la quête, il faut avoir droper un String en poils de nez sur les monstres de la zone Tannerie Écarlate. Drop de bas à 1%"
@@ -545424,7 +545565,10 @@
         "Niveau recommandé : 200",
         "Quête journalière"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez un Vieux magazine sur les monstres du Bastion des froides Légions, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/voila-ougrave-ccedila-nous-megravene.html"
+      },
       "preparation": [
         "Avoir dropé un Vieux magazine sur les monstres du Bastion des froides Légions",
         "Des combats contre des monstres d'une zone"
@@ -545712,7 +545856,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Récupérez une Lettre de noblesse sur les monstres de la Tour de la Clepsydre, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/ya-pas-eacutecrit-la-poste.html"
+      }
     },
     "1309": {
       "quest_id": 1309,
@@ -545966,7 +546114,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Entrez dans l’un des quatre donjons des maîtres de Frigost III, puis parlez à un PNJ du donjon pour lancer la quête.",
+        "source_url": "https://www.dofuspourlesnoobs.com/il-faut-mettre-un-terme-aux-maicirctres.html"
+      }
     },
     "1310": {
       "quest_id": 1310,
@@ -552845,7 +552997,10 @@
         "L'essentiel est dans Lac Gelé (bloque une étape)",
         "Prologue : La fat alité (brâkmarien) ou La destinée (bontarien) ou La rivalité (neutre)"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Parlez à votre commanditaire dans la cité de votre alignement : Brâkmar [-25,33], Bonta [-32,-57] ou le Château d’Amakna [4,-6] pour les neutres.",
+        "source_url": "https://www.dofuspourlesnoobs.com/maleacutediction.html"
+      },
       "preparation": [
         "1 x combat (réalisable en groupe)",
         "1 x combat (seul)",
@@ -663603,7 +663758,10 @@
         "Niveau recommandé 200",
         "On ne prête qu'à Richard"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Proposez vos services à Richard le Trésorier dans la Retraite des Éternels [-9,-6!]. Si vous avez déjà refusé, retrouvez-le en [-5,-5!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/pour-quelques-kamas-de-plus.html"
+      },
       "preparation": [
         "2 x combats (réalisable en groupe)"
       ],
@@ -678085,7 +678243,11 @@
       "mapping_confidence": "HIGH",
       "mapping_signals": [
         "lot6_work_verified"
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Double-cliquez sur le Joyau écarlate obtenu à la fin de « Les grandes galeries ».",
+        "source_url": "https://www.dofuspourlesnoobs.com/un-coeligur-dor.html"
+      }
     },
     "1509": {
       "extraction_version": 2,
@@ -689818,7 +689980,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs d’Enutrosor [-1,-1!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-la-maxi-malle.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -691200,7 +691365,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs d’Enutrosor [-1,-1!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-aigripoil.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -692266,7 +692434,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs d’Enutrosor [-1,-1!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-voldelor.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -748598,7 +748769,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs de Srambad [2,2!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-gein.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -750051,7 +750225,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs de Srambad [2,2!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-la-mouchame.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -750988,7 +751165,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs de Srambad [2,2!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-panteroz.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -801840,7 +802020,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs du Xélorium [1,6!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-morblok.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -803425,7 +803608,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs du Xélorium [1,6!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-hin.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -805598,7 +805784,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs du Xélorium [1,6!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-sicogne.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -840597,7 +840786,6 @@
         "level": "1",
         "title": "L'anneau de tous les dangers",
         "startNpc": "Ganymède",
-        "startCoords": "[-3,-3]",
         "startMapImage": "/images/quete/1/2.jpg",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -840965,7 +841153,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Pendant le tutoriel du Temple Céleste d’Incarnam, parlez à Ganymède après « Premières armes ».",
+        "source_url": "https://www.dofuspourlesnoobs.com/l-anneau-de-tous-les-dangers.html"
+      }
     },
     "1630": {
       "quest_id": 1630,
@@ -841006,7 +841198,6 @@
         "level": "2",
         "title": "Sous le regard des dieux",
         "startNpc": "Ganymède",
-        "startCoords": "[-3,-3]",
         "startMapImage": "/images/quete/1/2.jpg",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -841301,7 +841492,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Pendant le tutoriel du Temple Céleste d’Incarnam, poursuivez le dialogue avec Maître Hoboulo après avoir fabriqué l’anneau.",
+        "source_url": "https://www.dofuspourlesnoobs.com/sous-le-regard-des-dieux.html"
+      }
     },
     "1631": {
       "quest_id": 1631,
@@ -841342,7 +841537,7 @@
         "level": "2",
         "title": "Réponses à tout",
         "startNpc": "Ganymède",
-        "startCoords": "[-3,-3]",
+        "startCoords": "[1,1]",
         "startMapImage": "/images/quete/1/2.jpg",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -841670,7 +841865,12 @@
             "farm": true
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Après « Sous le regard des dieux », parlez à Ganymède dans le Temple Céleste d’Incarnam [1,1].",
+        "source_url": "https://www.dofuspourlesnoobs.com/reacuteponses-agrave-tout.html",
+        "position": "[1,1]"
+      }
     },
     "1632": {
       "quest_id": 1632,
@@ -891891,7 +892091,6 @@
         "level": 0,
         "title": "Serrons-nous la main",
         "startNpc": "",
-        "startCoords": "[33,3]",
         "startMapImage": "https://nprujxwstlfevahfnytz.supabase.co/storage/v1/object/public/quest-assets/serrons-nous-la-main/start-map-1771790596678.png",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -892928,7 +893127,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Terminez le donjon Bateau du Chouque, puis parlez au Chouque dans la dernière salle. L’entrée du donjon se trouve au Chemin du Crâne [33,3].",
+        "source_url": "https://www.dofuspourlesnoobs.com/serrons-nous-la-main.html"
+      }
     },
     "1677": {
       "quest_id": 1677,
@@ -896052,7 +896255,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Sam Sagaz, il faut être d’alignement 1 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-sam-sagaz.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -897866,7 +898072,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Maître Boulet, il faut être d’alignement 1 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-maitre-boulet.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -899799,7 +900008,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Roub’ Ignolles, il faut être d’alignement 10 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-roub-ignolles.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -901591,7 +901803,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Bouss Baybe, il faut être d’alignement 10 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-bouss-baybe.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -903267,7 +903482,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Nono le Wobot, il faut être d’ordre 1 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-nono-le-wobot.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -905180,7 +905398,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche d’Armada l’Invincible, il faut être d’ordre 1 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-armada-l-invincible.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -907277,7 +907498,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Dragodingo, il faut être d’ordre 1 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-dragodingo.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -908845,7 +909069,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Degolas, il faut être d’ordre 1 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-degolas.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -910601,7 +910828,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche du Prince Marchand, il faut être d’ordre 2 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-le-prince-marchand.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -949740,7 +949970,10 @@
         "Niveau 180+",
         "Niveau recommandé : 200"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez une Carte Rongée sur les monstres du Temple de Kerubim, dans Ecaflipus, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/se-piquer-au-jeu.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone",
         "1 x combat (seul)",
@@ -952083,7 +952316,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs d’Ecaflipus [-1,-6!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-atcham.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1014222,7 +1014458,10 @@
         "La pêche aux infos",
         "1 x Attrape-peur OU (50 x Tentacule de Grofond + 50 x Tentacule de N'Yalg + 50 x Œil de Shokkoth + 10 x Bois d'Aquajou + 20 x Patelle + 20 x Écume de mer + 1 x Ambre de muldo)"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Après « La pêche aux infos », double-cliquez sur le Livre détrempé.",
+        "source_url": "https://www.dofuspourlesnoobs.com/celle-qui-glougloutait-dans-les-teacutenegravebres.html"
+      },
       "preparation": [
         "Il faudra effectuer deux combats"
       ],
@@ -1038336,7 +1038575,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Plongez par le bassin de Sufokia [23,24], puis cliquez sur l’avis de ce recherché en arrivant aux Profondeurs de Sufokia [23,26!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-buldalazred.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1040673,7 +1040915,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Plongez par le bassin de Sufokia [23,24], puis cliquez sur l’avis de ce recherché en arrivant aux Profondeurs de Sufokia [23,26!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-takomako.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1046932,7 +1047177,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Plongez par le bassin de Sufokia [23,24], puis cliquez sur l’avis de ce recherché en arrivant aux Profondeurs de Sufokia [23,26!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-le-homard-medali.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1152979,7 +1153227,10 @@
         "Niveau 170+",
         "Niveau recommandé : 190"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récupérez un Manuel Scolaire sur les monstres de Nimotopia, puis double-cliquez dessus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/la-valse-des-manuels.html"
+      },
       "preparation": [
         "Des combats contre des monstres d'une zone pour un drop à 2% de base",
         "1 x combat (réalisable en groupe)",
@@ -1159309,7 +1159560,7 @@
         "level": "50",
         "title": "Faire le mort",
         "startNpc": "Karl Groucho",
-        "startCoords": "[-26,36]",
+        "startCoords": "[-25,33]",
         "startMapImage": "data/encyclopedia/images/quests/1859/lot6_7b5f3f9ec2ddb75a0d80.webp",
         "backgroundVideo": "/videos/fond.mp4",
         "startMapImages": [
@@ -1160230,8 +1160481,9 @@
         }
       ],
       "launch_position": {
-        "position": "[-26,36]",
-        "source_text": "La quête se lance auprès de Karl Groucho en [-26,36] (au plus profond de la milice, là où se trouvent les cellules)."
+        "instruction": "Après « Le mort dort », descendez dans les cellules de la milice de Brâkmar [-25,33] et parlez à Karl Groucho.",
+        "source_url": "https://www.gamosaurus.com/guide/solution-de-la-quete-faire-le-mort-dofus",
+        "position": "[-25,33]"
       }
     },
     "1860": {
@@ -1164145,7 +1164397,10 @@
         "Pour lancer la quête il va falloir effectuer différentes tâches",
         "Commencez par récolter les champignons indiqués sur la map ci-contre. Les positions en bleu sont celles dans la caverne et celles en vert dans le domaine"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Récoltez les champignons indiqués dans la solution et préparez la Poêlée Fongique. Consommez-la dans la caverne des Fungus [-14,31], puis parlez aux personnages fantasmatiques jusqu’au déclenchement.",
+        "source_url": "https://www.dofuspourlesnoobs.com/champallucination.html"
+      },
       "preparation": [
         "1 x combat (seul)",
         "Combats contre des monstres pour du drop"
@@ -1257372,7 +1257627,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Gobrechaun, il faut être d’ordre 2 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-gobrechaun.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1259179,7 +1259437,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de la Vashkiwi, il faut être d’ordre 2 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-la-vashkiwi.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1261298,7 +1261559,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Jérart Dupaindur, il faut être d’ordre 2 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-jerart-dupaindur.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1263447,7 +1263711,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Mogligli, il faut être d’ordre 3 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-mogligli.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1265098,7 +1265365,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Glandaf l’Aigri, il faut être d’ordre 3 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-glandaf-l-aigri.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1266890,7 +1267160,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Crasper, il faut être d’ordre 3 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-crasper.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1269746,7 +1270019,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Carter le Pillard, il faut être d’ordre 4 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-carter-le-pillard.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1269809,6 +1270085,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Prenez l’avis du Sans Visage à la milice de votre alignement, à Bonta ou à Brâkmar. La Dimension Obscure est le lieu de la recherche.",
+        "source_url": "https://huzounet.fr/guides/les-avis-de-recherche"
       }
     },
     "1932": {
@@ -1271513,7 +1271793,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche de Darma, il faut être d’ordre 3 ou plus dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-darma.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1273589,7 +1273872,10 @@
         "Ainsi afin de pouvoir se lancer à la recherche du Fantôme Braïdeur, il faut être d’ordre 5 dans un des deux alignements",
         "Si vous possédez tous les prérequis pour prendre l’avis de recherche, il ne vous reste plus qu’à vous rendre dans la salle des recherchés en fonction de votre alignement :"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Cliquez sur l’avis de ce recherché à la milice de votre alignement. À Brâkmar [-25,33], montez et prenez à gauche. À Bonta [-32,-57], prenez la salle en haut à gauche puis celle du haut près des escaliers.",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-le-fantome-braideur.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché",
@@ -1284170,7 +1284456,6 @@
         "level": "",
         "title": "La colère des dieux",
         "startNpc": "-",
-        "startCoords": "[-,-]",
         "startMapImage": "",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -1284528,7 +1284813,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Parlez au maître de votre temple de classe, évoquez les Tours de la Fratrie des Oubliés et acceptez d’affronter ses soldats.",
+        "source_url": "https://www.dofuspourlesnoobs.com/la-colere-des-dieux.html"
+      }
     },
     "1939": {
       "quest_id": 1939,
@@ -1284569,7 +1284858,6 @@
         "level": "200",
         "title": "L'arme fatale",
         "startNpc": "Gobanos",
-        "startCoords": "[-,-]",
         "startMapImage": "",
         "backgroundVideo": "/videos/fond.mp4",
         "lot6DirectValidation": "artifacts/lot6_codex_direct_validation.jsonl"
@@ -1285556,7 +1285844,11 @@
             "farm": false
           }
         }
-      ]
+      ],
+      "launch_position": {
+        "instruction": "Passez par la statue de votre temple de classe pour rejoindre le Domaine des dieux, puis parlez à Gobanos le forgeron au sous-sol.",
+        "source_url": "https://www.dofuspourlesnoobs.com/l-arme-fatale.html"
+      }
     },
     "1940": {
       "extraction_version": 2,
@@ -1513751,8 +1514043,9 @@
         "Aller en Srambad"
       ],
       "launch_position": {
-        "position": "[4,-2]",
-        "source_text": "La quête se lance à la suite de la précédente à la fin du donjon Trône de sang en [4,-2] auprès de Guerre qui vient de vous annoncer son intention de mettre toutes les époques du monde à feu et à sang dans le seul but de trouver un guerrier immortel comme elle avec qui s’amuser « Proposer de lui rapporter un guerrier afin qu’elle ne ravage pas le monde des Douze »."
+        "source_text": "La quête se lance à la suite de la précédente à la fin du donjon Trône de sang en [4,-2] auprès de Guerre qui vient de vous annoncer son intention de mettre toutes les époques du monde à feu et à sang dans le seul but de trouver un guerrier immortel comme elle avec qui s’amuser « Proposer de lui rapporter un guerrier afin qu’elle ne ravage pas le monde des Douze ».",
+        "instruction": "Poursuivez le dialogue avec Guerre dans la salle finale du donjon Trône de sang [4,-2!] et proposez-lui de trouver un guerrier.",
+        "source_url": "https://www.dofuspourlesnoobs.com/au-dela-de-la-gloire.html"
       },
       "preparation": [
         "1 x combat (seul)"
@@ -1617105,7 +1617398,9 @@
         "Niveau recommandé : 200"
       ],
       "launch_position": {
-        "source_text": "La quête se lance dans l’un des deux sanctuaires du Wukin ou du Wukang en [15,-31] ou en [20,-38]. Parlez à Daoh « Lui dire qu’elle semble préoccupée ». Elle vous apprend que les esprits mots qui peuplent les royaumes d’encres et de papier déstabilisent l’ordre naturel et qu’il faudrait effacer certains d’entre eux."
+        "source_text": "La quête se lance dans l’un des deux sanctuaires du Wukin ou du Wukang en [15,-31] ou en [20,-38]. Parlez à Daoh « Lui dire qu’elle semble préoccupée ». Elle vous apprend que les esprits mots qui peuplent les royaumes d’encres et de papier déstabilisent l’ordre naturel et qu’il faudrait effacer certains d’entre eux.",
+        "instruction": "Parlez à Daoh dans le sanctuaire du Wukin [15,-31] ou dans celui du Wukang [20,-38].",
+        "source_url": "https://www.dofuspourlesnoobs.com/l-effet-dragon.html"
       },
       "preparation": [
         "Des combats contre un type de monstre précis sur des maps précises"
@@ -1800228,7 +1800523,10 @@
         "Les Osatons s'échangent contre des Altérés auprès de Nhinfermière Joëlle sur la même map",
         "Il faut donc rapporter 5 x Osaton"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Parlez à Sophrie Louth dans la Dimension Éphémère [4,0!] pour connaître l’altération du jour.",
+        "source_url": "https://www.dofuspourlesnoobs.com/l-opportunite-d-un-jour.html"
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -1801684,7 +1801982,9 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).",
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/cueillette-vulkaine.html"
       },
       "preparation": [],
       "required_items": [],
@@ -1803132,7 +1803432,9 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).",
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/deboisement-vulkain.html"
       },
       "preparation": [],
       "required_items": [],
@@ -1804795,7 +1805097,9 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).",
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/ecremage-vulkain.html"
       },
       "preparation": [],
       "required_items": [],
@@ -1806243,7 +1806547,9 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).",
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/recolte-vulkaine.html"
       },
       "preparation": [],
       "required_items": [],
@@ -1807906,7 +1808212,9 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).",
+        "instruction": "Parlez à Franklin Gon en [-54,34] si vous êtes de Kohrog, ou à Elmouth Arde en [-49,47] si vous êtes de Lantamaï.",
+        "source_url": "https://www.dofuspourlesnoobs.com/peche-vulkaine.html"
       },
       "preparation": [],
       "required_items": [],
@@ -1807971,6 +1808279,10 @@
         "image_count": 0,
         "local_mismatches": [],
         "unresolved": true
+      },
+      "launch_position": {
+        "instruction": "Sur Temporis, parlez à Profèche Orsaine pour choisir votre premier Altéré.",
+        "source_url": "https://www.dofuserie.com/quetes/altere-go/"
       }
     },
     "2463": {
@@ -1875043,8 +1875355,9 @@
         "Le monde à l’envers lancé et être à la troisième série des objectifs"
       ],
       "launch_position": {
-        "position": "[-11,-37]",
-        "source_text": "La quête se lance en [-11,-37] dans la salle des bureaux d'Ankama auprès de l' Ankamien rêveur qui travaille sur un simulateur pour équilibrer les monstres."
+        "source_text": "La quête se lance en [-11,-37] dans la salle des bureaux d'Ankama auprès de l' Ankamien rêveur qui travaille sur un simulateur pour équilibrer les monstres.",
+        "instruction": "Avec « Le monde à l’envers » en cours, parlez à l’Ankamien rêveur dans la salle des bureaux d’Ankama [-11,-37!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/simulations-infinies.html"
       },
       "preparation": [
         "Des combats dans les songes infinis"
@@ -1880380,7 +1880693,10 @@
         }
       ],
       "prerequisites": [],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Le tutoriel guidé lance automatiquement cette quête à la création d’un personnage.",
+        "source_url": "https://www.dofuspourlesnoobs.com/bien-debuter.html"
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [
@@ -1881662,7 +1881978,6 @@
         "level": "90",
         "title": "Le spectacle vivant",
         "startNpc": "Thelma Geur",
-        "startCoords": "[-16,2]",
         "startMapImage": "data/encyclopedia/images/quests/2508/lot6_7effe9d5ed4264b1fca8.webp",
         "backgroundVideo": "/videos/fond.mp4",
         "startMapImages": [
@@ -1882001,8 +1882316,9 @@
         }
       ],
       "launch_position": {
-        "position": "[-16,2]",
-        "source_text": "La quête se lance auprès de Thelma Geur en [-16,2] qui vous parle d'une troupe de Riktus qui se produit dans les landes de sidimote. Selon elle ils sont doués, en tout de passe-passe et de magie et elle aimerait que vous vérifiez si ce sont juste des charlatans ou si ils utilsient les pouvoirs d'un Dofus."
+        "source_text": "La quête se lance auprès de Thelma Geur en [-16,2] qui vous parle d'une troupe de Riktus qui se produit dans les landes de sidimote. Selon elle ils sont doués, en tout de passe-passe et de magie et elle aimerait que vous vérifiez si ce sont juste des charlatans ou si ils utilsient les pouvoirs d'un Dofus.",
+        "instruction": "Parlez à Thelma Geur au Village des Éleveurs [-16,2] et acceptez d’enquêter sur les Magik Riktus.",
+        "source_url": "https://www.dofuspourlesnoobs.com/le-spectacle-vivant.html"
       }
     },
     "2509": {
@@ -1885556,7 +1885872,9 @@
         "Quarante rugissants"
       ],
       "launch_position": {
-        "source_text": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17!] dans la dimension Osavora."
+        "source_text": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17!] dans la dimension Osavora.",
+        "instruction": "Parlez au colonel Oneuil ou à Galdis dans la Tour des Voyageurs dimensionnels [-22,-24], ou directement au capitaine Blair à Osavora [1,17!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/ca-barde-la-haut.html"
       },
       "preparation": [
         "Des combats contre des monstres d'une zone pour du drop à 12%"
@@ -1901443,7 +1901761,10 @@
         "Présentation des effets et des sorts du recherché",
         "IV- Emprisonnement du recherché"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Dans la dimension, cliquez sur l’avis correspondant à cette quête à l’avant-poste des Voyageurs d’Osavora [1,17!].",
+        "source_url": "https://www.dofuspourlesnoobs.com/on-recherche-ganos.html"
+      },
       "preparation": [
         "III- Stratégie du combat",
         "Conseils tactiques pour le recherché"
@@ -1932311,7 +1932632,10 @@
         "Le tutoriel guidé peut être skip à n'importe quel moment à l'aide d'un bouton en haut à droite qui apparait après le premier dialogue",
         "Si vous décidez de quitter le tutoriel guidé, vous ne pouvez plus y retourner et toutes les quêtes liées se valident dans votre journal de quête même si vous ne les avez pas faites !"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Suivez le début du tutoriel guidé devant la statue de votre dieu. Pour les personnages créés avant la 3.6, la quête peut être validée au Dofusarium du Temple Céleste [1,1].",
+        "source_url": "https://www.dofuspourlesnoobs.com/premiers-pas.html"
+      },
       "preparation": [
         "1 x combat (seul)"
       ],
@@ -1933664,7 +1933988,10 @@
         "Être dans un guilde + mission de guilde disponible",
         "Une chasse un peu spéciale sur Vulkania"
       ],
-      "launch_position": {},
+      "launch_position": {
+        "instruction": "Parlez à Edgar Kéolog à Vulkania [-49,44] ou dans la salle des activités d’un hall de guilde.",
+        "source_url": "https://www.dofuspourlesnoobs.com/chasse-a-l-ambre-fossile.html"
+      },
       "preparation": [],
       "required_items": [],
       "rewards": [

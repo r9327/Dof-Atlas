@@ -498,13 +498,15 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             )
 
         location = " — ".join(value for value in (start_position, zone) if value)
-        if start.declared_launch_npc:
+        if start.launch_instruction:
+            text = start.launch_instruction
+        elif start.declared_launch_npc:
             text = f"Prends la quête « {quest_name} » auprès de {start.declared_launch_npc}."
             if location:
                 text += f" {location}"
         else:
             text = f"Commence / poursuis la quête « {quest_name} »."
-        if not start_position:
+        if not start_position and start.launch_status != "DOCUMENTED_START":
             text += " Position de lancement à confirmer."
         first["sections"]["now"].append(
             self._line("action", start_position, text)

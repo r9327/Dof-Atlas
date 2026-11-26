@@ -22,7 +22,7 @@ from PIL import Image
 
 from app.constants import DATA_DIR, ROOT_DIR
 from app.core.map_coordinates import (
-    BRACKETED_POSITION_RE, documentary_coordinate_candidates, normalize_coordinate_pair,
+    BRACKETED_POSITION_RE, documentary_coordinate_candidates, normalize_coordinate_pair, quest_launch_instruction,
 )
 from app.quest_catalog import (
     QuestCatalog,
@@ -1148,6 +1148,23 @@ def enrichment_row_is_current(row: Any) -> bool:
     return isinstance(row, dict) and safe_int(row.get("extraction_version")) == EXTRACTION_SCHEMA_VERSION
 
 
+def preserve_reviewed_launch(previous_row: Any, new_row: dict[str, Any]) -> None:
+    """Keep reviewed starts across reimports of the same native quest."""
+    if not quest_launch_instruction(previous_row):
+        return
+    if (previous_row.get("quest_id") != new_row.get("quest_id")
+            or source_title_key(previous_row.get("name", "")) != source_title_key(new_row["name"])):
+        return
+    launch = previous_row["launch_position"]
+    new_row["launch_position"] = dict(launch)
+    meta = new_row.get("source_meta")
+    if isinstance(meta, dict) and "startCoords" in meta:
+        if position := launch.get("position"):
+            meta["startCoords"] = position
+        else:
+            del meta["startCoords"]
+
+
 def load_item_lookup(data_dir: Path = None) -> dict[str, dict[str, Any]]:
     data_dir = data_dir or (DATA_DIR / "cache" / "dofus_maps" / "raw" / "doduda_cli")
     language = read_json_file(data_dir / "languages" / "fr.json", {"entries": {}})
@@ -1401,6 +1418,7 @@ def enrich(args: argparse.Namespace) -> dict[str, Any]:
         if row_mapping["status"] == "ambiguous":
             stats["ambiguous"] += 1
             enriched_quests[qid] = base_enriched_quest(quest, row_mapping, status="ambiguous")
+            preserve_reviewed_launch(previous_row, enriched_quests[qid])
             continue
 
         key = source_title_key(quest.name)
@@ -1588,6 +1606,7 @@ def enrich(args: argparse.Namespace) -> dict[str, Any]:
                 "unresolved": status in {"missing", "source_insufficient", "ambiguous", "needs_review"},
             },
         }
+        preserve_reviewed_launch(previous_row, enriched_quests[qid])
 
         if processed % 100 == 0:
             write_outputs(enriched_quests, mapping, manifest, stats, source_errors)

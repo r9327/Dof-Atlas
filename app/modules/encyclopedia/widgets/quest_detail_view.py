@@ -260,6 +260,8 @@ class QuestDetailView(QWidget):
         if not position:
             return "Zone de quête"
         _primary, status, source_positions = quest_launch_position_evidence(quest.source_info)
+        if status == "DOCUMENTED_START":
+            return "Position d'objectif"
         shown = _canonical_source_coordinate(position)
         if not shown or shown not in source_positions:
             return "Position d'objectif (départ non confirmé)"
@@ -291,6 +293,9 @@ class QuestDetailView(QWidget):
                     "QuestLaunchPosition",
                 )
             )
+
+        if start.launch_instruction:
+            self.center_layout.addWidget(ui.text_label(start.launch_instruction))
 
         documentary_blocks = ui.quest_solution_blocks(quest)
         # Image-only or heading-only documents may coexist with genuine local

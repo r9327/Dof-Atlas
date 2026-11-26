@@ -25,6 +25,9 @@ from app.quest_catalog import native_quest_start_evidence, native_quest_start_re
 from app.quest_source_index import QuestSources
 
 
+DOCUMENTED_START_STATUSES = {"DOCUMENTED_START", "LOCAL_START_DECLARED"}
+RESOLVED_START_STATUSES = DOCUMENTED_START_STATUSES | {"NATIVE_START_DECLARED"}
+
 AUDIT_VERSION = 2
 QUESTS_DIR = DATA_DIR / "encyclopedia" / "quests"
 MAPPING_PATH = QUESTS_DIR / "source_mapping.json"
@@ -479,7 +482,8 @@ def local_start_position_coverage(
     fallback_instruction_quest_ids: list[int] = []
     priority_missing_both: list[int] = []
     declared_start_issues: list[dict[str, object]] = []
-    for quest_id in sorted(set(int(value) for value in quest_ids)):
+    ids = sorted({int(value) for value in quest_ids})
+    for quest_id in ids:
         row = enriched.get(str(quest_id))
         first = ""
         second = ""
@@ -529,7 +533,7 @@ def local_start_position_coverage(
         else:
             counts["WITHOUT_RENDERABLE_INSTRUCTIONS"] += 1
             missing_instruction_quest_ids.append(quest_id)
-            if status != "LOCAL_START_DECLARED":
+            if status not in DOCUMENTED_START_STATUSES:
                 priority_missing_both.append(quest_id)
         counts[status] += 1
         if status in {
@@ -547,20 +551,14 @@ def local_start_position_coverage(
                     len(first) > evidence_limit or len(second) > evidence_limit
                 ),
             })
-        if status != "LOCAL_START_DECLARED":
+        if status not in DOCUMENTED_START_STATUSES:
             review = {"quest_id": quest_id, "status": status}
             if launch_text:
                 review["source_text"] = launch_text[:500]
             needs_review.append(review)
     return {
         "evidence": "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED",
-        "quests_considered": sum(
-            counts[key] for key in (
-                "NO_ENRICHMENT", "NO_DECLARED_START",
-                "INVALID_START_COORDINATES",
-                "CONFLICTING_DECLARED_START", "LOCAL_START_DECLARED",
-            )
-        ),
+        "quests_considered": len(ids),
         "counts": dict(sorted(counts.items())),
         "needs_review": needs_review,
         # Actionable IDs, not just totals: importers can target the missing
@@ -610,7 +608,7 @@ def native_start_coverage(
         counts["WITH_NATIVE_START_COORDINATES" if native else "WITHOUT_NATIVE_START_COORDINATES"] += 1
         if status == "NATIVE_START_DECLARED" and declared_quest_start(row)[1] == "NO_DECLARED_START":
             recovered.append(quest_id)
-        if status not in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"}:
+        if status not in RESOLVED_START_STATUSES:
             native_review = native_quest_start_review(
                 raw_quest, maps,
             ) if isinstance(raw_quest, Mapping) else {"reason": "NATIVE_QUEST_ROW_MISSING", "map_ids": []}

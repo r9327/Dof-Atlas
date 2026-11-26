@@ -10,7 +10,13 @@ from typing import Iterable
 from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
-from app.core.map_coordinates import BRACKETED_POSITION_RE as COORD_RE, canonical_declared_coordinate, quest_launch_position_evidence, travel_command_from_position
+from app.core.map_coordinates import (
+    BRACKETED_POSITION_RE as COORD_RE,
+    canonical_declared_coordinate,
+    quest_launch_instruction,
+    quest_launch_position_evidence,
+    travel_command_from_position,
+)
 from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
@@ -82,6 +88,7 @@ class QuestStartInfo:
     declared_launch_position: str = ""
     declared_launch_npc: str = ""
     launch_status: str = "NO_DECLARED_START"
+    launch_instruction: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -723,6 +730,7 @@ def quest_start_info(
     # expect [x,y], regardless of whitespace or zero-padding in the source.
     # A placeholder must not suppress a valid second source or objective hint.
     position, start_status, _declarations = quest_launch_position_evidence(source_info)
+    launch_instruction = quest_launch_instruction(source_info)
     declared_launch_position = (
         position if start_status in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"} else ""
     )
@@ -735,7 +743,9 @@ def quest_start_info(
     # Route generation needs only NPC, position and zone; avoid thousands of
     # filesystem image existence checks that never affect the GPS itinerary.
     map_image_paths = (
-        _explicit_start_map_paths(source_meta) if include_map_images else ()
+        _explicit_start_map_paths(source_meta)
+        if include_map_images and start_status != "DOCUMENTED_START"
+        else ()
     )
     map_image_path = map_image_paths[0] if map_image_paths else ""
     for step in quest.steps:
@@ -767,6 +777,7 @@ def quest_start_info(
         declared_launch_position=declared_launch_position,
         declared_launch_npc=declared_launch_npc,
         launch_status=start_status,
+        launch_instruction=launch_instruction,
     )
 
 

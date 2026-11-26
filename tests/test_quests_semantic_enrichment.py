@@ -21,6 +21,7 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     launch_position_from_text,
     merge_required_items,
     parse_quantity_line,
+    preserve_reviewed_launch,
     source_title_key,
 )
 from app.quest_catalog import QuestCatalog, QuestRecord, quest_catalog_cache_signature
@@ -333,6 +334,49 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 self.assertIsNotNone(enrichment._disk_index)
             finally:
                 sources.close()
+
+    def test_documented_launch_completes_review_without_inventing_a_position(self):
+        from app.modules.encyclopedia.tools.audit_quests_guides_semantic import native_start_coverage
+
+        rows = {"10": {"launch_position": {
+            "instruction": "Parlez au capitaine dans la dimension [5,6!].",
+            "source_url": "https://example.org/quete",
+        }}}
+        local = local_start_position_coverage(rows, [10])
+        native = native_start_coverage(
+            rows, [10], {10: {"startPosition": [{"mapId": 17}]}},
+            {17: {"posX": 1, "posY": 2}},
+        )
+        for report in (local, native):
+            self.assertEqual(report["quests_considered"], 1)
+            self.assertEqual(report["counts"]["DOCUMENTED_START"], 1)
+            self.assertEqual(report["needs_review"], [])
+        self.assertEqual(native["counts"]["WITH_NATIVE_START_COORDINATES"], 1)
+        self.assertNotIn("NATIVE_START_DECLARED", native["counts"])
+
+    def test_reimport_keeps_a_reviewed_launch_only_for_the_same_quest(self):
+        previous = {
+            "quest_id": 10, "name": "Quête de test",
+            "launch_position": {
+                "instruction": "Utilisez l’objet de quête.",
+                "source_url": "https://example.org/quete",
+            },
+        }
+        regenerated = {
+            "quest_id": 10, "name": "Quête de test",
+            "source_meta": {"startCoords": "[3,4]", "title": "Quête de test"},
+        }
+        preserve_reviewed_launch(previous, regenerated)
+        self.assertEqual(regenerated["launch_position"], previous["launch_position"])
+        self.assertEqual(regenerated["source_meta"], {"title": "Quête de test"})
+        previous["launch_position"]["position"] = "[1,2]"
+        regenerated["source_meta"]["startCoords"] = "[3,4]"
+        preserve_reviewed_launch(previous, regenerated)
+        self.assertEqual(regenerated["source_meta"]["startCoords"], "[1,2]")
+
+        unrelated = {"quest_id": 10, "name": "Autre quête"}
+        preserve_reviewed_launch(previous, unrelated)
+        self.assertNotIn("launch_position", unrelated)
 
     def test_local_start_coverage_distinguishes_source_gaps_from_real_positions(self):
         rows = {

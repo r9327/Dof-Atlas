@@ -126,6 +126,23 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
         self.assertFalse(self.q.is_quest_completed("hero", 42))
         widget.close()
 
+    def test_documented_launch_stays_readable_without_a_travel_action(self):
+        quest = self.provider.get_quest(42)
+        quest.source_info = {"launch_position": {
+            "instruction": "Choisissez le départ [3,4] ou [1,17!] selon votre classe.",
+            "source_url": "https://example.org/quete",
+        }}
+        view = GuideUltimeUniversalView(self.service, character_key="hero", quest_provider=self.provider)
+        try:
+            QApplication.processEvents()
+            launch = next(label for label in view.findChildren(QLabel)
+                          if label.property("documentaryLaunchInstruction"))
+            self.assertIn("<b>[3,4]</b> ou <b>[1,17!]</b>", launch.text())
+            self.assertFalse(launch.property("travelCopyEnabled"))
+            self.assertIsNone(launch.property("travelCommand"))
+        finally:
+            view.close()
+
     def test_objective_uses_documentary_walkthrough_text_and_position(self):
         index = QuestWalkthroughIndex(self.provider)
         detail = index.objective(42, 4201)

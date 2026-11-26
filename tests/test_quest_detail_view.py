@@ -318,6 +318,32 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "source_meta": {"startCoords": "[3, 4]"},
         })[:2], ("[3,4]", "INVALID_START_COORDINATES"))
 
+    def test_documented_launch_is_visible_in_both_quest_readers(self) -> None:
+        from unittest.mock import Mock
+        from app.pages._quests_page_impl import quest_detail_html
+
+        quest = QuestRecord(44, "Quête locale", "Quêtes", 1, 1, "")
+        quest.source_info = {"launch_position": {
+            "instruction": "Rejoignez la dimension et parlez au capitaine en [1,17!].",
+            "source_url": "https://example.org/quete",
+        }}
+        provider = Mock()
+        provider.get_catalog.return_value = SimpleNamespace(by_id={})
+        sheet = QuestDetailView(provider, Mock(), Mock())
+        sheet._ordered_neighbors = Mock(return_value=(None, None))
+        try:
+            sheet._render_solution(quest, None)
+            rendered = (
+                quest_detail_html(quest, False),
+                " ".join(label.text() for label in sheet.findChildren(QLabel)),
+            )
+            for detail in rendered:
+                self.assertIn("au capitaine en <b>[1,17!]</b>", detail)
+                self.assertNotIn("atlas-travel:1,17", detail)
+        finally:
+            sheet.deleteLater()
+            self.app.processEvents()
+
     def test_invalid_or_conflicting_local_starts_are_not_verified(self) -> None:
         from app.modules.encyclopedia.services.guide_quest_view_model import (
             quest_start_info,
