@@ -21,6 +21,7 @@ from xml.etree import ElementTree
 from PIL import Image
 
 from app.constants import DATA_DIR, ROOT_DIR
+from app.core.map_coordinates import normalize_coordinate_pair
 from app.quest_catalog import (
     QuestCatalog,
     build_image_index,
@@ -950,13 +951,15 @@ def launch_position_from_text(text: str) -> dict[str, Any]:
         return {}
     # A source can explicitly list alternative starts, including dimension maps
     # marked with "!". Keep the wording but never claim the first is unique.
-    coordinates = set(re.findall(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*(!?)\s*\]", text))
-    if len(coordinates) > 1:
+    coordinates = {
+        normalize_coordinate_pair(x, y) if not marker else None
+        for x, y, marker in re.findall(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*(!?)\s*\]", text)
+    }
+    if len(coordinates) == 1 and None not in coordinates:
+        return {"position": f"[{next(iter(coordinates))}]", "source_text": clean_text(text)}
+    if coordinates:
         return {"source_text": clean_text(text)}
-    position = first_coord(text)
-    if not position:
-        return {}
-    return {"position": position, "source_text": clean_text(text)}
+    return {}
 
 
 def solution_text_starts(text: str) -> bool:

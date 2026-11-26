@@ -39,6 +39,10 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             "Position de lancement : Tour [-22,-24] ou Osavora [1,17!].",
             "Position de lancement : A [1,2] ou B [3,4].",
             "Position de lancement : A [1,2] ou une dimension [1,2!].",
+            "Position de lancement : Osavora [1,17!].",
+            "Position de lancement : [-2147483648,0].",
+            "Position de lancement : [2147483648,0].",
+            "Position de lancement : [12345678901234567890,0].",
         ):
             with self.subTest(source=source):
                 self.assertEqual(launch_position_from_text(source), {"source_text": source})
@@ -47,6 +51,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         for source in (
             "Position de lancement : A [1,2].",
             "Position de lancement : A [1,2] ([1, 2]).",
+            "Position de lancement : A [01,2] ([1,02]).",
             "La quête se lance en [1,2].",
         ):
             with self.subTest(source=source):
