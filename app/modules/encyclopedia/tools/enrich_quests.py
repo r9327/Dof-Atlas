@@ -948,6 +948,11 @@ def launch_position_from_text(text: str) -> dict[str, Any]:
     key = normalize_text(text)
     if not launch_position_line(text) and not ("quete_se_lance" in key or "qu_te_se_lance" in key):
         return {}
+    # A source can explicitly list alternative starts, including dimension maps
+    # marked with "!". Keep the wording but never claim the first is unique.
+    coordinates = set(re.findall(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*(!?)\s*\]", text))
+    if len(coordinates) > 1:
+        return {"source_text": clean_text(text)}
     position = first_coord(text)
     if not position:
         return {}

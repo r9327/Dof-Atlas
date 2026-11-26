@@ -17,6 +17,7 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     dpln_mapping_confidence,
     enrichment_row_is_current,
     extract_dpln_page_v2,
+    launch_position_from_text,
     merge_required_items,
     parse_quantity_line,
     source_title_key,
@@ -33,6 +34,24 @@ class FakeQuest:
 
 
 class QuestSemanticEnrichmentTests(unittest.TestCase):
+    def test_alternative_quest_starts_preserve_text_without_claiming_a_unique_map(self):
+        for source in (
+            "Position de lancement : Tour [-22,-24] ou Osavora [1,17!].",
+            "Position de lancement : A [1,2] ou B [3,4].",
+            "Position de lancement : A [1,2] ou une dimension [1,2!].",
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(launch_position_from_text(source), {"source_text": source})
+
+    def test_single_quest_start_still_has_a_normalized_position(self):
+        for source in (
+            "Position de lancement : A [1,2].",
+            "Position de lancement : A [1,2] ([1, 2]).",
+            "La quête se lance en [1,2].",
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(launch_position_from_text(source)["position"], "[1,2]")
+
     def test_local_only_audit_never_hydrates_guides_successes_or_web(self):
         from contextlib import redirect_stdout
         from io import StringIO
