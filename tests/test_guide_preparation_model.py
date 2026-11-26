@@ -493,5 +493,109 @@ class GuidePreparationModelTests(unittest.TestCase):
         self.assertEqual(category_for("Pierre d’âme parfaite"), "Pierres d'âme")
 
 
+    def test_extended_authored_categories_preserve_special_resource_types(self):
+        self.assertEqual(category_for("Cape du test", "equipment"), "Équipements")
+        self.assertEqual(category_for("Minerai brut", "resources"), "Ressources")
+        self.assertEqual(category_for("Pierre d’âme parfaite", "resources"), "Pierres d'âme")
+        self.assertEqual(category_for("Potion de test", "resources"), "Potions")
+        self.assertEqual(category_for("Clef du test", "resources"), "Clefs")
+        self.assertEqual(category_for("Objet en banque", "keep_in_bank"), "Banque")
+        self.assertEqual(category_for("Parchemin du test", "parchemins"), "Parchemins")
+
+    def test_quantity_scope_keeps_shared_and_individual_requirements_distinct(self):
+        shared = {"manual_stage_id": "a", "a_preparer": [
+            {"item_id": 123, "name": "Clef commune", "quantity": 2,
+             "consumable": True, "quantity_scope": "party_shared"},
+        ]}
+        personal = {"manual_stage_id": "b", "a_preparer": [
+            {"item_id": 123, "name": "Clef commune", "quantity": 1,
+             "consumable": True, "quantity_scope": "per_character"},
+        ]}
+        rows = aggregate_remaining(((shared, False), (personal, False)))
+        self.assertEqual(
+            {(need.scope, need.quantity) for need in rows},
+            {("party_shared", 2), ("per_character", 1)},
+        )
+
+    def test_unrecognized_quantity_scope_blocks_numeric_certainty(self):
+        card = {"manual_stage_id": "one", "a_preparer": [
+            {"item_id": 42, "name": "Objet", "quantity": 4,
+             "quantity_scope": "unknown_legacy"},
+        ]}
+        need, = aggregate_remaining(((card, False),))
+        self.assertEqual((need.scope, need.quantity, need.confidence),
+                         ("unverified", None, "scope_unverified"))
+
+    def test_authored_profession_levels_aggregate_by_canonical_id_using_max(self):
+        stages = [
+            {"manual_stage_id": "a", "profession_gates": [
+                {"profession_id": 24, "name": "Alchimiste", "level": 40},
+            ]},
+            {"manual_stage_id": "b", "profession_gates": [
+                {"profession_id": 24, "name": "Alchimiste", "level": 100},
+            ]},
+            {"manual_stage_id": "c", "profession_gates": [
+                {"profession_id": 15, "name": "Bûcheron", "level": 80},
+            ]},
+        ]
+        grouped = aggregate_remaining((card, False) for card in stages)
+        by_identity = {need.identity: need for need in grouped}
+        self.assertEqual(by_identity["profession:24"].required_level, 100)
+        self.assertEqual(by_identity["profession:24"].claim_count, 2)
+        self.assertEqual(by_identity["profession:15"].required_level, 80)
+        self.assertIsNone(by_identity["profession:24"].quantity)
+        self.assertEqual(len(grouped), 2)
+        remaining = aggregate_remaining(((stages[0], False), (stages[1], True)))
+        self.assertEqual(remaining[0].required_level, 40)
+
+    def test_unknown_job_level_never_claims_verified_maximum(self):
+        card = {"manual_stage_id": "stage", "profession_gates": [
+            {"profession_id": 24, "name": "Alchimiste", "level": 80},
+            {"profession_id": 24, "name": "Alchimiste"},
+        ]}
+        row, = aggregate_remaining(((card, False),))
+        self.assertIsNone(row.required_level)
+        self.assertEqual(row.claim_count, 2)
+
+    def test_quest_and_success_prerequisites_are_typed_and_deduplicated(self):
+        first = {"manual_stage_id": "one", "hard_runtime_gates": [
+            {"quest_id": 123, "label": "Terminer une quête fictive"},
+            {"achievement_id": 123, "name": "Obtenir un succès fictif"},
+        ]}
+        second = {"manual_stage_id": "two", "hard_runtime_gates": [
+            {"quest_id": 123, "label": "Terminer une quête fictive"},
+            {"quest_id": 456},
+        ]}
+        rows = aggregate_remaining(((first, False), (second, False)))
+        keyed = {row.identity: row for row in rows}
+        self.assertEqual(set(keyed), {"quest:123", "achievement:123", "quest:456"})
+        self.assertEqual(keyed["quest:123"].claim_count, 2)
+        self.assertTrue(keyed["quest:456"].name.startswith("Quête #456"))
+        self.assertTrue(all(row.quantity is None for row in rows))
+        self.assertFalse(any(row.identity.startswith("item:") for row in rows))
+
+    def test_unverified_source_only_gate_id_never_certifies_a_requirement(self):
+        card = {"manual_stage_id": "gate", "hard_runtime_gates": [
+            {"quest_id": "not-a-game-id", "label": "Condition inconnue"},
+            {"achievement_id": True, "label": "Condition mal formée"},
+        ]}
+        rows = card_claims(card)
+        self.assertEqual({row.identity for row in rows},
+                         {"gate:condition inconnue", "gate:condition mal formee"})
+
+    def test_team_preparation_does_not_multiply_shared_amounts(self):
+        from app.modules.encyclopedia.services.guide_preparation_model import aggregate_team_remaining
+        card = {"manual_stage_id": "a", "a_preparer": [
+            {"item_id": 123, "name": "Clef commune", "quantity": 2,
+             "quantity_scope": "party_shared", "consumable": True},
+        ]}
+        needs = aggregate_remaining(((card, False),))
+        row, = aggregate_team_remaining((("character:1", needs), ("character:2", needs)))
+        self.assertIsNone(row.required_total)
+        self.assertEqual(dict(row.confidence_by_character), {
+            "character:1": "scope_requires_team_resolution",
+            "character:2": "scope_requires_team_resolution",
+        })
+
 if __name__ == "__main__":
     unittest.main()
