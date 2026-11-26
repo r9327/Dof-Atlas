@@ -12,8 +12,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar
 
+from app.modules.encyclopedia.services.guide_quest_view_model import DisplaySolutionBlock
 from app.modules.encyclopedia.views.guides_view import (
-    GuidesView, clear_layout, linkify_travel_text, progress_summary, text_label,
+    GuidesView, clear_layout, linkify_travel_text, progress_summary, solution_text_document, text_label,
 )
 from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
 from app.ui.theme import PALETTE
@@ -85,6 +86,25 @@ class GuidesViewLayoutTests(unittest.TestCase):
             )
         finally:
             label.deleteLater()
+
+    def test_documentary_dimension_coordinates_are_bold_without_a_travel_link(self):
+        instruction = "Entrer dans Osavora [1,17!] & parler au PNJ."
+        for label in (
+            text_label(instruction, "QuestLaunchPosition"),
+            solution_text_document((DisplaySolutionBlock("text", instruction),)),
+        ):
+            try:
+                self.assertEqual(label.textFormat(), Qt.RichText)
+                self.assertIn("<b>[1,17!]</b>", label.text())
+                self.assertIn("&amp;", label.text())
+                self.assertNotIn("atlas-travel:", label.text())
+            finally:
+                label.deleteLater()
+
+        mixed = linkify_travel_text("Départ [-22,-24] ou dimension [1,17!].")
+        self.assertEqual(mixed.count("atlas-travel:"), 1)
+        self.assertIn('href="atlas-travel:-22,-24"', mixed)
+        self.assertIn("<b>[1,17!]</b>", mixed)
 
     def test_detail_breadcrumb_precedes_title_header(self):
         class QuestDetailStub(QWidget):

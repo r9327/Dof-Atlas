@@ -13,6 +13,7 @@ from app.core.numbers import INT32_MIN, INT32_MAX
 
 SENTINEL_COORD = INT32_MIN
 BRACKETED_POSITION_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
+DOCUMENTARY_POSITION_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*(!?)\s*\]")
 TRAVEL_URL_RE = re.compile(r"atlas-travel:(-?\d+),(-?\d+)")
 _PAIR_RE = re.compile(r"(-?\d+),(-?\d+)")
 _DIRECT_GUIDE_RE = re.compile(r"/travel (-?\d+),(-?\d+)")
@@ -135,7 +136,7 @@ def documentary_coordinate_candidates(text: str) -> set[str | None]:
     """Normalize documentary map candidates; dimensions and invalid maps stay unknown."""
     return {
         normalize_coordinate_pair(x, y) if not marker else None
-        for x, y, marker in re.findall(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*(!?)\s*\]", text)
+        for x, y, marker in DOCUMENTARY_POSITION_RE.findall(text)
     }
 
 
@@ -160,15 +161,15 @@ def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]
         status = "CONFLICTING_DECLARED_START"
     else:
         status = "LOCAL_START_DECLARED"
-    # Older imports kept the first map even when the documentary start was
-    # ambiguous. Recheck the original wording without rewriting the catalogue.
+    # Older imports could keep the first map. Newer imports can keep only the
+    # wording. In both cases, preserve documentary ambiguity for review.
     primary = positions[0] or positions[1]
-    if status == "LOCAL_START_DECLARED" and primary and isinstance(launch, dict):
+    if status in {"NO_DECLARED_START", "LOCAL_START_DECLARED"} and isinstance(launch, dict):
         source_text = launch.get("source_text")
         candidates = documentary_coordinate_candidates(source_text) if isinstance(source_text, str) else set()
         if None in candidates:
             status = "INVALID_START_COORDINATES"
-        elif candidates and candidates != {primary[1:-1]}:
+        elif len(candidates) > 1 or (primary and candidates and candidates != {primary[1:-1]}):
             status = "CONFLICTING_DECLARED_START"
     return primary, status, (positions[0], positions[1])
 

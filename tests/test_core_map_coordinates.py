@@ -117,6 +117,23 @@ class NormalizeCoordinatePairTests(unittest.TestCase):
                         "NATIVE_START_DECLARED" if expected == "LOCAL_START_DECLARED" else expected,
                     )
 
+    def test_text_only_documentary_alternatives_cannot_be_confirmed_by_one_native_map(self):
+        from app.core.map_coordinates import declared_quest_start, quest_launch_position_evidence
+
+        for source, expected in (
+            ("Départ A [1,2] ou B [3,4]", "CONFLICTING_DECLARED_START"),
+            ("Dimension [1,17!]", "INVALID_START_COORDINATES"),
+            ("Parler au PNJ [1,2]", "NO_DECLARED_START"),
+        ):
+            with self.subTest(source=source):
+                info = {"launch_position": {"source_text": source}}
+                self.assertEqual(declared_quest_start(info)[:2], ("", expected))
+                info["native_start"] = {"map_id": 10, "position": "[1,2]"}
+                self.assertEqual(
+                    quest_launch_position_evidence(info)[:2],
+                    ("[1,2]", "NATIVE_START_DECLARED" if expected == "NO_DECLARED_START" else expected),
+                )
+
     def test_normalization_and_negative_values(self):
         self.assertEqual(normalize_coordinate_pair("003", "-06"), "3,-6")
         self.assertEqual(normalize_coordinate_pair("0", "2147483647"), "0,2147483647")

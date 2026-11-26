@@ -36,7 +36,7 @@ from app.ui.guide_glyphs import atlas_icon
 from app.core.character_identity import is_character_key
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
 from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE
-from app.core.map_coordinates import travel_command_from_link
+from app.core.map_coordinates import DOCUMENTARY_POSITION_RE, travel_command_from_link
 from app.modules.encyclopedia.models import Guide, GuideChapter, GuidePart, GuideSeries, GuideStep
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -3882,10 +3882,11 @@ def section_title(text: str) -> QLabel:
 
 def text_label(text: str, object_name: str = "GuideInfoLine") -> QLabel:
     raw = str(text or "")
-    label = QLabel(linkify_travel_text(raw) if TRAVEL_COORD_RE.search(raw) else raw)
+    has_position = DOCUMENTARY_POSITION_RE.search(raw) is not None
+    label = QLabel(linkify_travel_text(raw) if has_position else raw)
     label.setObjectName(object_name)
     label.setWordWrap(True)
-    if TRAVEL_COORD_RE.search(raw):
+    if has_position:
         label.setTextFormat(Qt.RichText)
         label.setTextInteractionFlags(Qt.TextBrowserInteraction)
         label.setOpenExternalLinks(False)
@@ -3902,13 +3903,13 @@ def linkify_travel_text(text: str) -> str:
         command = _vm_call("travel_command", match.group(0))
         if not command:
             # A missing/out-of-range map is documentary text, not a button.
-            return match.group(0)
+            return f"<b>{match.group(0)}</b>"
         coordinates = command.removeprefix("/travel ")
         return entity_link_markup(
             f"[{coordinates}]", "position", f"atlas-travel:{coordinates}", PALETTE,
         )
 
-    return TRAVEL_COORD_RE.sub(replace, escaped)
+    return DOCUMENTARY_POSITION_RE.sub(replace, escaped)
 
 
 def copy_travel_link(href: str) -> None:

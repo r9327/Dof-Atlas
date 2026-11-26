@@ -74,7 +74,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             "50": {"launch_position": {"source_text": source}, "source_meta": {"startCoords": "[1,2]"}},
         }, [10, 20, 30, 40, 50])
         self.assertEqual(report["needs_review"], [
-            {"quest_id": 10, "status": "NO_DECLARED_START", "source_text": source},
+            {"quest_id": 10, "status": "CONFLICTING_DECLARED_START", "source_text": source},
             {"quest_id": 20, "status": "NO_DECLARED_START", "source_text": "x" * 500},
             {"quest_id": 30, "status": "CONFLICTING_DECLARED_START", "source_text": source},
             {"quest_id": 50, "status": "CONFLICTING_DECLARED_START", "source_text": source},

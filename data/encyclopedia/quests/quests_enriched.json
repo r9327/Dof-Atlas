@@ -38325,7 +38325,7 @@
       ],
       "launch_position": {
         "position": "[-34,-58]",
-        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres. Depuis l'entrée principale, allez dans la salle de droite, descendez les escaliers et allez directement dans la salle sur la gauche.\nNOTE : Vous pouvez aussi directement entrer via l'entrée basse de la tour en [-34,-57], allez tout droit puis simplement à gauche."
+        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres"
       },
       "preparation": [
         "3 x combats (réalisable en groupe)"
@@ -54307,7 +54307,7 @@
       ],
       "launch_position": {
         "position": "[-34,-58]",
-        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres. Depuis l'entrée principale, allez dans la salle de droite, descendez les escaliers et allez directement dans la salle sur la gauche.\nNOTE : Vous pouvez aussi directement entrer via l'entrée basse de la tour en [-34,-57], allez tout droit puis simplement à gauche."
+        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres"
       },
       "preparation": [
         "1 x combat (réalisable en groupe)"
@@ -247237,7 +247237,7 @@
       ],
       "launch_position": {
         "position": "[-34,-58]",
-        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres. Depuis l'entrée principale, allez dans la salle de droite, descendez les escaliers et allez directement dans la salle sur la gauche.\nNOTE : Vous pouvez aussi directement entrer via l'entrée basse de la tour en [-34,-57], allez tout droit puis simplement à gauche."
+        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres"
       },
       "preparation": [
         "1 x combat (seul)",
@@ -250518,7 +250518,7 @@
       ],
       "launch_position": {
         "position": "[-34,-58]",
-        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres. Depuis l'entrée principale, allez dans la salle de droite, descendez les escaliers et allez directement dans la salle sur la gauche.\nNOTE : Vous pouvez aussi directement entrer via l'entrée basse de la tour en [-34,-57], allez tout droit puis simplement à gauche."
+        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres"
       },
       "preparation": [],
       "required_items": [],
@@ -266203,7 +266203,7 @@
       ],
       "launch_position": {
         "position": "[-43,-1]",
-        "source_text": "La quête se lance sur l’Ile des naufragés en [-43,-1].\nPour vous rendre sur cette île , allez devant le bateau vers l’île d’Otomaï en [15,28] et parlez au Capitaine Kradoc « Accompagner un ami qui a peur des pirates »."
+        "source_text": "La quête se lance sur l’Ile des naufragés en [-43,-1]"
       }
     },
     "494": {
@@ -431391,7 +431391,7 @@
       ],
       "launch_position": {
         "position": "[-57,46]",
-        "source_text": "La quête se lance sur l'Archipel de Vulkania en [-57,46] mais avant de vous y rendre, il faudra commencer par vous procurer une des babioles vendues par Otto Brikenbrok en [-48,44].\nVous pouvez en acheter 6 différentes, mais on vous conseille bien évidemment de prendre la moins cher à savoir la Conserve de Vacancier à 49 Kamas (le type de babiole que vous prenez ne change rien à la suite de la quête)."
+        "source_text": "La quête se lance sur l'Archipel de Vulkania en [-57,46]"
       },
       "preparation": [],
       "required_items": [],
@@ -466499,7 +466499,7 @@
       ],
       "launch_position": {
         "position": "[-30,-84]",
-        "source_text": "Cette quête se lance en [-30,-84], une fois que vous avez pris le bateau vers l'ile de Nowel en [8,-6] et que vous arrivez sur la première map de l'ile de Nowel, cette quête se lance alors automatiquement."
+        "source_text": "Cette quête se lance en [-30,-84]"
       },
       "preparation": [],
       "required_items": [],
@@ -486960,7 +486960,6 @@
         "Le Secret de la Baie Tarad"
       ],
       "launch_position": {
-        "position": "[-50,44]",
         "source_text": "La quête se lance sur Vulkania en [-50,44] auprès de Matt Hematik si vous avez dénoncé Régisse ou sinon en [-47,44] auprès de Régisse Kardestin si vous avez fait chanté Régisse. Pour ma part c’est Régisse « Lui dire que vous cherchez un travail bien rémunéré » . Régisse vous demande alors de récupérer des documents volés à l’agence « Accepter ». Il vous explique un de ses plans pour coincer le voleur qui serait de l’attirer avec des Koeurs de Krokille que vous trouverez sur l’îlot Sans Nom."
       },
       "preparation": [
@@ -487936,8 +487935,7 @@
         "La quête se lance après avoir rejoint l'un des deux camps de l'archipel de Vulkania"
       ],
       "launch_position": {
-        "position": "[-54,34]",
-        "source_text": "Pour le camp de Kohrog la quête se lance en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas)."
+        "source_text": "Pour le camp de Kohrog la quête se lance en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas).\nPour le camp de Lantamaï la quête se lance en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas)."
       },
       "preparation": [],
       "required_items": [],
@@ -490965,7 +490963,7 @@
       ],
       "launch_position": {
         "position": "[21,14]",
-        "source_text": "La quête se lance en [21,14] (accès à la zone via l'entrée en [22,22]) auprès de Vasca Degamo qui se trouve sur le chemin d’accès à la base Abyssale de Sufokia. Pour lancer la quête vous devez être bûcheron niveau 40 minimum . Vasca a besoin de votre aide pour s’approvisionner en ressources « Répondre que vous êtes bûcheron ». Il vous demandera alors de lui rapporter un bois de noyer spécial « Partir couper du Bois Sec de Noyer »."
+        "source_text": "La quête se lance en [21,14]"
       },
       "preparation": [],
       "required_items": [],
@@ -491524,7 +491522,7 @@
       ],
       "launch_position": {
         "position": "[21,14]",
-        "source_text": "La quête se lance en [21,14] (accès à la zone via l'entrée en [22,22]) auprès de Vasca Degamo qui se trouve sur le chemin d’accès à la base Abyssale de Sufokia. Pour lancer la quête vous devez être mineur niveau 40 minimum . Vasca a besoin de votre aide pour s’approvisionner en ressources « Répondre que vous êtes mineur ». Il vous demandera alors de lui rapporter du minerai de bronze spécial « Partir piocher du Bronze Plombé »."
+        "source_text": "La quête se lance en [21,14]"
       },
       "preparation": [],
       "required_items": [],
@@ -492083,7 +492081,7 @@
       ],
       "launch_position": {
         "position": "[21,14]",
-        "source_text": "La quête se lance en [21,14] (accès à la zone via l'entrée en [22,22]) auprès de Vasca Degamo qui se trouve sur le chemin d’accès à la base Abyssale de Sufokia. Pour lancer la quête vous devez être alchimiste niveau 40 minimum . Vasca a besoin de votre aide pour s’approvisionner en ressources « Répondre que vous êtes alchimiste ». Il vous demandera alors de lui rapporter des trèfles spéciaux « Aller cueillir du Trèfle Marin »."
+        "source_text": "La quête se lance en [21,14]"
       },
       "preparation": [],
       "required_items": [],
@@ -492642,7 +492640,7 @@
       ],
       "launch_position": {
         "position": "[21,14]",
-        "source_text": "La quête se lance en [21,14] (accès à la zone via l'entrée en [22,22]) auprès de Vasca Degamo qui se trouve sur le chemin d’accès à la base Abyssale de Sufokia. Pour lancer la quête vous devez être pêcheur niveau 40 minimum . Vasca a besoin de votre aide pour s’approvisionner en ressources « Répondre que vous êtes pêcheur ». Il vous demandera alors de lui rapporter un bois de noyer spécial « Partir pêcher des Kralamoures Devins »."
+        "source_text": "La quête se lance en [21,14]"
       },
       "preparation": [],
       "required_items": [],
@@ -493201,7 +493199,7 @@
       ],
       "launch_position": {
         "position": "[21,14]",
-        "source_text": "La quête se lance en [21,14] (accès à la zone via l'entrée en [22,22]) auprès de Vasca Degamo qui se trouve sur le chemin d’accès à la base Abyssale de Sufokia. Pour lancer la quête vous devez être chasseur niveau 40 minimum . Vasca a besoin de votre aide pour s’approvisionner en ressources « Répondre que vous êtes chasseur ». Il vous demandera alors de lui rapporter de la viande spéciale pour ses ouvriers « Partir chasser des Sangliers et des Prespics »."
+        "source_text": "La quête se lance en [21,14]"
       },
       "preparation": [],
       "required_items": [],
@@ -1130396,7 +1130394,7 @@
       ],
       "launch_position": {
         "position": "[5,-70]",
-        "source_text": "La quête se lance en [5,-70] auprès de Christophe Ermihé qui vit ici en autarcie (pour accéder à cette zone il faut aller voir Fred Ricksen en empruntant le trou de ver en [8,-68])."
+        "source_text": "La quête se lance en [5,-70] auprès de Christophe Ermihé qui vit ici en autarcie"
       },
       "preparation": [
         "1 x combat (réalisable à plusieurs)"
@@ -1246727,7 +1246725,7 @@
       ],
       "launch_position": {
         "position": "[-34,-58]",
-        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres. Depuis l'entrée principale, allez dans la salle de droite, descendez les escaliers et allez directement dans la salle sur la gauche.\nNOTE : Vous pouvez aussi directement entrer via l'entrée basse de la tour en [-34,-57], allez tout droit puis simplement à gauche."
+        "source_text": "La quête se lance en [-34,-58] au sous-sol de la tour des ordres"
       },
       "preparation": [
         "Donjon Merkator",
@@ -1366876,7 +1366874,7 @@
       ],
       "launch_position": {
         "position": "[-29,25]",
-        "source_text": "La quête se lance auprès de Volkaragnar en [-29,25] (rappel : accès via la mine en [-23,21] puis allez toujours à gauche puis utilisez l’enclume) à la suite de la précédente. Le dragon vous annonce qu’il ne reste plus qu’une étape afin que l’épée retrouve sa gloire : il faut qu’elle redevienne une légende pour les douziens. Pour ce faire il vous recommande de vous rendre dans les songes infinis."
+        "source_text": "La quête se lance auprès de Volkaragnar en [-29,25]"
       },
       "preparation": [
         "Douzième songe de Crocobur : Apparaît après avoir vaincu les Boss du combat à vague final (dernier combat du songe)",
@@ -1462881,7 +1462879,7 @@
       ],
       "launch_position": {
         "position": "[-86,-14]",
-        "source_text": "La quête se lance en [-86,-14] sous la surface du lac (accès via escaliers en [-84,-16]) auprès de la Crocuzkienne affamée qui semble vouloir manger une spécialité crocuzkienne un plat capable de rassasier durant plusieurs jours. Selon elle un seul boucher des environs est capable de réaliser cette recette mais il ne collecte pas les ingrédients tout seuls car il devrait attaquer ses congénères pour se procurer de la viande de crocodaille."
+        "source_text": "La quête se lance en [-86,-14] sous la surface du lac"
       },
       "preparation": [
         "Des combats contre des monstres d'une zone"
@@ -1463946,7 +1463944,7 @@
       ],
       "launch_position": {
         "position": "[-81,-16]",
-        "source_text": "La quête se lance sous la surface du lac en [-81,-16] (accès via le puits en [-83,-17]) auprès du Crocuzkien engagé qui vous apprend qu’il souhaite protéger la biodiversité de l’île car de nombreuses espèces animales et végétales sont en cours d’extinction. Il vous apprend avoir créé un répulsif anti-crocodaille permettant de les empêcher d’attaquer les espèces animales dont les œufs de crapaud-mufle cependant il ne pas le créer ni l’utiliser car il est lui-même un crocodaille."
+        "source_text": "La quête se lance sous la surface du lac en [-81,-16]"
       },
       "preparation": [],
       "required_items": [
@@ -1617067,7 +1617065,6 @@
         "Niveau recommandé : 200"
       ],
       "launch_position": {
-        "position": "[15,-31]",
         "source_text": "La quête se lance dans l’un des deux sanctuaires du Wukin ou du Wukang en [15,-31] ou en [20,-38]. Parlez à Daoh « Lui dire qu’elle semble préoccupée ». Elle vous apprend que les esprits mots qui peuplent les royaumes d’encres et de papier déstabilisent l’ordre naturel et qu’il faudrait effacer certains d’entre eux."
       },
       "preparation": [
@@ -1627251,7 +1627248,7 @@
       ],
       "launch_position": {
         "position": "[34,-40]",
-        "source_text": "La quête se lance sur Grobe en [34,-40] (accès via la bateau en [27,-27]) en parlant au Grobelin Jardinier qui vous apprend être le dernier gobelin jardinier de l’île. Cependant il rencontre quelques problèmes pour nettoyer la mousse sur les rochers de l’île c’est pourquoi il a mis au point un savon magique capable d’éliminer la mousse rapidement cependant la confection de ce savon prend du temps et ce temps qu’il perd permet à la mousse de repousser inlassablement. Pour l’aider il va donc falloir lui fabriquer du savon afin qu’il ne perde pas son temps à la fabriquer lui-même."
+        "source_text": "La quête se lance sur Grobe en [34,-40]"
       },
       "preparation": [],
       "required_items": [
@@ -1768131,7 +1768128,7 @@
       ],
       "launch_position": {
         "position": "[-32,-58]",
-        "source_text": "La quête se lance dans les égouts de Bonta en [-32,-58] (descendez par l’accès en [-35,-55]) auprès du Bontarien en détresse pris à partie par deux brigands."
+        "source_text": "La quête se lance dans les égouts de Bonta en [-32,-58]"
       }
     },
     "2435": {
@@ -1801637,8 +1801634,7 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "position": "[-54,34]",
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
       },
       "preparation": [],
       "required_items": [],
@@ -1803086,8 +1803082,7 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "position": "[-54,34]",
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
       },
       "preparation": [],
       "required_items": [],
@@ -1804750,8 +1804745,7 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "position": "[-54,34]",
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
       },
       "preparation": [],
       "required_items": [],
@@ -1806199,8 +1806193,7 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "position": "[-54,34]",
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
       },
       "preparation": [],
       "required_items": [],
@@ -1807863,8 +1807856,7 @@
         "La quête se lance après avoir rejoint l'un des deux clans de l'île de Vulkania"
       ],
       "launch_position": {
-        "position": "[-54,34]",
-        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
+        "source_text": "Si vous faites partie du Clan de Kohrog la quête se lancera en [-54,34] auprès de Franklin Gon (accès à l'îlot via L.A.T.P. en [-54,38] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin).\nSi vous faites partie du Clan de Lantamaï la quête se lancera en [-49,47] auprès de Elmouth Arde (accès à l'îlot via L.A.T.P. en [-49,45] et « Accepter » de payer 100 kamas, si vous fraudez vous avez une chance de passer ou bien d'être tp au nord-ouest de l'île en étant transformé en requin)."
       },
       "preparation": [],
       "required_items": [],
@@ -1885514,7 +1885506,6 @@
         "Quarante rugissants"
       ],
       "launch_position": {
-        "position": "[-22,-24]",
         "source_text": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17] dans la dimension Osavora."
       },
       "preparation": [
