@@ -31,6 +31,28 @@ Delivery Guard only verifies accounting and declared evidence. Doctor, required
 Phase checks, release proofs, independent review, and real-PC acceptance remain
 separate. A green Delivery Guard result is not a feature/phase certificate.
 
+## Permanent pull request numbering and delivery order
+
+GitHub shares its native issue and PR counter. Keep a separate, stable PR-only
+sequence in titles: `[PR 001] Original title`, using at least three digits.
+The initial historical inventory is PR 001–330 (26 November 2026), ordered by
+native PR number and including closed/merged PRs, excluding all issues.
+Before creating a new PR, inspect the latest numbered PRs (all states), assign
+the next unused number, and verify uniqueness after creation. In concurrent
+creation, reconcile only the new conflicting titles; never reuse an assigned
+number, reset the sequence or renumber history. Preserve the original title
+after the prefix and keep native GitHub numbers for links, contracts and CI.
+
+For active implementation PRs, add `[L01]`, `[L02]`, etc. after the stable
+prefix according to the current dependency and delivery order. Update only
+these delivery tags when priorities change. Use `[PERMANENT]` for ongoing
+diagnostic PRs and `[LEGACY]` for obsolete branches awaiting disposition;
+neither occupies a delivery slot. Plan dependencies before opening PRs and
+keep active delivery slots unique. The title metadata is for tracking only:
+it never changes acceptance IDs, PR scope, branch protection or certification.
+Use the live PR list as the tracking source; no duplicate counter, registry,
+new workflow or CI gate is required.
+
 ## Universal PR CI cadence (all current and future PRs)
 
 **Finish the entire scoped PR before running its GitHub CI certification.**
