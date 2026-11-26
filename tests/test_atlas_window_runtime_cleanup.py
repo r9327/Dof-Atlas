@@ -420,7 +420,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         shell.persist_selected_character.assert_called_once_with()
         shell.sync_selected_character_to_pages.assert_called_once_with()
 
-    def test_manual_offline_profile_edit_refreshes_pages_with_unchanged_combo(self):
+    def test_manual_offline_profile_edit_updates_combo_and_refreshes_pages(self):
         from app.quest_catalog import QuestCharacter
 
         QApplication.instance() or QApplication([])
@@ -438,7 +438,9 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(shell)
 
-        shell.character_combo.clear.assert_not_called()
+        shell.character_combo.clear.assert_called_once_with()
+        self.assertEqual(shell.character_combo.addItem.call_count, 2)
+        shell.character_combo.setCurrentIndex.assert_called_once_with(0)
         shell.persist_selected_character.assert_called_once_with()
         shell.sync_selected_character_to_pages.assert_called_once_with()
         shell._refresh_runtime_hotkeys_for_client_mapping.assert_called_once_with()

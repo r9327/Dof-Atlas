@@ -6,11 +6,80 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from PySide6.QtCore import QEvent, QCoreApplication
-from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QStackedWidget, QWidget
 from main import AtlasWindow
 
 
 class HomeCharacterComboCacheTests(unittest.TestCase):
+    def test_local_window_updates_stop_with_background_services(self):
+        shell = SimpleNamespace(_background_services_stopped=False, refresh_global_characters=Mock())
+        AtlasWindow.on_local_dofus_sessions_changed(shell, ("Panda - Pandawa",))
+        shell._background_services_stopped = True
+        AtlasWindow.on_local_dofus_sessions_changed(shell, ())
+        shell.refresh_global_characters.assert_called_once_with(
+            allow_default_selection=False, network_refresh=True,
+        )
+
+    def test_selecting_an_offline_profile_updates_home_and_survives_refresh(self):
+        QApplication.instance() or QApplication([])
+        active = SimpleNamespace(key="character:1", label="Panda", class_key="pandawa")
+        offline = SimpleNamespace(key="character:2", label="Enu", class_key="enutrof")
+        combo = QComboBox()
+        shell = SimpleNamespace(
+            current_character_key=active.key,
+            current_character_label=active.label,
+            character_combo=combo,
+            _known_characters=lambda: [active, offline],
+            _connected_characters=lambda rows: [active],
+            home_page=SimpleNamespace(set_character=Mock()),
+            character_icon_path=lambda label, class_key="": "",
+            persist_selected_character=Mock(),
+            sync_selected_character_to_pages=Mock(),
+            _refresh_visible_guide_connections=Mock(),
+            _refresh_runtime_hotkeys_for_client_mapping=Mock(),
+        )
+        combo.currentIndexChanged.connect(lambda _: AtlasWindow.on_global_character_changed(shell))
+
+        AtlasWindow.refresh_global_characters(shell)
+        combo.setCurrentIndex(1)
+        shell.home_page.set_character.assert_called_with("character:2", "Enu", "")
+        AtlasWindow.refresh_global_characters(shell, network_refresh=True)
+
+        self.assertEqual(combo.currentText(), "Enu")
+        self.assertEqual(shell.current_character_key, "character:2")
+        self.assertEqual(shell.characters, [active])
+
+    def test_windows_are_selectable_as_previews_before_profile_verification(self):
+        QApplication.instance() or QApplication([])
+        combo = QComboBox()
+        shell = SimpleNamespace(
+            current_character_key="",
+            current_character_label="",
+            character_combo=combo,
+            _known_characters=lambda: [],
+            _connected_characters=lambda rows: [],
+            home_page=SimpleNamespace(
+                _local_dofus_sessions=("Panda - Pandawa", "Enu - Enutrof"),
+                set_character=Mock(),
+            ),
+            character_icon_path=lambda label, class_key="": "",
+            persist_selected_character=Mock(),
+            sync_selected_character_to_pages=Mock(),
+            _refresh_visible_guide_connections=Mock(),
+            _refresh_runtime_hotkeys_for_client_mapping=Mock(),
+        )
+        combo.currentIndexChanged.connect(lambda _: AtlasWindow.on_global_character_changed(shell))
+        with patch("app.pages.organizer_icon_cache.cached_class_icon_path_for_window_name", return_value=None):
+            AtlasWindow.refresh_global_characters(shell, network_refresh=True)
+            self.assertEqual(combo.count(), 2)
+            combo.setCurrentIndex(1)
+            shell.home_page.set_character.assert_called_with("", "Enu", "")
+            AtlasWindow.refresh_global_characters(shell, network_refresh=True)
+
+        self.assertEqual(combo.currentText(), "Enu")
+        self.assertEqual(shell.current_character_key, "")
+        shell.persist_selected_character.assert_not_called()
+
     def test_same_character_rows_reuse_combo_but_selection_and_runtime_stay_live(self):
         QApplication.instance() or QApplication([])
         one = SimpleNamespace(key="character:1", label="Panda", class_key="pandawa")

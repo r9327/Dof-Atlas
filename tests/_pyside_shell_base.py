@@ -1809,7 +1809,11 @@ class PySideShellTests(unittest.TestCase):
                 self.assertEqual(window.current_character_key, "character:9")
                 self.assertEqual(window.character_combo.currentText(), "Bob")
                 self.assertEqual(window.home_page.character_name.text(), "Bob")
-                self.assertEqual(window.character_combo.itemText(0), "Bob")
+                self.assertEqual(
+                    [window.character_combo.itemText(index)
+                     for index in range(window.character_combo.count())],
+                    ["Alice", "Bob"],
+                )
                 stored = json.loads(profile_path.read_text(encoding="utf-8"))
                 self.assertEqual(stored["__personnage_selectionne_ui__"], "character:9")
                 window.deleteLater()

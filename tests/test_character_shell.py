@@ -24,7 +24,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_canonical_home_lists_connected_only_while_character_page_keeps_all_known(self):
+    def test_home_and_character_page_share_the_known_profiles_and_selection(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             profile = root / "profiles.json"
@@ -194,7 +194,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
 
                 self.assertEqual(
                     [window.character_combo.itemText(index) for index in range(window.character_combo.count())],
-                    ["Alpha"],
+                    ["Alpha", "Beta"],
                 )
                 self.assertEqual(window.current_character_key, "character:42")
 
@@ -223,7 +223,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertEqual(window.current_character_key, "character:84")
                 self.assertEqual(window.current_character_label, "Beta")
-                self.assertEqual(window.character_combo.currentIndex(), -1)
+                self.assertEqual(window.character_combo.currentText(), "Beta")
                 self.assertEqual(page.active_character_key, "character:84")
                 self.assertEqual(window.persist_count, persist_before_selection + 1)
 
@@ -247,7 +247,7 @@ class CharacterShellCanonicalTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertEqual(window.current_character_key, "character:84")
                 self.assertEqual(window.current_character_label, "Beta")
-                self.assertEqual(window.character_combo.currentIndex(), -1)
+                self.assertEqual(window.character_combo.currentText(), "Beta")
                 self.assertGreaterEqual(window.original_sync_count, 2)
 
                 page.deleteLater()

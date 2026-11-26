@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.core.file_stamp import mtime_ctime_size_stamp_or_zero, mtime_ctime_size_stamp
 from app.core.numbers import clamped_percent, format_grouped_int
-from app.core.text import strip_accents
+from app.core.text import clean_auto_group_name, strip_accents
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, configure_unity_progress_bar, configure_unity_tool_button, set_unity_widget_property
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
@@ -39,6 +39,13 @@ if TYPE_CHECKING:
         GuideUltimeManualRuntimeService,
     )
     from app.quest_catalog import QuestCatalog
+
+
+def local_character_preview(title: str) -> tuple[str, str]:
+    from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
+
+    _, _, class_name = title.partition(" - ")
+    return clean_auto_group_name(title), str(cached_class_icon_path_for_window_name(class_name) or "")
 
 
 HOME_GUIDE_BANNER_PATH = Path(LOGO_PATH).parent / "home_guide_banner.png"
@@ -628,13 +635,8 @@ class HomePage(QWidget):
         icon_path = self.character_icon_path
         named_sessions = tuple(title for title in self._local_dofus_sessions if title)
         if not self.character_key and len(named_sessions) == 1:
-            from app.core.text import clean_auto_group_name
-            from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
-
-            title = named_sessions[0]
-            label = clean_auto_group_name(title) or label
-            _, _, class_name = title.partition(" - ")
-            icon_path = str(cached_class_icon_path_for_window_name(class_name) or "")
+            preview_label, icon_path = local_character_preview(named_sessions[0])
+            label = preview_label or label
         self.character_name.setText(label)
         self._update_character_icon(icon_path)
 

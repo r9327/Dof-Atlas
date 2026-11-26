@@ -62,7 +62,7 @@ from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB, BESTIARY_TABS, DUNGEONS_TAB,
     encyclopedia_tab_group, encyclopedia_visible_tabs,
 )
-from app.pages.home_page import HomePage
+from app.pages.home_page import HomePage, local_character_preview
 from app.preload import PreloadTask, StartupPreloader
 from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
@@ -930,6 +930,9 @@ class AtlasWindow(QMainWindow):
         self.home_page.network_bridge.connectionsChanged.connect(
             self.on_network_connections_changed
         )
+        self.home_page.network_bridge.localSessionsChanged.connect(
+            self.on_local_dofus_sessions_changed
+        )
         self.home_page.network_bridge.progressChanged.connect(self.on_network_progress_changed)
         self.register_page("Home", self.home_page)
 
@@ -1146,6 +1149,7 @@ class AtlasWindow(QMainWindow):
         self.character_combo.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_min_width"])
         self.character_combo.setMaximumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_max_width"])
         self.character_combo.setToolTip("Personnage actif")
+        self.character_combo.setPlaceholderText("Choisir un personnage")
         self.character_combo.currentIndexChanged.connect(self.on_global_character_changed)
         layout.addWidget(self.character_combo)
 
@@ -1170,6 +1174,7 @@ class AtlasWindow(QMainWindow):
         known_characters = self._known_characters()
         connected_characters = self._connected_characters(known_characters)
         known_by_key = {character.key: character for character in known_characters}
+        connected_keys = {character.key for character in connected_characters}
         self.characters = connected_characters
         record_validation("shell_characters", known=len(known_characters),
                           connected=len(connected_characters),
@@ -1179,7 +1184,7 @@ class AtlasWindow(QMainWindow):
         selected_index = next(
             (
                 index
-                for index, character in enumerate(connected_characters)
+                for index, character in enumerate(known_characters)
                 if character.key == previous_key
             ),
             -1,
@@ -1187,16 +1192,23 @@ class AtlasWindow(QMainWindow):
         if selected_index < 0 and not previous_key and verified_initial_key:
             matches = [
                 index
-                for index, character in enumerate(connected_characters)
-                if character.key == verified_initial_key
+                for index, character in enumerate(known_characters)
+                if character.key == verified_initial_key and character.key in connected_keys
             ]
             # A network packet can initialize only an unambiguous verified ID.
             # No heuristics based on window name or the list's first entry.
             if len(matches) == 1:
                 selected_index = matches[0]
 
-        # A Home return should not destroy/recreate every combo icon and Qt
-        # item when the canonical connected-character projection is unchanged.
+        local_sessions = getattr(self.home_page, "_local_dofus_sessions", ())
+        preview_titles = (
+            tuple(dict.fromkeys(title for title in local_sessions if title))
+            if not known_characters and isinstance(local_sessions, tuple) else ()
+        )
+        preview_title = self.character_combo.currentData() if preview_titles else None
+        if preview_titles and preview_title not in preview_titles:
+            preview_title = preview_titles[0] if len(preview_titles) == 1 else None
+        # A Home return should not recreate combo items when the rows are unchanged.
         # Keep the profile/runtime refresh below; only skip redundant widgets.
         character_rows = [
             (
@@ -1205,8 +1217,10 @@ class AtlasWindow(QMainWindow):
                     character.label, class_key=getattr(character, "class_key", "")
                 ),
             )
-            for character in connected_characters
+            for character in known_characters
         ]
+        previews = [(title, *local_character_preview(title)) for title in preview_titles]
+        selected_preview = next((row for row in previews if row[0] == preview_title), None)
         combo_signature = tuple(
             (
                 str(character.key),
@@ -1215,7 +1229,7 @@ class AtlasWindow(QMainWindow):
                 icon_path,
             )
             for character, icon_path in character_rows
-        )
+        ) + tuple(previews)
         projection_changed = combo_signature != getattr(
             self, "_character_combo_signature", None
         )
@@ -1223,36 +1237,43 @@ class AtlasWindow(QMainWindow):
         try:
             if projection_changed:
                 self.character_combo.clear()
-                for character, icon_path in character_rows:
+                for index, (character, icon_path) in enumerate(character_rows):
                     icon = QIcon(icon_path) if icon_path else QIcon()
                     self.character_combo.addItem(icon, character.label, character)
                     self.character_combo.setItemData(
-                        self.character_combo.count() - 1,
+                        index,
                         character.label,
+                        Qt.ToolTipRole,
+                    )
+                for index, (title, label, icon_path) in enumerate(previews, start=len(character_rows)):
+                    self.character_combo.addItem(QIcon(icon_path) if icon_path else QIcon(), label, title)
+                    self.character_combo.setItemData(
+                        index,
+                        "Aperçu du client DOFUS • identité réseau en attente",
                         Qt.ToolTipRole,
                     )
                 self._character_combo_signature = combo_signature
 
             if selected_index >= 0:
                 self.character_combo.setCurrentIndex(selected_index)
-                selected = connected_characters[selected_index]
-                self.current_character_key = selected.key
-                self.current_character_label = selected.label
-            elif previous_key in known_by_key:
-                selected = known_by_key[previous_key]
-                self.character_combo.setCurrentIndex(-1)
+                selected = known_characters[selected_index]
                 self.current_character_key = selected.key
                 self.current_character_label = selected.label
             elif connected_characters and allow_default_selection:
-                self.character_combo.setCurrentIndex(0)
                 selected = connected_characters[0]
+                self.character_combo.setCurrentIndex(
+                    next(index for index, character in enumerate(known_characters)
+                         if character.key == selected.key)
+                )
                 self.current_character_key = selected.key
                 self.current_character_label = selected.label
             else:
-                self.character_combo.setCurrentIndex(-1)
+                self.character_combo.setCurrentIndex(
+                    preview_titles.index(preview_title) if selected_preview is not None else -1
+                )
                 self.current_character_key = ""
                 self.current_character_label = (
-                    "Aucun personnage sélectionné" if connected_characters
+                    "Aucun personnage sélectionné" if known_characters or preview_titles
                     else "Aucun personnage connecté"
                 )
         finally:
@@ -1263,11 +1284,14 @@ class AtlasWindow(QMainWindow):
         # calling here) still save even if the final key is already empty.
         if not network_refresh or self.current_character_key != previous_key:
             self.persist_selected_character()
-        self.home_page.set_character(
-            self.current_character_key,
-            self.current_character_label,
-            self.character_icon_path(self.current_character_label, class_key=getattr(known_by_key.get(self.current_character_key), "class_key", "")),
-        )
+        if selected_preview is not None:
+            self.home_page.set_character("", selected_preview[1], selected_preview[2])
+        else:
+            self.home_page.set_character(
+                self.current_character_key,
+                self.current_character_label,
+                self.character_icon_path(self.current_character_label, class_key=getattr(known_by_key.get(self.current_character_key), "class_key", "")),
+            )
         # Scope deduplication to network notifications. Home navigation,
         # manual profile edits and Organizer reorders must still resync pages
         # even if their connected-combo projection did not change.
@@ -1338,6 +1362,9 @@ class AtlasWindow(QMainWindow):
         character = self.character_combo.currentData()
         if character is None:
             return
+        if isinstance(character, str):
+            self.home_page.set_character("", *local_character_preview(character))
+            return
         key = str(getattr(character, "key", "") or "")
         if not key:
             return
@@ -1352,6 +1379,10 @@ class AtlasWindow(QMainWindow):
             self.character_icon_path(label, class_key=getattr(character, "class_key", "")),
         )
         self.sync_selected_character_to_pages()
+
+    def on_local_dofus_sessions_changed(self, _sessions: object) -> None:
+        if not self._background_services_stopped:
+            self.refresh_global_characters(allow_default_selection=False, network_refresh=True)
 
     def on_network_progress_changed(self, character_key: str) -> None:
         from app.ui.network_bridge import refresh_visible_encyclopedia_widgets
