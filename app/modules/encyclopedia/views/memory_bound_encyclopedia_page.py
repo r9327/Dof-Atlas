@@ -82,7 +82,15 @@ class EncyclopediaPage(BaseEncyclopediaPage):
             return self.quest_page
         # The provider may have released its resident summaries while Home was
         # visible. Rehydrate from the already-built SQLite store on demand.
-        self.quest_provider.get_catalog()
+        from app.quest_source_index import QuestSourceError
+
+        try:
+            self.quest_provider.get_catalog()
+        except QuestSourceError:
+            # The standard worker reports unavailable data without raising
+            # through the Qt callback, and can retry on the next visit.
+            self.request_quest_runtime()
+            return None
         page = self._build_quests_page_progressive()
         self.replace_tab_widget(QUESTS_TAB, page)
         if self._memory_restore_quest_series:

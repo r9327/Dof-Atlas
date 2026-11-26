@@ -40,6 +40,7 @@ SIZES = {
     "ICON_SIZE_LARGE": f'{UNITY_SIZES_PX["icon_large"]}px',
     "ICON_SIZE_XLARGE": f'{UNITY_SIZES_PX["icon_xlarge"]}px',
     "TOP_NAV_HEIGHT": f'{UNITY_SIZES_PX["top_nav_height"]}px',
+    "TOP_NAV_CONTROL_HEIGHT": f'{UNITY_SIZES_PX["top_nav_control_height"]}px',
 }
 
 THEME_TOKENS = {**PALETTE, **TYPOGRAPHY, **SPACING, **SIZES}
@@ -1740,8 +1741,8 @@ QCheckBox::indicator:checked {
     font-size: @FONT_TITLE;
     font-weight: 900;
     padding: 0px 10px;
-    min-height: 40px;
-    max-height: 40px;
+    min-height: @TOP_NAV_CONTROL_HEIGHT;
+    max-height: @TOP_NAV_CONTROL_HEIGHT;
 }
 
 #TopNavBrandIcon,
@@ -1771,8 +1772,8 @@ QCheckBox::indicator:checked {
     font-size: @FONT_BODY;
     font-weight: 700;
     padding: 0px 8px;
-    min-height: 40px;
-    max-height: 40px;
+    min-height: @TOP_NAV_CONTROL_HEIGHT;
+    max-height: @TOP_NAV_CONTROL_HEIGHT;
 }
 
 #TopNavButton:hover {
@@ -1812,8 +1813,8 @@ QCheckBox::indicator:checked {
     border: 1px solid @BORDER;
     border-radius: @RADIUS_SM;
     color: @TEXT;
-    min-height: 38px;
-    max-height: 38px;
+    min-height: @TOP_NAV_CONTROL_HEIGHT;
+    max-height: @TOP_NAV_CONTROL_HEIGHT;
     padding: 0px 9px;
     font-size: @FONT_BODY;
     font-weight: 700;
@@ -3020,6 +3021,7 @@ QToolButton#GuideManualProgressLock[state="locked"] {
 
 QFrame#GuideCompactHeader,
 QFrame#GuidePreparationPanel,
+QFrame[guideMetricDrawer="true"],
 QFrame#GuideSheetHeader,
 QFrame#GuideManualNav {
     background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
@@ -3417,12 +3419,20 @@ QLabel#GuideSheetTitle {
     font-weight: 800;
 }
 
-QLineEdit#GuideSummarySearch,
-QListWidget#GuideSummaryList {
+QLineEdit#GuideSummarySearch {
     background: @FIELD_SURFACE;
     color: @TEXT;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
+}
+
+QListWidget#GuideSummaryList,
+QListWidget#GuideSummaryList > QWidget#qt_scrollarea_viewport {
+    background: transparent;
+    color: @TEXT;
+    border: none;
     selection-background-color: @PANEL_ACTIVE;
     selection-color: @TEXT;
 }

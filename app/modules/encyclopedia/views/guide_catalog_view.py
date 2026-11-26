@@ -4,11 +4,13 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
-from app.ui.components import configure_unity_scroll_area
+from app.ui.components import (
+    AtlasButton, AtlasGuidePreparationPanel, AtlasGuideReadingHeader, configure_unity_scroll_area,
+)
 
 GUIDE_CATALOG_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_catalog"]
 from PySide6.QtWidgets import (
-    QAbstractItemView, QFrame, QLabel, QListView,
+    QAbstractItemView, QFrame, QLabel, QListView, QListWidgetItem,
     QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.modules.encyclopedia.views.guide_featured_home import (
@@ -30,6 +32,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
 GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
 GUIDE_ULTIME_TITLE = "Guide Ultime"
 CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})
+OPTIMIZED_GUIDE_IDS = frozenset(guide_id for guide_id, _title in FEATURED)
 
 
 class GuideCatalogView(QWidget):
@@ -70,6 +73,7 @@ class GuideCatalogView(QWidget):
         self.quest_provider = quest_provider
         self._runtime_ready = False
         self._grid_sync_queued = False
+        self._pending_guide_container: QWidget | None = None
         self.search_text = ""
         self.guides = []
         self.visible_guides = []
@@ -282,6 +286,58 @@ class GuideCatalogView(QWidget):
         self.current_guide_id = guide_id
         self.guideRequested.emit(guide_id)
         return True
+
+    def show_pending_guide(self, guide_id: str) -> None:
+        guide = next((guide for guide in self.guides if guide.id == guide_id), None)
+        if guide is None:
+            return
+        self._close_pending_guide()
+        self.current_guide_id = guide_id
+        panel = QWidget(self)
+        panel.setObjectName("GuidePendingContainer")
+        body = QVBoxLayout(panel)
+        inset = UNITY_SPACING_PX["md"]
+        body.setContentsMargins(inset, inset, inset, inset)
+        body.setSpacing(inset)
+        back = AtlasButton("Retour aux guides")
+        back.clicked.connect(self._close_pending_guide)
+        body.addWidget(back, 0, Qt.AlignLeft)
+        header = AtlasGuideReadingHeader(
+            guide.title, image_path=guide.image_path, category=guide.category,
+        )
+        header.participants_button.hide()
+        preparation = AtlasGuidePreparationPanel(())
+        preparation.category_filter.hide()
+        preparation_empty = QLabel("La préparation sera affichée ici.")
+        preparation_empty.setObjectName("GuidePreparationEmpty")
+        preparation_empty.setWordWrap(True)
+        preparation.rows_layout.addWidget(preparation_empty)
+        preparation.rows_layout.addStretch(1)
+        header.attach_preparation(preparation)
+        summary_empty = QListWidgetItem("Le sommaire sera affiché ici.")
+        summary_empty.setFlags(Qt.NoItemFlags)
+        header.summary_panel.addItem(summary_empty)
+        header.global_details_button.setChecked(True)
+        body.addWidget(header)
+        pending = QLabel("Suivi des quêtes · En attente du parcours Ganymède")
+        pending.setObjectName("GuidesHomeEmptyText")
+        pending.setWordWrap(True)
+        body.addWidget(pending)
+        body.addStretch(1)
+        self._pending_guide_container = panel
+        self.home_scroll.hide()
+        self.layout().addWidget(panel, 1)
+        back.setFocus()
+
+    def _close_pending_guide(self) -> None:
+        panel = self._pending_guide_container
+        if panel is not None:
+            self._pending_guide_container = None
+            self.current_guide_id = None
+            self.layout().removeWidget(panel)
+            panel.hide()
+            panel.deleteLater()
+            self.home_scroll.show()
 
     def set_search_text(self, text: str) -> None:
         """Retain the programmatic navigation contract without a search widget."""

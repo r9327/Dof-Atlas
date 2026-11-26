@@ -3,6 +3,7 @@ scope: encyclopedia_shell
 kind: feature
 working_set:
   - app/modules/encyclopedia/views/encyclopedia_page.py
+  - app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py
   - app/modules/encyclopedia/views/__init__.py
   - app/modules/encyclopedia/constants.py
   - app/modules/encyclopedia/widgets/__init__.py

@@ -11,6 +11,7 @@ working_set:
   - app/ui/styles/
   - tests/test_dev_ui_page.py
   - tests/test_theme.py
+  - tests/test_unity_palette.py
   - tests/test_theme_runtime_cache.py
   - tests/test_ui_universal_contract.py
   - tests/test_unity_skin.py

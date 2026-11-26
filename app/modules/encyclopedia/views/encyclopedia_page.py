@@ -1473,7 +1473,10 @@ class EncyclopediaPage(QWidget):
 
         self._pending_lazy_tab = ""
         if label == GUIDES_TAB:
-            needs_detail = bool(self._pending_guide_id) or (
+            from app.modules.encyclopedia.views.guide_catalog_view import OPTIMIZED_GUIDE_IDS
+
+            guide_id = self._pending_guide_id
+            needs_detail = guide_id in OPTIMIZED_GUIDE_IDS or (
                 self._pending_achievement_context_id is not None
                 and self._achievement_ready
             )
@@ -1482,10 +1485,15 @@ class EncyclopediaPage(QWidget):
                 if needs_detail
                 else self.ensure_guides_view()
             )
-            if self._pending_guide_id:
-                guide_id = self._pending_guide_id
+            if guide_id:
                 self._pending_guide_id = ""
-                view.select_guide(guide_id)
+                if guide_id in OPTIMIZED_GUIDE_IDS:
+                    view.select_guide(guide_id)
+                else:
+                    if not isinstance(view, _resolve_guide_catalog_view_type()):
+                        self._restore_guides_catalog_home()
+                        view = self.ensure_guides_view()
+                    view.show_pending_guide(guide_id)
             if (
                 self._pending_achievement_context_id is not None
                 and self._achievement_ready

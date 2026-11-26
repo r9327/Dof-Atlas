@@ -4,7 +4,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING
 
 from app.core.map_coordinates import parse_zaap_command
-from app.macros.input_tools import send_chat_command
+from app.macros.input_tools import UnsupportedClipboardFormatsError, send_chat_command
 from app.macros.mirror_plan import is_dofus_unity_process, mirror_latency_percentiles_ms
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
@@ -114,6 +114,7 @@ class ZaapMacro:
             command,
         )
         sent = 0
+        clipboard_blocked = False
         focus_lost = False
 
         def foreground_confirmed(hwnd: int) -> bool:
@@ -264,6 +265,9 @@ class ZaapMacro:
                         or not foreground_confirmed(hwnd)
                     ),
                     )
+                except UnsupportedClipboardFormatsError:
+                    clipboard_blocked = True
+                    break
                 except Exception:
                     # Clipboard/keyboard failures leave delivery uncertain:
                     # keep prior emissions but never start a later target.
@@ -387,10 +391,16 @@ class ZaapMacro:
                 sent,
                 len(clients),
             )
-            self.runtime._emit_status(
-                f"Auto zaap {state} : {sent}/{len(clients)} commandes émises "
-                "(réception DOFUS non vérifiée)."
-            )
+            if clipboard_blocked:
+                self.runtime._emit_status(
+                    f"Auto zaap bloqué par le presse-papiers : {sent}/{len(clients)} commandes émises. "
+                    "Copie du texte brut, puis réessaie."
+                )
+            else:
+                self.runtime._emit_status(
+                    f"Auto zaap {state} : {sent}/{len(clients)} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
             self.runtime.logger.info(
                 "Auto zaap mesures: activation=%s/%s p50_p95_p99_ms=%s "
                 "chat=%s/%s p50_p95_p99_ms=%s total_ms=%.2f "

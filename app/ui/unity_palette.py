@@ -218,6 +218,7 @@ UNITY_SIZES_PX = {
     "control_normal": 32,
     "control_large": 40,
     "top_nav_height": 58,
+    "top_nav_control_height": 32,
     "icon_small": 16,
     "icon_normal": 20,
     "icon_large": 24,
@@ -408,6 +409,9 @@ def unity_responsive_columns(usable_width: int) -> int:
     return 1
 
 
+_ORGANIZER_MODE_BUTTON_WIDTH = 170
+_ORGANIZER_PANEL_GUTTER = 8
+
 UNITY_ORGANIZER_METRICS_PX = {
     # Preserved module-specific geometry, now visible in the global UI index.
     "card_padding": 12,
@@ -419,9 +423,8 @@ UNITY_ORGANIZER_METRICS_PX = {
     "favorite_chip_height": 28,
     "character_slot_height": 36,
     "stop_button_height": 34,
-    # Existing Organizer dimensions, indexed without changing #325 logic.
-    "mode_switch_width": 396,
-    "mode_button_width": 194,
+    "mode_switch_width": 2 * _ORGANIZER_MODE_BUTTON_WIDTH + _ORGANIZER_PANEL_GUTTER,
+    "mode_button_width": _ORGANIZER_MODE_BUTTON_WIDTH,
     "zaap_panel_min_width": 220,
     "refresh_button_width": 32,
     "speed_caption_width": 52,
@@ -430,7 +433,7 @@ UNITY_ORGANIZER_METRICS_PX = {
     "root_margin_top": 12,
     "root_margin_right": 14,
     "root_margin_bottom": 20,
-    "panel_gutter": 8,
+    "panel_gutter": _ORGANIZER_PANEL_GUTTER,
     # Existing visual constraints in Organizer UI; no Macro/Zaap behavior.
     "control_panel_height": 146,
     "key_badge_width": 52,

@@ -274,7 +274,7 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
-    def test_home_offers_activation_when_capture_is_waiting_for_catalogue(self) -> None:
+    def test_home_does_not_require_activation_when_capture_is_waiting_for_catalogue(self) -> None:
         from unittest.mock import Mock
 
         page = Mock(
@@ -284,9 +284,9 @@ class NetworkHomeStatusTests(unittest.TestCase):
         page.network_indicator.property.return_value = "pending"
         status = self._status(reason="capture_ready_waiting_context")
         HomePage._on_network_status(page, status)
-        page.network_retry.setText.assert_called_once_with("Activer")
-        page.network_retry.setVisible.assert_called_once_with(True)
-        self.assertIn("worker", HomePage._network_explanation(status))
+        page.network_retry.setText.assert_called_once_with("Relancer")
+        page.network_retry.setVisible.assert_called_once_with(False)
+        self.assertIn("automatiquement", HomePage._network_explanation(status))
 
         self.assertEqual(
             HomePage._network_summary(self._status(reason="network_context_loading")),

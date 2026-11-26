@@ -104,8 +104,9 @@ class UnityPaletteTests(unittest.TestCase):
         from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
         geometry = UNITY_ORGANIZER_METRICS_PX
-        self.assertEqual(geometry["mode_switch_width"], 396)
-        self.assertEqual(geometry["mode_button_width"], 194)
+        self.assertEqual(geometry["mode_button_width"], 170)
+        self.assertEqual(geometry["mode_switch_width"],
+                         2 * geometry["mode_button_width"] + geometry["panel_gutter"])
         self.assertEqual(geometry["control_panel_height"], 146)
         self.assertEqual(geometry["key_badge_width"], 52)
         self.assertEqual(geometry["root_spacing"], 12)
@@ -423,7 +424,7 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(UNITY_MODULE_GEOMETRY_PX["character"]["equipment_slot_box"], 64)
         self.assertEqual(UNITY_MODULE_GEOMETRY_PX["craft"]["leveling_dialog_size"], (660, 560))
         self.assertEqual(UNITY_MODULE_GEOMETRY_PX["achievements"]["initial_splitter_sizes"], (245, 315, 640))
-        self.assertEqual(UNITY_ORGANIZER_METRICS_PX["mode_switch_width"], 396)
+        self.assertEqual(UNITY_ORGANIZER_METRICS_PX["mode_switch_width"], 348)
 
     def test_dev_ui_index_covers_all_families_and_original_style_owners(self) -> None:
         from app.ui.unity_palette import (

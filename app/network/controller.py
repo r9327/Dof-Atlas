@@ -72,6 +72,9 @@ class NetworkRuntimeController:
         with self._lock:
             return self._last_bootstrap
 
+    def active_build_sha256(self) -> str | None:
+        return self._fingerprint_provider()
+
     def status(self) -> NetworkControllerStatus:
         with self._lock:
             runtime = self._runtime

@@ -685,13 +685,10 @@ class HomePage(QWidget):
         from app.core.network_presentation import capture_retry_allowed
 
         safe_to_retry = capture_retry_allowed(reason)
-        self.network_retry.setText(
-            "Activer" if reason == "capture_ready_waiting_context" else "Relancer"
-        )
+        self.network_retry.setText("Relancer")
         self.network_retry.setVisible(
             safe_to_retry and (
                 state == "error"
-                or reason == "capture_ready_waiting_context"
                 or state == "idle" and reason in {
                     "no_window_handles", "build_fingerprint_unavailable", "runtime_stopped",
                 }
@@ -735,7 +732,10 @@ class HomePage(QWidget):
         reason = str(status.reason or "")
         known = {
             "capture_elevation_cancelled": "Autorisation Windows de capture annulée.",
-            "build_changed": "La version du client DOFUS a changé : capture interrompue.",
+            "build_changed": "La version du client DOFUS a changé. Atlas relance le suivi pour la nouvelle build.",
+            "awaiting_character_identity": (
+                "Client DOFUS détecté. Atlas attend une preuve d’identité pour cette version."
+            ),
             "mapping_invalid": "Le profil réseau de cette version de DOFUS est invalide.",
             "mapping_ambiguous_exact_match": "Plusieurs profils réseau correspondent au client : sélection automatique bloquée.",
             "quest_snapshot_missed": "Journal des quêtes non reçu pendant la calibration.",
@@ -750,8 +750,8 @@ class HomePage(QWidget):
             "mapping_missing_required_events": "Profil réseau incomplet : calibration automatique demandée.",
             "mapping_current_profile_noncanonical": "Profil réseau incompatible : nouvelle calibration nécessaire.",
             "capture_ready_waiting_context": (
-                "Capture Windows préparée. Activer le suivi pour charger "
-                "le catalogue Quêtes dans le worker sans bloquer l'accueil."
+                "Capture Windows préparée. Le suivi démarre automatiquement "
+                "dès que le contexte réseau est prêt."
             ),
             "network_context_loading": "Chargement des données Quêtes pour le Réseau en arrière-plan.",
             "network_context_load_failed": "Catalogue réseau indisponible : réessayer ou utiliser Atlas hors ligne.",

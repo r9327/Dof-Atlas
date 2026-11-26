@@ -88,12 +88,12 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
         ctor_body = ast.get_source_segment(source, constructor) or ""
         secondary_body = ast.get_source_segment(source, secondary) or ""
         self.assertNotIn("self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)", ctor_body)
-        self.assertNotIn("self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)", ctor_body)
+        self.assertNotIn("self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.start_network_tracking)", ctor_body)
         self.assertNotIn("self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)", ctor_body)
         self.assertIn("not self.preload_finished", secondary_body)
         self.assertIn("self._post_preload_services_started", secondary_body)
         self.assertIn("self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)", secondary_body)
-        self.assertIn("self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)", secondary_body)
+        self.assertIn("self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.start_network_tracking)", secondary_body)
 
     def test_bootstrap_never_shows_main_before_quest_base_is_terminal(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")

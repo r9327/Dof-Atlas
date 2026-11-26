@@ -1424,13 +1424,13 @@ class AtlasWindow(QMainWindow):
             network_refresh=True,
         )
 
-    def prepare_network_capture(self) -> None:
-        """Request UAC as soon as the visible shell enters its event loop."""
+    def start_network_tracking(self) -> None:
+        """Load the compact network context on its worker after Home is ready."""
 
         bridge = getattr(self.home_page, "network_bridge", None)
-        prepare = getattr(bridge, "prepare_capture", None)
-        if callable(prepare):
-            prepare()
+        configure = getattr(bridge, "configure_compact_context", None)
+        if callable(configure):
+            configure()
 
     def on_organizer_active_window(self, hwnd: int) -> None:
         """Keep the foreground handle without guessing which account owns it."""
@@ -2602,7 +2602,7 @@ class AtlasWindow(QMainWindow):
         record_startup_event("preload_complete")
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
-            self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
+            self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.start_network_tracking)
             # Real Almanax data is optional; never compete with initial preload.
             self._schedule_owned_callback(1200, self._refresh_almanax_today)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:

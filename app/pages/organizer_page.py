@@ -420,10 +420,14 @@ class OrganizerPage(
             # Centre: open the existing Atlas window, never another instance.
             window = self.window()
             if window is not None:
-                window.showNormal()
-                window.raise_()
-                window.activateWindow()
-                self.status_callback("DOFUS ATLAS au premier plan.")
+                restore = getattr(type(window), "restore_from_tray", None)
+                if callable(restore):
+                    restore(window)
+                else:
+                    window.showNormal()
+                    window.raise_()
+                    window.activateWindow()
+                self.status_callback("Fenêtre Dofus Atlas restaurée.")
             return
         if not any(session_hwnd(row) == handle and session_is_detected(row)
                    for row in getattr(self, "sessions", [])):

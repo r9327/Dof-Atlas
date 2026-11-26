@@ -36,7 +36,7 @@ from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.numbers import clamp_int32, clamped_percent, INT32_MAX
 from app.ui.unity_palette import (
     UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX,
-    UNITY_PALETTE,
+    UNITY_PALETTE, UNITY_PANEL_SHADOW,
     UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_GUIDE_READING_METRICS_PX,
     UNITY_WINDOW_PRESETS_PX, UNITY_MODULE_GEOMETRY_PX,
 )
@@ -413,9 +413,20 @@ class AtlasComboBox(QComboBox):
 
     def showPopup(self) -> None:
         """Expand the popup for long entries without escaping the screen."""
-        super().showPopup()
         view = self.view()
         popup = view.window()
+        shadow_margin = 0
+        layout = popup.layout()
+        if popup is not self and popup.windowType() == Qt.Popup and layout is not None:
+            shadow_margin = UNITY_PANEL_SHADOW["blur"] + UNITY_PANEL_SHADOW["vertical"]
+            if view.graphicsEffect() is None:
+                popup.setWindowFlag(Qt.FramelessWindowHint)
+                popup.setWindowFlag(Qt.NoDropShadowWindowHint)
+                popup.setAttribute(Qt.WA_TranslucentBackground)
+                popup.setAutoFillBackground(False)
+                layout.setContentsMargins(shadow_margin, shadow_margin, shadow_margin, shadow_margin)
+                apply_unity_panel_shadow(view)
+        super().showPopup()
         screen = self.screen()
         if screen is None or popup is self:
             return
@@ -436,23 +447,25 @@ class AtlasComboBox(QComboBox):
             content_width + 2 * view.frameWidth()
             + scrollbar_width + 2 * UNITY_SPACING_PX["lg"],
         )
-        width = min(desired, available.width())
+        width = min(desired + 2 * shadow_margin, available.width())
         geometry = popup.geometry()
         geometry.setWidth(width)
         geometry.moveLeft(max(
             available.left(),
-            min(geometry.left(), available.right() - width + 1),
+            min(geometry.left() - shadow_margin, available.right() - width + 1),
         ))
         # Qt may open a tall list below a selector near the bottom of a
         # monitor. Bound both axes to the same usable screen geometry:
         # the popup stays scrollable rather than escaping off-screen.
-        height = min(geometry.height(), available.height())
+        height = min(geometry.height() + 2 * shadow_margin, available.height())
         geometry.setHeight(height)
         geometry.moveTop(max(
             available.top(),
-            min(geometry.top(), available.bottom() - height + 1),
+            min(geometry.top() - shadow_margin, available.bottom() - height + 1),
         ))
         popup.setGeometry(geometry)
+        if view.currentIndex().isValid():
+            view.scrollTo(view.currentIndex())
 
 
 def character_combo_index(combo: QComboBox, character_key: str) -> int:
@@ -1009,6 +1022,19 @@ def atlas_guide_global_progress_bar() -> QProgressBar:
     )
 
 
+def _guide_metric_drawer_layout(frame: QFrame) -> QVBoxLayout:
+    frame.setProperty("guideMetricDrawer", True)
+    frame.setFixedHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
+    layout = QVBoxLayout(frame)
+    layout.setContentsMargins(
+        UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+        UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+    )
+    layout.setSpacing(UNITY_SPACING_PX["xs"])
+    apply_unity_panel_shadow(frame)
+    return layout
+
+
 class AtlasGuideReadingHeader(QFrame):
     """Shared UI shell for real Guide readers and the Dev UI, without game data."""
 
@@ -1158,10 +1184,7 @@ class AtlasGuideReadingHeader(QFrame):
             button.configure_compact()
             button.setToolTip(tooltip)
             button.setAccessibleName(f"Afficher {title}")
-            if is_preparation:
-                caption.addWidget(button, 0, Qt.AlignVCenter)
-            else:
-                caption.addWidget(button)
+            caption.addWidget(button, 0, Qt.AlignVCenter)
             caption.addStretch(1)
             value = QLabel("—")
             value.setObjectName("GuideCompactMetricValue")
@@ -1193,7 +1216,6 @@ class AtlasGuideReadingHeader(QFrame):
 
         self.summary_panel = QListWidget()
         self.summary_panel.setObjectName("GuideSummaryList")
-        self.summary_panel.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
         self.summary_panel.setAccessibleName("Sommaire du guide")
         self.summary_panel.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.summary_panel.setTextElideMode(Qt.ElideRight)
@@ -1203,7 +1225,10 @@ class AtlasGuideReadingHeader(QFrame):
         self._summary_index = -1
         self._summary_provider = None
         self.summary_button.toggled.connect(self._set_summary_open)
-        summary_metric.addWidget(self.summary_panel)
+        self.summary_drawer = QFrame()
+        _guide_metric_drawer_layout(self.summary_drawer).addWidget(self.summary_panel, 1)
+        self.summary_drawer.hide()
+        summary_metric.addWidget(self.summary_drawer)
         metrics.addWidget(self.summary_column, 1)
         # Keep both progress bars at the same height regardless of open panels.
         metrics.setAlignment(self.preparation_column, Qt.AlignTop)
@@ -1387,6 +1412,7 @@ class AtlasGuideReadingHeader(QFrame):
         if opened and self.global_details_button.isChecked():
             self._refresh_summary_rows()
         self.summary_panel.setVisible(opened)
+        self.summary_drawer.setVisible(opened)
         action = "Masquer Sommaire" if opened else "Afficher Sommaire"
         self.summary_button.setAccessibleName(action)
         self.summary_button.setToolTip(action)
@@ -1437,40 +1463,28 @@ class AtlasGuidePreparationPanel(QFrame):
     def __init__(self, categories: tuple[str, ...], parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("GuidePreparationPanel")
-        panel_layout = QVBoxLayout(self)
-        panel_layout.setContentsMargins(
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
-            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
-        )
-        panel_layout.setSpacing(UNITY_SPACING_PX["xs"])
+        panel_layout = _guide_metric_drawer_layout(self)
         self.category_filter = AtlasComboBox()
         self.category_filter.setObjectName("GuidePreparationCategoryFilter")
         self.category_filter.addItems(("Tout", *categories))
         self.category_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
+        self.category_filter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.category_filter.setToolTip("Filtrer les besoins de préparation")
         self.category_filter.setAccessibleName("Catégorie de préparation")
-        panel_layout.addWidget(self.category_filter, 0, Qt.AlignLeft)
+        panel_layout.addWidget(self.category_filter)
 
         self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
         self.scroll.setObjectName("GuidePreparationScroll")
-        self.scroll.setMinimumHeight(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"])
-        self.scroll.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
         self.content = QWidget()
         self.content.setObjectName("GuidePreparationContent")
         self.rows_layout = QVBoxLayout(self.content)
         self.rows_layout.setContentsMargins(0, 0, 0, 0)
         self.rows_layout.setSpacing(UNITY_SPACING_PX["xxs"])
         self.scroll.setWidget(self.content)
-        panel_layout.addWidget(self.scroll)
-        apply_unity_panel_shadow(self)
+        panel_layout.addWidget(self.scroll, 1)
 
     def fit_content_height(self, *, scroll_position: int = 0) -> None:
         self.rows_layout.activate()
-        natural = self.rows_layout.sizeHint().height() + UNITY_SPACING_PX["xs"]
-        self.scroll.setFixedHeight(min(
-            UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
-            max(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"], natural),
-        ))
         self.content.adjustSize()
         self.scroll.verticalScrollBar().setValue(scroll_position)
 

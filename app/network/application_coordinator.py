@@ -536,16 +536,41 @@ class NetworkApplicationCoordinator:
             ready = self._context_ready
             pending = self._calibration_pending
             reason = self._last_status.reason
-        if (reason == "capture_elevation_cancelled" or not capture_retry_allowed(reason)
-                or not ready or pending
-                or self.runtime.is_running or self.calibration.is_running):
+        if (self._stop_event.is_set() or not ready or reason == "capture_elevation_cancelled"
+                or not capture_retry_allowed(reason)):
             return
-        if self._last_runtime.reason != "build_fingerprint_unavailable":
+        calibrating = pending or self.calibration.is_running
+        running = self.runtime.is_running
+        if not (calibrating or running or reason == "build_changed"
+                or self._last_runtime.reason in {"build_fingerprint_unavailable", "runtime_stopped"}):
             return
         if monotonic() < self._next_runtime_retry_at:
             return
         self._next_runtime_retry_at = monotonic() + 2.5
+        if calibrating or running:
+            expected = self._last_calibration.build_sha256 if calibrating else self._last_runtime.build_sha256
+            if not expected or self.runtime.active_build_sha256() == expected:
+                return
+            if not self._stop_readers_for_build_change(calibrating=calibrating):
+                return
         self._start_runtime()
+
+    def _stop_readers_for_build_change(self, *, calibrating: bool) -> bool:
+        from app.network.calibration_controller import ProtocolCalibrationControllerStatus
+
+        with self._operation_lock:
+            if self._stop_event.is_set():
+                return False
+            controller = self.calibration if calibrating else self.runtime
+            if not controller.stop():
+                self._publish_current("calibration_stop_failed" if calibrating else "runtime_stop_failed")
+                return False
+            with self._lock:
+                self._calibration_pending = False
+                self._last_calibration = ProtocolCalibrationControllerStatus(False, "stopped")
+                self._applied_journal_evidence_keys.clear()
+            self._publish_current("build_changed")
+            return True
 
     def _poll_calibration(self) -> None:
         if self._stop_event.is_set():

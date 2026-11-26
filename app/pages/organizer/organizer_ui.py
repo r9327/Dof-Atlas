@@ -53,6 +53,7 @@ from .common import (
     KEY_BADGE_HEIGHT,
     SESSION_SLOT_COUNT,
     class_icon_candidates,
+    dofus_class_key_for_character_name,
     dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
@@ -495,7 +496,7 @@ class OrganizerModeSwitch(QFrame):
     def __init__(self, macro: QPushButton, mirror_cell: QWidget) -> None:
         super().__init__()
         self.setObjectName("OrganizerModeSwitch")
-        # Match the 194 + 8 + 194 grid exactly, including both column starts.
+        # Match the same control widths and gutter as the Macro grid.
         self.setFixedSize(ORGANIZER_GEOMETRY["mode_switch_width"], BUTTON_HEIGHT)
         self._choices = (macro, mirror_cell)
         self._selected = -1
@@ -504,9 +505,9 @@ class OrganizerModeSwitch(QFrame):
         self.highlight.setObjectName("OrganizerModeHighlight")
         layout = QHBoxLayout(self)
         # The borderless track and zero margins prevent a 1-2px offset
-        # against the two 194px Macro/Quick-action columns.
+        # against the two Macro/Quick-action columns.
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(ORGANIZER_GEOMETRY["panel_gutter"])
         layout.addWidget(macro)
         layout.addWidget(mirror_cell)
         self.highlight.lower()
@@ -621,7 +622,7 @@ class OrganizerUiMixin:
         self.mirror_toggle_hotkey_button = OrganizerGlassButton("")
         self.mirror_toggle_clear = OrganizerGlassButton("x")
         self.switch_fake = OrganizerGlassButton("Auto-groupe")
-        self.radial_select_button = OrganizerGlassButton("Sélection perso")
+        self.radial_select_button = OrganizerGlassButton("Sélection")
         self.radial_select_button.setAccessibleName("Sélection personnage")
         self.click_button = OrganizerGlassButton("")
         self.double_click_button = OrganizerGlassButton("")
@@ -838,7 +839,7 @@ class OrganizerUiMixin:
         self.mirror_mode_button.setObjectName("OrganizerModeChoice")
         # Keep Macro's button outside a nested grid layout. On the real
         # Windows certification runner that layout compresses its geometry
-        # to 194x24 even though its fixed size is 194x30.
+        # below its fixed height.
         macro_mode_host = QWidget()
         macro_mode_host.setObjectName("OrganizerTransparentHost")
         macro_mode_host.setFixedSize(control_size)
@@ -1055,7 +1056,14 @@ class OrganizerUiMixin:
         root.addStretch(1)
 
     def _reflow_organizer_panels(self, width: int) -> None:
-        columns = 3 if width >= 1300 else 2 if width >= 880 else 1
+        panel_width = max(panel.minimumWidth() for panel in self._organizer_panels)
+        gap = self.controls_panels_grid.horizontalSpacing()
+        available = width - (
+            ORGANIZER_GEOMETRY["root_margin_left"]
+            + ORGANIZER_GEOMETRY["root_margin_right"]
+            + self.organizer_scroll.verticalScrollBar().sizeHint().width()
+        )
+        columns = max(1, min(3, (available + gap) // (panel_width + gap)))
         if self._organizer_panel_columns == columns:
             return
         self._organizer_panel_columns = columns
@@ -1281,7 +1289,7 @@ class OrganizerUiMixin:
                 slot_layout.setSpacing(7)
                 add_marker = QLabel("+")
                 add_marker.setObjectName("EmptySlotAdd")
-                add_marker.setFixedWidth(18)
+                add_marker.setFixedWidth(ORGANIZER_GEOMETRY["slot_indicator_width"])
                 add_marker.setAlignment(Qt.AlignCenter)
                 slot_layout.addWidget(add_marker)
                 empty_label = QLabel("Slot vide")
@@ -1334,7 +1342,11 @@ class OrganizerUiMixin:
                 # Cosmetic hint only: a visible Unity window can show its
                 # class portrait before network proof exists. Never promote
                 # this title-derived class into a progression identity.
-                class_key = dofus_class_key_from_window_name(name) or ""
+                class_key = (
+                    dofus_class_key_from_window_name(name)
+                    or dofus_class_key_for_character_name(name)
+                    or ""
+                )
             if class_key not in DOFUS_CLASS_DEFINITIONS:
                 class_key = ""
             icon_path = next(
@@ -1349,7 +1361,7 @@ class OrganizerUiMixin:
             if class_key:
                 label = DOFUS_CLASS_DEFINITIONS[class_key]["label"]
                 icon.setToolTip(
-                    label if verified_class else f"{label} (titre Unity, non vérifié)"
+                    label if verified_class else f"{label} (classe non vérifiée)"
                 )
             icon.setCursor(Qt.OpenHandCursor)
             self.bind_session_drag_events(icon, index, row)

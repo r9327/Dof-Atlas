@@ -173,6 +173,7 @@ ORGANIZER_STYLE_TEMPLATE = r"""
             /* A macro button that embeds a shortcut gets its own indexed
                content inset. Keep styling in the global Unity system. */
             #organizerPage QPushButton[atlasShortcutInset="true"],
+            #organizerPage QPushButton#OrganizerModeChoice[atlasShortcutInset="true"],
             #organizerPage QPushButton#primaryButton[atlasShortcutInset="true"],
             #organizerPage QPushButton#secondaryButton[atlasShortcutInset="true"],
             #organizerPage QPushButton#PrimaryActionButton[atlasShortcutInset="true"],

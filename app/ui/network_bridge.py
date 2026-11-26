@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+from time import monotonic
 from typing import Any, Iterable, TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QTimer, Signal
@@ -8,6 +10,18 @@ from PySide6.QtWidgets import QApplication
 from app.validation_log import record_validation
 
 _PROGRESS_REFRESH_DEBOUNCE_MS = 120
+_WINDOW_SCAN_INTERVAL_SECONDS = 2.0
+
+
+@lru_cache(maxsize=1)
+def _live_dofus_handles(_scan_interval: int) -> tuple[int, ...]:
+    from app.macros.mirror_plan import is_dofus_unity_process
+    from app.windows_embed import scan_unity_sessions
+
+    return tuple(dict.fromkeys(
+        row["hwnd"] for row in scan_unity_sessions()
+        if is_dofus_unity_process(row["hwnd"])
+    ))
 
 
 if TYPE_CHECKING:
@@ -260,18 +274,7 @@ class NetworkUiBridge(QObject):
     @staticmethod
     def _window_handles() -> tuple[int, ...]:
         try:
-            from app.core.settings import load_settings
-
-            settings = load_settings()
-            handles: list[int] = []
-            for client in settings.clients:
-                try:
-                    handle = int(getattr(client, "handle", 0) or 0)
-                except (TypeError, ValueError, OverflowError):
-                    continue
-                if handle > 0:
-                    handles.append(handle)
-            return tuple(dict.fromkeys(handles))
+            return _live_dofus_handles(int(monotonic() // _WINDOW_SCAN_INTERVAL_SECONDS))
         except Exception:
             from app.core.logger import get_runtime_logger
             get_runtime_logger().exception("Network window handle lookup failed.")

@@ -223,6 +223,10 @@ def release_common_inputs() -> bool:
     return all_released
 
 
+class UnsupportedClipboardFormatsError(OSError):
+    """The clipboard was preserved because it contains unsupported formats."""
+
+
 @contextmanager
 def clipboard_text(text: str, logger: Logger):
     if os.name != "nt":
@@ -341,7 +345,9 @@ def clipboard_text(text: str, logger: Logger):
             if unsupported_formats:
                 # Unsupported formats cannot be recovered by retrying.
                 logger.warning("Clipboard conservé: %s", exc)
-                raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
+                raise UnsupportedClipboardFormatsError(
+                    "Clipboard multi-format non restaure: commande annulee"
+                ) from exc
             if recovery_failed:
                 # Never retry over an already damaged clipboard snapshot:
                 # it would be misread as empty and the backup would be lost.

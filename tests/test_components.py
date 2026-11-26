@@ -150,10 +150,12 @@ class SharedUiComponentsTests(unittest.TestCase):
             header.deleteLater()
 
     def test_shared_guide_header_owns_controls_and_sheet_navigation(self) -> None:
-        from app.ui.components import AtlasGuideReadingHeader, AtlasGuideSheetHeader
+        from app.ui.components import (
+            AtlasGuidePreparationPanel, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
+        )
         header = AtlasGuideReadingHeader("Guide exemple")
         sheet = AtlasGuideSheetHeader("Fiche exemple", total=20, page=4)
-        panel = QWidget()
+        panel = AtlasGuidePreparationPanel(("Ressources",))
         header.attach_preparation(panel)
         try:
             self.assertIs(header.content_layout.itemAt(1).widget(), header.participants_panel)
@@ -173,6 +175,12 @@ class SharedUiComponentsTests(unittest.TestCase):
             header.set_summary_provider(lambda: ("Première fiche", "Seconde fiche"))
             header.preparation_button.click()
             header.summary_button.click()
+            header.resize(760, 360)
+            header.show()
+            self.app.processEvents()
+            self.assertEqual(panel.size(), header.summary_drawer.size())
+            self.assertTrue(panel.property("guideMetricDrawer"))
+            self.assertTrue(header.summary_drawer.property("guideMetricDrawer"))
             self.assertEqual(header.summary_panel.item(1).text(), "2. Seconde fiche")
             self.assertEqual(header.summary_panel.item(1).toolTip(), "<qt>2. Seconde fiche</qt>")
             self.assertEqual(header.summary_panel.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)

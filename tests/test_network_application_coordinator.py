@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app.network.application_coordinator import NetworkApplicationCoordinator, NetworkApplicationStatus
 from app.network.calibration_controller import ProtocolCalibrationControllerStatus
@@ -286,6 +286,48 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
                     for callback in (prepare, compact, calibrate, runtime):
                         callback.assert_not_called()
                     self.assertEqual(coordinator.latest_status().reason, reason)
+
+    def test_live_build_change_restarts_automatically_after_confirmed_stop(self) -> None:
+        for calibrating in (False, True):
+            with self.subTest(calibrating=calibrating):
+                coordinator = NetworkApplicationCoordinator(lambda: ())
+                coordinator._context_ready = True
+                coordinator._calibration_pending = calibrating
+                coordinator._last_runtime = NetworkControllerStatus(
+                    not calibrating, "running", build_sha256="a" * 64,
+                )
+                coordinator._last_calibration = ProtocolCalibrationControllerStatus(
+                    calibrating, "awaiting_character_identity", build_sha256="a" * 64,
+                )
+                coordinator.runtime = Mock(is_running=not calibrating)
+                coordinator.calibration = Mock(is_running=calibrating)
+                expected_reader = coordinator.calibration if calibrating else coordinator.runtime
+                coordinator.runtime.active_build_sha256.return_value = "a" * 64
+                with patch.object(coordinator, "_start_runtime") as start:
+                    coordinator._retry_when_client_appears()
+                    expected_reader.stop.assert_not_called()
+                    start.assert_not_called()
+                    coordinator._next_runtime_retry_at = 0
+                    coordinator.runtime.active_build_sha256.return_value = "b" * 64
+                    expected_reader.stop.return_value = True
+                    coordinator._retry_when_client_appears()
+                    expected_reader.stop.assert_called_once_with()
+                    start.assert_called_once_with()
+
+    def test_build_change_does_not_restart_after_an_unconfirmed_stop(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._last_runtime = NetworkControllerStatus(True, "running", build_sha256="a" * 64)
+        coordinator.runtime = Mock(is_running=True)
+        coordinator.runtime.active_build_sha256.return_value = "b" * 64
+        coordinator.runtime.stop.return_value = False
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            coordinator._next_runtime_retry_at = 0
+            coordinator._retry_when_client_appears()
+        coordinator.runtime.stop.assert_called_once_with()
+        start.assert_not_called()
+        self.assertEqual(coordinator.latest_status().reason, "runtime_stop_failed")
 
     def test_worker_start_failure_is_reported_without_queuing_capture(self) -> None:
         from app.core.network_presentation import capture_retry_allowed, network_summary
