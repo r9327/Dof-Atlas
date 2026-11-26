@@ -131,6 +131,14 @@ def canonical_declared_coordinate(value: object) -> str:
     return f"[{position}]" if position is not None else ""
 
 
+def documentary_coordinate_candidates(text: str) -> set[str | None]:
+    """Normalize documentary map candidates; dimensions and invalid maps stay unknown."""
+    return {
+        normalize_coordinate_pair(x, y) if not marker else None
+        for x, y, marker in re.findall(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*(!?)\s*\]", text)
+    }
+
+
 def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]]:
     """Return declared start, source status and the two normalized declarations.
 
@@ -152,6 +160,15 @@ def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]
         status = "CONFLICTING_DECLARED_START"
     else:
         status = "LOCAL_START_DECLARED"
+    # Older imports kept the first map even when the documentary start was
+    # ambiguous. Recheck the original wording without rewriting the catalogue.
+    if status == "LOCAL_START_DECLARED" and positions[0] and isinstance(launch, dict):
+        source_text = launch.get("source_text")
+        candidates = documentary_coordinate_candidates(source_text) if isinstance(source_text, str) else set()
+        if None in candidates:
+            status = "INVALID_START_COORDINATES"
+        elif candidates and candidates != {positions[0][1:-1]}:
+            status = "CONFLICTING_DECLARED_START"
     return positions[0] or positions[1], status, (positions[0], positions[1])
 
 

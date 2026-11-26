@@ -21,7 +21,9 @@ from xml.etree import ElementTree
 from PIL import Image
 
 from app.constants import DATA_DIR, ROOT_DIR
-from app.core.map_coordinates import BRACKETED_POSITION_RE, normalize_coordinate_pair
+from app.core.map_coordinates import (
+    BRACKETED_POSITION_RE, documentary_coordinate_candidates, normalize_coordinate_pair,
+)
 from app.quest_catalog import (
     QuestCatalog,
     build_image_index,
@@ -951,10 +953,7 @@ def launch_position_from_text(text: str) -> dict[str, Any]:
         return {}
     # A source can explicitly list alternative starts, including dimension maps
     # marked with "!". Keep the wording but never claim the first is unique.
-    coordinates = {
-        normalize_coordinate_pair(x, y) if not marker else None
-        for x, y, marker in re.findall(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*(!?)\s*\]", text)
-    }
+    coordinates = documentary_coordinate_candidates(text)
     if len(coordinates) == 1 and None not in coordinates:
         return {"position": f"[{next(iter(coordinates))}]", "source_text": clean_text(text)}
     if coordinates:

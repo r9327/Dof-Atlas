@@ -92,6 +92,26 @@ class NormalizeCoordinatePairTests(unittest.TestCase):
         self.assertEqual(declared_zaap_coordinates({"label": "Astrub [1,-2]"}), (1,-2))
         self.assertEqual(declared_zaap_coordinates({"posX": "01", "posY": -2, "label": "Astrub [1,-2]"}), (1,-2))
 
+    def test_legacy_documentary_first_map_is_not_a_confirmed_unique_start(self):
+        from app.core.map_coordinates import declared_quest_start, quest_launch_position_evidence
+
+        for source, expected in (
+            ("A [1,2] ou B [3,4]", "CONFLICTING_DECLARED_START"),
+            ("B [3,4]", "CONFLICTING_DECLARED_START"),
+            ("A [1,2] ou dimension [1,2!]", "INVALID_START_COORDINATES"),
+            ("A [2147483648,0]", "INVALID_START_COORDINATES"),
+            ("A [01,2] ([1,02])", "LOCAL_START_DECLARED"),
+            ("Source sans coordonnées", "LOCAL_START_DECLARED"),
+        ):
+            with self.subTest(source=source):
+                info = {"launch_position": {"position": "[1,2]", "source_text": source}}
+                self.assertEqual(declared_quest_start(info)[:2], ("[1,2]", expected))
+                info["native_start"] = {"map_id": 10, "position": "[1,2]"}
+                self.assertEqual(
+                    quest_launch_position_evidence(info)[1],
+                    "NATIVE_START_DECLARED" if expected == "LOCAL_START_DECLARED" else expected,
+                )
+
     def test_normalization_and_negative_values(self):
         self.assertEqual(normalize_coordinate_pair("003", "-06"), "3,-6")
         self.assertEqual(normalize_coordinate_pair("0", "2147483647"), "0,2147483647")
