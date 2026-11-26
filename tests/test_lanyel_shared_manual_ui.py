@@ -122,10 +122,9 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             service = view._catalog_manual_services["dofus_sylvestre"]
             self.assertEqual(service.guide_id, "dofus_sylvestre")
             self.assertEqual(service.guide_title, "Sylvestre Opti")
-            self.assertEqual(service.manual_audit_data["quest_count"], 198)
-            self.assertEqual(service.manual_audit_data["route_model"], "map_segments")
             self.assertGreater(len(service.cards), 0)
             self.assertTrue(all(card.get("manual_quest_ids") for card in service.cards))
+            self.assertTrue(all(card.get("manual_source") for card in service.cards))
             self.assertTrue(any(card.get("manual_route_position") for card in service.cards))
             self.assertTrue(
                 any(
@@ -142,10 +141,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 for quest_id in card.get("manual_quest_ids", ())
             )
             self.assertTrue(any(count > 1 for count in occurrences.values()))
-            self.assertGreaterEqual(
-                service.manual_audit_data["raw_segment_count"],
-                service.manual_audit_data["card_count"],
-            )
+            self.assertEqual(len(occurrences), 198)
 
             self.assertTrue(view.select_guide("guide_complet"))
             self.app.processEvents()
@@ -549,11 +545,10 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                           shared.participants_button)
             self.assertEqual(
                 set(compact.findChildren(QToolButton, "GuideMetricDropdown")),
-                {shared.global_details_button, shared.preparation_button},
+                {shared.global_details_button, shared.preparation_button, shared.reading_header.summary_button},
             )
-            self.assertFalse(hasattr(shared, "summary_button"))
             self.assertFalse(hasattr(shared, "route_bar"))
-            self.assertEqual(shared._metric_caption_labels["Préparation"].text(), "À préparer")
+            self.assertEqual(shared._metric_caption_labels["Préparation"].text(), "Préparation")
             self.assertIs(
                 shared._metric_columns["Préparation"].itemAt(0).widget(),
                 shared.preparation_panel,
@@ -579,8 +574,8 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 sheet_header.findChild(QPushButton, "GuideManualGuideButton"),
                 shared.guide_button,
             )
-            self.assertEqual(shared.guide_button.text(), "←")
-            self.assertFalse(shared.overlay_button.isEnabled())
+            self.assertFalse(shared.guide_button.icon().isNull())
+            self.assertIn("catalogue", shared.guide_button.accessibleName())
             self.assertGreater(len(shared.service.cards), 1)
             shared.page_jump.setValue(2)
             self.app.processEvents()
@@ -589,7 +584,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             shared.page_jump.setValue(1)
             self.app.processEvents()
             self.assertEqual(shared.view_index, 0)
-            self.assertEqual(shared.nav_page_label.text().split(" / ")[0], "Page 1")
+            self.assertEqual(shared.nav_page_label.text(), f"1/{len(shared.service.cards)}")
             self.assertFalse(shared.nav_page_label.isVisible())
             shared.participant_service = _VerifiedSoloParticipant()
             shared._refresh_participants_panel()

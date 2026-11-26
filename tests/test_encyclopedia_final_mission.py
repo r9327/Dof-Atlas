@@ -10,7 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication
 
 from app.constants import KEY_SESSION_ORDER
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, ENCYCLOPEDIA_TABS
@@ -93,7 +93,9 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
 
     def test_guides_and_quests_dashboards_have_fixed_columns(self):
         with tempfile.TemporaryDirectory() as tmp:
+            self.quest_provider.get_catalog().get_detail(1653)
             page = self.make_page(Path(tmp))
+            page.show()
             page.tabs.setCurrentIndex(page.tab_labels().index("GUIDES"))
             view = self.hydrate_guides(page)
             view.select_guide("dofus_turquoise")
@@ -102,6 +104,7 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
             self.assertEqual(view.splitter.handleWidth(), 0)
             self.assertFalse(hasattr(view, "category_buttons"))
             page.tabs.setCurrentIndex(page.tab_labels().index("QUÊTES"))
+            self.app.processEvents()
             self.assertEqual(page.quest_page.body_splitter.count(), 2)
             self.assertEqual(page.quest_page.body_splitter.handleWidth(), 0)
             page.quest_page.select_quest(1653, persist=False)
@@ -111,6 +114,7 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
             self.assertEqual(page.quest_page.MODES, ("PARCOURS", "DOFUS", "SUCCÈS LIÉS", "ZONES", "TOUTES"))
             self.assertEqual(page.tab_labels(), list(ENCYCLOPEDIA_TABS))
             self.assertIn(ACHIEVEMENTS_TAB, page.tab_labels())
+            page.close()
             page.deleteLater()
             self.app.processEvents()
 
@@ -136,9 +140,9 @@ class EncyclopediaFinalMissionTests(unittest.TestCase):
             self.assertEqual(page.current_tab_label(), "GUIDES")
             self.assertEqual(view.current_quest_id, 1653)
             self.assertEqual(view.quest_detail_view.current_quest_id, 1653)
-            labels = [label.text() for label in view.quest_detail_view.findChildren(QLabel)]
-            self.assertTrue(any(text == "Informations de quête" for text in labels))
-            self.assertTrue(any("Plongeon et dragon" in text for text in labels))
+            sheet = view.quest_detail_view
+            self.assertEqual(sheet.title_label.text(), "Plongeon et dragon")
+            self.assertIn("Niveau recommandé", sheet.meta_label.text())
             page.deleteLater()
             self.app.processEvents()
 

@@ -522,10 +522,11 @@ class PySideShellTests(unittest.TestCase):
             page.select_quest(203)
             required_items = quest_required_items(quest)
             self.assertEqual([item["name"] for item in required_items], ["Idole locale"])
-            self.assertIsNone(page.right_panel.findChild(QSpinBox))
+            sheet = page.quest_detail_view
+            self.assertIsNone(sheet.findChild(QSpinBox))
 
-            image = page.right_panel.findChild(QToolButton, "GuideItemIcon")
-            name_button = page.right_panel.findChild(QPushButton, "GuideItemNameButton")
+            image = sheet.findChild(QToolButton, "GuideItemIcon")
+            name_button = sheet.findChild(QPushButton, "GuideItemNameButton")
             self.assertIsNotNone(image)
             self.assertIsNotNone(name_button)
             name_button.click()
@@ -539,8 +540,8 @@ class PySideShellTests(unittest.TestCase):
             self.assertTrue(saved_progress["characters"]["character:1"]["quest_items"]["203"]["28446"])
             self.assertEqual(image.property("state"), "done")
 
-            labels = [label.text() for label in page.right_panel.findChildren(QLabel)]
-            button_texts = [button.text() for button in page.right_panel.findChildren(QPushButton)]
+            labels = [label.text() for label in sheet.findChildren(QLabel)]
+            button_texts = [button.text() for button in sheet.findChildren(QPushButton)]
             self.assertIn("Idole locale", button_texts)
             self.assertIn("x3", labels)
             self.assertNotIn("En inventaire", labels)
@@ -639,11 +640,12 @@ class PySideShellTests(unittest.TestCase):
                         "Equipement",
                         "Almanax",
                         "Settings",
+                        "Dev UI",
                     },
                 )
                 self.assertEqual(
                     set(window.page_factories),
-                    {"Organizer", "Scan Monde", "Craft", "Quetes", "Equipement"},
+                    {"Organizer", "Scan Monde", "Craft", "Quetes", "Equipement", "Dev UI", "Almanax"},
                 )
                 self.assertNotEqual(
                     type(window.page_widgets["Organizer"]).__name__,

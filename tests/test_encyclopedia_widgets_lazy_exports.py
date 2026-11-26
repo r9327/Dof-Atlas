@@ -23,14 +23,13 @@ class EncyclopediaWidgetLazyExportsTests(unittest.TestCase):
         return module
 
     def test_public_widget_api_is_complete_without_importing_any_widget(self):
-        # The facade module can be evaluated without PySide6 and without
-        # importing one of its 19 concrete widgets.
+        # Evaluating the facade leaves all declared widget modules unloaded.
         with patch("importlib.import_module") as imported:
             module = self._module_without_qt()
             imported.assert_not_called()
-            self.assertEqual(len(module.__all__), 42)
+            self.assertEqual(len(module.__all__), 39)
             self.assertEqual(set(module.__all__), set(module._LAZY_EXPORT_MODULES))
-            self.assertEqual(len(set(module._LAZY_EXPORT_MODULES.values())), 19)
+            self.assertEqual(len(set(module._LAZY_EXPORT_MODULES.values())), 16)
             self.assertIn("QuestDetailView", dir(module))
             self.assertIn("AchievementDetailWidget", dir(module))
 

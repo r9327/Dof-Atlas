@@ -25,13 +25,16 @@ class SharedProfileAndManualContractsTests(unittest.TestCase):
         )
 
     def test_one_canonical_zaap_ratio_parser_preserves_semantics(self):
-        self.assertIs(profile_settings.parse_unit_ratio, zaap_shortcuts.parse_unit_ratio)
+        self.assertIs(storage.parse_unit_ratio, zaap_shortcuts.parse_unit_ratio)
         for value, expected in (
             ("0", 0.0), (".75", 0.75), ("1", 1.0),
             ("-0.1", None), ("1.1", None), ("nan", None), ("invalid", None),
         ):
             with self.subTest(value=value):
-                self.assertEqual(profile_settings.parse_unit_ratio(value), expected)
+                self.assertEqual(zaap_shortcuts.parse_unit_ratio(value), expected)
+                payload = {"zaap_button": {"x_ratio": value, "y_ratio": ".5"}}
+                ratios = (expected, .5) if expected is not None else None
+                self.assertEqual(profile_settings.read_zaap_button_ratios(payload), ratios)
 
     def test_manual_runtime_inherits_neutral_overrides_without_new_copies(self):
         base = core.GuideUltimeManualRuntimeService

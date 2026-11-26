@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QLabel, QListView, QLineEdit, QListWidget
+from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QLabel, QListView, QLineEdit
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -23,6 +23,7 @@ from app.modules.encyclopedia.views.guide_library_sources import (
 )
 from app.modules.encyclopedia.widgets.guide_card import GUIDE_ID_ROLE
 from app.modules.encyclopedia.widgets.guide_card import GuideCardDelegate
+from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
 def _guide(name, category):
@@ -121,12 +122,12 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     # Theme stylesheet owns selected/hover states for every module.
                     self.assertEqual(view.library_categories.styleSheet(), "")
                     for card in view.featured_cards.values():
-                        self.assertIn("qlineargradient(", card.styleSheet())
-                        self.assertIn("stop:0 #354971", card.styleSheet())
-                    self.assertIsNotNone(
-                        view.findChild(QListWidget, "GuideLibraryUnavailableList")
+                        self.assertEqual(card.objectName(), "GuideFeaturedCard")
+                        self.assertEqual(card.styleSheet(), "")
+                    self.assertIn(
+                        f"stop:0 {UNITY_PALETTE['PANEL_ACTIVE']}", unity_skin_stylesheet(),
                     )
-                    self.assertFalse(view.unavailable_list.isVisible())
+                    self.assertFalse(view.home_empty.isVisible())
                 finally:
                     view.deleteLater()
                     self.app.processEvents()
@@ -283,28 +284,15 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     dimensions = view._category_nodes["dimensions"]
                     view.library_categories.setCurrentItem(dimensions)
                     self.assertEqual(view.library_category, "dimensions")
-                    self.assertGreater(dimensions.childCount(), 0)
-                    self.assertTrue(all(
-                        not (dimensions.child(i).flags() & Qt.ItemIsEnabled)
-                        for i in range(dimensions.childCount())
-                    ))
-                    view._toggle_library_category(dimensions, 0)
-                    self.assertTrue(dimensions.isExpanded())
                     requested.clear()
-                    # A catalogued-only reference must not launch a real guide.
-                    view._on_category_changed(dimensions.child(0))
+                    # Catalogued-only references must not enter the playable tree.
+                    self.assertEqual(dimensions.childCount(), 0)
+                    view._activate_library_item(dimensions, 0)
                     self.assertEqual(requested, [])
                     view.refresh_home()
-                    self.assertTrue(dimensions.isExpanded())
                     self.assertEqual(view.library_results_title.text(), "DIMENSIONS DIVINES")
                     self.assertFalse(view.home_dofus_list.isVisible())
-                    self.assertFalse(view.home_empty.isVisible())
-                    self.assertTrue(view.unavailable_list.isVisibleTo(view))
-                    self.assertGreater(view.unavailable_list.count(), 0)
-                    self.assertTrue(all(
-                        not (view.unavailable_list.item(i).flags() & Qt.ItemIsEnabled)
-                        for i in range(view.unavailable_list.count())
-                    ))
+                    self.assertTrue(view.home_empty.isVisibleTo(view))
                     alignments.setExpanded(False)
                     view.set_search_text("no-matching-library-entry")
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
@@ -325,9 +313,11 @@ class GuideLibraryHomeTests(unittest.TestCase):
                 "app.modules.encyclopedia.views.guide_catalog_view.catalog_route_map_count_hint",
                 return_value=0,
             ):
+                provider = _Provider()
+                provider.guides.extend(_guide(f"dimension_{index}", "dimensions") for index in range(20))
                 view = GuideCatalogView(
                     lambda _message: None,
-                    provider=_Provider(),
+                    provider=provider,
                     quest_progress_path=Path(directory) / "progress.json",
                     defer_runtime=True,
                 )

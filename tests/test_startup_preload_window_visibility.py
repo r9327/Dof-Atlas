@@ -41,7 +41,7 @@ class StartupPreloadVisibilityTests(unittest.TestCase):
             # Finishing the optional preload cannot steal focus or reveal twice.
             popup.update_states({"quests": "READY", "encyclopedia": "READY", "craft": "FAILED"})
             popup.handoff()
-            popup._hide_if_current(popup._hide_generation)
+            popup._hide_timer.timeout.emit()
             self.app.processEvents()
             self.assertEqual(revealed, [True])
             self.assertFalse(popup.isVisible())

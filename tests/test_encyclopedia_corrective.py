@@ -412,13 +412,10 @@ class EncyclopediaCorrectiveTests(unittest.TestCase):
             self.assertEqual(page.current_tab_label(), GUIDES_TAB)
             self.assertEqual(view.current_quest_id, 1653)
             self.assertEqual(view.quest_detail_view.current_quest_id, 1653)
-            labels = [label.text() for label in view.quest_detail_view.findChildren(QLabel)]
-            self.assertTrue(any(text == "Informations de quête" for text in labels))
-            linked_successes = [
-                button.text()
-                for button in view.quest_detail_view.findChildren(AtlasButton)
-            ]
-            self.assertTrue(any("Bleu turquoise" in text for text in linked_successes))
+            sheet = view.quest_detail_view
+            self.assertEqual(sheet.title_label.text(), "Plongeon et dragon")
+            self.assertTrue(any(achievement.name == "Bleu turquoise"
+                                for achievement in sheet._related_achievements(1653)))
 
             page.navigate_to_entity("guide", TURQUOISE_GUIDE_ID)
             self.app.processEvents()

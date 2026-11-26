@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import inspect
 import os
 import unittest
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -43,11 +43,13 @@ class UiAsyncBudgetTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def test_quest_collectors_never_join_worker_threads(self) -> None:
-        source = Path("app/pages/lazy_quests_page.py").read_text(encoding="utf-8")
-        detail = source[source.index("    def _collect_detail"):source.index("    def _refresh_loaded_hierarchy_labels")]
-        search = source[source.index("    def _collect_search_index"):source.index("\n\n__all__")]
-        self.assertNotIn(".join(", detail)
-        self.assertNotIn(".join(", search)
+        from app.pages.lazy_quests_page import LazyQuestsPage
+
+        for collector in (LazyQuestsPage._collect_detail, LazyQuestsPage._collect_search_index):
+            with self.subTest(collector=collector.__name__):
+                source = inspect.getsource(collector)
+                self.assertIn(".get_nowait()", source)
+                self.assertNotIn(".join(", source)
 
     def test_network_burst_emits_one_progress_refresh_per_character(self) -> None:
         with patch(

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
+from app.modules.encyclopedia.providers import QuestProvider
 from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
+from app.quest_catalog import QuestCatalog, build_quest_requirement_name_index
 
 
 class _Provider:
@@ -22,21 +25,21 @@ class _Provider:
 
 class QuestDetailRequirementCacheTests(unittest.TestCase):
     def test_catalogue_is_indexed_once_for_multiple_prerequisites(self) -> None:
-        provider = _Provider()
-        view = SimpleNamespace(quest_provider=provider)
-
-        first = QuestDetailView._quest_id_from_requirement_line(
-            view,
-            "Quête terminée : Première quête",
-        )
-        second = QuestDetailView._quest_id_from_requirement_line(
-            view,
-            "Quête active : Deuxième quête",
-        )
+        provider = QuestProvider(catalog=QuestCatalog(_Provider().rows))
+        quest_view = SimpleNamespace(quest_provider=provider)
+        guide_view = SimpleNamespace(quest_provider=provider)
+        with patch("app.quest_catalog.build_quest_requirement_name_index",
+                   wraps=build_quest_requirement_name_index) as build_index:
+            first = QuestDetailView._quest_id_from_requirement_line(
+                quest_view, "Quête terminée : Première quête",
+            )
+            second = QuestDetailView._quest_id_from_requirement_line(
+                guide_view, "Quête active : Deuxième quête",
+            )
+            build_index.assert_called_once()
 
         self.assertEqual(first, 101)
         self.assertEqual(second, 202)
-        self.assertEqual(provider.calls, 1)
 
     def test_non_quest_requirement_does_not_build_index(self) -> None:
         provider = _Provider()

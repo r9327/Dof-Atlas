@@ -55,6 +55,8 @@ class QuestHierarchyLazyRenderTests(unittest.TestCase):
                 page = self.make_page(Path(tmp))
 
                 self.assertEqual(page.quest_tree_items, {})
+                self.assertEqual(page.series_items, {})
+                page.ensure_category_series_loaded("Catégorie")
                 series_id = next(iter(page.series_items))
                 series_item = page.series_items[series_id]
                 self.assertEqual(series_item.childCount(), 1)
@@ -71,6 +73,7 @@ class QuestHierarchyLazyRenderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with patch("app.pages.quests_page._MIN_LAZY_QUESTS", 1):
                 page = self.make_page(Path(tmp))
+                page.ensure_category_series_loaded("Catégorie")
                 series_id = next(iter(page.series_items))
                 page.focus_hierarchy_series(series_id)
 

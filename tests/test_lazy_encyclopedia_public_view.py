@@ -83,7 +83,7 @@ print(json.dumps({
         from app.modules.encyclopedia.views.guides_view import GuidesView as RealGuidesView
 
         self.assertIs(GuidesView, RealGuidesView)
-        self.assertTrue(views._GUIDE_VIEW_LOADED)
+        self.assertIn("GuidesView", views.__all__)
 
 
 if __name__ == "__main__":

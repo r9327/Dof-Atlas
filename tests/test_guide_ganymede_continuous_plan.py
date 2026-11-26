@@ -170,17 +170,14 @@ class GanymedeContinuousPlanTests(unittest.TestCase):
                 canonical_map_positions_from_doduda(raw_maps, (key,))
 
     def test_empty_or_nonstring_travel_evidence_is_not_a_verified_plan(self):
-        for evidence in ("", None, "   "):
-            travel = GuideTravelPlan(
-                TravelMode.DIRECT, RouteLocation(x=5, y=-18),
-                ("character:1",), evidence=evidence,
-            )
+        for evidence in ("", None, "   ", 123):
             with self.subTest(evidence=evidence), self.assertRaisesRegex(
-                ValueError, "Verified travel"
+                ValueError, "requires explicit evidence"
             ):
-                self.build(verified_stage_travel={
-                    "ganymede_2205_step_0001": travel,
-                })
+                GuideTravelPlan(
+                    TravelMode.DIRECT, RouteLocation(x=5, y=-18),
+                    ("character:1",), evidence=evidence,
+                )
 
     def test_reviewed_bindings_refuse_reused_actions_and_empty_participants(self):
         action = self._canonical_quest_start()

@@ -56,11 +56,12 @@ class UnitySkinTests(unittest.TestCase):
 
     def test_atlas_button_variants_and_navigation_use_one_style_switch(self) -> None:
         from app.ui.components import AtlasButton
+        from app.ui.unity_palette import UNITY_SIZES_PX
 
-        button = AtlasButton("Voir", variant="secondary")
+        button = AtlasButton("Voir", variant="secondary", size="compact")
         try:
             self.assertEqual(button.objectName(), "SecondaryButton")
-            self.assertEqual(button.minimumHeight(), 24)
+            self.assertEqual(button.minimumHeight(), UNITY_SIZES_PX["control_compact"])
             button.set_variant("primary")
             self.assertEqual(button.objectName(), "PrimaryActionButton")
             button.set_style_name("TopNavButton")
