@@ -894,7 +894,15 @@ class SharedUiComponentsTests(unittest.TestCase):
             quantity.setObjectName("GuidePreparationQuantity")
             page_width = fit_unity_number_spinbox(page)
             quantity_width = fit_unity_number_spinbox(quantity)
-            self.assertEqual(page_width - quantity_width, UNITY_SPACING_PX["sm"])
+            # The application stylesheet can assign different fonts to the
+            # two roles. Compare the padding after accounting for each font.
+            value = "123456/123456"
+            page_text_width = page.fontMetrics().horizontalAdvance(value)
+            quantity_text_width = quantity.fontMetrics().horizontalAdvance(value)
+            self.assertEqual(
+                (page_width - page_text_width) - (quantity_width - quantity_text_width),
+                UNITY_SPACING_PX["sm"],
+            )
             self.assertGreaterEqual(
                 page_width,
                 page.fontMetrics().horizontalAdvance("123456/123456")

@@ -32,6 +32,7 @@ GUIDE_READING_METRICS = UNITY_GUIDE_READING_METRICS_PX
 SIZES = {
     **UNITY_RADII,
     "CONTROL_HEIGHT_COMPACT": f'{UNITY_SIZES_PX["control_compact"]}px',
+    "CONTROL_HEIGHT_COMPACT_CONTENT": f'{UNITY_SIZES_PX["control_compact"] - 2}px',
     "CONTROL_HEIGHT": f'{UNITY_SIZES_PX["control_normal"]}px',
     "CONTROL_HEIGHT_LARGE": f'{UNITY_SIZES_PX["control_large"]}px',
     "ICON_SIZE_SMALL": f'{UNITY_SIZES_PX["icon_small"]}px',
@@ -859,6 +860,11 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus, #inputField:focus, #comboField
    Unity combos on Windows (native menu-style popups ignore that limit). */
 QComboBox {
     combobox-popup: 0;
+}
+
+/* Qt adds the two 1px Unity borders to this content height. */
+QComboBox#GuidePreparationCategoryFilter {
+    min-height: @CONTROL_HEIGHT_COMPACT_CONTENT;
 }
 
 /* One popup contract for all native dropdowns (including Successes). */

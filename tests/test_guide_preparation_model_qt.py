@@ -73,6 +73,11 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         return self.view
 
     def test_compact_preparation_is_content_sized_from_dev_ui_tokens(self):
+        from app.ui.theme import atlas_stylesheet
+
+        old_style = self.app.styleSheet()
+        self.addCleanup(self.app.setStyleSheet, old_style)
+        self.app.setStyleSheet(atlas_stylesheet())
         self.participants.save_selected_keys(("character:1",))
         view = self._view()
         quantity = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
