@@ -162,14 +162,15 @@ def declared_quest_start(source_info: object) -> tuple[str, str, tuple[str, str]
         status = "LOCAL_START_DECLARED"
     # Older imports kept the first map even when the documentary start was
     # ambiguous. Recheck the original wording without rewriting the catalogue.
-    if status == "LOCAL_START_DECLARED" and positions[0] and isinstance(launch, dict):
+    primary = positions[0] or positions[1]
+    if status == "LOCAL_START_DECLARED" and primary and isinstance(launch, dict):
         source_text = launch.get("source_text")
         candidates = documentary_coordinate_candidates(source_text) if isinstance(source_text, str) else set()
         if None in candidates:
             status = "INVALID_START_COORDINATES"
-        elif candidates and candidates != {positions[0][1:-1]}:
+        elif candidates and candidates != {primary[1:-1]}:
             status = "CONFLICTING_DECLARED_START"
-    return positions[0] or positions[1], status, (positions[0], positions[1])
+    return primary, status, (positions[0], positions[1])
 
 
 def quest_launch_position_evidence(source_info: object) -> tuple[str, str, tuple[str, ...]]:

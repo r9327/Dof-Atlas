@@ -71,11 +71,13 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             "20": {"launch_position": {"source_text": "x" * 600}},
             "30": {"launch_position": {"position": "[1,2]", "source_text": source}},
             "40": {"launch_position": {"position": "[1,2]", "source_text": "A [01,2]"}},
-        }, [10, 20, 30, 40])
+            "50": {"launch_position": {"source_text": source}, "source_meta": {"startCoords": "[1,2]"}},
+        }, [10, 20, 30, 40, 50])
         self.assertEqual(report["needs_review"], [
             {"quest_id": 10, "status": "NO_DECLARED_START", "source_text": source},
             {"quest_id": 20, "status": "NO_DECLARED_START", "source_text": "x" * 500},
             {"quest_id": 30, "status": "CONFLICTING_DECLARED_START", "source_text": source},
+            {"quest_id": 50, "status": "CONFLICTING_DECLARED_START", "source_text": source},
         ])
 
     def test_local_only_audit_never_hydrates_guides_successes_or_web(self):

@@ -103,14 +103,19 @@ class NormalizeCoordinatePairTests(unittest.TestCase):
             ("A [01,2] ([1,02])", "LOCAL_START_DECLARED"),
             ("Source sans coordonnées", "LOCAL_START_DECLARED"),
         ):
-            with self.subTest(source=source):
-                info = {"launch_position": {"position": "[1,2]", "source_text": source}}
-                self.assertEqual(declared_quest_start(info)[:2], ("[1,2]", expected))
-                info["native_start"] = {"map_id": 10, "position": "[1,2]"}
-                self.assertEqual(
-                    quest_launch_position_evidence(info)[1],
-                    "NATIVE_START_DECLARED" if expected == "LOCAL_START_DECLARED" else expected,
-                )
+            for declaration in ("launch", "meta", "both"):
+                with self.subTest(source=source, declaration=declaration):
+                    info = {"launch_position": {"source_text": source}}
+                    if declaration != "meta":
+                        info["launch_position"]["position"] = "[1,2]"
+                    if declaration != "launch":
+                        info["source_meta"] = {"startCoords": "[1,2]"}
+                    self.assertEqual(declared_quest_start(info)[:2], ("[1,2]", expected))
+                    info["native_start"] = {"map_id": 10, "position": "[1,2]"}
+                    self.assertEqual(
+                        quest_launch_position_evidence(info)[1],
+                        "NATIVE_START_DECLARED" if expected == "LOCAL_START_DECLARED" else expected,
+                    )
 
     def test_normalization_and_negative_values(self):
         self.assertEqual(normalize_coordinate_pair("003", "-06"), "3,-6")
