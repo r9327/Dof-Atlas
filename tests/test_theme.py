@@ -10,6 +10,11 @@ import app.ui.theme as theme
 
 
 class SharedThemeTests(unittest.TestCase):
+    def test_home_character_dropdown_uses_the_common_theme(self) -> None:
+        style = theme.atlas_stylesheet()
+        self.assertNotIn("#TopNavCharacterCombo", style)
+        self.assertIn("QComboBox QAbstractItemView {", style)
+
     def test_guide_quantity_and_page_spinboxes_share_visible_unity_surface(self) -> None:
         style = theme.atlas_stylesheet({"PANEL_2": "#31486B"})
         rule = style.split(

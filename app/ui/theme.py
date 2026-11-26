@@ -1808,24 +1808,6 @@ QCheckBox::indicator:checked {
     border-bottom: 2px solid @GREEN;
 }
 
-#TopNavCharacterCombo {
-    background: @PANEL_2;
-    border: 1px solid @BORDER;
-    border-radius: @RADIUS_SM;
-    color: @TEXT;
-    min-height: @TOP_NAV_CONTROL_HEIGHT;
-    max-height: @TOP_NAV_CONTROL_HEIGHT;
-    padding: 0px 9px;
-    font-size: @FONT_BODY;
-    font-weight: 700;
-}
-
-#TopNavCharacterCombo:hover,
-#TopNavCharacterCombo:focus {
-    border-color: @GREEN;
-    background: @PANEL_HOVER;
-}
-
 #TopNavSettings {
     background: transparent;
     border: 1px solid transparent;

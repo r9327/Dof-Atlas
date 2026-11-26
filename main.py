@@ -76,7 +76,7 @@ from app.ui.components import (
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
-from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX, unity_painted_ui_color
 from app.ui.unity_skin import (
     UnityBackdrop, apply_unity_panel_shadow, unity_enabled,
     register_unity_fonts, sprite_icon_path, unity_settings_icon,
@@ -1146,6 +1146,8 @@ class AtlasWindow(QMainWindow):
 
         self.character_combo = AtlasComboBox()
         self.character_combo.setObjectName("TopNavCharacterCombo")
+        portrait_size = UNITY_SIZES_PX["icon_normal"]
+        self.character_combo.setIconSize(QSize(portrait_size, portrait_size))
         self.character_combo.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_min_width"])
         self.character_combo.setMaximumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_max_width"])
         self.character_combo.setToolTip("Personnage actif")
@@ -1352,6 +1354,17 @@ class AtlasWindow(QMainWindow):
 
         verified_class = str(class_key or "").strip().casefold()
         if verified_class not in DOFUS_CLASS_DEFINITIONS:
+            # Window titles can supply a portrait for display, never an
+            # identity for progression. Ambiguous local names stay neutral.
+            local_sessions = getattr(getattr(self, "home_page", None), "_local_dofus_sessions", ())
+            if isinstance(local_sessions, tuple):
+                normalized_label = normalize_key(label)
+                matches = [
+                    title for title in local_sessions
+                    if title and normalize_key(title.partition(" - ")[0]) == normalized_label
+                ]
+                if len(matches) == 1:
+                    return local_character_preview(matches[0])[1] or fallback
             return fallback
         for path in class_icon_candidates(verified_class):
             if path.is_file():

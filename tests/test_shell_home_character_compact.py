@@ -11,6 +11,18 @@ from main import AtlasWindow
 
 
 class HomeCharacterComboCacheTests(unittest.TestCase):
+    def test_unknown_profile_class_uses_only_an_unambiguous_live_title_for_portrait(self):
+        shell = SimpleNamespace(home_page=SimpleNamespace(
+            _local_dofus_sessions=("Panda - Pandawa", "Enu - Enutrof"),
+        ))
+        with patch("main.local_character_preview", return_value=("Panda", "pandawa.png")) as preview:
+            self.assertEqual(AtlasWindow.character_icon_path(shell, "PANDA"), "pandawa.png")
+            preview.assert_called_once_with("Panda - Pandawa")
+            preview.reset_mock()
+            shell.home_page._local_dofus_sessions += ("Panda - Sacrieur",)
+            self.assertNotEqual(AtlasWindow.character_icon_path(shell, "Panda"), "pandawa.png")
+            preview.assert_not_called()
+
     def test_local_window_updates_stop_with_background_services(self):
         shell = SimpleNamespace(_background_services_stopped=False, refresh_global_characters=Mock())
         AtlasWindow.on_local_dofus_sessions_changed(shell, ("Panda - Pandawa",))
