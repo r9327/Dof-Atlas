@@ -6,7 +6,11 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from app.network.normalizer import DecodedClientMessage
-from app.network.protobuf_fields import ProtobufDecodeError, resolve_field_path
+from app.network.protobuf_fields import (
+    ProtobufDecodeError,
+    resolve_field_path,
+    resolve_repeated_positive_int_path,
+)
 from app.network.transport import CapturedProtocolMessage
 
 
@@ -22,8 +26,10 @@ class ProtocolFieldRule:
             raise ValueError("protocol field output_name cannot be empty")
         if not self.path or any(int(field_number) <= 0 for field_number in self.path):
             raise ValueError("protocol field path must contain positive field numbers")
-        if self.kind not in {"positive_int", "non_negative_int", "string"}:
+        if self.kind not in {"positive_int", "non_negative_int", "string", "repeated_positive_int"}:
             raise ValueError(f"unsupported protocol field kind: {self.kind}")
+        if self.kind == "repeated_positive_int" and len(self.path) < 2:
+            raise ValueError("repeated_positive_int needs a row field and an ID path")
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,11 +108,14 @@ class StrictMappedProtocolDecoder:
         fields: dict[str, object] = {}
         try:
             for field_rule in rule.fields:
-                value = resolve_field_path(
-                    message.payload,
-                    field_rule.path,
-                    expected_kind=field_rule.kind,
-                )
+                if field_rule.kind == "repeated_positive_int":
+                    value = resolve_repeated_positive_int_path(message.payload, field_rule.path)
+                else:
+                    value = resolve_field_path(
+                        message.payload,
+                        field_rule.path,
+                        expected_kind=field_rule.kind,
+                    )
                 if value is None:
                     if field_rule.required:
                         return None

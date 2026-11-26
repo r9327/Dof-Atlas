@@ -89,6 +89,13 @@ class AchievementCompletedEvent(NetworkEvent):
     achievement_id: int
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AchievementSnapshotEvent(NetworkEvent):
+    """Completed achievement IDs for an already verified character session."""
+
+    completed_achievement_ids: tuple[int, ...]
+
+
 BusinessNetworkEvent: TypeAlias = (
     SessionClosedEvent
     | CharacterIdentifiedEvent
@@ -99,12 +106,14 @@ BusinessNetworkEvent: TypeAlias = (
     | FinishedQuestsSnapshotEvent
     | AchievementObjectiveCompletedEvent
     | AchievementCompletedEvent
+    | AchievementSnapshotEvent
 )
 
 
 __all__ = [
     "AchievementCompletedEvent",
     "AchievementObjectiveCompletedEvent",
+    "AchievementSnapshotEvent",
     "BusinessNetworkEvent",
     "CharacterIdentifiedEvent",
     "FinishedQuestsSnapshotEvent",

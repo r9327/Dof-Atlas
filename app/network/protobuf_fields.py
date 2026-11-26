@@ -150,6 +150,28 @@ def historical_reinitialized_rows_valid(rows: tuple[object, ...]) -> bool:
     return True
 
 
+def resolve_repeated_positive_int_path(
+    payload: bytes,
+    path: tuple[int, ...],
+    *,
+    limit: int = 8192,
+) -> tuple[int, ...] | None:
+    """Resolve an explicit repeated message field with a singular ID in each row."""
+    root_field, *id_path = path
+    rows = parse_protobuf_fields(payload).get(root_field, ())
+    if not rows or len(rows) > limit:
+        return None
+    values: list[int] = []
+    for row in rows:
+        if not isinstance(row, bytes):
+            return None
+        value = resolve_field_path(row, tuple(id_path), expected_kind="positive_int")
+        if not isinstance(value, int):
+            return None
+        values.append(value)
+    return tuple(dict.fromkeys(values))
+
+
 def resolve_field_path(
     payload: bytes,
     path: tuple[int, ...],

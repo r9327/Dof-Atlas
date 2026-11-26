@@ -53,6 +53,7 @@ _ALLOWED_EVENTS: dict[str, dict[str, str]] = {
         "objective_id": "positive_int",
     },
     "achievement_completed": {"achievement_id": "positive_int"},
+    "achievement_snapshot": {"completed_achievement_ids": "repeated_positive_int"},
 }
 _REQUIRED_OUTPUTS: dict[str, frozenset[str]] = {
     "character_identified": frozenset({"character_name"}),
@@ -61,6 +62,7 @@ _REQUIRED_OUTPUTS: dict[str, frozenset[str]] = {
     "quest_completed": frozenset({"quest_id"}),
     "achievement_objective_completed": frozenset({"achievement_id", "objective_id"}),
     "achievement_completed": frozenset({"achievement_id"}),
+    "achievement_snapshot": frozenset({"completed_achievement_ids"}),
 }
 _ANKAMA_TYPE_PREFIXES = ("type.ankama.com/", "ankama.com/")
 
@@ -253,6 +255,8 @@ def parse_protocol_mapping(raw: Any) -> ProtocolMappingManifest:
 
             raw_path = raw_field.get("path")
             path = _parse_path(raw_path, label=f"path for output {output_name!r}")
+            if kind == "repeated_positive_int" and len(path) < 2:
+                raise ProtocolMappingError("repeated_positive_int needs a row field and an ID path")
             required = raw_field.get("required", True)
             if not isinstance(required, bool):
                 raise ProtocolMappingError(f"required for output {output_name!r} must be boolean")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.numbers import valid_list_int_ids
@@ -119,15 +119,28 @@ class AchievementProgressService(CoordinatedProgressReader, LegacyAchievementPro
             self._accept_snapshot_locked(changed=True)
 
     def set_achievement_completed(self, character_key: str, achievement_id: int, completed: bool) -> bool:
+        return self.set_achievements_completed(character_key, (int(achievement_id),), completed)
+
+    def set_achievements_completed(
+        self,
+        character_key: str,
+        achievement_ids: Iterable[int],
+        completed: bool = True,
+    ) -> bool:
+        """Publish one coordinated write for a batch of achievement completion changes."""
         key = require_character_key(character_key)
+        ids = set(achievement_ids)
+        if not ids:
+            return False
         with self._coordinator.lock:
             self._replace_snapshot_locked(self._coordinator.generation)
             character = self._character(key)
-            values = valid_list_int_ids(character.get("completed_achievements", []))
-            achievement_id = int(achievement_id)
-            if (achievement_id in values) == bool(completed):
+            values = set(valid_list_int_ids(character.get("completed_achievements", [])))
+            updated = values | ids if completed else values - ids
+            if updated == values:
                 return False
-            super().set_achievement_completed(key, achievement_id, completed)
+            character["completed_achievements"] = sorted(updated)
+            self.save()
             return True
 
     def set_objective_completed(

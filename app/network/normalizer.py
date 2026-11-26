@@ -7,6 +7,7 @@ from app.core.numbers import coerce_positive_int
 from app.network.events import (
     AchievementCompletedEvent,
     AchievementObjectiveCompletedEvent,
+    AchievementSnapshotEvent,
     BusinessNetworkEvent,
     CharacterIdentifiedEvent,
     FinishedQuestsSnapshotEvent,
@@ -137,6 +138,16 @@ class ProtocolEventNormalizer:
                 reliable=True,
                 achievement_id=achievement_id,
                 objective_id=objective_id,
+            )
+        if event_type == "achievement_snapshot":
+            completed = self._positive_int_tuple(fields.get("completed_achievement_ids"))
+            if not completed:
+                return None
+            return AchievementSnapshotEvent(
+                session_id=session_id,
+                event_id=event_id,
+                reliable=True,
+                completed_achievement_ids=completed,
             )
         if event_type == "achievement_completed":
             achievement_id = self._positive_int(fields.get("achievement_id"))
