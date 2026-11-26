@@ -178,17 +178,38 @@ class PassiveRequestResponseDiagnosticsTests(unittest.TestCase):
             source.stop()
             source.start()
             self.assertIs(source.read_item(0.1), arrival)
-        sent, loaded, reopened, restarted = self._zaap_rows(capture.output)
+        sent, loaded, closed, reopened, restarted = self._zaap_rows(capture.output)
         self.assertEqual(sent["selection_id_candidate"], loaded["loaded_map_candidate"])
         self.assertEqual(sent["session_alias"], loaded["session_alias"])
         self.assertIsNotNone(loaded["last_verified_character_alias"])
+        self.assertEqual(closed["session_alias"], loaded["session_alias"])
+        self.assertEqual(closed["classification"], "transport_session_closed")
         self.assertNotEqual(loaded["session_alias"], reopened["session_alias"])
-        self.assertEqual(reopened["sequence"], 3)
+        self.assertEqual(reopened["sequence"], 4)
         self.assertEqual(restarted["sequence"], 1)
         self.assertNotEqual(reopened["last_verified_character_alias"], restarted["last_verified_character_alias"])
         self.assertNotIn("source-session", "\n".join(capture.output))
         self.assertNotIn("Private character", "\n".join(capture.output))
         self.assertTrue(state.snapshot("character:17").connected)
+
+    def test_zaap_diagnostic_keeps_dialog_and_loading_markers_unverified(self) -> None:
+        build = "a" * 64
+        diagnostics = PassiveRequestResponseDiagnostics(
+            logger=self.logger, build_sha256=build, active_build_provider=lambda: build,
+        )
+        with (
+            patch.dict("os.environ", {"ATLAS_ZAAP_DIAGNOSTICS": "1"}, clear=True),
+            self.assertLogs(self.logger, level="INFO") as capture,
+        ):
+            diagnostics.observe(CapturedProtocolMessage("s", "type.ankama.com/kld", b"\x08\x0a"))
+            diagnostics.observe(CapturedProtocolMessage("s", "type.ankama.com/lva", b""))
+        dialog, loading = self._zaap_rows(capture.output)
+        self.assertFalse(dialog["payload_empty"])
+        self.assertTrue(loading["payload_empty"])
+        self.assertEqual(dialog["session_alias"], loading["session_alias"])
+        for row in (dialog, loading):
+            self.assertEqual(row["classification"], "wire_sample_unverified")
+            self.assertNotIn("loaded_map_candidate", row)
 
     def test_zaap_diagnostic_reports_truncation_and_malformed_messages_within_budget(self) -> None:
         build = "a" * 64

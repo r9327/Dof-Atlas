@@ -39,6 +39,8 @@ _ZAAP_REVIEW_DIRECTIONS = {
     "type.ankama.com/hjj": "server_to_client",
     "type.ankama.com/jru": "server_to_client",
     "type.ankama.com/jss": "server_to_client",
+    "type.ankama.com/kld": "server_to_client",
+    "type.ankama.com/lva": "server_to_client",
 }
 
 
@@ -89,6 +91,10 @@ def _zaap_wire_summary(message: CapturedProtocolMessage) -> dict[str, object]:
             "selection_kind_candidate": _single_scalar(fields, 2),
             "selection_id_candidate": _single_scalar(fields, 3),
         }
+    if message.type_url in {"type.ankama.com/kld", "type.ankama.com/lva"}:
+        # These messages also occur outside Zaap travel. Keep only the shape
+        # needed to compare them with the adjacent list/request/map samples.
+        return {"payload_empty": not fields}
     return {"loaded_map_candidate": _single_scalar(fields, 2)}
 
 
@@ -187,7 +193,15 @@ class PassiveRequestResponseDiagnostics:
     def session_closed(self, session_id: str) -> None:
         session = str(session_id or "")
         self._recent.pop(session, None)
-        self._zaap_sessions.pop(session, None)
+        alias = self._zaap_sessions.pop(session, None)
+        if alias is not None and self._zaap_observation_count < _MAX_ZAAP_OBSERVATIONS:
+            self._zaap_observation_count += 1
+            log_zaap_observation(
+                self.logger,
+                phase=self.phase, build_sha256=self._build_sha256,
+                sequence=self._zaap_observation_count, session_alias=alias,
+                classification="transport_session_closed",
+            )
 
     def clear(self) -> None:
         self._recent.clear()

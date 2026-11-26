@@ -27,7 +27,7 @@ def _live_dofus_sessions(_scan_interval: int) -> tuple[tuple[int, str], ...]:
             sessions[hwnd] = (
                 "" if is_generic_dofus_client_name(title) else title
             )
-    return tuple(sessions.items())
+    return tuple(sorted(sessions.items()))
 
 
 if TYPE_CHECKING:
@@ -162,6 +162,8 @@ class NetworkUiBridge(QObject):
         self._timer.stop()
         self._progress_timer.stop()
         self._pending_progress_characters.clear()
+        had_local_sessions = bool(self._published_local_sessions)
+        self._local_sessions = self._published_local_sessions = ()
         try:
             stopped = bool(self.coordinator.stop())
         except Exception:
@@ -179,6 +181,8 @@ class NetworkUiBridge(QObject):
         self._last_status = NetworkApplicationStatus(
             False, False, "stopped" if stopped else "stop_failed",
         )
+        if had_local_sessions:
+            self.localSessionsChanged.emit(())
         self.statusChanged.emit(self._last_status)
         return stopped
 
@@ -203,7 +207,11 @@ class NetworkUiBridge(QObject):
             # enqueue old notifications after a newer state was committed.
             # Render the authoritative snapshot, not an older queued badge.
             latest = self.coordinator.latest_status()
-            if latest != self._last_status:
+            # A fast explicit retry can return to the same status in one
+            # poll. Refresh Home so it can exit its retry-in-progress state.
+            if latest != self._last_status or any(
+                status.reason == "network_retry_starting" for status in statuses
+            ):
                 self._last_status = latest
                 self.statusChanged.emit(latest)
             # A direct Qt slot can stop the bridge during this emission.
@@ -292,6 +300,7 @@ class NetworkUiBridge(QObject):
             self._local_sessions = tuple(label for _hwnd, label in sessions)
             return tuple(hwnd for hwnd, _label in sessions)
         except Exception:
+            self._local_sessions = ()
             from app.core.logger import get_runtime_logger
             get_runtime_logger().exception("Network window handle lookup failed.")
             return ()

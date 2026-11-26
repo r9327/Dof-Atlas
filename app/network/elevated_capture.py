@@ -339,22 +339,27 @@ class ElevatedWindowsProtocolSource:
             if not started or connection is None:
                 return None
             frame = self._pending_frames.pop(0) if self._pending_frames else None
-        self._publish_handles(connection)
         deadline = monotonic() + max(0.0, float(timeout))
-        while True:
-            if frame is None:
-                try:
+        try:
+            self._publish_handles(connection)
+            while True:
+                if frame is None:
                     frame = connection.receive(max(0.0, deadline - monotonic()))
-                except CaptureIpcDisconnected:
-                    self.close()
-                    raise CaptureIpcDisconnected("capture_helper_disconnected")
-            if frame is None:
-                return None
-            if str(frame.get("kind") or "") == "diagnostic":
-                self._log_capture_diagnostic(frame)
-                frame = None
-                continue
-            return self._transport_item_from_frame(frame)
+                if frame is None:
+                    return None
+                if str(frame.get("kind") or "") == "diagnostic":
+                    self._log_capture_diagnostic(frame)
+                    frame = None
+                    continue
+                return self._transport_item_from_frame(frame)
+        except CaptureIpcDisconnected:
+            try:
+                self.close()
+            except NetworkCaptureStartError as exc:
+                # Stop the reader even if process cleanup itself failed. The
+                # reader's final stop will retry the retained process handle.
+                raise CaptureIpcDisconnected("capture_helper_disconnected") from exc
+            raise CaptureIpcDisconnected("capture_helper_disconnected")
 
     @staticmethod
     def _transport_item_from_frame(frame: dict[str, Any]) -> ProtocolTransportItem:

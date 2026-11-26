@@ -9,7 +9,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app.network import elevated_capture
 from app.network import capture_helper
@@ -95,6 +95,40 @@ class FakeHelperLauncher:
 
 
 class NetworkElevatedCaptureTests(unittest.TestCase):
+    def test_helper_disconnect_on_handle_update_cleans_up_before_restart(self) -> None:
+        source = ElevatedWindowsProtocolSource(lambda: (44,), keep_helper_alive=True)
+        source._connected = source._started = True
+        connection = source._connection = Mock()
+        process = source._process = Mock()
+        process.wait.return_value = True
+        connection.send.side_effect = CaptureIpcDisconnected("closed")
+
+        with self.assertRaisesRegex(CaptureIpcDisconnected, "capture_helper_disconnected"):
+            source.read_item(0.1)
+
+        connection.receive.assert_not_called()
+        connection.close.assert_called_once_with()
+        process.close.assert_called_once_with()
+        self.assertFalse(source.is_started)
+        self.assertIsNone(source._process)
+
+    def test_helper_disconnect_stops_reader_even_after_cleanup_timeout(self) -> None:
+        source = ElevatedWindowsProtocolSource(lambda: (), keep_helper_alive=True)
+        source._connected = source._started = True
+        connection = source._connection = Mock()
+        process = source._process = Mock()
+        process.wait.side_effect = [False, False, True]
+        connection.receive.side_effect = CaptureIpcDisconnected("closed")
+
+        with self.assertRaisesRegex(CaptureIpcDisconnected, "capture_helper_disconnected"):
+            source.read_item(0.1)
+
+        self.assertFalse(source.is_started)
+        self.assertIs(source._process, process)
+        source.stop()
+        self.assertIsNone(source._process)
+        process.close.assert_called_once_with()
+
     def test_unconfirmed_helper_exit_retains_process_and_blocks_new_launch(self) -> None:
         from unittest.mock import Mock
 

@@ -942,3 +942,68 @@ avant de brancher une commande de voyage en temps réel.
 Qt/Windows aux quatre tailles, puis audit des 43 exigences et
 vérifications CI. Aucun PASS/FULL/Ready/fusion revendiqué pour ces
 changements de code.
+
+### Session Windows Réseau et Zaap (#432)
+
+1. Relever le SHA affiché par `git rev-parse HEAD`, la version Windows et la
+   version DOFUS affichée par le Launcher. Quitter Atlas et DOFUS. Depuis le
+   candidat, ouvrir PowerShell sans élévation et lancer Atlas en mode diagnostic.
+
+   ```powershell
+   $env:ATLAS_ZAAP_DIAGNOSTICS = '1'
+   Remove-Item Env:ATLAS_NETWORK_DEBUG,Env:ATLAS_NETWORK_DEBUG_DEEP -ErrorAction SilentlyContinue
+   $debutRecetteAtlas = [DateTimeOffset]::UtcNow
+   .\DOFUS.bat
+   ```
+
+2. Avec zéro client, relever l'état Réseau. Lancer le premier personnage,
+   refuser le premier UAC de capture, naviguer Accueil → Personnage → Guides
+   et vérifier le trajet direct. Cliquer sur **Relancer** et accepter cette
+   fois. Relever le badge et l'identité avant et après un changement de carte
+   à pied. Noter l'heure et les coordonnées lues dans DOFUS.
+3. Connecter un deuxième personnage qui connaît des Zaaps différents. Pour A
+   puis B, partir du même Zaap et ouvrir la liste native. Noter l'heure, la
+   carte source et au moins une destination en commun et une différence.
+   Sur A, prendre un Zaap disponible et noter l'arrivée affichée. Sur B,
+   relever la destination absente. Si une destination est listée mais que
+   DOFUS la refuse, tenter le voyage et noter le refus exact, l'heure et la
+   carte restée affichée. Si le jeu empêche toute demande, relever ce cas
+   comme indisponible et déclarer le refus après demande non exécuté.
+4. Passer à 4, 6 et 8 personnages si les comptes sont disponibles. À chaque
+   palier, relever le nombre de fenêtres et d'identités, puis changer de carte
+   sur un seul personnage. Déconnecter un personnage pendant un trajet direct
+   du Guide, puis reconnecter ou changer de personnage dans une fenêtre
+   conservée. Vérifier que les autres restent associés à leur fenêtre et que
+   le Guide n'annonce aucune arrivée non constatée.
+5. Quitter Atlas via la zone de notification. Vérifier que le helper a quitté,
+   relancer Atlas avec les clients encore ouverts et vérifier la reprise.
+   Quitter ensuite les clients et vérifier que les états connectés disparaissent.
+6. Exporter uniquement le JSON Zaap de la session depuis le même PowerShell.
+   Utiliser le répertoire utilisateur d'Atlas si la configuration en définit un.
+
+   ```powershell
+   $tagRecetteAtlas = '[NETWORK][ZAAP][OBSERVED] '
+   $racineRecetteAtlas = if ($env:DOFUS_ATLAS_USER_ROOT) { $env:DOFUS_ATLAS_USER_ROOT } else { $PWD.Path }
+   $journalRecetteAtlas = Join-Path $racineRecetteAtlas 'logs/session_runtime.log'
+   $exportRecetteAtlas = Join-Path $racineRecetteAtlas ('logs/recette-zaap-{0:yyyyMMdd-HHmmss}.json' -f $debutRecetteAtlas)
+   Select-String -LiteralPath $journalRecetteAtlas -SimpleMatch $tagRecetteAtlas |
+     ForEach-Object {
+       ($_.Line -split [regex]::Escape($tagRecetteAtlas), 2)[1] | ConvertFrom-Json
+     } |
+     Where-Object { [DateTimeOffset]$_.timestamp -ge $debutRecetteAtlas } |
+     ConvertTo-Json -Depth 10 |
+     Set-Content -Encoding utf8 $exportRecetteAtlas
+   ```
+
+Consigner dans [#432](https://github.com/r9327/Dof-Atlas/issues/432) la date,
+l'opérateur, les versions, le SHA, les étapes exécutées, les observations
+horodatées et les captures recadrées après masquage des noms et du chat.
+Joindre uniquement l'export expurgé. Les noms, identifiants, adresses, jetons,
+captures réseau brutes et journaux complets restent locaux.
+
+L'analyse doit rapprocher le champ répété 3 ou 4 de `hjj` avec les listes
+affichées pour A et B sur la même empreinte du client. Les observations de
+`hjc`, `jru`, `jss`, `lva`, `kld` et de fermeture de session servent à
+reconstituer la chronologie, avec l'écran comme contrôle indépendant. Une
+liste absente du journal, une fermeture du dialogue ou un changement de carte
+isolé ne suffit pas à qualifier un refus ou une téléportation réussie.

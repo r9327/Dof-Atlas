@@ -367,6 +367,46 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         self.assertFalse(coordinator.is_worker_running)
         self.assertTrue(coordinator._commands.empty())
 
+    def test_retry_uses_current_waiting_status_even_after_calibration_loses_windows(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._last_runtime = NetworkControllerStatus(False, "mapping_no_exact_match")
+        coordinator._publish_status(NetworkApplicationStatus(False, False, "no_window_handles"))
+
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            coordinator._retry_when_client_appears()
+            start.assert_called_once_with()
+
+    def test_explicit_retry_publishes_a_boundary_even_when_failure_is_unchanged(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        cancelled = NetworkApplicationStatus(False, False, "capture_elevation_cancelled")
+        coordinator._publish_status(cancelled)
+        coordinator.drain_statuses()
+
+        with patch.object(coordinator, "_start_runtime",
+                          side_effect=lambda: coordinator._publish_status(cancelled)):
+            coordinator._handle_command("start_runtime")
+
+        self.assertEqual([status.reason for status in coordinator.drain_statuses()], [
+            "network_retry_starting", "capture_elevation_cancelled",
+        ])
+
+    def test_windows_are_observed_after_cancelled_elevation_without_retrying_capture(self) -> None:
+        windows = Mock(return_value=(44,))
+        coordinator = NetworkApplicationCoordinator(windows)
+        coordinator._context_ready = True
+        cancelled = NetworkApplicationStatus(False, False, "capture_elevation_cancelled")
+        coordinator._publish_status(cancelled)
+
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            coordinator._retry_when_client_appears()
+            start.assert_not_called()
+
+        windows.assert_called_once_with()
+        self.assertEqual(coordinator.latest_status(), cancelled)
+
     def test_context_ready_respects_cancelled_elevation_but_explicit_retry_starts(self) -> None:
         from app.quest_catalog import QuestCatalog
 

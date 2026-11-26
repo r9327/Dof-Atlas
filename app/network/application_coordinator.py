@@ -36,6 +36,9 @@ _RUNTIME_REASONS_REQUIRING_CALIBRATION = frozenset(
         "mapping_current_profile_noncanonical",
     }
 )
+_CLIENT_RETRY_REASONS = frozenset(
+    {"no_window_handles", "build_fingerprint_unavailable", "runtime_stopped", "build_changed"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -398,6 +401,7 @@ class NetworkApplicationCoordinator:
             self._prepare_capture()
             return
         if command == "start_compact_runtime":
+            self._publish_current("network_retry_starting")
             self._start_compact_runtime()
             return
         if command == "configure_compact_context":
@@ -406,9 +410,10 @@ class NetworkApplicationCoordinator:
         if command == "start_calibration":
             self._start_calibration()
             return
-        if command == "start_runtime" or (
-            command == "start_runtime_on_context_ready" and reason != "capture_elevation_cancelled"
-        ):
+        if command == "start_runtime":
+            self._publish_current("network_retry_starting")
+            self._start_runtime()
+        elif command == "start_runtime_on_context_ready" and reason != "capture_elevation_cancelled":
             self._start_runtime()
 
     def _start_compact_runtime(self, *, replace_existing: bool = False) -> None:
@@ -528,7 +533,7 @@ class NetworkApplicationCoordinator:
         self._publish_current(self._last_runtime.reason)
         if self._last_runtime.reason in _RUNTIME_REASONS_REQUIRING_CALIBRATION:
             self._start_calibration()
-        elif self._last_runtime.reason == "build_fingerprint_unavailable":
+        elif self._last_runtime.reason in _CLIENT_RETRY_REASONS:
             self._next_runtime_retry_at = monotonic() + 2.5
 
     def _retry_when_client_appears(self) -> None:
@@ -536,17 +541,25 @@ class NetworkApplicationCoordinator:
             ready = self._context_ready
             pending = self._calibration_pending
             reason = self._last_status.reason
-        if (self._stop_event.is_set() or not ready or reason == "capture_elevation_cancelled"
-                or not capture_retry_allowed(reason)):
-            return
-        calibrating = pending or self.calibration.is_running
-        running = self.runtime.is_running
-        if not (calibrating or running or reason == "build_changed"
-                or self._last_runtime.reason in {"build_fingerprint_unavailable", "runtime_stopped"}):
-            return
-        if monotonic() < self._next_runtime_retry_at:
+        if self._stop_event.is_set() or monotonic() < self._next_runtime_retry_at:
             return
         self._next_runtime_retry_at = monotonic() + 2.5
+        calibrating = pending or self.calibration.is_running
+        running = self.runtime.is_running
+        if not (
+            ready
+            and reason != "capture_elevation_cancelled"
+            and capture_retry_allowed(reason)
+            and (calibrating or running or reason in _CLIENT_RETRY_REASONS)
+        ):
+            # Keep the existing local window view current even when capture
+            # is unavailable. Looking up windows never opens the UAC prompt.
+            if not calibrating and not running:
+                try:
+                    self.window_handles_provider()
+                except Exception:
+                    self.logger.exception("Network window discovery failed.")
+            return
         if calibrating or running:
             expected = self._last_calibration.build_sha256 if calibrating else self._last_runtime.build_sha256
             if not expected:

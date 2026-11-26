@@ -171,7 +171,7 @@ class NetworkTransportTests(unittest.TestCase):
                 )
 
                 self.assertIsNone(source.read_event(0.05))
-                self.assertEqual(decoder.decode_count, 1)
+                self.assertEqual(decoder.decode_count, 0)
 
 
 if __name__ == "__main__":

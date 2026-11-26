@@ -439,6 +439,56 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
+    def test_window_discovery_is_stable_across_foreground_changes(self) -> None:
+        from unittest.mock import patch
+        from app.ui.network_bridge import _live_dofus_sessions
+
+        def windows(count):
+            return [
+                {"hwnd": handle, "detected_title": f"Héros {handle} - Pandawa"}
+                for handle in range(count, 0, -1)
+            ] + [{"hwnd": 99, "detected_title": "Autre application Unity"}]
+
+        try:
+            with (
+                patch("app.windows_embed.scan_unity_sessions") as scan,
+                patch("app.macros.mirror_plan.is_dofus_unity_process",
+                      side_effect=lambda handle: handle != 99),
+            ):
+                for count in (0, 1, 2, 4, 6, 8):
+                    with self.subTest(count=count):
+                        rows = windows(count)
+                        scan.side_effect = [rows, list(reversed(rows))]
+                        expected = tuple(
+                            (i, f"Héros {i} - Pandawa") for i in range(1, count + 1)
+                        )
+                        self.assertEqual(_live_dofus_sessions(count * 2), expected)
+                        self.assertEqual(_live_dofus_sessions(count * 2 + 1), expected)
+        finally:
+            _live_dofus_sessions.cache_clear()
+
+    def test_fast_retry_refreshes_an_unchanged_status(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_results.return_value = []
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received = []
+        bridge.statusChanged.connect(received.append)
+        try:
+            initial = bridge.last_status
+            coordinator.drain_statuses.return_value = [
+                self._status(reason="network_retry_starting"), initial,
+            ]
+            bridge._poll()
+            self.assertEqual(received, [initial])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def test_network_bridge_stop_from_activation_signal_drops_progress(self) -> None:
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
