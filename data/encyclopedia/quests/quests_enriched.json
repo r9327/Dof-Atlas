@@ -1884642,7 +1884642,7 @@
         {
           "order": 1,
           "type": "position",
-          "content": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17] dans la dimension Osavora.",
+          "content": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17!] dans la dimension Osavora.",
           "position": "[-22,-24]",
           "data": {
             "npc": "",
@@ -1884699,8 +1884699,8 @@
         {
           "order": 7,
           "type": "position",
-          "content": "Une fois sur Osavora, allez en [1,17] afin de rencontrer le Capitaine Blair « Se présenter en tant qu'agent des Voyageurs » et lui dire que vous venez en renfort. Il en est ravi et vous demande votre spécialité, vous pouvez choisir l'une des 3 réponses au choix, cela n'aura pas d'influence sur la suite :",
-          "position": "[1,17]",
+          "content": "Une fois sur Osavora, allez en [1,17!] afin de rencontrer le Capitaine Blair « Se présenter en tant qu'agent des Voyageurs » et lui dire que vous venez en renfort. Il en est ravi et vous demande votre spécialité, vous pouvez choisir l'une des 3 réponses au choix, cela n'aura pas d'influence sur la suite :",
+          "position": "[1,17!]",
           "data": {
             "npc": "",
             "interaction": "",
@@ -1885028,7 +1885028,7 @@
           "description": "",
           "objectives": [
             {
-              "text": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17] dans la dimension Osavora.",
+              "text": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17!] dans la dimension Osavora.",
               "position": "[-22,-24]",
               "npc": "",
               "interaction": "",
@@ -1885092,8 +1885092,8 @@
           "description": "",
           "objectives": [
             {
-              "text": "Une fois sur Osavora, allez en [1,17] afin de rencontrer le Capitaine Blair « Se présenter en tant qu'agent des Voyageurs » et lui dire que vous venez en renfort. Il en est ravi et vous demande votre spécialité, vous pouvez choisir l'une des 3 réponses au choix, cela n'aura pas d'influence sur la suite :",
-              "position": "[1,17]",
+              "text": "Une fois sur Osavora, allez en [1,17!] afin de rencontrer le Capitaine Blair « Se présenter en tant qu'agent des Voyageurs » et lui dire que vous venez en renfort. Il en est ravi et vous demande votre spécialité, vous pouvez choisir l'une des 3 réponses au choix, cela n'aura pas d'influence sur la suite :",
+              "position": "[1,17!]",
               "npc": "",
               "interaction": "",
               "combat": false,
@@ -1885506,7 +1885506,7 @@
         "Quarante rugissants"
       ],
       "launch_position": {
-        "source_text": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17] dans la dimension Osavora."
+        "source_text": "La quête se lance dans la tour des voyageurs dimensionnels en [-22,-24] auprès du Colonel Oneuil ou de Galdis (à la fin de Voyage, voyage) en vous renseignant au sujet de la dimension Osavora. Il vous explique alors que les voyageurs ont quelques difficultés dans cette dimension et qu'il a peur qu'à cause des affrontements contre les Rhoarims, ils soient obligés de battre en retraite « Proposer votre aide ».\nNOTE : La quête peut également se lancer sans parler au Colonel Oneuil mais directement à l'étape d'après auprès du Capitaine Blair en [1,17!] dans la dimension Osavora."
       },
       "preparation": [
         "Des combats contre des monstres d'une zone pour du drop à 12%"

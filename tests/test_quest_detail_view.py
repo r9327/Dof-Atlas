@@ -303,6 +303,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
 
         self.assertIn('<b><a class="coord" href="atlas-travel:3,-6">[3,-6]</a></b>',
                       linkify_travel_coordinates("Aller [ 003, -06 ]"))
+        self.assertEqual(linkify_travel_coordinates("Dimension [1,17!]"), "Dimension <b>[1,17!]</b>")
         for invalid in ("[-2147483648,2]", "[2147483648,2]", "[" + "9" * 5000 + ",2]"):
             self.assertNotIn("atlas-travel:", linkify_travel_coordinates(invalid))
         for invalid in ("atlas-travel:-2147483648,2", "atlas-travel:3,4?other=5,6"):

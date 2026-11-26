@@ -27,7 +27,8 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 )
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.core.numbers import coerce_positive_int
-from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE, normalize_coordinate_pair, travel_command_from_link
+from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE
+from app.core.map_coordinates import DOCUMENTARY_POSITION_RE, normalize_coordinate_pair, travel_command_from_link
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
@@ -625,8 +626,12 @@ class GuideUltimeManualCard(QFrame):
                 return
             spans.append((start, end, kind, payload))
 
-        for match in _COORD_RE.finditer(plain):
-            coordinates = normalize_coordinate_pair(*match.groups())
+        for match in DOCUMENTARY_POSITION_RE.finditer(plain):
+            x, y, dimension = match.groups()
+            if dimension:
+                add_span(match.start(), match.end(), "documentary_position")
+                continue
+            coordinates = normalize_coordinate_pair(x, y)
             # Invalid, missing or oversized locations remain documentary text.
             if coordinates is not None:
                 add_span(match.start(), match.end(), "position", coordinates)
@@ -655,6 +660,8 @@ class GuideUltimeManualCard(QFrame):
                 rendered.append(entity_link_markup(
                     value, "item", f"item-copy:{quote(payload, safe='')}", PALETTE,
                 ))
+            elif kind == "documentary_position":
+                rendered.append(f"<b>{html.escape(value)}</b>")
             else:
                 # Every actionable map coordinate is bold in the shared Guide,
                 # while its existing Unity link colour and copy/travel action

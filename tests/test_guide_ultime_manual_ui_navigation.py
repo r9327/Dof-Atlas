@@ -708,11 +708,13 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         rendered = GuideUltimeManualCard._format_line_html(
             "• ",
             "[5,-3]",
-            "Parler au PNJ.",
+            "Parler au PNJ. Accès à la dimension [1,17!].",
             [],
             [],
         )
         self.assertIn("<b>[5,-3]</b>", rendered)
+        self.assertIn("<b>[1,17!]</b>", rendered)
+        self.assertNotIn("travel-copy:1,17", rendered)
         self.assertIn("Parler au PNJ.", rendered)
 
     def test_next_sheet_always_starts_at_top(self) -> None:

@@ -3900,10 +3900,11 @@ def linkify_travel_text(text: str) -> str:
     escaped = escape(str(text or ""))
 
     def replace(match: re.Match[str]) -> str:
+        if match.group(3):
+            return f"<b>{match.group(0)}</b>"
         command = _vm_call("travel_command", match.group(0))
         if not command:
-            # A missing/out-of-range map is documentary text, not a button.
-            return f"<b>{match.group(0)}</b>"
+            return match.group(0)
         coordinates = command.removeprefix("/travel ")
         return entity_link_markup(
             f"[{coordinates}]", "position", f"atlas-travel:{coordinates}", PALETTE,
