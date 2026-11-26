@@ -249,21 +249,22 @@ class ZaapMacro:
                 try:
                     accepted = send_chat_command(
                         command,
-                    self.runtime.logger,
-                    submit_twice=True,
-                    chat_open_ms=timings.auto_group_chat_open_ms,
-                    key_step_ms=timings.auto_group_key_step_ms,
-                    paste_settle_ms=timings.auto_group_paste_settle_ms,
-                    # Abort a command at its next cancellable keyboard
-                    # boundary when the user switches to another window.
-                    # The existing sender checks this before each chat step.
-                    should_stop=lambda hwnd=target_hwnd, client=client: (
-                        self.runtime.macro_lock.should_stop()
-                        or self.runtime.settings is not settings_at_start
-                        or not frozen_roster_intact()
-                        or dispatch_context_changed()
-                        or not foreground_confirmed(hwnd)
-                    ),
+                        self.runtime.logger,
+                        submit_twice=True,
+                        allow_direct_text=True,
+                        chat_open_ms=timings.auto_group_chat_open_ms,
+                        key_step_ms=timings.auto_group_key_step_ms,
+                        paste_settle_ms=timings.auto_group_paste_settle_ms,
+                        # Abort a command at its next cancellable keyboard
+                        # boundary when the user switches to another window.
+                        # The existing sender checks this before each chat step.
+                        should_stop=lambda hwnd=target_hwnd, client=client: (
+                            self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start
+                            or not frozen_roster_intact()
+                            or dispatch_context_changed()
+                            or not foreground_confirmed(hwnd)
+                        ),
                     )
                 except UnsupportedClipboardFormatsError:
                     clipboard_blocked = True
