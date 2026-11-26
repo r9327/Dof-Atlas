@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -70,6 +72,21 @@ class NetworkControllerTests(unittest.TestCase):
         self.assertFalse(status.running)
         self.assertEqual(status.reason, "waiting_context")
         build.assert_not_called()
+
+    def test_mapping_added_after_start_is_noticed_once_for_exact_build(self) -> None:
+        from app.network.current_protocol_profile import dofus_361010_candidate_mapping_payload
+
+        build = "a" * 64
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            controller = NetworkRuntimeController(lambda: (), mapping_roots=(root,))
+            path = root / "mapping.json"
+            self.assertFalse(controller.has_new_exact_mapping(build))
+            path.write_text(json.dumps(dofus_361010_candidate_mapping_payload("b" * 64)), encoding="utf-8")
+            self.assertFalse(controller.has_new_exact_mapping(build))
+            path.write_text(json.dumps(dofus_361010_candidate_mapping_payload(build)), encoding="utf-8")
+            self.assertTrue(controller.has_new_exact_mapping(build))
+            self.assertFalse(controller.has_new_exact_mapping(build))
 
     def test_disabled_bootstrap_remains_optional_and_stopped(self) -> None:
         self.configure()

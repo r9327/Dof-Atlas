@@ -549,13 +549,22 @@ class NetworkApplicationCoordinator:
         self._next_runtime_retry_at = monotonic() + 2.5
         if calibrating or running:
             expected = self._last_calibration.build_sha256 if calibrating else self._last_runtime.build_sha256
-            if not expected or self.runtime.active_build_sha256() == expected:
+            if not expected:
                 return
-            if not self._stop_readers_for_build_change(calibrating=calibrating):
+            if self.runtime.active_build_sha256() == expected:
+                if not (
+                    calibrating and self._last_runtime.reason == "mapping_no_exact_match"
+                    and self.runtime.has_new_exact_mapping(expected)
+                ):
+                    return
+                restart_reason = "mapping_ready_restarting"
+            else:
+                restart_reason = "build_changed"
+            if not self._stop_readers_for_restart(calibrating=calibrating, reason=restart_reason):
                 return
         self._start_runtime()
 
-    def _stop_readers_for_build_change(self, *, calibrating: bool) -> bool:
+    def _stop_readers_for_restart(self, *, calibrating: bool, reason: str) -> bool:
         from app.network.calibration_controller import ProtocolCalibrationControllerStatus
 
         with self._operation_lock:
@@ -569,7 +578,7 @@ class NetworkApplicationCoordinator:
                 self._calibration_pending = False
                 self._last_calibration = ProtocolCalibrationControllerStatus(False, "stopped")
                 self._applied_journal_evidence_keys.clear()
-            self._publish_current("build_changed")
+            self._publish_current(reason)
             return True
 
     def _poll_calibration(self) -> None:

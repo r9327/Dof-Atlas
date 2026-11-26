@@ -329,6 +329,29 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         start.assert_not_called()
         self.assertEqual(coordinator.latest_status().reason, "runtime_stop_failed")
 
+    def test_waiting_calibration_restarts_when_exact_mapping_is_added(self) -> None:
+        build = "a" * 64
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._calibration_pending = True
+        coordinator._last_runtime = NetworkControllerStatus(False, "mapping_no_exact_match", build)
+        coordinator._last_calibration = ProtocolCalibrationControllerStatus(
+            True, "awaiting_character_identity", build,
+        )
+        coordinator.runtime = Mock(is_running=False)
+        coordinator.runtime.active_build_sha256.return_value = build
+        coordinator.runtime.has_new_exact_mapping.side_effect = (False, True)
+        coordinator.calibration = Mock(is_running=True)
+        coordinator.calibration.stop.return_value = True
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            start.assert_not_called()
+            coordinator._next_runtime_retry_at = 0
+            coordinator._retry_when_client_appears()
+        coordinator.calibration.stop.assert_called_once_with()
+        start.assert_called_once_with()
+        self.assertEqual(coordinator.latest_status().reason, "mapping_ready_restarting")
+
     def test_worker_start_failure_is_reported_without_queuing_capture(self) -> None:
         from app.core.network_presentation import capture_retry_allowed, network_summary
 
