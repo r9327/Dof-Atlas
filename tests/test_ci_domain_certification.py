@@ -13,6 +13,27 @@ H = "b" * 40
 
 
 class ModularDomainRoutingTests(unittest.TestCase):
+    def test_reviewed_pr365_paths_are_routed_without_waiving_removal_review(self):
+        paths = {
+            ".ai/scopes/encyclopedia_shell.yaml": {"ci"},
+            ".ai/scopes/network_capture.yaml": {"ci"},
+            "app/modules/encyclopedia/views/encyclopedia_bootstrap_views.py": {
+                "startup", "quests", "guides", "ui",
+            },
+            "app/modules/encyclopedia/views/guide_home_image_cache.py": {"guides", "ui"},
+            "app/network/controller.py": {"startup", "identity", "quests", "guides", "data", "ui", "organizer"},
+            "tests/test_network_controller.py": {"startup", "identity", "quests", "guides", "data", "ui", "organizer"},
+            "tools/atlas_mutation.py": {"ci"},
+        }
+        for path, domains in paths.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(domains))
+        self.assertEqual(owners_for("app/network/unreviewed_runtime.py"), frozenset())
+        deleted = ["app/modules/encyclopedia/views/guide_home_image_cache.py"]
+        plan = plan_domains(base_sha=B, candidate_sha=H, paths=list(paths), deleted=deleted)
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertIn("REMOVAL_OR_RENAME_REQUIRES_REVIEW", plan["reasons"])
+
     def test_runtime_regression_contracts_keep_all_reviewed_consumers(self):
         domains = {"organizer", "guides", "identity", "data", "ui", "startup"}
         path = "tests/test_runtime_regression_contracts.py"
@@ -1152,7 +1173,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_pr365_reviewed_paths_keep_closed_world_ownership(self):
         from tools.ci_domain_certification import PR365_REVIEWED_DOMAIN_OWNERS
 
-        self.assertEqual(len(PR365_REVIEWED_DOMAIN_OWNERS), 79)
+        self.assertEqual(len(PR365_REVIEWED_DOMAIN_OWNERS), 108)
         for path, expected in PR365_REVIEWED_DOMAIN_OWNERS.items():
             with self.subTest(path=path):
                 self.assertEqual(owners_for(path), expected)
