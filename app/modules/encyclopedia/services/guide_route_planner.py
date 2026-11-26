@@ -11,7 +11,8 @@ rule is guessed from labels, notes, or coordinates.
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterable, Mapping
+from itertools import islice
+from typing import Callable, Iterable, Mapping
 
 from app.core.character_identity import require_character_key
 from app.core.map_coordinates import exact_map_coordinates
@@ -67,6 +68,7 @@ class VerifiedZaapRoute:
     zaap: RouteLocation
     world: str
     eligible_character_keys: frozenset[str]
+    beneficial: bool
     evidence: str
 
     def __post_init__(self) -> None:
@@ -77,6 +79,8 @@ class VerifiedZaapRoute:
         if (not isinstance(self.world, str) or not self.world.strip()
                 or not isinstance(self.evidence, str) or not self.evidence.strip()):
             raise ValueError("verified Zaap route requires world and evidence")
+        if type(self.beneficial) is not bool:
+            raise ValueError("verified Zaap benefit decision must be explicit")
         keys = frozenset(require_character_key(key) for key in self.eligible_character_keys)
         if not keys:
             raise ValueError("verified Zaap route requires explicit eligible characters")
@@ -146,6 +150,160 @@ class GuideTravelPlan:
                 "subzone": self.zaap.subzone,
             }
         return payload
+
+
+def _verified_zaap_travel_plan(
+    destination: RouteLocation,
+    participant_keys: tuple[str, ...],
+    worlds_by_character: Mapping[str, str],
+    zaap_routes: tuple[VerifiedZaapRoute, ...],
+    projected_locations: Mapping[str, RouteLocation | None],
+    *,
+    coordinate_match: bool = False,
+) -> GuideTravelPlan | None:
+    """Select one fully verified Zaap route without inventing live state."""
+
+    if not _has_exact_game_coordinates(destination):
+        return None
+    if any(
+        projected_locations.get(key) is not None
+        and (
+            projected_locations[key].same_map(destination)
+            or (
+                coordinate_match
+                and projected_locations[key].x == destination.x
+                and projected_locations[key].y == destination.y
+            )
+        )
+        for key in participant_keys
+    ):
+        return None
+
+    def matches(route: VerifiedZaapRoute) -> bool:
+        if coordinate_match:
+            return (
+                route.destination.x == destination.x
+                and route.destination.y == destination.y
+            )
+        return _same_verified_destination(route.destination, destination)
+
+    candidates = sorted(
+        (
+            route
+            for route in zaap_routes
+            if matches(route)
+            and route.beneficial is True
+            and set(participant_keys).issubset(route.eligible_character_keys)
+            and all(
+                worlds_by_character.get(key) == route.world
+                for key in participant_keys
+            )
+        ),
+        key=lambda route: (
+            route.world.casefold(), route.zaap.display(), route.destination.key,
+        ),
+    )
+    if not candidates:
+        return None
+    route = candidates[0]
+    return GuideTravelPlan(
+        TravelMode.ZAAP_THEN_TRAVEL,
+        route.destination if coordinate_match else destination,
+        participant_keys,
+        world=route.world,
+        zaap=route.zaap,
+        evidence=route.evidence,
+    )
+
+
+class VerifiedZaapTravelPlanner:
+    """On-click adapter around immutable verified participant/route snapshots.
+
+    Composition owns both providers. The Guide source cannot supply Zaaps,
+    worlds, character positions or eligibility. Providers are read twice so a
+    concurrent registry change fails closed instead of dispatching stale data.
+    """
+
+    _MAX_PARTICIPANTS = 8
+    _MAX_ROUTES = 256
+
+    def __init__(
+        self,
+        participant_provider: Callable[
+            [tuple[str, ...]], Iterable[GuideParticipantState]
+        ],
+        route_provider: Callable[
+            [tuple[int, int], tuple[str, ...]], Iterable[VerifiedZaapRoute]
+        ],
+    ) -> None:
+        if not callable(participant_provider) or not callable(route_provider):
+            raise TypeError("Verified Zaap providers must be callable")
+        self._participant_provider = participant_provider
+        self._route_provider = route_provider
+
+    def _snapshot(
+        self, destination: tuple[int, int], participant_keys: tuple[str, ...],
+    ) -> tuple[tuple[GuideParticipantState, ...], tuple[VerifiedZaapRoute, ...]]:
+        states = tuple(islice(
+            self._participant_provider(participant_keys),
+            self._MAX_PARTICIPANTS + 1,
+        ))
+        routes = tuple(islice(
+            self._route_provider(destination, participant_keys),
+            self._MAX_ROUTES + 1,
+        ))
+        if (len(states) != len(participant_keys)
+                or len(states) > self._MAX_PARTICIPANTS
+                or len(routes) > self._MAX_ROUTES):
+            raise ValueError("Unbounded or incomplete verified Zaap snapshot")
+        if any(not isinstance(state, GuideParticipantState) for state in states):
+            raise TypeError("Invalid verified participant snapshot")
+        if tuple(state.character_key for state in states) != participant_keys:
+            raise ValueError("Verified participant snapshot changed identity or order")
+        if any(not state.world.strip() for state in states):
+            raise ValueError("Verified participant world is missing")
+        if any(not isinstance(route, VerifiedZaapRoute) for route in routes):
+            raise TypeError("Invalid verified Zaap route snapshot")
+        if any(
+            (route.destination.x, route.destination.y) != destination
+            for route in routes
+        ):
+            raise ValueError("Verified Zaap provider returned another destination")
+        return states, routes
+
+    def __call__(
+        self, destination: tuple[int, int], participant_keys: tuple[str, ...],
+    ) -> GuideTravelPlan | None:
+        if (not isinstance(destination, tuple) or len(destination) != 2
+                or exact_map_coordinates({"x": destination[0], "y": destination[1]}) is None):
+            return None
+        if (not isinstance(participant_keys, tuple)
+                or not participant_keys
+                or len(participant_keys) > self._MAX_PARTICIPANTS):
+            return None
+        try:
+            keys = tuple(require_character_key(key) for key in participant_keys)
+            if keys != participant_keys or len(keys) != len(set(keys)):
+                return None
+            first = self._snapshot(destination, keys)
+            states, routes = first
+            worlds = {state.character_key: state.world.strip() for state in states}
+            positions = {state.character_key: state.start_location for state in states}
+            plan = _verified_zaap_travel_plan(
+                RouteLocation(x=destination[0], y=destination[1]),
+                keys,
+                worlds,
+                routes,
+                positions,
+                coordinate_match=True,
+            )
+            if plan is None or self._snapshot(destination, keys) != first:
+                return None
+            return plan
+        except Exception:
+            # Providers can read native/network-backed state. Any failure is
+            # absence of verified evidence, never permission to infer a route.
+            return None
 
 
 def unbound_direct_travel_payload(destination: RouteLocation) -> dict[str, object]:
@@ -523,29 +681,12 @@ class GuideRoutePlanner:
         ):
             return GuideTravelPlan(TravelMode.DIRECT, destination, participant_keys)
 
-        candidates = sorted(
-            (
-                route
-                for route in zaap_routes
-                if _same_verified_destination(route.destination, destination)
-                and set(participant_keys).issubset(route.eligible_character_keys)
-                and all(
-                    worlds_by_character.get(key) == route.world
-                    for key in participant_keys
-                )
-            ),
-            key=lambda route: (route.world.casefold(), route.zaap.display()),
+        verified = _verified_zaap_travel_plan(
+            destination, participant_keys, worlds_by_character, zaap_routes,
+            projected_locations,
         )
-        if candidates:
-            route = candidates[0]
-            return GuideTravelPlan(
-                TravelMode.ZAAP_THEN_TRAVEL,
-                destination,
-                participant_keys,
-                world=route.world,
-                zaap=route.zaap,
-                evidence=route.evidence,
-            )
+        if verified is not None:
+            return verified
         if any(_same_verified_destination(route.destination, destination) for route in zaap_routes):
             supplied_worlds = {
                 worlds_by_character.get(key, "") for key in participant_keys
@@ -636,6 +777,7 @@ __all__ = [
     "GuideParticipantState",
     "GuidePlanningIssue",
     "GuideRoutePlanner",
+    "VerifiedZaapTravelPlanner",
     "GuideStockNeed",
     "GuideTravelPlan",
     "ParticipantRoutePlan",
