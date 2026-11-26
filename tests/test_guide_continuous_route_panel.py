@@ -718,7 +718,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.refresh_connection_state()
         self.assertTrue(panel.travel_button.isEnabled())
 
-    def test_zaap_plan_requires_complete_verified_coordinates_and_exact_members(self):
+    def test_zaap_plan_falls_back_to_direct_travel_with_exact_online_members(self):
         from copy import deepcopy
 
         route = deepcopy(_source_route())
@@ -748,14 +748,15 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(panel.travel_button.isEnabled())
         panel.request_current_travel()
         self.assertEqual(events, [])
-        # The current participant inventory must attest both windows before
-        # a full-team /zaap command is offered.
+        # Verified connections establish the team identity. Live Zaap
+        # availability and a teleport acknowledgement are separate facts.
         participants[1].connected = True
         panel.refresh()
         self.assertTrue(panel.travel_button.isEnabled())
+        self.assertIn("Zaap non confirmé en jeu", panel.travel_button.toolTip())
         panel.travel_button.click()
         self.assertEqual(events, [
-            ("/zaap -32,-56 ; /travel 5,-18", ("character:1", "character:2")),
+            ("/travel 5,-18", ("character:1", "character:2")),
         ])
         # A mutation of the caller-owned payload is not a new authorization.
         plan["destination"]["x"] = 99

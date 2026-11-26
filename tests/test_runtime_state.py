@@ -28,6 +28,21 @@ def _runtime() -> AtlasRuntime:
 
 
 class RuntimeStopOwnerTests(unittest.TestCase):
+    def test_guide_rejects_unconfirmed_zaap_before_refreshing_runtime(self):
+        runtime = _runtime()
+        runtime._settings_lock = threading.RLock()
+        runtime._travel = Mock()
+        runtime.macro_lock.active_label = ""
+        runtime.macro_lock.emergency_latched = False
+
+        with patch("app.core.runtime_state.load_settings") as load:
+            self.assertFalse(runtime.launch_guide_travel(
+                "/zaap -32,-56 ; /travel 5,-18", ("character:1",),
+            ))
+            load.assert_not_called()
+        runtime._travel.run_async.assert_not_called()
+        self.assertIn("Zaap non confirmé en jeu", runtime._emit_status.call_args.args[0])
+
     def test_guide_travel_returns_spawn_acceptance_and_preserves_running_roster(self):
         runtime = _runtime()
         runtime._settings_lock = threading.RLock()

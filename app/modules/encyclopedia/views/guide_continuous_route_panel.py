@@ -384,6 +384,7 @@ class ContinuousGuideRoutePanel(QWidget):
         if destination is None:
             return None, "Coordonnées de destination non vérifiées"
         command = f"/travel {destination[0]},{destination[1]}"
+        explanation = f"Envoyer {command} aux personnages sélectionnés"
         mode = plan.get("mode")
         if mode == "direct":
             if plan.get("zaap") is not None:
@@ -393,10 +394,13 @@ class ContinuousGuideRoutePanel(QWidget):
             if (zaap is None or not isinstance(plan.get("world"), str)
                     or not plan["world"].strip()):
                 return None, "Zaap ou monde de destination non vérifié"
-            command = f"/zaap {zaap[0]},{zaap[1]} ; {command}"
+            # The planner establishes the layout of a route. The current
+            # capture confirms identity only, so use the exact destination
+            # without assuming that the group can use this Zaap.
+            explanation = f"Zaap non confirmé en jeu. {explanation}."
         else:
             return None, "Mode de déplacement non vérifié"
-        return (command, selected), f"Envoyer {command} aux personnages sélectionnés"
+        return (command, selected), explanation
 
     def _sync_travel_button(self) -> tuple[str, tuple[str, ...]] | None:
         request, explanation = self._travel_availability()
