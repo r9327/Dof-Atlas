@@ -5,7 +5,12 @@ on:
     types: [synchronize, ready_for_review]
     paths:
       - '.github/workflows/guides-focused-proof.yml'
+      - '.github/workflows/doctor-ui.yml'
       - 'tests/test_guide_manual_selected_validation.py'
+      - 'tests/test_guide_imported_manual_runtime_service.py'
+      - 'tests/test_guide_imported_manual_runtime_ui.py'
+      - 'app/modules/encyclopedia/services/guide_imported_manual_runtime_service.py'
+      - 'app/modules/encyclopedia/views/manual_route_guides_view.py'
       - 'tests/test_guide_preparation_model.py'
       - 'tests/test_lazy_quests_detail_cache.py'
       - 'app/modules/encyclopedia/providers/quest_provider.py'
@@ -16,7 +21,9 @@ on:
       - 'tools/atlas_doctor_lib/guide_ui_cycle_bench.py'
       - 'tools/atlas_doctor_lib/doctor_ui_qt.py'
       - 'tools/atlas_doctor_lib/doctor_ui.py'
+      - 'tools/atlas_doctor_lib/doctor_ui_ci.py'
       - 'tests/test_doctor_ui.py'
+      - 'tests/test_doctor_ui_ci.py'
       - 'tests/test_doctor_guide_ui_cycle_bench.py'
       - 'app/modules/encyclopedia/views/guide_featured_home.py'
       - 'app/modules/encyclopedia/widgets/guide_card.py'

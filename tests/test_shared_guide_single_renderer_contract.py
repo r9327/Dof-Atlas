@@ -78,43 +78,86 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "sylvestre" not in source
 
 
-    def test_guide_succes_and_catalogue_routes_share_the_same_renderer(self) -> None:
+    def test_every_manual_and_imported_source_constructs_the_same_shared_view(self) -> None:
         source = ROUTER.read_text(encoding="utf-8")
         assert 'CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})' in source
-        guides = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
-        assert "view = SharedGuideManualView(" in guides
-        assert "self._build_manual_route_reader(service)" in guides
-        assert "self._build_manual_route_reader(service)" in source
-        assert "def ensure_guide_ultime_view(" not in source
-        assert "SharedGuideManualView(" not in source
-        assert "GuideUltimeManualRuntimeService(" in guides
+        # Guide Succès, catalogue optimisé et every authorized imported source
+        # use the exact same renderer; an extra UI implementation is forbidden.
+        assert source.count("view = SharedGuideManualView(") == 3
+        assert "ensure_imported_source_manual_view" in source
+        assert "ImportedSourceManualRuntimeService" in source
+        assert "GuideUltimeManualRuntimeService(" in source
         assert "GuideCatalogManualRuntimeService(" in source
 
 
     def test_all_authorized_ganymede_entrypoints_use_indexed_guide_header(self) -> None:
         """Both trusted continuous cutovers and imported manual guides share
         the indexed Guide header controls; metadata-only rows stay disabled."""
+        source = ROUTER.read_text(encoding="utf-8")
         continuous_router = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
         continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(encoding="utf-8")
         shared = SHARED.read_text(encoding="utf-8")
-        assert "SharedGuideManualView(" in continuous_router
+        assert "SharedGuideManualView(" in source
         assert "ContinuousGuideRoutePanel(" in continuous_router
         assert 'replacement_status") == "TRUSTED_SOURCE_STEPS"' in continuous_router
-        controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")
         for renderer in (continuous, shared):
-            assert "AtlasGuideReadingHeader(" in renderer
-            assert ".global_progress_bar" in renderer
-            assert ".preparation_button" in renderer
-            assert ".participants_button" in renderer
-            # The role names belong to the real shared component, not copies.
             for role in ("GuideCompactHeader", "GuideGlobalProgress",
                          "GuideParticipantsButton", "GuideCompactPreparationProgress"):
-                assert role in controls, role
-                assert f'setObjectName("{role}")' not in renderer
-            assert "global_details_button.hide()" not in renderer
-        assert 'object_name="GuideMetricDropdown"' in controls
-        assert "AtlasGuideDisclosure(" in controls
-        assert "AtlasGuideSheetHeader(" in shared
+                assert role in renderer, (role, renderer[:80])
+        # Drawer geometry/arrow behaviour now lives in the indexed shared
+        # component instead of duplicating an object name in every renderer.
+        controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        assert 'self.setObjectName("GuideMetricDropdown")' in controls
+        assert "AtlasGuideDisclosure(" in shared
+        assert "GuideMetricDropdown" in continuous
+        assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
+
+    def test_shared_reader_shows_bounded_read_ahead_and_direct_navigation(self) -> None:
+        """One active step for validation, plus two scrollable read-ahead steps."""
+        shared = SHARED.read_text(encoding="utf-8")
+        preview = (VIEWS / "ganymede_guide_shell.py").read_text(encoding="utf-8")
+        continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(
+            encoding="utf-8"
+        )
+        generated = (VIEWS / "guide_ultime_universal_view.py").read_text(
+            encoding="utf-8"
+        )
+
+        assert "READING_WINDOW_SIZE = 3" in shared
+        assert "for number in self._reading_step_range(index):" in shared
+        assert "self._sync_validation_control(widget.page_check" in shared
+        assert "widget.page_check.hide()" in shared
+        assert "self.page_jump = QSpinBox()" in shared
+        assert "self.page_jump.valueChanged.connect(" in shared
+        assert "self.summary_list" not in shared
+        assert "self.route_bar" not in shared
+        # The metadata pilot MUST NOT have its own Qt sheet loop; it must
+        # inherit the very same source layout as every authorized import.
+        assert "super()._render_window(reset_scroll=reset_scroll)" in preview
+        assert "for number in self._reading_step_range(index):" not in preview
+        assert "SharedGuideManualCard(" not in preview
+        assert "_configure_imported_sheet_layout(" in shared
+        assert "self._review_end_index = self.view_index + self.rendered_card_count" in preview
+        assert "pair_fills_gap" not in preview
+        assert "self.page_jump = QSpinBox()" in continuous
+        assert "self.navigation.step_ids[page - 1]" in continuous
+        assert "self.title_label.setText(str(row.get(" in continuous
+        assert "self.rendered_card_count = 1" in generated
+
+    def test_all_authored_source_pages_share_one_to_one_universal_policy(self) -> None:
+        """No Cawotte-specific page composition or author-specific styling."""
+        shared = SHARED.read_text(encoding="utf-8")
+        shell = (VIEWS / "ganymede_guide_shell.py").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "app/ui/theme.py").read_text(encoding="utf-8")
+        assert "count = 1 if source_sheet else self.READING_WINDOW_SIZE" in shared
+        assert 'card.get("manual_review_only") is True' in shared
+        assert "self._configure_imported_sheet_layout(widget, card)" in shared
+        assert "widget.page_check.hide()" in shared
+        assert 'self._continuous_source' in shared
+        assert "GuideManualSourceReadingSection" not in shell
+        assert "QFrame#GuideManualSheet" not in shell
+        assert "#GuideManualSheet" in stylesheet
+        assert "GuideManualSourceReadingSection" not in stylesheet
 
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
         for path in UI_STYLES.rglob("*.py") if UI_STYLES.exists() else ():

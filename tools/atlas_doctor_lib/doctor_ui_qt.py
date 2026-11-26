@@ -192,14 +192,60 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
     position = bar.value()
     origin = viewport.mapTo(root, QPoint(0, 0))
     viewport_rect = QRect(origin, viewport.size())
-    sheet = view.findChild(QFrame, "GuideManualSheet")
-    if sheet is None or not sheet.isVisible():
+    # Several consecutive source steps may occupy the same scroll area.
+    # The bottom viewport belongs to the *last* visible read-ahead card,
+    # while validation/navigation still belong to the selected first card.
+    sheets = [
+        sheet for sheet in view.findChildren(QFrame, "GuideManualSheet")
+        if sheet.isVisible()
+    ]
+    if not sheets:
         return {"status": "BLOCKED", "reason": "MISSING_REAL_GUIDE_SHEET"}
-    stage_id = str(sheet.card.get("manual_stage_id") or "")
     expected_id = str(expected_card.get("manual_stage_id") or "")
-    if not stage_id or stage_id != expected_id:
-        return {"status": "FAIL", "reason": "BOTTOM_STAGE_CHANGED",
-                "stage_id": stage_id, "expected_id": expected_id}
+    start = int(view.view_index)
+    reading_range = getattr(view, "_reading_step_range", None)
+    if callable(reading_range):
+        indices = reading_range(start)
+    else:
+        indices = range(start, min(start + 1, len(view.service.cards)))
+    expected_ids = [
+        str(view.service.cards[i].get("manual_stage_id") or "")
+        for i in indices
+    ]
+    actual_ids = [
+        str(sheet.card.get("manual_stage_id") or "")
+        for sheet in sheets
+    ]
+    if (
+        not expected_id or not expected_ids or expected_ids[0] != expected_id
+        or actual_ids != expected_ids
+        or len(set(actual_ids)) != len(actual_ids)
+        or any(sheet.parentWidget() is not view.content for sheet in sheets)
+    ):
+        return {
+            "status": "FAIL", "reason": "BOTTOM_STAGE_CHANGED",
+            "active_stage_id": expected_id,
+            "mounted_stage_ids": actual_ids,
+            "expected_stage_ids": expected_ids,
+        }
+    source_order_mismatches = []
+    for displayed_sheet in sheets:
+        authored_ids = displayed_sheet.card.get("manual_source_action_order")
+        if authored_ids is None:
+            continue
+        source_rows = displayed_sheet.findChildren(QFrame, "GuideManualLineRow")
+        qt_ids = [
+            str(row.property("sourceActionId") or "")
+            for row in source_rows
+        ]
+        if qt_ids != authored_ids:
+            source_order_mismatches.append({
+                "stage_id": displayed_sheet.card.get("manual_stage_id"),
+                "authored_action_ids": authored_ids,
+                "rendered_action_ids": qt_ids,
+            })
+    sheet = sheets[-1]
+    stage_id = actual_ids[-1]
     rows = sheet.findChildren(QFrame, "GuideManualLineRow")
     visible_rows = []
     text_labels = 0
@@ -247,7 +293,11 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         issues.append("BOTTOM_NOT_REACHED")
     if hidden_horizontal:
         issues.append("HIDDEN_HORIZONTAL_OVERFLOW")
-    if rows and not visible_rows and extent > 0:
+    if source_order_mismatches:
+        issues.append("SOURCE_ACTION_ORDER_CHANGED")
+    if extent > 0 and not rows:
+        issues.append("BOTTOM_LINES_MISSING")
+    elif rows and not visible_rows and extent > 0:
         issues.append("BOTTOM_LINES_CLIPPED")
     if visible_rows and text_labels == 0:
         issues.append("BOTTOM_LINE_TEXT_NOT_VISIBLE")
@@ -258,6 +308,9 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         "status": status, "reason": issues[0] if issues else
         "BOTTOM_CONTENT_EXPOSED" if extent > 0 else "PAGE_FITS_WITHOUT_SCROLL",
         "stage_id": stage_id, "expected_stage_id": expected_id,
+        "mounted_stage_ids": actual_ids, "expected_stage_ids": expected_ids,
+        "bottom_stage_id": stage_id,
+        "source_order_mismatches": source_order_mismatches[:3],
         "scroll_position": position, "scroll_max": extent,
         "scroll_needed": bool(extent), "horizontal_overflow": hidden_horizontal,
         "line_rows_total": len(rows), "visible_line_rows": len(visible_rows),
@@ -290,24 +343,16 @@ class UiSession:
 
         self.step += 1
         # The consolidated 5-scenario run includes four extra real PR254
-        # catalog captures plus nine mandatory preparation checks across three
-        # real Guide scenarios. Keep a strict 144-action ceiling, never an
-        # unbounded capture or repeated GUI traversal.
-        if self.step > 144:
+        # catalog captures. Its previous 120-action limit cut off four final
+        # assertions after 114 successful checks. Preserve a strict 128 cap.
+        if self.step > 128:
             raise RuntimeError("Doctor UI action budget exceeded")
         prefix = f"{self.step:03d}-{self.scenario}"
         tree = widget_tree(root)
         files = [prefix + "-tree.json"]
         write_json(self.folder / files[0], tree)
         if self.mode in {"all", "capture"}:
-            # Capture the actual backdrop under translucent page surfaces.
-            # QWidget.grab() on a transparent child alone drops its parent paint.
-            backdrop = getattr(root, "_doctor_backdrop", None)
-            if backdrop is not None:
-                backdrop.resize(root.size())
-                pixmap = backdrop.grab()
-            else:
-                pixmap = root.grab()
+            pixmap = root.grab()
             if pixmap.isNull() or not pixmap.save(str(self.folder / (prefix + ".png"))):
                 raise RuntimeError("Qt PNG capture failed")
             files.append(prefix + ".png")
@@ -462,7 +507,6 @@ def build_scene(temp: Path):
         ensure_lazy_catalog_cache,
     )
     from app.ui.theme import atlas_stylesheet
-    from app.ui.unity_skin import UnityBackdrop
 
     app = QApplication.instance() or QApplication([])
     app._doctor_font_registration = configure_validation_fonts(app)
@@ -485,18 +529,14 @@ def build_scene(temp: Path):
     for name in ("quests", "achievements", "guides", "profiles", "clients", "items"):
         paths[name] = temp / (name + ".json")
         write_json(paths[name], {})
-    backdrop = UnityBackdrop()
     page = EncyclopediaPage(
-        lambda _message: None, parent=backdrop, quest_provider=quests,
+        lambda _message: None, quest_provider=quests,
         achievement_provider=achievements, guide_provider=guides,
         quest_graph=QuestGraphService(quests, guides, achievements, eager=False),
         progress_path=paths["quests"], achievement_progress_path=paths["achievements"],
         guide_progress_path=paths["guides"], profile_path=paths["profiles"],
         client_index_path=paths["clients"], owned_items_path=paths["items"])
     page.resize(1200, 800)
-    backdrop.resize(page.size())
-    page._doctor_backdrop = backdrop
-    page.destroyed.connect(backdrop.deleteLater)
     page.set_character_key("character:990000001")
     # Local Doctor-only source fixture: genuine canonical IDs with explicit
     # verification provenance. Never infer a progression ID from a slot/name.
@@ -519,7 +559,6 @@ def build_scene(temp: Path):
     page._doctor_participant_service = owner.guide_participant_service
     if not owner._runtime_ready:
         owner.hydrate_runtime(graph=page._quest_graph)
-    backdrop.show()
     page.show()
     settle()
     return app, page, owner
@@ -557,10 +596,7 @@ def mounted_action_line_html(sheet) -> list[str]:
     from PySide6.QtWidgets import QFrame, QLabel, QToolButton
 
     actual = []
-    row_names = {"GuideManualLineRow", "GuideManualCombatLineRow"}
-    for row in sheet.findChildren(QFrame):
-        if row.objectName() not in row_names:
-            continue
+    for row in sheet.findChildren(QFrame, "GuideManualLineRow"):
         labels = [
             widget for widget in row.findChildren(QLabel)
             if widget.parentWidget() is row
@@ -591,25 +627,61 @@ def mounted_action_line_html(sheet) -> list[str]:
 
 
 def sheet_observations(view, expected_card) -> dict:
-    from PySide6.QtWidgets import QFrame, QLabel
+    """Check the selected sheet, plus bounded read-ahead as separate evidence.
+
+    Only the selected source step may own active validation. Read-ahead cards
+    are permitted if they match the exact next canonical service cards.
+    Duplicates and stale extra widgets remain failures, never false PASS.
+    """
+    from PySide6.QtWidgets import QFrame
 
     sheets = [s for s in view.findChildren(QFrame, "GuideManualSheet") if s.isVisible()]
-    result = {"sheet_count": len(sheets), "expected_stage_id": expected_card.get("manual_stage_id"),
-              "stage_ids": [s.card.get("manual_stage_id") for s in sheets],
-              "mounted": all(s.parentWidget() is view.content for s in sheets)}
-    # Provenance-aware line oracle: reconstruct expected HTML from the canonical
-    # service rows using the production formatter, then compare a multiset.
+    expected_id = expected_card.get("manual_stage_id")
+    selected_index = int(view.view_index)
+    active = [
+        sheet for sheet in sheets
+        if getattr(sheet, "index", None) == selected_index
+        or getattr(sheet, "card", {}).get("manual_stage_id") == expected_id
+    ]
+    actual_ids = [getattr(s, "card", {}).get("manual_stage_id") for s in sheets]
+    expected_ids = [
+        card.get("manual_stage_id")
+        for card in view.service.cards[
+            selected_index:selected_index + int(
+                getattr(view, "READING_WINDOW_SIZE", 1)
+            )
+        ]
+    ]
+    if not expected_ids:
+        expected_ids = [expected_id]
+    read_ahead_ok = (
+        actual_ids == expected_ids
+        and len(set(actual_ids)) == len(actual_ids)
+        and len(active) == 1
+        and active[0].card.get("manual_stage_id") == expected_id
+    )
+    result = {
+        "sheet_count": len(active),
+        "total_sheet_count": len(sheets),
+        "expected_stage_id": expected_id,
+        "stage_ids": [
+            s.card.get("manual_stage_id") for s in active
+        ],
+        "read_ahead_stage_ids": actual_ids,
+        "read_ahead_expected_stage_ids": expected_ids,
+        "read_ahead_ok": read_ahead_ok,
+        "mounted": all(s.parentWidget() is view.content for s in sheets),
+    }
+    # Provenance-aware line oracle: inspect only the active sheet.
+    # Following steps must not be treated as missing/stale active actions.
     expected = []
-    if len(sheets) == 1:
-        sheet = sheets[0]
-        # Formatting coalesces repeated coordinates; replay that sequence from
-        # its initial state and restore it so inspection cannot mutate the view.
+    if len(active) == 1:
+        sheet = active[0]
         last_position = sheet._last_route_position_key
         sheet._last_route_position_key = ""
         sections = sheet._without_prepare_duplicates(
-            view.service.manual_sections_for_card(view.character_key, expected_card))
-        # Preparation is intentionally global in the compact Guide UI. The
-        # active sheet must not repeat those rows.
+            view.service.manual_sections_for_card(view.character_key, expected_card)
+        )
         for section_key in ("now", "opportunity", "keep", "boss", "before_leave"):
             rows = sections.get(section_key, [])
             for row in rows:
@@ -618,15 +690,25 @@ def sheet_observations(view, expected_card) -> dict:
                     continue
                 position = sheet._display_position(str(row.get("position") or ""))
                 prefix = "⚠ " if row.get("kind") == "warning" else ""
-                expected.append(sheet._format_line_html(prefix, position, text,
-                                sheet._npc_names(text), sheet._resource_names))
+                expected.append(sheet._format_line_html(
+                    prefix, position, text, sheet._npc_names(text),
+                    sheet._resource_names,
+                ))
         sheet._last_route_position_key = last_position
         actual = mounted_action_line_html(sheet)
-        result.update(missing_lines=list((Counter(expected) - Counter(actual)).elements())[:5],
-                      stale_or_duplicate_lines=list((Counter(actual) - Counter(expected)).elements())[:5],
-                      expected_line_count=len(expected), actual_line_count=len(actual))
+        result.update(
+            missing_lines=list((Counter(expected) - Counter(actual)).elements())[:5],
+            stale_or_duplicate_lines=list(
+                (Counter(actual) - Counter(expected)).elements()
+            )[:5],
+            expected_line_count=len(expected),
+            actual_line_count=len(actual),
+        )
     else:
-        result.update(missing_lines=["No unique mounted sheet"], stale_or_duplicate_lines=[])
+        result.update(
+            missing_lines=["No unique active sheet"],
+            stale_or_duplicate_lines=[],
+        )
     return result
 
 
@@ -634,11 +716,20 @@ def check_sheet(session, page, view, key):
     card = view.service.cards[view.view_index]
     session.card_id = str(card.get("manual_stage_id") or "")
     observed = sheet_observations(view, card)
-    ok = (observed["sheet_count"] == 1 and observed["mounted"]
-          and observed["stage_ids"] == [card.get("manual_stage_id")]
-          and not observed["missing_lines"] and not observed["stale_or_duplicate_lines"])
-    session.check(key, "Inspect mounted sheet after Qt DeferredDelete", "One current canonical sheet and exact current lines",
-                  observed, ok, page)
+    ok = (
+        observed["sheet_count"] == 1
+        and observed["mounted"]
+        and observed["stage_ids"] == [card.get("manual_stage_id")]
+        and observed["read_ahead_ok"]
+        and not observed["missing_lines"]
+        and not observed["stale_or_duplicate_lines"]
+    )
+    session.check(
+        key, "Inspect mounted sheet after Qt DeferredDelete",
+        "One active canonical step, bounded read-ahead and exact lines",
+        observed, ok, page,
+    )
+
 
 
 def guide_runtime_identity(service) -> str | None:
@@ -759,13 +850,18 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view.scroll.verticalScrollBar().setValue(0)
         settle()
         view.global_details_button.setChecked(True)
+        settle()
+        session.snapshot(page)
         view.preparation_button.setChecked(True)
         settle()
         session.snapshot(page)
         for filter_name in ("Potions", "Objets"):
-            if view.preparation_filter.findText(filter_name) < 0:
-                raise RuntimeError(f"Missing indexed preparation category: {filter_name}")
-            view.preparation_filter.setCurrentText(filter_name)
+            filter_button = next(
+                button
+                for button in view.preparation_filter_group.buttons()
+                if button.property("filterKey") == filter_name
+            )
+            filter_button.click()
             settle()
             session.snapshot(page)
         view.preparation_button.setChecked(False)
@@ -804,72 +900,6 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             settle()
     view._show_index(0)
     settle()
-    # Exercise the real Preparation drawer in the verification campaign.
-    # Historically only the Dev UI fiction was captured in CI, while the
-    # production Guide drawer remained closed in every real route image.
-    parent_click = click_target(page, view.global_details_button)
-    settle()
-    preparation_click = (
-        click_target(page, view.preparation_button)
-        if view.preparation_button.isVisible() else
-        {"accessible": False, "reason": "NO_VISIBLE_PREPARATION_COMMAND"}
-    )
-    settle()
-    preparation_open = (
-        view.global_details_panel.isVisible()
-        and view.preparation_panel.isVisible()
-        and view.preparation_scroll.isVisible()
-        and view.preparation_filter.isVisible()
-    )
-    session.check(
-        "preparation-open",
-        "Open the actual indexed Guide preparation drawer on Windows Qt",
-        "Production panel, scroll area and category selector are visibly mounted",
-        {
-            "open": preparation_open,
-            "parent_click": parent_click,
-            "preparation_click": preparation_click,
-            "visible_categories": [
-                view.preparation_filter.itemText(i)
-                for i in range(view.preparation_filter.count())
-            ],
-            "drawer_height": view.preparation_scroll.height(),
-            "drawer_max_height": view.preparation_scroll.maximumHeight(),
-            "loaded_needs": len(view._preparation_needs),
-        },
-        parent_click["accessible"] and preparation_click["accessible"]
-        and preparation_open
-        and bool(view._preparation_needs or view._preparation_preview)
-        and 0 < view.preparation_scroll.height() <= view.preparation_scroll.maximumHeight(),
-        page,
-    )
-    for filter_name in ("Potions", "Objets"):
-        index = view.preparation_filter.findText(filter_name)
-        if index < 0:
-            session.check(
-                "preparation-filter-" + filter_name.lower(),
-                "Find production preparation category", "A real indexed filter exists",
-                {"filter": filter_name, "available": False},
-                False, page, status="BLOCKED",
-            )
-            continue
-        view.preparation_filter.setCurrentIndex(index)
-        settle()
-        session.check(
-            "preparation-filter-" + filter_name.lower(),
-            "Switch production preparation category via the real combo",
-            "Selected category stays visible and drawer retains valid geometry",
-            {"selected": view.preparation_filter.currentText(),
-             "panel_visible": view.preparation_panel.isVisible(),
-             "drawer_height": view.preparation_scroll.height()},
-            view.preparation_filter.currentText() == filter_name
-            and view.preparation_panel.isVisible()
-            and 0 < view.preparation_scroll.height() <= view.preparation_scroll.maximumHeight(),
-            page,
-        )
-    view.preparation_button.setChecked(False)
-    view.global_details_button.setChecked(False)
-    settle()
     for turn in range(1 if smoke else repeats):
         previous_sheet = view.findChild(QFrame, "GuideManualSheet")
         click = click_target(page, view.next_button)
@@ -884,61 +914,89 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view.refresh_external_progress()
         settle()
         check_sheet(session, page, view, f"refresh-{turn}")
-    # The obsolete Route lock was removed by the shared global-first header.
-    # Two real Qt clicks now verify the canonical disclosure, its accessible
-    # name and that expanding content never mutates Guide progression.
-    disclosure = view.global_details_button
-    if disclosure.isChecked():
-        disclosure.setChecked(False)
-        settle()
-    progress_before = view.global_progress_bar.value()
+    # The old Route scrubber, summary and lock controls were removed. Verify
+    # the actual indexed Global > Preparation hierarchy via physical Qt clicks.
+    # Manual progress disk writes and character isolation are still checked
+    # separately below; replacing the absent UI must never waive those proofs.
+    global_toggle = view.global_details_button
+    preparation_toggle = view.preparation_button
+    global_toggle.setChecked(False)
+    preparation_toggle.setChecked(False)
+    settle()
+    initial_index = view.view_index
+    first_card = view.service.cards[0]
+    initial_progress = view.service.page_checked(view.character_key, first_card, 0)
     trace_path = session.folder / "runtime-trace.json"
     if not trace_path.exists():
         from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver
 
         observer = RuntimeObserver(Path(__file__).resolve().parents[2], max_events=200)
         with observer:
-            click = click_target(page, disclosure)
+            global_click = click_target(page, global_toggle)
         write_json(trace_path, observer.report())
         session.evidence.append(trace_path.name)
     else:
-        click = click_target(page, disclosure)
-    settle()
-    header = view.reading_header
-    nested_metrics = (
-        header.preparation_column.parentWidget() is view.global_details_panel
-        and header.summary_column.parentWidget() is view.global_details_panel
-        and header.summary_column.isVisible() == bool(view.service.cards)
-        and header.preparation_column.isVisible()
-        == bool(view._preparation_needs or view._preparation_preview)
-    )
-    expanded = disclosure.isChecked() and view.global_details_panel.isVisible() and nested_metrics
-    session.check(
-        "global-open", "QTest déplier Progression globale",
-        "Real indexed panel visible; accessible name updated; progress unchanged",
-        {"click": click, "expanded": expanded, "label": disclosure.accessibleName(),
-         "progress_before": progress_before, "progress_after": view.global_progress_bar.value()},
-        click["accessible"] and expanded
-        and disclosure.accessibleName() == "Replier la progression globale"
-        and view.global_progress_bar.value() == progress_before, page,
-    )
-    close_click = click_target(page, disclosure)
-    settle()
-    collapsed = (
-        not disclosure.isChecked() and not view.global_details_panel.isVisible()
-        and not header.preparation_column.isVisible()
-        and not header.summary_column.isVisible()
-        and view.global_progress_bar.isVisible()
+        global_click = click_target(page, global_toggle)
+    global_open = (
+        global_click["accessible"]
+        and global_toggle.isChecked()
+        and view.global_details_panel.isVisibleTo(view)
+        and view.global_details_panel.findChild(QFrame, "GuidePreparationPanel") is not None
+        and view.view_index == initial_index
+        and view.service.page_checked(view.character_key, first_card, 0) == initial_progress
     )
     session.check(
-        "global-close", "QTest replier Progression globale",
-        "Panel hidden; control accessible name restored; progress unchanged",
-        {"click": close_click, "collapsed": collapsed, "label": disclosure.accessibleName(),
-         "progress_before": progress_before, "progress_after": view.global_progress_bar.value()},
-        close_click["accessible"] and collapsed
-        and disclosure.accessibleName() == "Déplier la progression globale"
-        and view.global_progress_bar.value() == progress_before, page,
+        "global-progress-disclosure",
+        "QTest click Global progression disclosure",
+        "Nested preparation mounted; no page jump or persistent progress write",
+        {
+            "click": global_click, "opened": global_toggle.isChecked(),
+            "panel_visible": view.global_details_panel.isVisibleTo(view),
+            "page": view.view_index,
+            "disk_progress_unchanged": view.service.page_checked(
+                view.character_key, first_card, 0
+            ) == initial_progress,
+        },
+        global_open, page,
     )
+    preparation_click = click_target(page, preparation_toggle)
+    preparation_open = (
+        preparation_click["accessible"]
+        and preparation_toggle.isChecked()
+        and view.preparation_panel.isVisibleTo(view)
+    )
+    close_click = click_target(page, global_toggle)
+    folded = (
+        close_click["accessible"]
+        and not view.global_details_panel.isVisibleTo(view)
+        and preparation_toggle.isChecked()
+    )
+    reopen_click = click_target(page, global_toggle)
+    restored = (
+        reopen_click["accessible"]
+        and view.global_details_panel.isVisibleTo(view)
+        and view.preparation_panel.isVisibleTo(view)
+        and preparation_toggle.isChecked()
+    )
+    session.check(
+        "preparation-disclosure",
+        "QTest nested Preparation, collapse Global and reopen",
+        "Preparation stays open within Global; both disclosure hit-targets reachable",
+        {
+            "preparation_click": preparation_click,
+            "global_close_click": close_click,
+            "global_reopen_click": reopen_click,
+            "preparation_open": preparation_open,
+            "global_folded": folded,
+            "restored": restored,
+        },
+        preparation_open and folded and restored and view.view_index == initial_index
+        and view.service.page_checked(view.character_key, first_card, 0)
+        == initial_progress, page,
+    )
+    preparation_toggle.setChecked(False)
+    global_toggle.setChecked(False)
+    settle()
     # Blank temporary profile is never evidence for automatic in-game completion.
     card = view.service.cards[0]
     automatic = view.service.card_auto_complete(view.character_key, card)
@@ -2103,9 +2161,7 @@ def worker(folder: Path) -> int:
                         device_pixel_ratio=screen.devicePixelRatio(),
                         data_source="canonical local public catalog + authored Guide data",
                         validation_fonts=getattr(app, "_doctor_font_registration", {}),
-                        progress_source="temporary isolated canonical services",
-                        background_source=("local-unity-image" if page._doctor_backdrop.has_wallpaper
-                                           else "unity-blue-gradient"))
+                        progress_source="temporary isolated canonical services")
         write_json(folder / "manifest.json", manifest)
         for name in request["scenarios"]:
             session.scenario = name

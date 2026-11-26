@@ -120,6 +120,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # Stage 0 contains no real imported guides. Execute a bounded selection
+      # of the same shared Qt reader against fictitious route cards so Draft
+      # Windows evidence covers import semantics without opening a real guide,
+      # full certification or any release/benchmark workflow.
+      - name: Verify staged source cards in canonical Qt reader (synthetic only)
+        shell: pwsh
+        run: |
+          # All fixtures are fabricated, but use the production shared reader.
+          # Run the actual source-only TestCase, not the legacy selection class.
+          python -X faulthandler -m unittest -v tests.test_guide_manual_selected_validation.ImportedSourceSharedManualUiTests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Explicitly supplied one-guide runtime and real Guide catalogue
+          # router: denial, lazy shared rendering, per-character progress and
+          # revocation. Still fabricated fixtures, never Ganymede data.
+          python -X faulthandler -m unittest -v tests.test_guide_imported_manual_runtime_service tests.test_guide_imported_manual_runtime_ui.ImportedSourceRouterQtTests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run one session for the union of selected scenarios
         run: python -X faulthandler -m tools.atlas_doctor_lib.doctor_ui_ci run --candidate-sha "$env:CANDIDATE_SHA"
       - name: Upload unified UI evidence including failures

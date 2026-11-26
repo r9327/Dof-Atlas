@@ -1,0 +1,245 @@
+name: Ganymede / real Qt shell screenshot
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - .github/workflows/ganymede-real-shell-screenshot.yml
+      - app/modules/encyclopedia/views/ganymede_guide_shell.py
+      - tests/test_ganymede_guide_shell.py
+  push:
+    branches:
+      - feat/atlas-guide-importer-pr337-20261102
+    paths:
+      - .github/workflows/ganymede-real-shell-screenshot.yml
+      - app/modules/encyclopedia/views/ganymede_guide_shell.py
+      - app/modules/encyclopedia/services/guide_cawotte_pilot_preview.py
+      - app/modules/encyclopedia/views/guide_catalog_view.py
+      - app/ui/components.py
+      - app/ui/theme.py
+      - app/ui/unity_skin.py
+      - tests/test_ganymede_guide_shell.py
+      - tests/test_atlas_guide_cawotte_pilot_preview.py
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: windows
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout actual PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          lfs: false
+          persist-credentials: false
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned Qt runtime
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Verify 95 metadata containers and Cawotte candidate route
+        run: python -X faulthandler -m unittest -v tests.test_atlas_guide_cawotte_pilot_preview tests.test_ganymede_guide_shell
+      - name: Capture real indexed container at 1280 x 720
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PySide6.QtWidgets import QApplication, QVBoxLayout, QProgressBar, QLabel, QToolButton, QFrame
+          from PySide6.QtCore import Qt
+          from PySide6.QtTest import QTest
+          from PySide6.QtGui import QFontDatabase
+          from app.ui.theme import atlas_stylesheet
+          from app.ui.unity_skin import UnityBackdrop
+          from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
+          from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+          from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
+          from app.modules.encyclopedia.models.guide import Guide
+
+          entries = load_ganymede_listings()
+          assert len(entries) == 95
+          cawotte = next(entry for entry in entries if entry.source_id == 2205)
+          app = QApplication([])
+          print("Windows Qt available fonts:", QFontDatabase.families()[:30])
+          app.setStyleSheet(atlas_stylesheet())
+          backdrop = UnityBackdrop()
+          backdrop.setWindowTitle("Atlas - Guide Ganymede - vrai conteneur Qt")
+          backdrop.resize(1280, 720)
+          layout = QVBoxLayout(backdrop)
+          # Go through the user's actual Guide catalogue, not an isolated
+          # synthetic screenshot of a widget that cannot be opened in-app.
+          catalog = GuideCatalogView(
+              lambda _message: None, provider=object(),
+              quest_progress_path=Path("unused_cawotte_screenshot.json"),
+              defer_runtime=True,
+          )
+          catalog.guides = [Guide(id="dofus_cawotte", title="Dofus Cawotte", category="dofus")]
+          catalog.ganymede_listings = entries
+          catalog._ganymede_by_id = {entry.source_id: entry for entry in entries}
+          catalog._populate_library_tree()
+          pilot = catalog._cawotte_pilot_item
+          assert pilot is not None and pilot.data(0, Qt.UserRole + 2) == 2205
+          layout.addWidget(catalog)
+          backdrop.show()
+          app.processEvents()
+          tree = catalog.library_categories
+          tree.scrollToItem(pilot)
+          app.processEvents()
+          rect = tree.visualItemRect(pilot)
+          assert rect.isValid()
+          before = Path("artifacts/screenshots/ganymede-cawotte-pilot-catalog-qt.png")
+          before.parent.mkdir(parents=True, exist_ok=True)
+          assert backdrop.grab().save(str(before), "PNG")
+          QTest.mouseClick(tree.viewport(), Qt.LeftButton, pos=rect.center())
+          app.processEvents()
+          shell = catalog._ganymede_shell
+          assert isinstance(shell, GanymedeGuideShell)
+          assert catalog.pages.currentWidget() is shell
+          assert shell._listing.source_id == 2205
+          assert shell.guide_title_label.text() == "Dofus Cawotte"
+          # The shared reader owns only global + preparation progress.
+          assert len(shell.findChildren(QProgressBar)) == 2
+          assert not hasattr(shell, "route_bar")
+          assert not hasattr(shell, "summary_button")
+          assert shell.findChild(QFrame, "GuideSummaryPanel") is None
+          assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
+          assert shell.sheet_title_label.text() == "Parcours"
+          assert len(shell.service.cards) == 64
+          assert shell.rendered_card_count == 1
+          assert shell._review_end_index > 1
+          page_count = len(shell._source_reading_pages())
+          assert 1 < page_count < 64
+          first_card = shell.cards_layout.itemAt(0).widget()
+          assert first_card.isVisible() and first_card.height() > 0
+          assert shell.page_jump.maximum() == page_count
+          assert shell.page_jump.text() == f"1 / {page_count}"
+          authored_lines = shell.findChildren(QLabel, "GuideManualLine")
+          assert len(authored_lines) > 1
+          assert any("travel-copy:" in line.text() for line in authored_lines)
+          assert not shell.findChildren(QFrame, "GuideManualLineRow")
+          assert shell.validation_host.isHidden()
+          assert shell.validation_layout.count() == 0
+          step_one = Path("artifacts/screenshots/ganymede-cawotte-reading-page1-qt.png")
+          assert backdrop.grab().save(str(step_one), "PNG")
+          # One continuous reading page contains complete authored action
+          # rows from multiple stable source steps, never redundant headings.
+          shell.page_jump.setValue(2)
+          app.processEvents()
+          assert shell.sheet_title_label.text() == "Parcours"
+          assert shell.page_jump.value() == 2
+          assert shell.rendered_card_count == 1
+          assert len(shell.findChildren(QFrame, "GuideManualSheet")) == 1
+          assert len(shell.findChildren(QLabel, "GuideManualLine")) > 1
+          assert not shell.findChildren(QLabel, "GuideManualPositionCopy")
+          assert not shell.findChildren(QToolButton, "GuideManualZaapShortcut")
+          assert not shell.findChildren(QFrame, "GuideManualActionGroup")
+          assert not shell.findChildren(QLabel, "GuideManualSectionTitle")
+          assert not shell.findChildren(QLabel, "GuideManualStageTitle")
+          assert all(
+              not label.text().lstrip().startswith(("•", "—"))
+              for row in shell.findChildren(QFrame, "GuideManualLineRow")
+              for label in row.findChildren(QLabel)
+          )
+          target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
+          target.parent.mkdir(parents=True, exist_ok=True)
+          shot = backdrop.grab()
+          assert not shot.isNull() and shot.width() >= 1000 and shot.height() >= 600
+          print(f"Native DPI screenshot: {shot.width()} x {shot.height()}, DPR={shot.devicePixelRatio()}")
+          assert shot.save(str(target), "PNG")
+          print(f"Real Qt screenshot written: {target} ({target.stat().st_size} bytes)")
+          # Capture both genuine Unity tabs on the same real catalogue path.
+          # The pilot is deliberately read-only: the tabs cannot save progress.
+          assert shell.preparation_button.isEnabled()
+          # Preparation is nested in Global progress: open the parent first.
+          shell.global_details_button.click()
+          app.processEvents()
+          assert shell.global_details_panel.isVisibleTo(shell)
+          shell.preparation_button.click()
+          app.processEvents()
+          assert shell._preparation_tab == "Prérequis"
+          assert len(shell._preparation_preview) == 10
+          assert shell.preparation_panel.isVisibleTo(shell)
+          prereqs = Path("artifacts/screenshots/ganymede-cawotte-prerequisites-qt.png")
+          assert backdrop.grab().save(str(prereqs), "PNG")
+          material_tab = next(
+              button for button in shell.preparation_tab_group.buttons()
+              if button.text() == "À préparer"
+          )
+          material_tab.click()
+          app.processEvents()
+          assert shell._preparation_tab == "À préparer"
+          materials = Path("artifacts/screenshots/ganymede-cawotte-materials-qt.png")
+          assert backdrop.grab().save(str(materials), "PNG")
+          shell.preparation_button.click()
+          app.processEvents()
+          assert shell.preparation_panel.isHidden()
+          # A taller viewport still mounts just one adaptive reading page.
+          backdrop.resize(1280, 1050)
+          app.processEvents()
+          shell._refit_review_cards()
+          app.processEvents()
+          assert shell.rendered_card_count == 1
+          tall = Path("artifacts/screenshots/ganymede-cawotte-single-step-large-qt.png")
+          assert backdrop.grab().save(str(tall), "PNG")
+          backdrop.resize(1280, 720)
+          app.processEvents()
+          shell._refit_review_cards()
+          app.processEvents()
+          first_end = shell._review_end_index
+          shell.next_button.click()
+          app.processEvents()
+          assert shell.page_jump.value() == 3
+          assert shell._review_end_index > first_end
+          # X/X now replaces the deleted Sommaire for adaptive reading pages.
+          chosen = min(10, page_count)
+          shell.page_jump.setValue(chosen)
+          app.processEvents()
+          assert shell.view_index == shell._source_reading_pages()[chosen - 1][0]["source_index"]
+          assert shell.rendered_card_count == 1
+          assert shell.page_jump.text() == f"{chosen} / {page_count}"
+          jump = Path("artifacts/screenshots/ganymede-cawotte-direct-page-10-qt.png")
+          assert backdrop.grab().save(str(jump), "PNG")
+          shell.page_jump.setValue(page_count)
+          app.processEvents()
+          assert shell.sheet_title_label.text() == "Parcours"
+          assert shell.validation_layout.count() == 0
+          final = Path("artifacts/screenshots/ganymede-cawotte-last-reading-page-qt.png")
+          assert backdrop.grab().save(str(final), "PNG")
+          # At a narrower size all controls must stay reachable and page IDs stable.
+          backdrop.resize(900, 600)
+          app.processEvents()
+          shell._refit_review_cards()
+          app.processEvents()
+          assert shell.page_jump.text() == f"{page_count} / {page_count}"
+          compact = Path("artifacts/screenshots/ganymede-cawotte-narrow-qt.png")
+          assert backdrop.grab().save(str(compact), "PNG")
+          shell.guide_button.click()
+          assert catalog.pages.currentWidget() is catalog.home_scroll
+          # Every other indexed guide must reuse the SAME Qt shell without
+          # loading fictional cards or leaving Cawotte state behind.
+          other = next(entry for entry in entries if entry.source_id != 2205)
+          assert catalog.open_ganymede_container(other.source_id)
+          app.processEvents()
+          assert catalog._ganymede_shell is shell
+          assert shell.service.cards == ()
+          assert not shell.page_jump.isEnabled()
+          assert len(shell.findChildren(QProgressBar)) == 2
+          other_shot = Path("artifacts/screenshots/ganymede-shared-empty-container-qt.png")
+          assert backdrop.grab().save(str(other_shot), "PNG")
+          backdrop.close()
+          PY
+      - name: Upload screenshot, including failed test artifacts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ganymede-real-qt-shell-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/screenshots/*.png
+          if-no-files-found: warn

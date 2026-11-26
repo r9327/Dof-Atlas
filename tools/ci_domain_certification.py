@@ -46,18 +46,13 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
-    # Reviewed PR #365 scope manifests. These files only route AI context;
-    # keep each path explicit so a future scope cannot inherit CI ownership.
-    ".ai/scopes/craft.yaml",
-    ".ai/scopes/encyclopedia_achievements.yaml",
     ".ai/scopes/encyclopedia_guide.yaml",
-    ".ai/scopes/encyclopedia_quests.yaml",
-    ".ai/scopes/shared_ui.yaml",
     # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
     ".ai/scopes/organizer.yaml",
     ".ai/scopes/macro_runtime.yaml",
     ".ai/scopes/persistence_identity.yaml",
     "tests/test_ai_workflow_skills.py",
+    "tests/test_agent_scope_tests.py",
     ".agents/skills/codebase-navigation/SKILL.md",
     ".agents/skills/dofus-data-provenance/SKILL.md",
     ".agents/skills/evidence-driven-validation/SKILL.md",
@@ -111,7 +106,6 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tools/atlas_perf_attribution.py",
     "tools/benchmark_atlas_exhaustive.py",
     "tools/doctor_quick_app_probe.py",
-    "tests/test_doctor_quick_app_probe.py",
     "tests/test_atlas_exhaustive_benchmark.py",
     "tests/test_atlas_doctor_full_scope.py",
     "tools/doctor_scenario_runner.py",
@@ -153,8 +147,7 @@ ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/input/mouse_hooks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
-    # Exact, Windows-offscreen screenshot producers for the Organizer UI;
-    # neither path is a game-input backend or a general tests/* wildcard.
+    # Reviewed Organizer offscreen capture scripts, never a generic wildcard.
     "tests/capture_organizer_ui.py",
     "tests/capture_organizer_shell.py",
     "tests/test_organizer_character_order.py",
@@ -202,136 +195,13 @@ CRAFT_PATHS = frozenset({
 })
 
 
-# Reviewed concrete #365 paths from the exact-SHA draft plan. Broad shared
-# consumers retain conservative cross-domain coverage; no directory wildcard.
-# This is ownership only, not a modular or FULL certificate.
-PR365_REVIEWED_DOMAIN_GROUPS = (
-    (frozenset({"craft", "data", "ui"}), frozenset({
-        "app/core/craft_selection.py",
-        "app/core/item_artwork.py",
-        "tests/test_owned_items_normalization.py",
-    })),
-    (frozenset({"craft", "quests", "guides", "data", "startup"}), frozenset({
-        "app/core/doduda_rows.py",
-        "tests/test_core_doduda_rows.py",
-    })),
-    (frozenset({"ci", "startup", "data", "craft", "quests", "guides", "ui", "identity", "organizer"}), frozenset({
-        "app/core/file_hash.py",
-        "app/core/file_stamp.py",
-        "app/core/numbers.py",
-        "tests/test_core_file_hash.py",
-        "tests/test_core_numbers.py",
-        "tests/test_core_shared_state.py",
-        "tests/test_json_store.py",
-        "tests/test_release_signatures.py",
-    })),
-    (frozenset({"quests", "guides", "ui", "data", "organizer"}), frozenset({
-        "app/core/map_coordinates.py",
-        "tests/test_core_map_coordinates.py",
-    })),
-    (frozenset({"organizer", "ui", "startup", "data"}), frozenset({
-        "app/core/zaap_shortcuts.py",
-        "tests/test_zaap_clipboard_fallback.py",
-    })),
-    (frozenset({"quests", "guides", "identity", "data", "startup"}), frozenset({
-        "app/modules/encyclopedia/services/achievement_progress_logic.py",
-        "app/modules/encyclopedia/services/progress_service.py",
-        "app/modules/encyclopedia/services/quest_graph_service.py",
-        "app/modules/encyclopedia/services/quest_progress_service.py",
-        "app/modules/encyclopedia/services/quest_search_text.py",
-        "app/modules/encyclopedia/services/serialized_achievement_progress_service.py",
-    })),
-    (frozenset({"quests", "guides", "data"}), frozenset({
-        "app/modules/encyclopedia/services/adventure_route_adapter.py",
-        "app/modules/encyclopedia/tools/audit_quests_guides_semantic.py",
-    })),
-    (frozenset({"ci", "guides", "startup"}), frozenset({
-        "app/modules/encyclopedia/tools/benchmark_guides_performance.py",
-        "tests/test_atlas_doctor_runtime_benchmark.py",
-    })),
-    (frozenset({"guides", "ui"}), frozenset({
-        "app/modules/encyclopedia/views/guide_progress_presentation.py",
-        "app/modules/encyclopedia/widgets/guide_progress_header.py",
-        "app/modules/encyclopedia/widgets/guide_section_widget.py",
-    })),
-    (frozenset({"quests", "guides", "ui", "identity"}), frozenset({
-        "app/modules/encyclopedia/widgets/achievement_detail_widget.py",
-        "app/modules/encyclopedia/widgets/achievement_summary_widget.py",
-        "app/modules/encyclopedia/widgets/dashboard.py",
-        "app/modules/encyclopedia/widgets/detail_panel.py",
-        "app/modules/encyclopedia/widgets/progress_card.py",
-    })),
-    (frozenset({"startup", "identity", "quests", "guides", "data", "ui", "organizer"}), frozenset({
-        "app/network/application_coordinator.py",
-        "app/network/bootstrap.py",
-        "app/network/calibration_runtime.py",
-        "app/network/calibrated_mapping_install.py",
-        "app/network/character_resolver.py",
-        "app/network/character_runtime_decoder.py",
-        "app/network/contracts.py",
-        "app/network/correlated_identity_decoder.py",
-        "app/network/current_protocol_profile.py",
-        "app/network/deobfs_bundle.py",
-        "app/network/discovery.py",
-        "app/network/discovery_probe.py",
-        "app/network/known_session_recovery.py",
-        "app/network/mapped_decoder.py",
-        "app/network/normalizer.py",
-        "app/network/progress_bridge.py",
-        "app/network/protobuf_fields.py",
-        "app/network/protocol_calibration.py",
-        "app/network/protocol_extract.py",
-        "app/network/protocol_status.py",
-        "app/network/quest_completion_info_decoder.py",
-        "app/network/quest_final_step_filter.py",
-        "app/network/quest_journal_decoder.py",
-        "app/network/quest_snapshot_decoder.py",
-        "app/network/quest_snapshot_discovery.py",
-        "app/network/runtime.py",
-        "app/network/source.py",
-        "tests/test_network_application_coordinator.py",
-        "tests/test_network_bootstrap.py",
-        "tests/test_network_current_protocol_profile.py",
-        "tests/test_network_protocol_calibration.py",
-        "tests/test_network_protocol_extract.py",
-        "tests/test_network_runtime_robustness.py",
-        "tests/test_network_sha256_shared_contract.py",
-    })),
-    (frozenset({"ui", "startup", "data"}), frozenset({
-        "app/services/almanax_service.py",
-        "tests/test_almanax_service.py",
-        "app/services/maps/cartography_asset_recovery.py",
-        "app/services/maps/map_cache_builder.py",
-        "app/services/maps/map_manifest.py",
-        "tests/test_cartography_recovery_security.py",
-    })),
-    (frozenset({"identity", "organizer", "quests", "guides", "ui", "startup", "data"}), frozenset({
-        "app/services/character_data_service.py",
-        "app/services/character_order_logic.py",
-        "app/services/character_order_service.py",
-        "app/services/guide_participant_service.py",
-    })),
-)
-PR365_REVIEWED_DOMAIN_OWNERS = {
-    path: domains
-    for domains, paths in PR365_REVIEWED_DOMAIN_GROUPS
-    for path in paths
-}
-
-
 def owners_for(path: str) -> frozenset[str]:
     """Static, independently checked closed-world owners (not PR title hints)."""
     if (not isinstance(path, str) or not path or path.startswith("/")
             or "\\" in path or ".." in path.split("/")):
         raise ValueError("Unsafe changed path")
-    if path in PR365_REVIEWED_DOMAIN_OWNERS:
-        return PR365_REVIEWED_DOMAIN_OWNERS[path]
     if path in REVIEWED_CI_INSTRUCTION_PATHS:
         return frozenset({"ci"})
-    if path == "tests/test_doctor_ui_qt.py":
-        # Exact contract suite for the real Qt Doctor evidence collector.
-        # Future Qt tests must acquire ownership independently.
-        return frozenset({"ci", "ui"})
     # Only the reviewed Organizer feature contracts are owned documentation.
     # Generic docs remain excluded rather than inheriting a broad wildcard.
     if path in {
@@ -492,6 +362,19 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "organizer"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
+    # The independent offline source/Atlas comparator is a Guide tool, not
+    # general CI infrastructure. Exact ownership only: unrelated tools stay
+    # closed-world UNKNOWN until independently reviewed.
+    if path in {
+        "tools/atlas_guide_conformity.py",
+        "tools/atlas_guide_importer.py",
+        "tools/atlas_guide_html_capture.py",
+        "tools/atlas_guide_candidate_store.py",
+        "tools/atlas_guide_sequence_gate.py",
+        "tools/atlas_guide_pipeline.py",
+        "tools/atlas_guide_package_publisher.py",
+    }:
+        return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
     if path == "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
@@ -503,56 +386,19 @@ def owners_for(path: str) -> frozenset[str]:
         # interact with Quest and Guide providers; fail closed for siblings.
         return frozenset({"quests", "guides", "ui"})
     if path in {
-        "app/modules/encyclopedia/widgets/achievement_entity_section.py",
-        "tests/test_entity_link_roles.py",
-    }:
-        # Reviewed semantic entity links: Success/Quest detail and Guides all
-        # reuse the shared Qt-free color roles. Keep both paths explicit.
-        return frozenset({"quests", "guides", "ui"})
-    if path in {"app/core/network_presentation.py", "tests/test_network_home_status.py", "tests/test_home_page.py"}:
-        # The reviewed Home network presentation and tests own startup/UI/identity:
-        # state reduction and actual mini-indicator transition. This does
-        # not certify the native network/capture runtime.
-        return frozenset({"startup", "ui", "identity"})
-    if path == "app/modules/encyclopedia/widgets/filter_panel.py":
-        # Exact-SHA Graphify confirms the Success filter uses the shared Qt
-        # components and is exercised by the Dev UI contract. Keep the same
-        # cross-domain coverage as the Success catalogue; no widget wildcard.
-        return frozenset({"quests", "guides", "ui"})
-    if path in {
-        "app/modules/encyclopedia/widgets/quest_detail_view.py",
-        "tests/test_quest_detail_view.py",
-    }:
-        # Graphify exact-SHA: the shared Quest sheet is consumed by Quêtes,
-        # Guides and the common Qt presentation. Keep this exact and closed.
-        return frozenset({"quests", "guides", "ui"})
-    if path in {
+        "app/modules/encyclopedia/views/ganymede_guide_shell.py",
+        "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
-        "app/modules/encyclopedia/services/guide_ultime_manual_runtime_core.py",
-        "tests/test_guide_manual_route_cache.py",
         "app/modules/encyclopedia/views/manual_route_guides_view.py",
-        "tests/test_shared_manual_guide_view.py",
-        "tests/test_guides_home_render_cache.py",
         "app/modules/encyclopedia/views/guides_view.py",
         "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
-        "app/modules/encyclopedia/views/guide_image_runtime_policy.py",
         "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
-        "app/modules/encyclopedia/views/guide_ultime_walkthrough_card.py",
-        "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
-        "tests/test_guide_continuous_route_panel.py",
     }:
-        # Concrete guide readers and the continuous route panel have both
-        # Guide logic and Qt clients.
+        # The five reviewed Guide/router views have Guide and Qt consumers.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
-    if path == "app/modules/encyclopedia/views/guide_ultime_generated_view.py":
-        # Concrete generated Guide Qt reader: the Guide runtime and shared
-        # Unity widgets are both direct consumers. No sibling wildcard.
-        return frozenset({"guides", "ui"})
     if path in {
-        "app/modules/encyclopedia/views/__init__.py",
         "app/modules/encyclopedia/views/encyclopedia_page.py",
-        "tests/test_encyclopedia_page.py",
         "app/modules/encyclopedia/views/guide_catalog_view.py",
         "app/modules/encyclopedia/views/guide_featured_home.py",
         "app/modules/encyclopedia/views/guide_library_sources.py",
@@ -561,13 +407,11 @@ def owners_for(path: str) -> frozenset[str]:
         # Catalog widgets and the Encyclopedia shell have Guide and UI consumers.
         return frozenset({"guides", "ui"})
     if path in {
-        "app/assets/themes/dofus_unity/sprites/atlas-control-check.svg",
         "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg",
-        "app/assets/themes/dofus_unity/sprites/atlas-control-mixed.svg",
         "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg",
     }:
-        # These four reviewed passive 14x14 Atlas SVG glyphs have no links,
-        # scripts or game-extracted data. Every OTHER SVG stays unowned.
+        # Exact reviewed passive Guide control glyphs. Keep unrelated SVG
+        # siblings unowned instead of widening the existing asset suffix rule.
         return frozenset({"ui", "data"})
     if path.startswith("app/assets/themes/dofus_unity/"):
         # Owned *only* as UI/data inputs, not approved for redistribution.
@@ -625,27 +469,6 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "data"})
     if path == "tests/test_organizer_layout.py":
         return frozenset({"ui", "identity"})
-    if path == "tests/test_organizer_ui.py":
-        # Reviewed direct Qt owner for Organizer's transparent host material.
-        # No test_organizer* wildcard and no game-input privilege.
-        return frozenset({"organizer", "ui", "identity"})
-    if path == "tools/dev_ui_snapshot.py":
-        # Developer Qt screenshot producer; not an application runtime.
-        return frozenset({"ci", "ui"})
-    if path == "tests/capture_app_shell_ui.py":
-        # Exact real-shell screenshot scenario: Home, Craft, Quest/Guide shell,
-        # character view and the startup navigation lifecycle. No tests/* rule.
-        return frozenset({"ci", "ui", "startup", "craft", "quests", "guides", "identity"})
-    if path == "tests/capture_app_popups_ui.py":
-        # Exact Qt popup/dialog inventory. It paints shared UI, Craft, Guide,
-        # Zaap and startup surfaces but performs no native game input.
-        return frozenset({"ci", "ui", "startup", "craft", "guides", "organizer"})
-    if path == "tests/test_popup_interaction_inventory.py":
-        # Real mouse/key lifecycle checks for all concrete popup families.
-        return frozenset({"ci", "ui", "startup", "craft", "guides", "organizer"})
-    if path == "tests/test_equipment_deferred_start.py":
-        # Real Qt Equipment lifecycle + shared component presentation.
-        return frozenset({"startup", "ui"})
     if path == "tests/test_world_scan_async_loading.py":
         return frozenset({"ui"})
     if path == "tests/test_startup_preload_window_visibility.py":
@@ -660,32 +483,22 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "ui"})
     if path == "tests/test_unity_wallpaper_cleaner.py":
         return frozenset({"ui", "data"})
-    if path in {
-        "tests/test_theme.py",
-        "tests/test_components.py",
-        "tests/test_unity_skin.py",
-        "tests/test_theme_runtime_cache.py",
-        "tests/test_unity_palette.py",
-    }:
-        # Exact reviewed Unity Qt and stdlib-only palette contracts.
-        # New/unreviewed test names still fail closed.
+    if path == "tests/test_entity_link_roles.py":
+        # Explicit Guide/UI owner for the app-wide indexed entity colors.
+        # Preserve both real consumers rather than bypassing unknown tests.
+        return frozenset({"guides", "ui"})
+    if path in {"tests/test_unity_skin.py", "tests/test_theme_runtime_cache.py"}:
+        # Canonical Unity palette / Qt stylesheet cache regression contracts.
         return frozenset({"ui"})
     if path == "tests/test_runtime_regression_contracts.py":
         # Existing contracts cover Zaap/Guide routing, identity, persistence,
         # Qt callbacks and shutdown. A generic runtime wildcard is unsafe.
         return frozenset({"organizer", "guides", "identity", "data", "ui", "startup"})
-    if path in {
-        "tests/test_memory_policy_contract.py",
-        "tests/test_performance_guardrails.py",
-    }:
-        return frozenset({"quests", "guides", "ui", "startup"})
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
         return frozenset({"ci", "startup"})
     if path in {
         "app/modules/encyclopedia/providers/quest_provider.py",
-        "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py",
-        "tests/test_achievement_compact_subprocess_lifecycle.py",
         "app/quest_catalog_details.py",
     }:
         # Compact Quest evidence is shared by the Guide renderer and its
@@ -726,10 +539,6 @@ def owners_for(path: str) -> frozenset[str]:
             # consumers with structured provider data.  The old substring
             # fallback ("achievement" -> Guides only) under-reported its
             # closed-world owners.
-            return frozenset({"quests", "guides", "ui", "data"})
-        if leaf == "encyclopedia_final_mission":
-            # Exact real-provider Qt contract for Quest detail, Guide routes,
-            # retained Successes and their local catalogue inputs.
             return frozenset({"quests", "guides", "ui", "data"})
         if leaf == "release_certification_fixes":
             # Exact reviewed test: Guide identity and CI/RAM thresholds.

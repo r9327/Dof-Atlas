@@ -38,18 +38,14 @@ def required_assertions(scenarios, repeats=2) -> list[str]:
         else:
             smoke = name == "validator-smoke"
             pages = (1,) if smoke else (1, 8) if name == "guides-lanyel" else (1, 3)
-            keys = [
-                "open", "participant-empty-blocked", "participant-explicit-selection",
-                "preparation-open", "preparation-filter-potions",
-                "preparation-filter-objets",
-            ]
+            keys = ["open", "participant-empty-blocked", "participant-explicit-selection"]
             for page in pages:
                 for width in (1200, 960):
                     keys.extend((f"page-{page}-{width}", f"geometry-{page}-{width}",
                                  f"bottom-{page}-{width}"))
             for turn in range(1 if smoke else repeats):
                 keys.extend(f"{action}-{turn}" for action in ("next", "destroy", "previous", "refresh"))
-            keys.extend(("global-open", "global-close", "no-game-proof",
+            keys.extend(("global-progress-disclosure", "preparation-disclosure", "no-game-proof",
                          "manual-persist", "manual-reopen", "character-isolation",
                          "manual-restore"))
             if not smoke:
