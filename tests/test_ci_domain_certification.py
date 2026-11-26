@@ -24,9 +24,11 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/modules/encyclopedia/views/guide_home_image_cache.py": {"guides", "ui"},
             "app/network/controller.py": network_owners,
             "app/network/transport.py": network_owners,
+            "app/network/wire.py": network_owners,
             "tests/test_known_session_recovery.py": network_owners,
             "tests/test_network_controller.py": network_owners,
             "tests/test_network_transport.py": network_owners,
+            "tests/test_network_wire.py": network_owners,
             "tools/atlas_mutation.py": {"ci"},
         }
         for path, domains in paths.items():
@@ -1177,7 +1179,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_pr365_reviewed_paths_keep_closed_world_ownership(self):
         from tools.ci_domain_certification import PR365_REVIEWED_DOMAIN_OWNERS
 
-        self.assertEqual(len(PR365_REVIEWED_DOMAIN_OWNERS), 111)
+        self.assertEqual(len(PR365_REVIEWED_DOMAIN_OWNERS), 113)
         for path, expected in PR365_REVIEWED_DOMAIN_OWNERS.items():
             with self.subTest(path=path):
                 self.assertEqual(owners_for(path), expected)

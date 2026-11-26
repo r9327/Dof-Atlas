@@ -320,6 +320,7 @@ PR365_REVIEWED_DOMAIN_GROUPS = (
         "app/network/runtime.py",
         "app/network/source.py",
         "app/network/transport.py",
+        "app/network/wire.py",
         "tests/test_known_session_recovery.py",
         "tests/test_network_application_coordinator.py",
         "tests/test_network_bootstrap.py",
@@ -334,6 +335,7 @@ PR365_REVIEWED_DOMAIN_GROUPS = (
         "tests/test_network_runtime_stop_lifecycle.py",
         "tests/test_network_sha256_shared_contract.py",
         "tests/test_network_transport.py",
+        "tests/test_network_wire.py",
     })),
     (frozenset({"ui", "startup", "data"}), frozenset({
         "app/services/almanax_service.py",
