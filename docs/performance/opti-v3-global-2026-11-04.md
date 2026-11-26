@@ -1,6 +1,84 @@
 # DOFUS ATLAS — Opti V3 : plan de travail contractuel
 _Date : 2026-11-04 — source : issue #366 — état : cadrage uniquement, **aucune amélioration déclarée livrée**._
 
+## Décision produit du 26 novembre 2026 — Opti V3 instantanée, 20/20 durable (approuvée)
+
+**Cette révision est normative pour les nouveaux critères. Elle remplace les objectifs historiques 18/20, Home <100 Mio, pic ≤250 Mio et ouverture ≤10 s par les cibles ci-dessous ; les anciens chiffres restent dans les sections historiques à titre de baseline, jamais comme critères suffisants de clôture.** Aucun résultat de performance ni note n'est déclaré acquis. Les 43 IDs/types OPTV et les 12 lots C01–C12 restent les mêmes. Pas de nouvelle PR, de framework, d'orchestrateur ni de gate parallèle. Réévaluer sur main après fusion des dépendances, notamment #365 et #363 ; ne pas réécrire leurs travaux.
+
+### Budgets de l'application instantanée (cibles de certification)
+
+| Action utilisateur, de l'événement au résultat utile réel | Budget P95 |
+| --- | ---: |
+| Réaction visible à un clic | ≤50 ms |
+| Changement d'onglet | ≤100 ms |
+| Ouverture d'une popup interactive | ≤100 ms |
+| Retour Home interactif | ≤150 ms |
+| Recherche / filtrage (debounce inclus) | ≤200 ms |
+| Ouverture d'une fiche complète utile | ≤300 ms |
+| Réouverture d'un module | ≤300 ms |
+| Première ouverture d'un module | ≤1 s |
+| Exception module particulièrement lourd, justifiée avant benchmark en C01 | ≤2 s |
+| Démarrage EXE jusqu'au Home utilisable, à froid | ≤3 s |
+
+- Zéro gel attribuable à Atlas >100 ms dans les scénarios certifiés ; mesurer le retard de boucle Qt et publier aussi P50/P95/P99, maximum, effectifs, erreurs et événements >100 ms. Distinguer réponse visible, contrôle interactif et résultat complet ; un squelette seul ne satisfait pas une ouverture. Pas de transfert du coût vers le premier clic ou l'arrière-plan.
+- RAM Home stabilisée cible ≤70 Mio, pic arbre de processus Atlas ≤180 Mio (inclure les descendants, documenter mémoire partagée/agrégation ; processus DOFUS exclus du budget Atlas, charge de jeu incluse dans le scénario). CPU au repos <0,5 % de la capacité CPU totale machine, convention et fenêtre fixées en C01, publier aussi équivalent cœur et activité en arrière-plan. Zéro fuite confirmée, accumulation de widgets/threads/signaux et workers inutiles ; distinguer caches utiles bornés et rétention. 
+- C01 fixe avant optimisation le PC Windows modeste réellement utilisé, CPU/RAM/disque, versions, données, états froid/chaud, charge DOFUS (dont 2/4/6/8 selon support), conditions d'énergie, répétitions, stabilisation, budgets CPU actif/I/O/disque/taille installée/update et par module ; justifier toute exception lourde sans baisser unilatéralement les cibles. P99 seulement avec effectif suffisant ; essais répétés, bruit mesuré, comparaison A/B même machine/données, source et vrai EXE. Ne pas confondre offscreen, simulation, Linux et Windows/DOFUS natif.
+- C04/C05/C06/C07 : priorité au rendu utile, lazy loading, virtualisation, préchargement strictement utile, refresh ciblé, caches partagés bornés en coût cumulé, index et requêtes SQLite mesurées (volumes croissants, N+1, plans de requêtes, invalidation), aucun calcul lourd sur le thread UI, annulation/backpressure et fermeture correcte dans TOUS les modules. Préserver fonctions, données, UI Unity, progression, offline et accessibilité. Ne pas forcer le GC pour maquiller les mesures.
+
+### Barème 20/20 sur chacun des cinq axes : renforcement des 25 critères existants
+
+Conserver F1–F5, P1–P5, A1–A5, D1–D5 et I1–I5, 0–4 points chacun. C01 refait la baseline sur main intégré ; C12 exige 4/4 pour chacun des 25 critères (100/100), preuves exact-SHA, résultats bruts, évaluateur/date/limites ; aucun P0/P1 non résolu dans le périmètre, aucun NOT_RUN compté comme PASS, aucune moyenne compensatoire. Si un objectif est techniquement irréalisable, exposer mesures et options au PO ; aucun assouplissement automatique. 20/20 signifie satisfaction du périmètre et du protocole définis, pas absence universelle de défauts.
+
+| Axe | Renforcement des preuves et critères |
+| --- | --- |
+| F1–F5 Fiabilité | Parcours utiles livrés sans placeholders trompeurs ; erreurs/cas limites, interruption, annulation et reprise ; stabilité prolongée sur plusieurs heures, cycles 10/20/50, navigation rapide, fermetures en charge ; focus, clavier, DPI, 2/4/6/8 comptes DOFUS natifs avec propriétaires. Aucun gel/fuite confirmé ou régression fonctionnelle non résolu. |
+| P1–P5 Performance | Tous budgets instantanéité/RAM/CPU ci-dessus, coût cumulé des caches, ressources et files bornées ; volumes représentatifs et croissants ; mesures froid/chaud, par module, avec charge réelle, A/B reproductible et suivi du coût disque. |
+| A1–A5 Architecture | Simplification C08 sur toute l'application après mutualisation #365 : responsabilités et interfaces uniques, UI/métier/données séparés, dépendances explicites, cycles problématiques, wrappers, orchestrateurs, duplications et chemins legacy inutiles éliminés sur preuve ; UI commune réutilisée. Mesurer complexité cyclomatique, couplage/cycles, duplication, imports, lignes de code applicatif et surface de changement avant/après ; aucune cible arbitraire de LOC ou couverture. Deux consommateurs réels avant abstraction ; pas de classe universelle géante, de refactor cosmétique ou de seconde source de vérité. |
+| D1–D5 Données/distribution | Intégrité, validation de schémas, migrations, concurrence, restauration réellement testée, rollback/update différentiel natif, reprise hors ligne, ressources et bundle bornés, dépendances inventoriées (versions, hashes, provenance, vulnérabilités pertinentes, licences si applicables), pas de secrets dans diagnostics, Windows/DPI supportés. Réutiliser #285/#331 et propriétaires, pas de second installateur. |
+| I1–I5 Développement IA | Contexte canonique minimal, owners/tests communs, setup reproductible pur Python/Qt/Windows, handoff entre agents différents ; deux tâches comparables (bug + petite feature), fichiers consultés/modifiés, commandes, durée, réutilisation, reprise et feedback SHA exact ; mesurer durée CI et supprimer exécutions redondantes sans affaiblir protections. |
+
+### Protection permanente des nouvelles fonctionnalités (OPTV-037/039/040)
+
+Étendre les garde-fous existants PERFORMANCE_GUARDRAILS, Doctor/Integrity, Graphify et CI/Delivery Guard sans système concurrent. Un seul routage canonique, une seule source de règles et de résultats, provenance exacte-SHA. Le plan de nouvelle feature indique responsabilités, composants réutilisables, données, budget et scénarios touchés ; sélectionner par chemins et dépendances (supprimer les conditions historiques PR 303), tester tous consommateurs impactés, rester fail-closed si couverture inconnue. Pas de FULL inutile en Draft ; tests ciblés pendant dev, certification finale adaptée au risque, FULL lorsque le contrat ou risque l'exige. Les changements critiques des garde-fous ne peuvent pas s'auto-exempter.
+
+| Modification | Contrôle ciblé à rendre effectif |
+| --- | --- |
+| Page, module, popup, composant partagé | UI indexée #365, lazy loading, cycle de vie, dépendances, budget ressources et consommateurs |
+| Cache, image, grande liste | limite explicite, invalidation, libération, virtualisation, coût cumulé |
+| SQL/données | volume, index, N+1, schéma, cohérence, migrations et conservation |
+| Worker/timer/signaux | thread UI, annulation, backpressure, arrêt, absence de callback obsolète |
+| Dépendance, package, update | utilité, provenance, sécurité, poids, offline, compatibilité |
+| Règles IA/CI | owner unique, tests du routage, preuves au SHA exact, absence de doublon et maintien du fail-closed |
+
+- Invariants déterministes essentiels : bloquer la fusion via protections existantes en cas de violation confirmée ; métriques structurelles subjectives : revue motivée, pas seuil aveugle. Tester les gardes avec exemples régressifs injectés (cache non borné, N+1, worker non annulé, import lourd au startup, duplication pertinente, routage erroné) et cas valides pour contrôler les faux positifs. Vérifier effectivement les protections GitHub avec #266, ne pas inventer de contrôle distant.
+- Comparer à la baseline certifiée V3 ET à la version précédente sur même environnement : budgets absolus, variabilité et dérive cumulée. Ne pas accorder une tolérance additive à chaque PR. Pour nouveau module, fixer le budget spécifique avant développement sans dégrader les existants. Si mesure bruitée, répéter, pas de blocage arbitraire sur une mesure isolée.
+- Maintenir les preuves des 25 critères : réutiliser celles dont les dépendances n'ont pas changé, invalider et réexécuter celles affectées, signaler NOT_RUN/BLOCKED ; recalculer périodiquement et aux releases, et après changements transversaux, dans les rapports Doctor/Delivery Guard existants. Refaire la campagne native si nécessaire. Le 20/20 n'est pas un nouveau job de notation parallèle, ni une promesse permanente sans mesure.
+
+### Simplification et réduction du coût du projet
+
+C08 : zéro code mort confirmé, cycle problématique, implémentation concurrente inutile ou cache non borné dans le périmètre validé. C11 : nettoyage rentable et prouvé devient nécessaire pour la cible 20/20, pas de suppression risquée sans consommateurs/packaging/essais vérifiés. Mesurer LOC applicatives, complexité, duplication, imports, couplage et surface de changement sans jouer avec les compteurs. Garder les 43 IDs/types, réconcilier une seule fois 31 règles web + 36 OPT + 50 RAM + 20 défauts dans le plan canonique ; archiver l'historique sans relecture IA systématique, conserver les justifications et preuves. Limiter les règles permanentes aux équivalents desktop pertinents. Graphify sur changements structurels uniquement. Réutiliser Ponytail local/advisory et pratiques utiles des skills existants ; pas d'import intégral des packs, PostHog/OmniRoute/Harness.io/Playwright dans le runtime Qt, nouvel orchestrateur ni service payant.
+
+### Lots renforcés (mêmes identifiants, priorités révisées)
+
+| Lot | Priorité | Critère complémentaire |
+| --- | --- | --- |
+| C01 | P0 | Baseline, budgets instantanés, 25 critères et protocole machine/données |
+| C02 | P0 | Routage commun et garde-fous permanents ciblés |
+| C03 | P1 | Simplification CI/IA, handoff multi-agent et mesures de coût |
+| C04 | P0 | Métrologie fiable, A/B, budgets par module et vrai EXE |
+| C05 | P0 | Lifecycle Qt de tous les modules, stress prolongé |
+| C06 | P1 | Données et SQL, volumes croissants, caches cohérents |
+| C07 | P0 | Startup ≤3 s et ressources/annulation maîtrisées |
+| C08 | P1 | Simplification structurelle approfondie après C05–C07 et #365 |
+| C09 | P1 | Intégration, fiabilité, Windows/DOFUS avec propriétaires |
+| C10 | P1 | Bundle, sécurité, dépendances et coût installation/update |
+| C11 | P1 | Nettoyage rentable, suppression prouvée, pas de quota LOC |
+| C12 | P0 | 20/20 par axe au SHA final, garde-fous testés sur code futur et preuves natives |
+
+Développer après dépendances intégrées, sans rebase destructif, sans doubler les implémentations propriétaires. Audit par commit puis global, CI finale au SHA exact. **PLAN_ONLY :** aucun score, test natif, gain ou certification revendiqué par cette décision.
+
+---
+
 ## Résultat attendu
 
 Réduire le temps jusqu'au premier contenu réellement utilisable et les blocages Qt dans **tous les modules existants** ; conserver la RAM et les coûts CPU/IO bornés ; rendre les règles anti-régression **applicables aux prochaines modifications et fonctionnalités**, à travers les propriétaires de règles/Doctor/CI déjà présents. L'utilisateur demande une Opti V3 globale. La révision du 9 novembre ajoute une cible **18/20 minimum sur chacun des cinq axes**, avec des priorités d'exécution fondées sur l'audit ; aucun axe n'est exclu. L'implémentation est organisée en lots cohérents vérifiables, pas en grandes réécritures aveugles.
