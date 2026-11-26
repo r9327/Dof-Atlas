@@ -8,7 +8,6 @@ from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
 )
 from app.modules.encyclopedia.services.guide_quest_view_model import (
-    first_position_from_quest,
     quest_solution_steps,
     quest_start_info,
 )
@@ -39,11 +38,7 @@ def catalog_route_map_count(guide, quest_provider) -> int:
 
     for _step, quest in resolved_route_quests(guide, quest_provider):
         start = quest_start_info(quest, include_map_images=False)
-        start_position = str(
-            start.position
-            or first_position_from_quest(quest, start_info=start)
-            or ""
-        ).strip()
+        start_position = start.declared_launch_position
         current_position = start_position
         current_key = _position_key(current_position)
 
