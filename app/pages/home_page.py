@@ -611,34 +611,32 @@ class HomePage(QWidget):
             and next_label == self.character_label
             and next_icon_path == self.character_icon_path
         ):
-            self._update_character_icon()
+            self._update_character_identity()
             return
         self.character_key = next_key
         self.character_label = next_label
         self.character_icon_path = next_icon_path
-        self._update_character_name()
-        self._update_character_icon()
+        self._update_character_identity()
         self.refresh_progress()
 
     def _on_local_dofus_sessions(self, sessions: tuple[str, ...]) -> None:
         self._local_dofus_sessions = sessions
-        self._update_character_name()
+        self._update_character_identity()
 
-    def _update_character_name(self) -> None:
-        sessions = self._local_dofus_sessions
-        if self.character_key or not sessions:
-            self.character_name.setText(self.character_label)
-            self.character_name.setToolTip("")
-            return
-        names = tuple(dict.fromkeys(name for name in sessions if name))
-        if len(sessions) == 1:
-            label = f"{names[0]}\nSession DOFUS détectée" if names else "Session DOFUS détectée"
-        else:
-            label = f"{len(sessions)} sessions DOFUS détectées"
+    def _update_character_identity(self) -> None:
+        label = self.character_label
+        icon_path = self.character_icon_path
+        named_sessions = tuple(title for title in self._local_dofus_sessions if title)
+        if not self.character_key and len(named_sessions) == 1:
+            from app.core.text import clean_auto_group_name
+            from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
+
+            title = named_sessions[0]
+            label = clean_auto_group_name(title) or label
+            _, _, class_name = title.partition(" - ")
+            icon_path = str(cached_class_icon_path_for_window_name(class_name) or "")
         self.character_name.setText(label)
-        self.character_name.setToolTip(
-            "\n".join((*names, "Identité réseau en attente de vérification."))
-        )
+        self._update_character_icon(icon_path)
 
     def apply_encyclopedia_context(
         self,
@@ -1154,8 +1152,9 @@ class HomePage(QWidget):
             return
         self.continueRequested.emit(self.current_guide_id, self.current_quest_id)
 
-    def _update_character_icon(self) -> None:
-        path = Path(self.character_icon_path) if self.character_icon_path else None
+    def _update_character_icon(self, icon_path: str | None = None) -> None:
+        icon_path = self.character_icon_path if icon_path is None else icon_path
+        path = Path(icon_path) if icon_path else None
         fallback = Path(LOGO_PATH)
         selected = path if path is not None and path.is_file() else fallback if fallback.is_file() else None
         signature = (str(selected), mtime_ctime_size_stamp(selected) if selected is not None else None)

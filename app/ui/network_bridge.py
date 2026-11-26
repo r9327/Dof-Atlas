@@ -15,7 +15,6 @@ _WINDOW_SCAN_INTERVAL_SECONDS = 2.0
 
 @lru_cache(maxsize=1)
 def _live_dofus_sessions(_scan_interval: int) -> tuple[tuple[int, str], ...]:
-    from app.core.text import clean_auto_group_name
     from app.macros.mirror_plan import is_dofus_unity_process
     from app.quest_catalog import is_generic_dofus_client_name
     from app.windows_embed import scan_unity_sessions
@@ -24,9 +23,9 @@ def _live_dofus_sessions(_scan_interval: int) -> tuple[tuple[int, str], ...]:
     for row in scan_unity_sessions():
         hwnd = row["hwnd"]
         if is_dofus_unity_process(hwnd):
-            title = str(row.get("nom") or "")
+            title = str(row.get("detected_title") or "")
             sessions[hwnd] = (
-                "" if is_generic_dofus_client_name(title) else clean_auto_group_name(title)
+                "" if is_generic_dofus_client_name(title) else title
             )
     return tuple(sessions.items())
 

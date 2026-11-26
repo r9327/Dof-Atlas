@@ -294,10 +294,19 @@ class NetworkHomeStatusTests(unittest.TestCase):
 
         page = SimpleNamespace(
             character_name=Mock(), character_key="", character_label="Aucun personnage connecté",
+            character_icon_path="", _update_character_icon=Mock(),
         )
-        page._update_character_name = lambda: HomePage._update_character_name(page)
-        HomePage._on_local_dofus_sessions(page, ("Héros",))
-        page.character_name.setText.assert_called_with("Héros\nSession DOFUS détectée")
+        page._update_character_identity = lambda: HomePage._update_character_identity(page)
+        from unittest.mock import patch
+
+        with patch(
+            "app.pages.organizer_icon_cache.cached_class_icon_path_for_window_name",
+            return_value="pandawa.png",
+        ) as icon_lookup:
+            HomePage._on_local_dofus_sessions(page, ("Héros - Pandawa",))
+        icon_lookup.assert_called_once_with("Pandawa")
+        page.character_name.setText.assert_called_with("Héros")
+        page._update_character_icon.assert_called_with("pandawa.png")
         self.assertEqual(page.character_key, "")
         page.character_key = "character:42"
         page.character_label = "Personnage vérifié"
