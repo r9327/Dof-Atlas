@@ -107,19 +107,7 @@ class GuideListModel(QAbstractListModel):
             return (f"{title}\n{label}\n{levels}\n{done} / {total} {self._progress_word(guide, total)} · {percent} %"
                     if total else f"{title}\n{label}\n{levels}\nProgression inconnue")
         if role == Qt.DecorationRole:
-            image_path = Path(guide.image_path) if guide.image_path else DOFUS_UNKNOWN_ICON
-            key = str(image_path)
-            cached = self._icon_cache.get(key)
-            if cached is not None:
-                self._icon_cache.move_to_end(key)
-                return QPixmap(cached[1]) if not cached[1].isNull() else None
-            stamp = mtime_ctime_size_stamp(image_path)
-            pixmap = (ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
-                      if stamp is not None else QPixmap())
-            self._icon_cache[key] = (stamp, QPixmap(pixmap))
-            if len(self._icon_cache) > 32:
-                self._icon_cache.popitem(last=False)
-            return pixmap if not pixmap.isNull() else None
+            return self.artwork_for_guide(guide)
         if role == Qt.ToolTipRole:
             return guide.description or guide.title
         if role == GUIDE_ID_ROLE:
@@ -131,6 +119,22 @@ class GuideListModel(QAbstractListModel):
         if role == Qt.SizeHintRole:
             return QSize(280, 84)
         return None
+
+    def artwork_for_guide(self, guide: Guide) -> QPixmap | None:
+        """Share the Home card cover with the Guide reader, using the same cache."""
+        image_path = Path(guide.image_path) if guide.image_path else DOFUS_UNKNOWN_ICON
+        key = str(image_path)
+        cached = self._icon_cache.get(key)
+        if cached is not None:
+            self._icon_cache.move_to_end(key)
+            return QPixmap(cached[1]) if not cached[1].isNull() else None
+        stamp = mtime_ctime_size_stamp(image_path)
+        pixmap = (ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
+                  if stamp is not None else QPixmap())
+        self._icon_cache[key] = (stamp, QPixmap(pixmap))
+        if len(self._icon_cache) > 32:
+            self._icon_cache.popitem(last=False)
+        return pixmap if not pixmap.isNull() else None
 
     def flags(self, index: QModelIndex):
         if not index.isValid():
