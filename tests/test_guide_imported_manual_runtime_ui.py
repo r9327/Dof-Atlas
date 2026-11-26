@@ -1,0 +1,1087 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import tempfile
+import unittest
+from unittest.mock import patch
+from pathlib import Path
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout, QLabel, QProgressBar, QToolButton
+
+from app.modules.encyclopedia.providers import (
+    AchievementProvider, GuideProvider, QuestProvider,
+)
+from app.modules.encyclopedia.services.guide_progress_service import (
+    GuideProgressService,
+)
+from app.modules.encyclopedia.models.guide import Guide
+from app.modules.encyclopedia.widgets.guide_card import GUIDE_ID_ROLE
+from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
+    AchievementProgressService,
+)
+from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
+    ImportedSourceManualRuntimeService,
+)
+from app.modules.encyclopedia.services.guide_trusted_source_package import (
+    GuidePackageEntry, GuideTrustedSourcePackage,
+)
+from app.modules.encyclopedia.views.manual_route_guides_view import (
+    ManualRouteGuidesView,
+)
+from app.modules.encyclopedia.views.shared_manual_guide_view import (
+    SharedGuideManualCard, SharedGuideManualView, _PreparationNeed,
+)
+from app.modules.encyclopedia.services.guide_shared_route_contract import (
+    project_authorized_guide,
+)
+from tests.test_guide_imported_manual_runtime_service import _source_route
+from tests.test_guide_trusted_source_package import TEST_HEAD, TEST_SOURCE
+from tests.test_guide_ultime_manual_ui_navigation import _FakeParticipantService
+
+
+class ImportedSourceRouterQtTests(unittest.TestCase):
+    """Existing Guide router and shared Qt reader; never a live guide export."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+        cls.quests = QuestProvider()
+        cls.achievements = AchievementProvider(quest_provider=cls.quests)
+        cls.provider = GuideProvider(
+            quest_provider=cls.quests, achievement_provider=cls.achievements,
+        )
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        root = Path(self.tmp.name)
+        self.progress_path = root / "guide_progress.json"
+        self.progress = GuideProgressService(self.progress_path)
+        self.achievement_progress = AchievementProgressService(
+            root / "achievement_progress.json"
+        )
+        from app.modules.encyclopedia.services.quest_progress_service import (
+            QuestProgressService,
+        )
+        self.quest_progress = QuestProgressService(root / "quest_progress.json")
+        self.service = ImportedSourceManualRuntimeService(
+            self.quest_progress,
+            self.achievement_progress,
+            self.progress,
+            route=_source_route(),
+        )
+        self.approved = False
+        self.authorization_calls: list[str] = []
+        self.messages: list[str] = []
+
+        def approve(guide_id: str, route: dict) -> bool:
+            self.authorization_calls.append(guide_id)
+            self.assertEqual(route["id"], guide_id)
+            return self.approved
+
+        self.view = ManualRouteGuidesView(
+            self.messages.append,
+            provider=self.provider,
+            quest_provider=self.quests,
+            achievement_provider=self.achievements,
+            achievement_progress_service=self.achievement_progress,
+            guide_progress_service=self.progress,
+            quest_progress_path=root / "quest_progress.json",
+            profile_path=root / "profiles.json",
+            client_index_path=root / "clients.json",
+            character_key="character:1",
+            defer_runtime=True,
+            imported_source_services={self.service.guide_id: self.service},
+            imported_source_authorizer=approve,
+        )
+        self.view.guide_participant_service = _FakeParticipantService()
+        self.addCleanup(self._close_view)
+
+    def _close_view(self) -> None:
+        self.view.close()
+        self.view.deleteLater()
+        QApplication.processEvents()
+
+    def test_metadata_only_source_catalog_reuses_both_home_columns(self):
+        # No source factory runs merely to list a title or search by it.
+        source_id = self.service.guide_id
+        catalog = Guide(
+            id=source_id, title="Fictional island route",
+            category="iles", category_label="Îles", total_steps=2,
+        )
+        self.view._imported_source_catalog_provider = (
+            lambda: (catalog,) if self.approved else ()
+        )
+        self.view._runtime_ready = True
+        self.approved = True
+        with patch.object(self.provider, "search", return_value=[]):
+            self.view.refresh_home()
+            row = self.view.home_dofus_model.row_for_guide(source_id)
+            self.assertGreaterEqual(row, 0)
+            self.assertEqual(
+                self.view.home_dofus_model.index(row, 0).data(GUIDE_ID_ROLE),
+                source_id,
+            )
+            self.assertNotIn(source_id, self.view._catalog_manual_views)
+            self.assertNotIn(source_id, self.view._loaded_imported_source_services)
+            self.assertFalse(self.progress_path.exists())
+            self.view.search_text = "not-found"
+            self.view.refresh_home()
+            self.assertEqual(self.view.home_dofus_model.row_for_guide(source_id), -1)
+            self.view.search_text = "fictional"
+            self.view.refresh_home()
+            self.assertGreaterEqual(self.view.home_dofus_model.row_for_guide(source_id), 0)
+            self.approved = False
+            self.view.refresh_home()
+            self.assertEqual(self.view.home_dofus_model.row_for_guide(source_id), -1)
+
+    def test_source_catalog_must_be_trusted_before_encyclopedia_initialization(self):
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+        with self.assertRaisesRegex(ValueError, "Trusted source catalogue"):
+            EncyclopediaPage(
+                self.messages.append,
+                imported_source_catalog_provider=lambda: (),
+            )
+        with self.assertRaisesRegex(ValueError, "Trusted source catalogue"):
+            EncyclopediaPage(
+                self.messages.append,
+                imported_source_services={self.service.guide_id: self.service},
+                imported_source_authorizer=lambda *_: True,
+                imported_source_catalog_provider=[],
+            )
+
+    def test_unregistered_source_catalog_never_enters_home(self):
+        catalog = Guide(
+            id="source_guide:unregistered", title="Fake Guide",
+            category="dofus", category_label="Dofus", total_steps=1,
+        )
+        self.view._imported_source_catalog_provider = lambda: (catalog,)
+        self.view._runtime_ready = True
+        with patch.object(self.provider, "search", return_value=[]):
+            self.view.refresh_home()
+            self.assertEqual(self.view.home_dofus_model.row_for_guide(catalog.id), -1)
+            self.assertEqual(self.view.result_model.row_for_guide(catalog.id), -1)
+            self.assertFalse(self.progress_path.exists())
+
+    def test_encyclopedia_shell_forwards_authorized_sources_only_on_guide_open(self):
+        from app.modules.encyclopedia.views.encyclopedia_page import (
+            EncyclopediaPage,
+        )
+        from app.modules.encyclopedia.constants import DUNGEONS_TAB
+
+        root = Path(self.tmp.name)
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            orphan = EncyclopediaPage(
+                self.messages.append,
+                quest_provider=self.quests,
+                achievement_provider=self.achievements,
+                guide_provider=self.provider,
+                progress_path=root / "quest_progress.json",
+                achievement_progress_path=root / "achievements.json",
+                guide_progress_path=self.progress_path,
+                profile_path=root / "profiles.json",
+                client_index_path=root / "clients.json",
+                imported_source_services={self.service.guide_id: self.service},
+            )
+            orphan.close()
+
+        shell = EncyclopediaPage(
+            self.messages.append,
+            quest_provider=self.quests,
+            achievement_provider=self.achievements,
+            guide_provider=self.provider,
+            progress_path=root / "quest_progress.json",
+            achievement_progress_path=root / "achievements.json",
+            guide_progress_path=self.progress_path,
+            profile_path=root / "profiles.json",
+            client_index_path=root / "clients.json",
+            imported_source_services={self.service.guide_id: self.service},
+            imported_source_authorizer=lambda _key, _route: self.approved,
+            quest_graph=object(),  # Synthetic: no Doduda quest data in Phase 0.
+            initial_tab=DUNGEONS_TAB,  # Lazy slot; do not load the Quest catalogue.
+        )
+        try:
+            # No Guide source service is constructed or fetched at Home.
+            self.assertIsNone(shell.guides_view)
+            self.assertFalse(self.progress_path.exists())
+            shell.current_character_key = "character:1"
+            reader = shell.ensure_full_guides_view()
+            self.assertIs(reader._imported_source_services[self.service.guide_id], self.service)
+            self.assertFalse(reader.select_guide(self.service.guide_id))
+            self.assertIsNone(reader.current_guide_id)
+            self.approved = True
+            self.assertTrue(reader.select_guide(self.service.guide_id))
+            self.assertIsInstance(reader.stack.currentWidget(), SharedGuideManualView)
+            self.assertFalse(self.progress_path.exists())
+        finally:
+            shell.close()
+            shell.deleteLater()
+            QApplication.processEvents()
+
+    def test_encyclopedia_forwards_lazy_factory_without_home_hydration(self):
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+        from app.modules.encyclopedia.constants import DUNGEONS_TAB
+        root = Path(self.tmp.name)
+        factory_calls = []
+        source_catalog = lambda: ()
+
+        def build_source():
+            factory_calls.append("selected")
+            return ImportedSourceManualRuntimeService(
+                self.quest_progress, self.achievement_progress, self.progress,
+                route=_source_route("fictional-shell"),
+            )
+
+        guide_id = "source_guide:fictional-shell"
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            EncyclopediaPage(
+                self.messages.append,
+                imported_source_factories={guide_id: build_source},
+            )
+        self.assertFalse(factory_calls)
+        shell = EncyclopediaPage(
+            self.messages.append,
+            quest_provider=self.quests,
+            achievement_provider=self.achievements,
+            guide_provider=self.provider,
+            progress_path=root / "quest_progress.json",
+            achievement_progress_path=root / "achievements.json",
+            guide_progress_path=self.progress_path,
+            profile_path=root / "profiles.json",
+            client_index_path=root / "clients.json",
+            imported_source_factories={guide_id: build_source},
+            imported_source_authorizer=lambda _id, _route: self.approved,
+            imported_source_catalog_provider=source_catalog,
+            quest_graph=object(),
+            initial_tab=DUNGEONS_TAB,
+        )
+        try:
+            self.assertFalse(factory_calls)
+            self.assertIsNone(shell.guides_view)
+            reader = shell.ensure_full_guides_view()
+            self.assertFalse(factory_calls)
+            self.assertIn(guide_id, reader._imported_source_factories)
+            self.assertIs(reader._imported_source_catalog_provider, source_catalog)
+            reader.current_character_key = "character:1"
+            self.approved = True
+            self.assertTrue(reader.select_guide(guide_id))
+            self.assertEqual(factory_calls, ["selected"])
+            reader.show_home()
+            self.assertNotIn(guide_id, reader._loaded_imported_source_services)
+            self.assertFalse(self.progress_path.exists())
+        finally:
+            shell.close()
+            shell.deleteLater()
+            QApplication.processEvents()
+
+    def test_missing_registry_and_untrusted_registration_never_select_source(self):
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_services={self.service.guide_id: self.service},
+            )
+        with self.assertRaisesRegex(ValueError, "Mismatched"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_services={
+                    "source_guide:another-fictitious-guide": self.service,
+                },
+                imported_source_authorizer=lambda *_: True,
+            )
+        self.approved = True
+        self.view._imported_source_services.clear()
+        self.assertFalse(self.view.select_guide(self.service.guide_id))
+        self.assertEqual(self.view.state, self.view.CATALOG)
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_denied_source_cannot_fall_through_to_legacy_or_load_cached_route(self):
+        self.assertFalse(self.view.select_guide(self.service.guide_id))
+        self.assertEqual(self.view.state, self.view.CATALOG)
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertFalse(self.view._catalog_manual_services)
+        self.assertFalse(self.view._catalog_manual_views)
+        self.assertIsNone(self.view.guide_ultime_view)
+        self.assertFalse(self.progress_path.exists())
+        self.assertTrue(any("non certifié" in text for text in self.messages))
+
+    def test_authorized_source_uses_same_shared_reader_and_is_lazy(self):
+        self.assertFalse(self.view._catalog_manual_views)
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        self.assertIsInstance(reader, SharedGuideManualView)
+        self.assertIs(self.view._catalog_manual_views[self.service.guide_id], reader)
+        # Every certified Ganymède source inherits the shared header, not
+        # a per-guide copy of buttons or a second stylesheet.
+        self.assertEqual(reader.global_progress_bar.objectName(), "GuideGlobalProgress")
+        self.assertEqual(reader.preparation_button.objectName(), "GuideMetricDropdown")
+        self.assertEqual(reader.participants_button.objectName(), "GuideParticipantsButton")
+        self.assertEqual(reader.preparation_button.width(), 18)
+        self.assertGreaterEqual(reader.participants_button.width(), reader.preparation_button.width())
+        # Personnages stays on the title row; its drawer opens above progress.
+        self.assertIs(
+            reader._compact_title_row.itemAt(
+                reader._compact_title_row.count() - 1
+            ).widget(), reader.participants_button,
+        )
+        self.assertIs(reader._header_content_layout.itemAt(1).widget(),
+                      reader.participants_panel)
+        # Preparation is nested under the global progress disclosure.
+        self.assertIsNotNone(reader.global_details_panel.findChild(
+            QProgressBar, "GuideCompactPreparationProgress"
+        ))
+        self.assertIsNotNone(reader.global_details_panel.findChild(
+            QToolButton, "GuideMetricDropdown"
+        ))
+        self.assertFalse(hasattr(reader, "header_actions_row"))
+        self.assertEqual(self.view.current_guide_id, self.service.guide_id)
+        self.assertEqual(self.view.state, self.view.GUIDE_OVERVIEW)
+        self.assertIsNone(self.view.guide_ultime_view)
+        self.assertNotIn("dofus_sylvestre", self.view._catalog_manual_services)
+        self.assertEqual(reader.nav_page_label.text(), "Page 1 / 2")
+        self.assertEqual(self.service.route_sheet_progress("character:1"), (0, 2))
+        self.assertFalse(self.progress_path.exists())
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        self.assertIs(self.view.stack.currentWidget(), reader)
+
+    def test_shared_qt_reader_displays_exact_rich_source_blocks(self):
+        """No second renderer or source-text summary for original rich actions."""
+        import base64
+        import hashlib
+        import struct
+        import zlib
+        from PySide6.QtWidgets import QCheckBox
+
+        def chunk(tag, data):
+            return (
+                struct.pack(">I", len(data)) + tag + data
+                + struct.pack(">I", zlib.crc32(tag + data))
+            )
+        png = (
+            b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(bytes((0, 255, 0, 0, 255))))
+            + chunk(b"IEND", b"")
+        )
+        action = {
+            "action_id": "source-rich", "kind": "talk",
+            "text": "Parler au PNJ fictif",
+            "rich_blocks": [
+                {"type": "paragraph", "runs": [
+                    {"text": "Parler au "},
+                    {"text": "PNJ fictif", "role": "npc"},
+                ]},
+                {"type": "checklist", "items": [{
+                    "id": "source-check", "text": "Objectif de l'auteur",
+                    "checked": False,
+                }]},
+                {"type": "image", "alt": "Image source",
+                 "mime": "image/png", "sha256": hashlib.sha256(png).hexdigest(),
+                 "data_base64": base64.b64encode(png).decode("ascii")},
+            ],
+        }
+        route = project_authorized_guide({
+            "guide_id": "fictional-rich", "title": "Authorized fixture",
+            "steps": [{
+                "source_step_id": "step-1", "title": "Étape originale",
+                "actions": [action],
+            }],
+        })
+        service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=route,
+        )
+        widget = SharedGuideManualCard(
+            service, "character:1", service.cards[0], 0,
+        )
+        self.addCleanup(widget.deleteLater)
+        # One source checklist item is readable text only, never a second
+        # checkbox competing with the Guide's single page-validation control.
+        self.assertIsNone(widget.findChild(QCheckBox, "GuideManualSourceChecklist"))
+        source_lines = widget.findChildren(QLabel, "GuideManualSourceChecklistText")
+        self.assertEqual(len(source_lines), 1)
+        from html import unescape
+        self.assertIn("Objectif de l'auteur", unescape(source_lines[0].text()))
+        picture = widget.findChild(QLabel, "GuideManualSourceImage")
+        self.assertIsNotNone(picture)
+        self.assertIsNotNone(picture.pixmap())
+        self.assertFalse(picture.pixmap().isNull())
+        self.assertTrue(any(
+            "PNJ fictif" in label.text() and "<span" in label.text()
+            for label in widget.findChildren(QLabel, "GuideManualLine")
+        ))
+        self.assertEqual(
+            widget.card["manual_runtime_metadata"]["source_step"]["actions"][0],
+            action,
+        )
+
+    def test_source_highlights_and_checklist_links_use_unity_tokens(self):
+        """Author color spans + linked checks use ONE indexed shared renderer."""
+        from PySide6.QtWidgets import QCheckBox
+        from app.ui.theme import PALETTE
+        from app.ui.entity_link_roles import GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES
+
+        colored = [
+            {"text": f"Rôle {role}", "role": role}
+            for role in GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES
+        ]
+        action = {
+            "action_id": "rich-colors", "kind": "quest", "text": "Début fictif.",
+            "rich_blocks": [
+                {"type": "paragraph", "runs": [{"text": "Début fictif."}]},
+                {"type": "paragraph", "runs": colored},
+                {"type": "checklist", "items": [{
+                    "id": "link-check", "text": "Objet lié fictif",
+                    "checked": False,
+                    "runs": [{
+                        "text": "Objet lié fictif", "role": "item",
+                        "href": "https://example.org/object/2",
+                    }],
+                }]},
+            ],
+        }
+        route = project_authorized_guide({
+            "guide_id": "fictional-colors", "title": "Test coloré",
+            "steps": [{"source_step_id": "one", "title": "Test",
+                       "actions": [action]}],
+        })
+        service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=route,
+        )
+        widget = SharedGuideManualCard(
+            service, "character:1", service.cards[0], 0,
+        )
+        self.addCleanup(widget.deleteLater)
+        # Checklists now own a distinct transparent Dev UI selector.
+        # Their real source links must still be visible/clickable in the same sheet.
+        text = "\\n".join(
+            child.text() for child in widget.findChildren(QLabel)
+            if child.objectName() in {
+                "GuideManualLine", "GuideManualSourceChecklistText",
+            }
+        )
+        for role, palette_key in GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES.items():
+            self.assertIn(
+                f'<span style="color:{PALETTE[palette_key]};">Rôle {role}</span>',
+                text,
+            )
+        self.assertIn('href="https://example.org/object/2"', text)
+        self.assertIn(f'color:{PALETTE["GREEN"]}', text)
+        checks = widget.findChildren(QCheckBox, "GuideManualSourceChecklist")
+        self.assertFalse(checks)
+        self.assertEqual(len(
+            widget.findChildren(QLabel, "GuideManualSourceChecklistText")
+        ), 1)
+        self.assertEqual(
+            widget.card["manual_runtime_metadata"]["source_step"]["actions"][0],
+            action,
+        )
+
+    def test_source_preparation_stays_in_original_sheet_beside_atlas_overlay(self):
+        """The source's own instruction must not vanish into global inventory."""
+        route = project_authorized_guide({
+            "guide_id": "fictional-preparation",
+            "title": "Fictional source",
+            "steps": [{
+                "source_step_id": "one",
+                "title": "Original sheet",
+                "actions": [
+                    {
+                        "action_id": "prepare-first", "kind": "prepare",
+                        "text": "Préparer exactement deux objets fictifs",
+                        "items": [{"name": "Objet fictif", "quantity": 2}],
+                    },
+                    {
+                        "action_id": "talk-next", "kind": "talk",
+                        "text": "Parler au PNJ fictif sans résumer",
+                    },
+                ],
+            }],
+        })
+        card = route["steps"][0]
+        # The shared runtime checks the active route's stable identities.
+        # Never test a foreign source card with another guide's service.
+        source_service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=route,
+        )
+        widget = SharedGuideManualCard(source_service, "character:1", card, 0)
+        self.addCleanup(widget.deleteLater)
+        self.assertEqual(card["a_preparer"][0]["quantity"], 2)
+        headings = [
+            label.text() for label in widget.findChildren(QLabel, "GuideManualSectionTitle")
+        ]
+        # Source content stays in one authored sheet, with newline-separated
+        # actions and no fabricated UI subsections/headings.
+        self.assertEqual(headings, [])
+        from PySide6.QtWidgets import QFrame
+        rows = widget.findChildren(QFrame, "GuideManualLineRow")
+        self.assertEqual(
+            [str(row.property("sourceActionId")) for row in rows],
+            ["prepare-first", "talk-next"],
+        )
+        self.assertEqual(
+            widget.findChildren(QFrame, "GuideManualSourceReadingSection"), [],
+        )
+        self.assertEqual(
+            widget.findChildren(QFrame, "GuideManualActionSection"), [],
+        )
+        self.assertTrue(widget.property("continuousGuideReading"))
+        # Qt labels contain inline Unity markup: compare the user-visible
+        # text after removing tags, not the raw rich-text fragments.
+        import re
+        from html import unescape
+        visible = unescape(re.sub(
+            r"<[^>]+>", "",
+            " ".join(label.text() for label in widget.findChildren(QLabel)),
+        ))
+        self.assertIn("Préparer exactement deux objets fictifs", visible)
+        self.assertIn("Parler au PNJ fictif sans résumer", visible)
+
+    def test_authorized_source_one_ganymede_sheet_is_one_atlas_page(self):
+        """Do not mount the next source page inside the current Atlas page."""
+        from PySide6.QtWidgets import QFrame
+
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        self.assertIsInstance(reader, SharedGuideManualView)
+        self.assertEqual(len(reader.service.cards), 2)
+        self.assertEqual(reader.rendered_card_count, 1)
+        self.assertEqual(list(reader._reading_step_range(0)), [0])
+        first = reader.cards_layout.itemAt(0).widget()
+        self.assertEqual(first.card["source_step_id"], "first")
+        self.assertTrue(first.property("continuousGuideReading"))
+        self.assertFalse(first.findChildren(QLabel, "GuideManualSectionTitle"))
+        self.assertEqual(
+            [row.property("sourceActionId") for row in first.findChildren(
+                QFrame, "GuideManualLineRow",
+            )], ["talk"],
+        )
+        reader.next_button.click()
+        QApplication.processEvents()
+        self.assertEqual(reader.view_index, 1)
+        self.assertEqual(reader.rendered_card_count, 1)
+        second = reader.cards_layout.itemAt(0).widget()
+        self.assertEqual(second.card["source_step_id"], "second")
+        self.assertEqual(
+            [row.property("sourceActionId") for row in second.findChildren(
+                QFrame, "GuideManualLineRow",
+            )], ["travel"],
+        )
+        self.assertFalse(second.findChildren(QLabel, "GuideManualStageTitle"))
+        self.assertFalse(self.progress_path.exists())
+
+    def test_switching_source_guides_releases_old_qt_reader_without_progress_write(self):
+        next_service = ImportedSourceManualRuntimeService(
+            self.quest_progress,
+            self.achievement_progress,
+            self.progress,
+            route=_source_route("fictional-next"),
+        )
+        next_service.set_authorization_guard(self.view._imported_source_authorizer)
+        self.view._imported_source_services[next_service.guide_id] = next_service
+        self.approved = True
+        baseline = self.view.stack.count()
+
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        first = self.view.stack.currentWidget()
+        self.assertEqual(self.view.stack.count(), baseline + 1)
+
+        self.assertTrue(self.view.select_guide(next_service.guide_id))
+        second = self.view.stack.currentWidget()
+        self.assertIsInstance(second, SharedGuideManualView)
+        self.assertIsNot(second, first)
+        self.assertEqual(self.view.stack.count(), baseline + 1)
+        self.assertEqual(self.view.stack.indexOf(first), -1)
+        self.assertNotIn(self.service.guide_id, self.view._catalog_manual_views)
+        self.assertNotIn(self.service.guide_id, self.view._catalog_manual_services)
+        self.assertIs(self.view._catalog_manual_views[next_service.guide_id], second)
+
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        self.assertEqual(self.view.stack.count(), baseline + 1)
+        self.assertIsNot(self.view.stack.currentWidget(), first)
+        self.assertEqual(self.view.stack.indexOf(second), -1)
+        self.assertFalse(self.progress_path.exists())
+
+        # This lifecycle test does not require the separately shipped
+        # Quest catalogue; keep the real Home state transition and cache
+        # release while isolating only the unrelated catalogue data load.
+        with patch.object(self.view, "refresh_home") as refresh_home:
+            self.view.show_home()
+        refresh_home.assert_called_once_with()
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertFalse(any(
+            key.startswith("source_guide:") for key in self.view._catalog_manual_views
+        ))
+        self.assertFalse(self.progress_path.exists())
+
+    def test_lazy_source_factory_only_loads_on_select_and_releases_on_home(self):
+        calls = []
+
+        def make_source():
+            calls.append("load")
+            return ImportedSourceManualRuntimeService(
+                self.quest_progress, self.achievement_progress, self.progress,
+                route=_source_route("fictional-lazy"),
+            )
+
+        lazy_key = "source_guide:fictional-lazy"
+        self.view._imported_source_factories[lazy_key] = make_source
+        self.assertEqual(calls, [])
+        self.assertFalse(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load"])
+        self.assertFalse(self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+        self.approved = True
+        self.assertTrue(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load", "load"])
+        self.assertIsInstance(self.view.stack.currentWidget(), SharedGuideManualView)
+        self.assertTrue(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load", "load"])
+        # This lifecycle test does not require the separately shipped
+        # Quest catalogue; keep the real Home state transition and cache
+        # release while isolating only the unrelated catalogue data load.
+        with patch.object(self.view, "refresh_home") as refresh_home:
+            self.view.show_home()
+        refresh_home.assert_called_once_with()
+        self.assertNotIn(lazy_key, self.view._loaded_imported_source_services)
+        self.assertNotIn(lazy_key, self.view._catalog_manual_views)
+        self.assertFalse(self.progress_path.exists())
+        self.assertTrue(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load", "load", "load"])
+
+    def test_factory_owned_runtime_cannot_write_after_home_disposal(self):
+        guide_id = "source_guide:fictional-retired"
+        self.view._imported_source_factories[guide_id] = (
+            lambda: ImportedSourceManualRuntimeService(
+                self.quest_progress, self.achievement_progress, self.progress,
+                route=_source_route("fictional-retired"),
+            )
+        )
+        self.approved = True
+        self.assertTrue(self.view.select_guide(guide_id))
+        old_service = self.view._loaded_imported_source_services[guide_id]
+        self.assertTrue(old_service.can_write_progress())
+        # This lifecycle test does not require the separately shipped
+        # Quest catalogue; keep the real Home state transition and cache
+        # release while isolating only the unrelated catalogue data load.
+        with patch.object(self.view, "refresh_home") as refresh_home:
+            self.view.show_home()
+        refresh_home.assert_called_once_with()
+        self.assertNotIn(guide_id, self.view._loaded_imported_source_services)
+        self.assertFalse(old_service.can_write_progress())
+        with self.assertRaisesRegex(RuntimeError, "retired"):
+            old_service.set_authorization_guard(self.view._imported_source_authorizer)
+        old_service.set_page_checked("character:1", old_service.cards[0], 0, True)
+        self.assertFalse(self.progress_path.exists())
+        self.assertTrue(self.view.select_guide(guide_id))
+        new_service = self.view._loaded_imported_source_services[guide_id]
+        self.assertIsNot(new_service, old_service)
+        self.assertTrue(new_service.can_write_progress())
+
+    def test_failed_source_factory_is_invoked_only_once_per_selection(self):
+        key = "source_guide:fictional-unavailable"
+        attempted = []
+
+        def broken():
+            attempted.append(key)
+            raise RuntimeError("Synthetic source bundle unavailable")
+
+        self.view._imported_source_factories[key] = broken
+        baseline = self.view.stack.count()
+        self.assertFalse(self.view.select_guide(key))
+        self.assertEqual(attempted, [key])
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertNotIn(key, self.view._catalog_manual_views)
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_revocation_between_reader_creation_and_selection_evicts_reader(self):
+        self.approved = True
+        guide_id = self.service.guide_id
+        original_ensure = self.view.ensure_imported_source_manual_view
+
+        def revoke_after_creation(candidate_id):
+            reader = original_ensure(candidate_id)
+            self.assertIsNotNone(reader)
+            self.approved = False
+            return reader
+
+        baseline = self.view.stack.count()
+        self.view.ensure_imported_source_manual_view = revoke_after_creation
+        self.assertFalse(self.view.select_guide(guide_id))
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertIs(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertNotIn(guide_id, self.view._catalog_manual_views)
+        self.assertNotIn(guide_id, self.view._catalog_manual_services)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_denied_other_source_leaves_current_reader_untouched(self):
+        next_service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=_source_route("fictional-denied"),
+        )
+        next_service.set_authorization_guard(lambda *_: False)
+        self.view._imported_source_services[next_service.guide_id] = next_service
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        original = self.view.stack.currentWidget()
+        baseline = self.view.stack.count()
+
+        self.assertFalse(self.view.select_guide(next_service.guide_id))
+        self.assertEqual(self.view.current_guide_id, self.service.guide_id)
+        self.assertIs(self.view.stack.currentWidget(), original)
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertNotIn(next_service.guide_id, self.view._catalog_manual_views)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_lazy_factory_invalid_service_and_source_id_fail_closed(self):
+        key = "source_guide:fictional-wrong"
+        self.view._imported_source_factories[key] = lambda: self.service
+        self.approved = True
+        self.assertFalse(self.view.select_guide(key))
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_factories={"source_guide:fictional-lazy": lambda: self.service},
+            )
+        with self.assertRaisesRegex(ValueError, "exactly one runtime owner"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_services={self.service.guide_id: self.service},
+                imported_source_factories={self.service.guide_id: lambda: self.service},
+                imported_source_authorizer=lambda *_: True,
+            )
+
+    def test_attested_package_witness_revocation_closes_shared_source_reader(self):
+        key = "source_guide:fictional-packaged"
+        route = _source_route("fictional-packaged")
+        root = Path(self.tmp.name)
+        payload = json.dumps(route, sort_keys=True).encode("utf-8")
+        (root / "fictional-packaged.json").write_bytes(payload)
+        digest = hashlib.sha256(payload).hexdigest()
+        valid = {"allowed": True}
+        witness_calls = []
+
+        def witness(guide_id, file_sha, source_sha, head_sha, receipt):
+            witness_calls.append((guide_id, file_sha, source_sha, head_sha, receipt))
+            return (valid["allowed"] and guide_id == key
+                    and file_sha == digest and source_sha == TEST_SOURCE
+                    and head_sha == TEST_HEAD and receipt == "synthetic-only")
+
+        package = GuideTrustedSourcePackage(
+            root,
+            {key: GuidePackageEntry(
+                key, "fictional-packaged.json", digest,
+                TEST_SOURCE, TEST_HEAD, "synthetic-only",
+            )},
+            build_head_sha=TEST_HEAD, witness=witness,
+        )
+        self.view._imported_source_factories.update(
+            package.factories(
+                self.quest_progress, self.achievement_progress, self.progress,
+            )
+        )
+        self.view._imported_source_authorizer = package.authorize
+        self.assertFalse(package._loaded)
+        self.assertFalse(self.progress_path.exists())
+
+        self.assertTrue(self.view.select_guide(key))
+        self.assertIsInstance(self.view.stack.currentWidget(), SharedGuideManualView)
+        self.assertGreaterEqual(len(witness_calls), 2)
+        self.assertFalse(self.progress_path.exists())
+
+        valid["allowed"] = False
+        self.view.refresh_external_progress()
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertNotIn(key, self.view._catalog_manual_views)
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+        # Reauthorize a fresh reader, then mutate its installed bytes:
+        # refresh must also evict the now-invalid reader without any writes.
+        valid["allowed"] = True
+        self.assertTrue(self.view.select_guide(key))
+        packaged = root / "fictional-packaged.json"
+        packaged.write_bytes(payload + b" ")
+        self.view.refresh_external_progress()
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertIs(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertNotIn(key, self.view._catalog_manual_views)
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_shared_validation_uses_source_id_and_does_not_touch_other_guides(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        reader._show_index(0)
+        QApplication.processEvents()
+        reader.validation_layout.itemAt(0).widget().click()
+        QApplication.processEvents()
+        self.assertTrue(self.service.page_checked("character:1", self.service.cards[0]))
+        self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
+        self.assertEqual(self.service.route_sheet_progress("character:1"), (1, 2))
+        self.assertFalse(self.progress.manual_steps("character:1", "guide_ultime_v5"))
+        self.assertFalse(self.progress.manual_steps(
+            "character:1", "catalog_manual:dofus_sylvestre"
+        ))
+        self.view.set_character_key("character:2")
+        reader._show_index(0)
+        # The header intentionally describes the selected participant team,
+        # not the character merely browsing the guide.
+        self.assertEqual(reader.global_progress_label.text(), "50 %")
+        self.view.guide_participant_service.save_selected_keys(("character:2",))
+        reader.refresh(reset_to_active=True)
+        reader._show_index(0)
+        self.assertEqual(reader.global_progress_label.text(), "0 %")
+        self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
+
+    def test_authorized_source_uses_atomic_shared_team_progress_and_undo(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        self.view.guide_participant_service.save_selected_keys(
+            ("character:1", "character:2")
+        )
+        reader = self.view.stack.currentWidget()
+        reader.refresh(reset_to_active=True)
+        reader._show_index(0)
+        QApplication.processEvents()
+        reader.validation_layout.itemAt(0).widget().click()
+        QApplication.processEvents()
+        self.assertTrue(self.service.page_checked("character:1", self.service.cards[0]))
+        self.assertTrue(self.service.page_checked("character:2", self.service.cards[0]))
+        self.assertEqual(self.service.route_sheet_progress("character:1"), (1, 2))
+        self.assertEqual(self.service.route_sheet_progress("character:2"), (1, 2))
+        self.assertFalse(self.progress.manual_steps("character:1", "guide_ultime_v5"))
+        # Undo only the selected second participant, preserving first.
+        self.view.guide_participant_service.save_selected_keys(("character:2",))
+        reader.refresh(reset_to_active=True)
+        reader._show_index(0)
+        QApplication.processEvents()
+        undo = reader.validation_layout.itemAt(0).widget()
+        self.assertEqual(undo.text(), "Annuler validation")
+        undo.click()
+        QApplication.processEvents()
+        self.assertTrue(self.service.page_checked("character:1", self.service.cards[0]))
+        self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
+
+    def test_guide_specific_prerequisite_disables_validation_without_order_prompt(self):
+        self.service.cards[0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"}
+        ]
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        reader._show_index(0)
+        QApplication.processEvents()
+        button = reader.validation_layout.itemAt(0).widget()
+        self.assertFalse(button.isEnabled())
+        self.assertEqual(button.text(), "Prérequis à vérifier")
+        self.assertIn("prérequis", button.toolTip())
+        self.assertFalse(self.progress_path.exists())
+        self.assertFalse(self.service.manual_order_choice_blocking(
+            "character:1", self.service.cards[1],
+        ))
+
+    def test_revocation_between_render_and_click_blocks_atomic_team_write(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        reader._show_index(0)
+        QApplication.processEvents()
+        button = reader.validation_layout.itemAt(0).widget()
+        self.assertTrue(button.isEnabled())
+        # A trusted release can be revoked after this button was rendered.
+        self.approved = False
+        button.click()
+        QApplication.processEvents()
+        self.assertFalse(self.progress_path.exists())
+        self.assertFalse(self.service.page_checked("character:1", self.service.cards[0]))
+        refreshed = reader.validation_layout.itemAt(0).widget()
+        self.assertFalse(refreshed.isEnabled())
+        self.assertIn("non autorisé", refreshed.toolTip())
+        self.service.set_page_checked("character:1", self.service.cards[0], 0, True)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_source_preparation_ready_respects_revocation_and_atomic_team_progress(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        self.view.guide_participant_service.save_selected_keys(
+            ("character:1", "character:2")
+        )
+        reader = self.view.stack.currentWidget()
+        reader.refresh(reset_to_active=True)
+        need = _PreparationNeed(
+            item_key="fictional-preparation-item",
+            item_id=None,
+            name="Ressource fictive",
+            category="Ressources",
+            required_by_character=(("character:1", 1), ("character:2", 1)),
+        )
+        # Hold the Python owner: Qt destroys child widgets if the temporary
+        # parent frame goes out of scope before the assertions.
+        row = reader._preparation_row(need)
+        ready = row.findChild(QCheckBox, "GuidePreparationReady")
+        self.assertIsNotNone(ready)
+        self.assertTrue(ready.isEnabled())
+        # Approval can disappear AFTER this checkbox was rendered.
+        self.approved = False
+        ready.click()
+        QApplication.processEvents()
+        self.assertFalse(self.progress_path.exists())
+        denied_row = reader._preparation_row(need)
+        disabled = denied_row.findChild(QCheckBox, "GuidePreparationReady")
+        self.assertIsNotNone(disabled)
+        self.assertFalse(disabled.isEnabled())
+        self.assertIn("non autorisé", disabled.toolTip())
+
+        self.approved = True
+        reader._set_need_ready(need, True)
+        key = reader._ready_progress_key(need)
+        for character in ("character:1", "character:2"):
+            self.assertTrue(self.progress.is_manual_step_completed(
+                character, self.service.progress_id, key,
+            ))
+        self.assertFalse(self.progress.manual_steps(
+            "character:1", "guide_ultime_v5"
+        ))
+
+        # Revocation must also block the undo path, preserving both entries.
+        self.approved = False
+        reader._set_need_ready(need, False)
+        for character in ("character:1", "character:2"):
+            self.assertTrue(self.progress.is_manual_step_completed(
+                character, self.service.progress_id, key,
+            ))
+
+    def test_global_source_items_have_unique_id_counter_and_atomic_manual_state(self):
+        """A genuine authorized source writes X/X once per game item ID."""
+        from PySide6.QtWidgets import QPushButton, QSpinBox
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+
+        def authored_step(suffix: str, quantity: int) -> dict:
+            intro = "Prévoyez les ressources suivantes :"
+            return {
+                "source_step_id": suffix, "title": f"Step {suffix}",
+                "preparation_block_indexes": [1],
+                "actions": [{
+                    "action_id": "a_" + suffix, "kind": "talk",
+                    "text": intro,
+                    "rich_blocks": [
+                        {"type": "paragraph", "runs": [{"text": intro}]},
+                        {"type": "paragraph", "runs": [
+                            {"text": f"{quantity} ", "role": "plain"},
+                            {"text": "Cawotte", "role": "item", "entity_id": 44},
+                        ]},
+                    ],
+                }],
+            }
+
+        source = project_authorized_guide({
+            "guide_id": "source_fixture", "title": "Fixture",
+            "steps": [authored_step("first", 3), authored_step("second", 5)],
+        })
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        self.view.guide_participant_service.save_selected_keys(
+            ("character:1", "character:2")
+        )
+        reader.service.cards = tuple(source["steps"])
+        reader._render_preparation("Tout")
+        rows = global_source_material_rows(reader.service.cards)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["item_id"], 44)
+        self.assertEqual(rows[0]["quantity"], 8)
+        self.assertFalse(hasattr(reader, "summary_button"))
+
+        buttons = reader.preparation_panel.findChildren(
+            QPushButton, "GuidePreparationItemCopy"
+        )
+        self.assertEqual(len(buttons), 1)
+        self.assertEqual(buttons[0].text(), "Cawotte")
+        button = buttons[0]
+        button.click()
+        self.assertEqual(QApplication.clipboard().text(), "Cawotte")
+
+        editors = reader.preparation_panel.findChildren(
+            QSpinBox, "GuidePreparationQuantity"
+        )
+        self.assertEqual(len(editors), 1)
+        self.assertTrue(editors[0].isEnabled())
+        self.assertEqual(editors[0].value(), 0)
+        # Verified requirement 8 per character, 2 selected: group target 16.
+        self.assertEqual(editors[0].suffix(), " / 16")
+        # A render rebuild deletes the old Qt widgets via deleteLater.
+        # Do not keep Python wrappers to those retired C++ children alive.
+        del button, buttons, editors
+
+        reader._set_source_global_material_total(rows[0], 3)
+        saved = sum(self.progress.preparation_quantity(
+            char, self.service.progress_id, "item:44",
+        ) for char in ("character:1", "character:2"))
+        self.assertEqual(saved, 3)
+        self.assertFalse(self.progress.preparation_quantity(
+            "character:1", "guide_ultime_v5", "item:44"
+        ))
+        reader._set_source_global_material_total(rows[0], 16)
+        self.assertEqual(reader._source_global_material_total(rows[0]), 16)
+        self.assertEqual(self.progress.preparation_quantity(
+            "character:1", self.service.progress_id, "item:44",
+        ), 8)
+        self.assertEqual(self.progress.preparation_quantity(
+            "character:2", self.service.progress_id, "item:44",
+        ), 8)
+        reader._set_source_global_material_total(rows[0], 0)
+        self.assertEqual(reader._source_global_material_total(rows[0]), 0)
+
+        self.approved = False
+        reader._set_source_global_material_total(rows[0], 8)
+        self.assertEqual(reader._source_global_material_total(rows[0]), 0)
+        reader._render_preparation("Tout")
+        self.assertFalse(reader.preparation_panel.findChild(
+            QSpinBox, "GuidePreparationQuantity"
+        ).isEnabled())
+        # Drain deferred row destruction before the class-wide QApplication
+        # teardown on Windows; avoid a stale Qt pointer at interpreter exit.
+        reader._clear_preparation_rows()
+        QApplication.processEvents()
+
+    def test_revoked_authorization_blocks_reopen_and_exits_on_refresh(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        self.approved = False
+        self.assertFalse(self.view.select_guide(self.service.guide_id))
+        # An immediately revoked route is also hidden, not left on screen.
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertIsNone(self.view.current_guide_id)
+        # Revocation also disposes the cached source reader; no stale Qt route.
+        self.assertNotIn(self.service.guide_id, self.view._catalog_manual_views)
+        self.assertEqual(self.view.stack.indexOf(reader), -1)
+        self.view.refresh_external_progress()
+        self.assertEqual(self.view.state, self.view.CATALOG)
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertFalse(self.progress_path.exists())
+
+
+if __name__ == "__main__":
+    unittest.main()

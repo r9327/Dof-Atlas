@@ -5,6 +5,7 @@ from typing import Any
 
 from app.modules.encyclopedia.services import guide_ultime_manual_runtime_core as _core
 from app.modules.encyclopedia.services.guide_ultime_player_policy import apply_player_line_policy
+from app.modules.encyclopedia.services.guide_ultime_generated_service import GUIDE_ULTIME_PROGRESS_ID
 
 
 ROOT = _core.ROOT
@@ -15,6 +16,11 @@ clear_manual_bundle_cache = _core.clear_manual_bundle_cache
 
 class GuideUltimeManualRuntimeService(_core.GuideUltimeManualRuntimeService):
     """Canonical manual runtime with the Phase 7E player-facing policy applied once."""
+
+    # The manual runtime has no per-source progress_id field. Expose the
+    # existing canonical storage key so read/write preparation counters share
+    # the same namespace as the Guide Ultime's manual progress service.
+    progress_id = GUIDE_ULTIME_PROGRESS_ID
 
     def _raw_stage_lines(
         self,
