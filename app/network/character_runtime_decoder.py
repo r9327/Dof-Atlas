@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from logging import Logger
 
 from app.core.logger import get_runtime_logger
@@ -8,6 +8,7 @@ from app.network.character_runtime_state import (
     CharacterRuntimeStateStore,
     character_runtime_state,
 )
+from app.network.contracts import forward_decoder_reset, forward_decoder_session_closed
 from app.network.current_protocol_profile import DOFUS_361010_PROFILE
 from app.network.diagnostics import network_debug_enabled, network_debug_log
 from app.network.protobuf_fields import (
@@ -313,10 +314,12 @@ class CharacterRuntimeProtocolMessageDecoder:
         *,
         state: CharacterRuntimeStateStore | None = None,
         achievement_points_by_id: Mapping[int, int] | None = None,
+        active_profile_matches: Callable[[], bool] | None = None,
         logger: Logger | None = None,
     ) -> None:
         self.delegate = delegate
         self.state = state or character_runtime_state()
+        self.active_profile_matches = active_profile_matches
         # Keep the legacy keyword for callers. Profile projection uses the
         # reviewed live profile and no longer constructs a points lookup.
         self.logger = logger or get_runtime_logger()
@@ -329,16 +332,16 @@ class CharacterRuntimeProtocolMessageDecoder:
         return decoded
 
     def session_closed(self, session_id: str) -> None:
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session_id)
-        self.state.close_session(session_id)
+        try:
+            forward_decoder_session_closed(self.delegate, session_id)
+        finally:
+            self.state.close_session(session_id)
 
     def reset(self) -> None:
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
-        self.state.clear_sessions()
+        try:
+            forward_decoder_reset(self.delegate)
+        finally:
+            self.state.clear_sessions()
 
     def _project_verified_identity(self, message: CapturedProtocolMessage, decoded) -> None:
         if not bool(getattr(decoded, "verified", False)):
@@ -418,35 +421,22 @@ class CharacterRuntimeProtocolMessageDecoder:
             )
 
     def _project_profile_facts(self, message: CapturedProtocolMessage) -> None:
+        if message.type_url != _CHARACTER_CHARACTERISTICS_TYPE_URL:
+            return
         if str(message.direction or "").strip().casefold() != "server_to_client":
             return
         if len(message.payload) > _MAX_PROFILE_DISCOVERY_PAYLOAD_BYTES:
             return
 
         session = str(message.session_id or "").strip()
-        type_url = str(message.type_url or "").strip()
-        if not session or not type_url:
-            return
-        routed = self.state.snapshot_for_session(session)
-        if routed is None:
+        if not session or self.state.snapshot_for_session(session) is None:
             # Profile facts before verified kvi+kva identity are intentionally
             # discarded instead of being queued for a later character.
             return
 
-        # kva has its own exact-build level projection above. Do not also feed
-        # the identity payload into rotated stats-shape discovery.
-        if type_url == DOFUS_361010_PROFILE.character_selected_type_url:
+        if self.active_profile_matches is not None and not self.active_profile_matches():
             return
-
-        if type_url == _CHARACTER_CHARACTERISTICS_TYPE_URL:
-            self._try_apply_character_stats(session, message.payload)
-            return
-
-        # Historical family aliases and repeated payload shapes do not prove
-        # current message semantics. In particular, a list of catalogue IDs
-        # cannot establish real achievement points. Keep those research helpers
-        # out of the runtime projection until an exact-build rule is reviewed.
-        # This also avoids parsing every unrelated packet several times.
+        self._try_apply_character_stats(session, message.payload)
 
     def _try_apply_character_stats(self, session: str, payload: bytes) -> None:
         stats = _candidate_character_stats(payload)

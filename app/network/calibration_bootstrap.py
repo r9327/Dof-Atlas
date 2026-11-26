@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.network.contracts import _is_sha256, active_build_matches
 
 from dataclasses import dataclass
 from logging import Logger
@@ -103,7 +103,9 @@ def build_windows_protocol_calibration(
             character_resolver=character_resolver,
         )
         calibration.decoder = CharacterRuntimeProtocolMessageDecoder(
-            calibration.decoder, logger=log,
+            calibration.decoder,
+            active_profile_matches=lambda: active_build_matches(fingerprint_provider, build_sha256),
+            logger=log,
         )
         raw_source = (
             protocol_source

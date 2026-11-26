@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock
 
 from app.network.character_resolver import CharacterSlotResolver
 from app.network.character_runtime_state import CharacterRuntimeStateStore
@@ -15,6 +16,7 @@ from app.network.known_session_recovery import (
 )
 from app.network.progress_bridge import EventApplicationResult
 from app.network.transport import CapturedProtocolMessage
+from tests.test_character_runtime_stats import _kub_payload
 
 
 class _DecoderDelegate:
@@ -226,13 +228,14 @@ class KnownSessionRecoveryTests(unittest.TestCase):
             wrapper = KnownSessionProtocolMessageDecoder(
                 _DecoderDelegate(),
                 VerifiedKnownSessionRecovery(self._resolver(root)),
+                active_profile_matches=lambda: True,
                 state=state,
             )
             wrapper.decode(
                 CapturedProtocolMessage(
                     session_id="tcp:1234:1",
-                    type_url="type.ankama.com/anything",
-                    payload=b"",
+                    type_url="type.ankama.com/kub",
+                    payload=_kub_payload(),
                     direction="server_to_client",
                 )
             )
@@ -240,7 +243,7 @@ class KnownSessionRecoveryTests(unittest.TestCase):
             self.assertIsNotNone(snapshot)
             self.assertEqual(snapshot.character_key, "character:42")
 
-    def test_protocol_wrapper_does_not_recover_old_binding_on_fresh_identity_packets(self):
+    def test_protocol_wrapper_recovers_only_from_reviewed_inbound_profile(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             _profile, client_index, bindings = self._paths(root)
@@ -257,12 +260,16 @@ class KnownSessionRecoveryTests(unittest.TestCase):
                 },
             )
             state = CharacterRuntimeStateStore()
+            profile = Mock(return_value=True)
+            recovery = VerifiedKnownSessionRecovery(self._resolver(root))
+            recovery.resolve = Mock(wraps=recovery.resolve)
             wrapper = KnownSessionProtocolMessageDecoder(
                 _DecoderDelegate(),
-                VerifiedKnownSessionRecovery(self._resolver(root)),
+                recovery,
+                active_profile_matches=profile,
                 state=state,
             )
-            for type_url in ("type.ankama.com/kvi", "type.ankama.com/kva"):
+            for type_url in ("type.ankama.com/kvi", "type.ankama.com/kva", "type.ankama.com/unrelated"):
                 wrapper.decode(
                     CapturedProtocolMessage(
                         session_id="tcp:1234:1",
@@ -271,6 +278,14 @@ class KnownSessionRecoveryTests(unittest.TestCase):
                         direction="server_to_client",
                     )
                 )
+            wrapper.decode(CapturedProtocolMessage(
+                "tcp:1234:1", "type.ankama.com/kub", _kub_payload(), "client_to_server",
+            ))
+            profile.assert_not_called()
+            wrapper.decode(CapturedProtocolMessage("tcp:1234:1", "type.ankama.com/kub", b""))
+            profile.return_value = False
+            wrapper.decode(CapturedProtocolMessage("tcp:1234:1", "type.ankama.com/kub", _kub_payload()))
+            recovery.resolve.assert_not_called()
             self.assertIsNone(state.snapshot_for_session("tcp:1234:1"))
 
     def test_progress_wrapper_reinjects_identity_through_existing_bridge_contract(self):
@@ -290,9 +305,11 @@ class KnownSessionRecoveryTests(unittest.TestCase):
                 },
             )
             delegate = _BridgeDelegate()
+            state = CharacterRuntimeStateStore()
             wrapper = KnownSessionProgressBridge(
                 delegate,
                 VerifiedKnownSessionRecovery(self._resolver(root)),
+                state=state,
             )
             result = wrapper.handle(
                 QuestStartedEvent(
@@ -306,6 +323,7 @@ class KnownSessionRecoveryTests(unittest.TestCase):
             self.assertIsInstance(delegate.events[0], CharacterIdentifiedEvent)
             self.assertIsInstance(delegate.events[1], QuestStartedEvent)
             self.assertEqual(result.character_key, "character:42")
+            self.assertEqual(state.connected_character_keys(), frozenset({"character:42"}))
 
 
 if __name__ == "__main__":

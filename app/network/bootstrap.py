@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.network.contracts import _is_sha256, active_build_matches
 
 from dataclasses import dataclass, replace
 from logging import Logger
@@ -176,6 +176,9 @@ def build_windows_network_runtime(
     )
 
     try:
+        def active_profile_matches() -> bool:
+            return is_current_profile and active_build_matches(fingerprint_provider, build_sha256)
+
         decoder = manifest.build_decoder(
             active_build_sha256_provider=fingerprint_provider,
         )
@@ -183,11 +186,13 @@ def build_windows_network_runtime(
         decoder = DiagnosticProtocolMessageDecoder(decoder, logger=log)
         decoder = CharacterRuntimeProtocolMessageDecoder(
             decoder,
+            active_profile_matches=active_profile_matches,
             logger=log,
         )
         decoder = KnownSessionProtocolMessageDecoder(
             decoder,
             known_session_recovery,
+            active_profile_matches=active_profile_matches,
             logger=log,
         )
         raw_source = (

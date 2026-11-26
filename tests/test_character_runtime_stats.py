@@ -90,6 +90,17 @@ class _Delegate:
 
 
 class CharacterRuntimeStatsTests(unittest.TestCase):
+    def test_stats_do_not_update_after_the_active_build_changes(self):
+        state = CharacterRuntimeStateStore()
+        state.identify(session_id="s", character_key="character:15", character_id=15, name="A")
+        decoder = CharacterRuntimeProtocolMessageDecoder(
+            _Delegate(), state=state, active_profile_matches=lambda: False,
+        )
+
+        decoder.decode(CapturedProtocolMessage("s", "type.ankama.com/kub", _kub_payload()))
+
+        self.assertEqual(state.snapshot_for_session("s").stats, ())
+
     def test_exact_kub_shape_decodes_displayed_character_values(self):
         stats = _candidate_character_stats(_kub_payload())
         self.assertIsNotNone(stats)
