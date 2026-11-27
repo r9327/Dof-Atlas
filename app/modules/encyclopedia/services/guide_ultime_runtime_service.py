@@ -228,4 +228,3 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         if self._route_cache_key(character_key) == cache_key:
             self._remember_route_result("_first_incomplete_cache", cache_key, result)
         return result
-

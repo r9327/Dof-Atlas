@@ -66,4 +66,3 @@ def atlas_icon(kind: str) -> QIcon:
         painter.drawLine(10, 15, 10, 18)
     painter.end()
     return QIcon(pixmap)
-

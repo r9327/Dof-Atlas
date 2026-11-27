@@ -1343,5 +1343,3 @@ def _is_alteration_objective(objective: QuestObjective) -> bool:
 
 def _looks_technical(text: str) -> bool:
     return bool(TECHNICAL_CRITERION_RE.search(str(text or "")))
-
-
