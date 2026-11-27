@@ -39,14 +39,26 @@ jobs:
       one_core: true
       skip_preflight_unit_tests: true
 
-  eight-atlas-processes:
-    name: Doctor / 8 simultaneous isolated Atlas applications
-    uses: ./.github/workflows/atlas-short-full-app.yml
-    with:
-      cycles: 1
-      max_seconds: 600
-      parallel_instances: 8
-      skip_preflight_unit_tests: true
+  single-atlas-instance:
+    name: Doctor / native Windows single-instance guard
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Verify native mutex rejects competing processes and permits restart
+        shell: pwsh
+        run: |
+          python -c "import os; assert os.name == 'nt'"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -X faulthandler -m unittest discover -s tests -p test_single_instance.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   all-guides:
     name: Doctor / all playable guides
@@ -189,7 +201,7 @@ jobs:
   suite-verdict:
     name: Doctor / required results and honest coverage
     if: always()
-    needs: [all-menus, one-core-stress, eight-atlas-processes, all-guides, phase8-memory, phase8-preload, full-qt-ui, native-distribution, graphify, duplicate-review, domain-contracts]
+    needs: [all-menus, one-core-stress, single-atlas-instance, all-guides, phase8-memory, phase8-preload, full-qt-ui, native-distribution, graphify, duplicate-review, domain-contracts]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact candidate for Doctor evidence joining
@@ -256,7 +268,7 @@ jobs:
           MENUS: "${{ needs.all-menus.result }}"
           GUIDES: "${{ needs.all-guides.result }}"
           ONE_CORE: "${{ needs.one-core-stress.result }}"
-          EIGHT_ATLAS: "${{ needs.eight-atlas-processes.result }}"
+          SINGLE_INSTANCE: "${{ needs.single-atlas-instance.result }}"
           MEMORY: "${{ needs.phase8-memory.result }}"
           PRELOAD: "${{ needs.phase8-preload.result }}"
           CONTRACTS: "${{ needs.domain-contracts.result }}"
@@ -270,7 +282,7 @@ jobs:
           import json
           import os
           from pathlib import Path
-          jobs = {key: os.environ[key] for key in ("MENUS", "GUIDES", "ONE_CORE", "EIGHT_ATLAS", "MEMORY", "PRELOAD", "CONTRACTS", "UI", "DISTRIBUTION", "GRAPHIFY", "DUPLICATES")}
+          jobs = {key: os.environ[key] for key in ("MENUS", "GUIDES", "ONE_CORE", "SINGLE_INSTANCE", "MEMORY", "PRELOAD", "CONTRACTS", "UI", "DISTRIBUTION", "GRAPHIFY", "DUPLICATES")}
           missing = [key for key, value in jobs.items() if value != "success"]
           payload = {
               "kind": "atlas_doctor_complete_automated_suite",
@@ -279,7 +291,7 @@ jobs:
               "status": "BLOCKED" if missing else "AUTOMATED_PASS_NATIVE_NOT_CERTIFIED",
               "failed_or_unexecuted_jobs": missing,
               "not_covered_on_github_hosted_qt_offscreen": [
-                  "8 real DOFUS clients (eight separate Atlas apps are tested, not the game)",
+                  "8 real DOFUS clients (Organizer multi-client fixture stress is separate; Atlas is single-instance)",
                   "physically constrained low-end Windows hardware (one-core simulation measured separately)",
                   "Human-visible GPU/FPS/DPI UI is NOT covered (Qt offscreen; actual EXE/installer are executed separately)",
                   "Real public network update/download/rollback NOT covered (offline signed candidate + update contracts tested)",
