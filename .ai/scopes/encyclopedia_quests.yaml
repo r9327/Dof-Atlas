@@ -5,7 +5,7 @@ working_set:
   - data/encyclopedia/quests/quests_enriched.json
   - app/pages/quests_page.py
   - app/pages/_quests_page_impl.py
-  - app/pages/progressive_quests_page.py
+  - app/pages/lazy_quests_page.py
   - app/modules/encyclopedia/providers/quest_provider.py
   - app/modules/encyclopedia/services/quest_progress_service.py
   - app/modules/encyclopedia/services/quest_hierarchy_service.py

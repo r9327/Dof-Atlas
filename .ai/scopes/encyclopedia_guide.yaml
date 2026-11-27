@@ -21,7 +21,7 @@ working_set:
   - app/modules/encyclopedia/views/guides_view.py
   - app/modules/encyclopedia/views/manual_route_guides_view.py
   - app/modules/encyclopedia/views/guide_ultime_generated_view.py
-  - app/modules/encyclopedia/views/guide_image_runtime_policy.py
+  - app/modules/encyclopedia/services/image_service.py
   - app/modules/encyclopedia/views/guide_ultime_walkthrough_card.py
   - app/modules/encyclopedia/views/guide_ultime_manual_view.py
   - app/modules/encyclopedia/views/guide_ultime_universal_view.py
@@ -36,10 +36,8 @@ working_set:
   - tests/test_guide_home_image_cache_budget.py
   - tests/test_guide_canonical_button_imports.py
   - tests/test_shared_guide_visual_flow_contract.py
-  - app/modules/encyclopedia/views/guide_home_image_cache.py
-  - app/modules/encyclopedia/widgets/guide_progress_header.py
-  - app/modules/encyclopedia/widgets/guide_section_widget.py
-  - app/modules/encyclopedia/widgets/guide_step_widget.py
+  - app/modules/encyclopedia/views/guide_progress_presentation.py
+  - app/modules/encyclopedia/views/shared_manual_guide_view.py
 shared_dependencies:
   - cartography
   - dofus_data
