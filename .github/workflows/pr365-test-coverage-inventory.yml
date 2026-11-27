@@ -10,11 +10,11 @@ jobs:
     timeout-minutes: 12
     env:
       BASE_SHA: 76c0008bdfcbb8dca3315121496e5e52388e0b9f
-      HEAD_SHA: f556c6bece23ec553648f163d049955392d4f0bf
+      HEAD_SHA: f497225750120d5f3d5dd9257a99730370821d2d
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: f556c6bece23ec553648f163d049955392d4f0bf
+          ref: f497225750120d5f3d5dd9257a99730370821d2d
           fetch-depth: 0
           lfs: false
           persist-credentials: false
@@ -28,6 +28,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$HEAD_SHA"
           git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
           git diff --check "$BASE_SHA...$HEAD_SHA"
+          python -m tools.ai_context check
           mkdir -p audit-output
           python - <<'PY'
           import ast, collections, hashlib, json, os, pathlib, subprocess
