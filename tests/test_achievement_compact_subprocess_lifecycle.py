@@ -71,6 +71,10 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
         handles = []
         def run(*_args, **kwargs):
             handles.extend((kwargs["stdout"], kwargs["stderr"]))
+            for handle in handles:
+                self.assertFalse(handle.closed)
+                self.assertGreaterEqual(handle.fileno(), 0)
+            self.assertNotEqual(handles[0].fileno(), handles[1].fileno())
             kwargs["stderr"].write("synthetic subprocess failure\n")
             return subprocess.CompletedProcess([], 2)
 
@@ -80,6 +84,7 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(RuntimeError, "synthetic subprocess failure"):
                 MemoryBoundAchievementProvider._load_from_compact_subprocess(object())
+        self.assertEqual(len(handles), 2)
         self.assertTrue(all(handle.closed for handle in handles))
 
     def test_worker_overrides_ambient_legacy_stdout_encoding(self):
