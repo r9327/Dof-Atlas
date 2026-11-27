@@ -777,13 +777,43 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_sommaire_has_no_visual_widgets_in_shared_reader(self) -> None:
+    def test_shared_summary_replaces_legacy_widgets_and_retains_navigation(self) -> None:
         _service, view = self._view()
         try:
             self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
             self.assertFalse(hasattr(view, "summary_list"))
             self.assertFalse(hasattr(view, "summary_button"))
             self.assertFalse(hasattr(view, "route_bar"))
+
+            view.show()
+            header = view.reading_header
+            summary = header.summary_panel
+            self.assertFalse(summary.isVisible())
+            view.global_details_button.click()
+            header.summary_button.click()
+            QApplication.processEvents()
+            self.assertTrue(summary.isVisible())
+            self.assertEqual(summary.count(), 2)
+            self.assertEqual(
+                [summary.item(i).text() for i in range(summary.count())],
+                ["1. Première fiche", "2. Deuxième fiche"],
+            )
+            summary.setCurrentRow(1)
+            self.assertEqual(view.view_index, 1)
+            view.go_active()
+            self.assertEqual(view.view_index, 0)
+            self.assertEqual(summary.currentRow(), 0)
+            view.navigate_relative(1)
+            QApplication.processEvents()
+            self.assertEqual(view.view_index, 1)
+            self.assertEqual(summary.currentRow(), 1)
+            self.assertTrue(header.summary_button.isChecked())
+            self.assertTrue(summary.isVisible())
+
+            header.summary_button.click()
+            QApplication.processEvents()
+            self.assertFalse(header.summary_button.isChecked())
+            self.assertFalse(summary.isVisible())
         finally:
             view.close()
 
