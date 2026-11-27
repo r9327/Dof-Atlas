@@ -1,4 +1,4 @@
-name: PR365 final test coverage inventory
+name: PR365 mandatory FULL preflight regression
 on:
   push:
     branches: [audit/pr365-final-regression-inventory]
@@ -10,17 +10,41 @@ jobs:
     timeout-minutes: 12
     env:
       BASE_SHA: 76c0008bdfcbb8dca3315121496e5e52388e0b9f
-      HEAD_SHA: 93d44459c4ca4104fc06f8c61b9cb4c51a3fa110
+      HEAD_SHA: 2a287c69bad26072b11de1c5608b8261c462fc89
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: 93d44459c4ca4104fc06f8c61b9cb4c51a3fa110
+          ref: 2a287c69bad26072b11de1c5608b8261c462fc89
           fetch-depth: 0
           lfs: false
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.13"
+      - name: Validate mandatory FULL planning and fail-closed regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_doctor_certification*.py' -v
+          mkdir -p audit-output
+          python -m tools.doctor_certification --base-ref "$BASE_SHA" --expected-sha "$HEAD_SHA" --output audit-output/doctor-plan.json > audit-output/doctor-plan.log
+          python - <<'PY'
+          import json, os
+          p = json.load(open("audit-output/doctor-plan.json", encoding="utf-8"))
+          assert p["candidate_sha"] == os.environ["HEAD_SHA"], p
+          assert p["status"] == p["profile"] == "FULL_REQUIRED", p["reasons"]
+          assert p["test_modules"] == [], p["test_modules"]
+          assert p["validation"]["full_suite_waived"] is False
+          assert p["validation"]["phase_certified"] is False
+          assert "INVALID_DIFF_PATHS" not in p["reasons"], p["reasons"]
+          assert "DIFF_SCOPE_EXCEEDS_ADAPTIVE_BUDGET" in p["reasons"]
+          assert "TEST_SELECTION_INVENTORY_UNAVAILABLE" not in p["reasons"]
+          a = p["test_selection_audit"]
+          assert a["status"] == "ADVISORY_NO_FULL_WAIVER", a
+          assert a["selected_count"] == 0 and a["deferred_count"] == a["inventory_count"]
+          assert a["detail_omitted"] is True and a["full_suite_waived"] is False
+          print("FULL_REQUIRED preserved:", a["inventory_count"], "modules; no waiver")
+          PY
       - name: Inventory surviving baseline tests and assertions
         shell: bash
         run: |
