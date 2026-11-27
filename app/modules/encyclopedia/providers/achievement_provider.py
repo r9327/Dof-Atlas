@@ -10,6 +10,7 @@ from time import perf_counter
 from typing import Any
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.core.numbers import optional_int as safe_int
 from app.modules.encyclopedia.models.achievement import (
     Achievement,
     AchievementCategory,
@@ -41,13 +42,6 @@ _DETAIL_SOURCE_FILES = (
     "ornaments.json",
     "alterations.json",
 )
-
-
-def safe_int(value: Any, default: int | None = None) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
 
 
 class AchievementProvider:
@@ -89,11 +83,19 @@ class AchievementProvider:
     def last_detail_ms(self) -> float:
         return self._last_detail_ms
 
+    def load_catalogue_only(self) -> None:
+        """Load the Success summaries without indexing optional detail rewards.
+
+        Called by the Encyclopedia stage worker before the first paint.
+        prepare_detail_sources() remains an explicit operation for the
+        *detail* worker, never an implicit operation on the Qt thread.
+        """
+        self._ensure_loaded()
+
     def load_all(self) -> list[Achievement]:
         self._ensure_loaded()
-        # The Success runtime calls load_all() from DofusAtlasAchievementStage.
-        # Build only byte-offset indexes for documentary reward sources here so
-        # get_detail_by_id() never has to index monolithic JSON on the Qt thread.
+        # Full offline consumers still opt into ready-to-read rich details.
+        # The interactive catalogue uses load_catalogue_only() instead.
         self.prepare_detail_sources()
         return list(self._achievements)
 
@@ -117,8 +119,9 @@ class AchievementProvider:
             return None
         if not self._detail_sources_ready:
             raise RuntimeError(
-                "Sources de détail Succès non préparées ; load_all() doit être exécuté "
-                "hors du thread UI avant l'ouverture d'un détail."
+                "Sources de détail Succès non préparées ; "
+                "prepare_detail_sources() doit être exécuté hors du thread Qt "
+                "avant l'ouverture du détail."
             )
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
             return self._detail_cache

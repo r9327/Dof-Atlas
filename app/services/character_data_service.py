@@ -10,6 +10,7 @@ from app.constants import (
     QUEST_PROGRESS_FILE,
 )
 from app.core.character_identity import character_id_from_key
+from app.core.numbers import optional_int
 from app.core.json_store import (
     InvalidPersistentJsonError,
     read_json_validated,
@@ -19,7 +20,7 @@ from app.modules.encyclopedia.services.guide_progress_service import (
     GUIDE_PROGRESS_FILE,
     _guide_progress_schema_error,
 )
-from app.core.progress_coordinator import coordinator_for
+from app.core.progress_coordinator import coordinator_for, empty_progress_payload
 from app.modules.encyclopedia.services.progress_service import ACHIEVEMENT_PROGRESS_FILE
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
     _achievement_progress_schema_error,
@@ -106,7 +107,7 @@ class CharacterDataService:
         with coordinator.lock:
             payload = read_json_validated(
                 path,
-                {"version": 1, "characters": {}},
+                empty_progress_payload(),
                 validator,
             )
             characters = payload.get("characters")
@@ -139,9 +140,8 @@ class CharacterDataService:
             for row in old_slots.values():
                 if not isinstance(row, dict):
                     continue
-                try:
-                    row_character_id = int(row.get("character_id"))
-                except (TypeError, ValueError):
+                row_character_id = optional_int(row.get("character_id"))
+                if row_character_id is None:
                     continue
                 if row_character_id != character_id:
                     continue
@@ -171,9 +171,8 @@ class CharacterDataService:
                 for raw_slot, row in old_slots.items():
                     if not isinstance(row, dict):
                         continue
-                    try:
-                        row_character_id = int(row.get("character_id"))
-                    except (TypeError, ValueError):
+                    row_character_id = optional_int(row.get("character_id"))
+                    if row_character_id is None:
                         continue
                     if row_character_id == character_id:
                         stale_slots.append(str(raw_slot))

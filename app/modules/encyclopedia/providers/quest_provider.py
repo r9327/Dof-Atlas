@@ -76,6 +76,9 @@ class QuestProvider:
     def list_quests(self) -> list[QuestRecord]:
         return self.get_catalog().quests
 
+    def requirement_name_id(self, normalized_name: str) -> int | None:
+        return self.get_catalog().requirement_name_id(normalized_name)
+
     def get_quest(self, quest_id: int) -> QuestRecord | None:
         return self.get_catalog().by_id.get(int(quest_id))
 

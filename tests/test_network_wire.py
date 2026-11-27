@@ -88,15 +88,17 @@ class NetworkWireTests(unittest.TestCase):
             decode_varint(b"\x01", -1)
 
     def test_current_dofus_type_url_split_across_reads_is_emitted_once(self) -> None:
-        decoder = ProtobufAnyStreamDecoder()
-        frame = any_envelope("type.ankama.com/abc", b"payload")
-        split_at = len(frame) - 3
-        self.assertEqual(decoder.feed(frame[:split_at]), [])
-        messages = decoder.feed(frame[split_at:])
-        self.assertEqual(len(messages), 1)
-        self.assertEqual(messages[0].type_url, "type.ankama.com/abc")
-        self.assertEqual(messages[0].payload, b"payload")
-        self.assertEqual(decoder.feed(b""), [])
+        for type_url in ("type.ankama.com/abc", "ankama.com/abc"):
+            frame = any_envelope(type_url, b"payload")
+            for split_at in range(1, len(frame)):
+                with self.subTest(type_url=type_url, split_at=split_at):
+                    decoder = ProtobufAnyStreamDecoder()
+                    self.assertEqual(decoder.feed(frame[:split_at]), [])
+                    messages = decoder.feed(frame[split_at:])
+                    self.assertEqual(len(messages), 1)
+                    self.assertEqual(messages[0].type_url, type_url)
+                    self.assertEqual(messages[0].payload, b"payload")
+                    self.assertEqual(decoder.feed(b""), [])
 
     def test_legacy_ankama_type_url_remains_readable_for_offline_evidence(self) -> None:
         decoder = ProtobufAnyStreamDecoder()

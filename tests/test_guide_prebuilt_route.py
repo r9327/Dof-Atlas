@@ -170,5 +170,38 @@ class PrebuiltGuideRouteTests(unittest.TestCase):
             fast.assert_called_once_with(obj)
 
 
+    def test_cold_source_projection_keeps_resolved_quest_ids(self):
+        from app.modules.encyclopedia.services import guide_catalog_manual_runtime_service as module
+        obj = object.__new__(module.GuideCatalogManualRuntimeService)
+        obj.guide_id = GUIDE_ID
+        obj.catalog_guide = SimpleNamespace(required_steps=[
+            SimpleNamespace(order=1, step_type="quest", entity_id=42),
+            SimpleNamespace(order=2, step_type="quest", entity_id=7),
+            SimpleNamespace(order=3, step_type="quest", entity_id=42),
+            SimpleNamespace(order=4, step_type="quest", entity_id=99),
+        ])
+        obj.quest_provider = SimpleNamespace(
+            get_quest=lambda ident: None if ident == 99 else SimpleNamespace(id=ident),
+        )
+        with (
+            patch("app.modules.encyclopedia.services.guide_catalog_prebuilt_route.restore_prebuilt_route",
+                  return_value=False),
+            patch.object(module, "_catalog_route_cache_identity", return_value=None),
+            patch.object(obj, "_quest_segments",
+                         side_effect=lambda step, quest, *, finalize: [{"quest_id": quest.id}]),
+            patch.object(obj, "_merge_consecutive_positions",
+                         side_effect=lambda rows, *, consume: rows),
+            patch.object(obj, "_segment_to_card",
+                         side_effect=lambda segment, index, *, consume: dict(segment)),
+            patch.object(obj, "_link_next_cards"),
+        ):
+            obj._load_manual_preview()
+        self.assertEqual(obj._common_quest_ids, (7, 42))
+        self.assertEqual(obj.route["universal_route"]["common_route_quest_count"], 2)
+        self.assertEqual(obj.manual_audit_data["quest_count"], 2)
+        self.assertEqual([card["quest_id"] for card in obj.cards], [42, 7])
+        self.assertEqual(obj.last_catalog_route_load_ms["mode"], "source_projection")
+
+
 if __name__ == "__main__":
     unittest.main()

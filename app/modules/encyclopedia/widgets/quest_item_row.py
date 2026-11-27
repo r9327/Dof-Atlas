@@ -3,40 +3,34 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygon
+from PySide6.QtCore import QSignalBlocker, Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
 
-from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem, format_number
-from app.ui.components import AtlasButton
-from app.ui.theme import PALETTE
+from app.core.numbers import format_grouped_int
+from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem
+from app.ui.components import AtlasButton, configure_unity_tool_button, set_unity_widget_property
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+from app.ui.guide_glyphs import atlas_icon
 
 
 def _fallback_item_icon() -> QIcon:
-    """Render the same item glyph that the legacy Guide view used."""
-
-    pixmap = QPixmap(20, 20)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    pen = QPen(QColor(PALETTE["GREEN"]), 1.8)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-    painter.drawPolygon(QPolygon([QPoint(10, 3), QPoint(16, 9), QPoint(10, 17), QPoint(4, 9)]))
-    painter.end()
-    return QIcon(pixmap)
-
+    return atlas_icon("item")
 
 def _apply_item_row_state(row: QFrame, image: QToolButton, checked: bool) -> None:
     state = "done" if checked else "todo"
-    row.setProperty("state", state)
-    image.setProperty("state", state)
     for widget in (row, image):
-        widget.style().unpolish(widget)
-        widget.style().polish(widget)
-        widget.update()
+        set_unity_widget_property(widget, "state", state)
+
+
+def set_item_row_checked(row: QWidget, checked: bool) -> None:
+    """Refresh an existing preparation row without emitting a second edit."""
+    image = row.findChild(QToolButton, "GuideItemIcon")
+    if image is None or not image.isCheckable():
+        return
+    with QSignalBlocker(image):
+        image.setChecked(bool(checked))
+    _apply_item_row_state(row, image, bool(checked))
 
 
 def item_row(
@@ -62,12 +56,15 @@ def item_row(
     if leading_widget is not None:
         layout.addWidget(leading_widget, 0, Qt.AlignVCenter)
 
-    icon = QIcon(item.image_path) if item.image_path and Path(item.image_path).exists() else _fallback_item_icon()
-    image = QToolButton()
-    image.setObjectName("GuideItemIcon")
-    image.setFixedSize(26, 26)
-    image.setIconSize(QSize(20, 20))
-    image.setIcon(icon)
+    image = configure_unity_tool_button(
+        QToolButton(), object_name="GuideItemIcon", box=(26, 26), icon_size=20,
+    )
+    icon = QIcon()
+    if item.image_path:
+        pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(item.image_path), image.iconSize())
+        if not pixmap.isNull():
+            icon = QIcon(pixmap)
+    image.setIcon(icon if not icon.isNull() else _fallback_item_icon())
     if checked is not None:
         image.setCheckable(True)
         image.setChecked(bool(checked))
@@ -99,11 +96,11 @@ def item_row(
     )
     layout.addWidget(name, 0)
     if item.quantity is not None:
-        quantity = QLabel(f"x{format_number(item.quantity)}")
+        quantity = QLabel(f"x{format_grouped_int(item.quantity)}")
         quantity.setObjectName("GuideItemQuantity")
         layout.addWidget(quantity, 0, Qt.AlignVCenter)
     layout.addStretch(1)
     return row
 
 
-__all__ = ["item_row"]
+__all__ = ["item_row", "set_item_row_checked"]

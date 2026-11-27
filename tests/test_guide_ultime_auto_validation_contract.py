@@ -11,10 +11,10 @@ from app.modules.encyclopedia.services.guide_auto_validation_contract import (
     route_progress_counts,
 )
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-    GuideManualProgressBar,
     GuideUltimeManualCard,
 )
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+from app.ui.components import AtlasGuideReadingNav
 
 
 class _AchievementProvider:
@@ -193,15 +193,18 @@ class GuideUltimeAutoValidationContractTests(unittest.TestCase):
         self.assertEqual(counts["dungeons_total"], 2)
         self.assertEqual(contract["summary"]["reserved_target_count"], 2)
 
-    def test_manual_view_uses_clickable_progress_scrubber_and_only_bottom_arrows(self):
+    def test_manual_view_uses_shared_summary_navigation_and_only_bottom_arrows(self):
         build = inspect.getsource(SharedGuideManualView._build_ui)
         header = inspect.getsource(SharedGuideManualView._build_compact_header)
-        self.assertIn("GuideManualProgressBar", header)
-        self.assertIn("navigationRequested.connect", header)
-        self.assertIn("current_button", header)
-        self.assertIn("Précédent", build)
-        self.assertIn("Suivant", build)
-        self.assertTrue(hasattr(GuideManualProgressBar, "navigationRequested"))
+        self.assertIn("AtlasGuideReadingHeader", header)
+        self.assertIn("header.summaryRequested.connect(self._show_index)", header)
+        self.assertIn("AtlasGuideSheetHeader", inspect.getsource(SharedGuideManualView))
+        self.assertGreater(build.index("AtlasGuideReadingNav()"), build.index("root.addWidget(self.scroll"))
+        footer = inspect.getsource(AtlasGuideReadingNav.__init__)
+        self.assertIn('"Précédent"', footer)
+        self.assertIn('"Suivant"', footer)
+        self.assertNotIn("previous_button", header)
+        self.assertNotIn("next_button", header)
 
     def test_resource_and_npc_emphasis_are_both_bold_but_distinct_colors(self):
         rich = GuideUltimeManualCard._format_line_html(

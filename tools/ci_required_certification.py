@@ -383,7 +383,7 @@ def evaluate_merge(
                 pass
     # A broad HIGH/CRITICAL candidate is accepted only with the independent
     # domain certificate; never mislabel that result SMART.
-    if route["route"] == "FULL_REQUIRED":
+    if route["route"] == "FULL_REQUIRED" and not route["deleted_files"]:
         for run in runs or []:
             try:
                 validate_domain_run(

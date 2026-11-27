@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Callable
 from PySide6.QtCore import QModelIndex, Qt, QUrl
 from PySide6.QtWidgets import (
     QApplication,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -26,6 +25,17 @@ from PySide6.QtWidgets import (
 
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.core.character_identity import is_character_key
+from app.core.map_coordinates import (
+    DOCUMENTARY_POSITION_RE, normalize_coordinate_pair, quest_launch_instruction, travel_command_from_link,
+)
+from app.core.numbers import format_grouped_int
+from app.core.json_store import InvalidPersistentJsonError
+from app.core.file_stamp import mtime_ctime_size_stamp
+from app.pages.quest_character_cache import cached_load_quest_characters as load_quest_characters
+from app.core.craft_selection import (
+    selection_item_id as owned_item_identifier, selection_quantities,
+    persist_selection_quantity,
+)
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.modules.encyclopedia.services import (
     QuestGraphService,
@@ -33,6 +43,7 @@ from app.modules.encyclopedia.services import (
     QuestHierarchyService,
     QuestProgressService,
 )
+from app.modules.encyclopedia.services.quest_search_text import quest_repeatability_text, quest_context_search_text
 from app.modules.encyclopedia.services.lazy_progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
     lazy_achievement_progress_service,
@@ -49,12 +60,19 @@ from app.quest_catalog import (
     QuestCatalog,
     QuestCharacter,
     QuestRecord,
-    load_quest_characters,
     normalize_text,
 )
-from app.storage import IconCache, read_json, write_json
-from app.ui.components import AtlasButton
+from app.storage import IconCache, read_json
+from app.ui.components import (
+    AtlasBreadcrumb, AtlasButton, AtlasComboBox, clear_unity_widget_layout,
+    configure_unity_number_spinbox, restore_unity_number_value, configure_unity_tool_button,
+    populate_character_combo, select_character_combo_key,
+)
 from app.ui.theme import PALETTE, render_theme_template
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+
+
+QUEST_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quests"]
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
@@ -76,10 +94,6 @@ def clean_requirement_line(*args, **kwargs):
     return _quest_vm().clean_requirement_line(*args, **kwargs)
 
 
-def format_number(*args, **kwargs):
-    return _quest_vm().format_number(*args, **kwargs)
-
-
 def _display_item(*args, **kwargs):
     return _quest_vm().DisplayItem(*args, **kwargs)
 
@@ -90,13 +104,11 @@ def _quest_item_row(*args, **kwargs):
     return item_row(*args, **kwargs)
 
 
-TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
-TRAVEL_URL_RE = re.compile(r"(-?\d+)\s*,\s*(-?\d+)")
 QUEST_PANEL_ITEM_OBJECTIVE_TYPES = {2, 3, 17}
 KEY_LAST_SELECTED_QUEST_ID = "encyclopedia_last_quest_id"
 MIN_QUEST_SEARCH_CHARS = 5
-QUEST_HIERARCHY_OPEN_WIDTH = 300
-QUEST_HIERARCHY_COLLAPSED_WIDTH = 44
+QUEST_HIERARCHY_OPEN_WIDTH = QUEST_GEOMETRY["hierarchy_open_width"]
+QUEST_HIERARCHY_COLLAPSED_WIDTH = QUEST_GEOMETRY["hierarchy_collapsed_width"]
 HIERARCHY_KIND_ROLE = Qt.UserRole + 101
 HIERARCHY_ID_ROLE = Qt.UserRole + 102
 
@@ -105,11 +117,25 @@ class NativeQuestDetailPanel(DetailPanel):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._html = ""
+        self._lazy_payload = None
+
+    def set_lazy_payload(self, payload) -> None:
+        self._html = ""
+        self._lazy_payload = payload
 
     def set_compat_html(self, html: str) -> None:
+        self._lazy_payload = None
         self._html = html
 
     def toHtml(self) -> str:
+        """Legacy HTML is computed only by a caller that explicitly needs it."""
+        if self._lazy_payload is not None:
+            quest, done, owned, guides, achievements, state = self._lazy_payload
+            self._html = quest_detail_html(
+                quest, done, owned, related_guides=guides,
+                related_achievements=achievements, achievement_state=state,
+            )
+            self._lazy_payload = None
         return self._html
 
     def openLinks(self) -> bool:
@@ -218,6 +244,7 @@ class QuestsPage(QWidget):
         self.quest_progress_service = QuestProgressService(progress_path)
         self.progress = self.quest_progress_service.progress
         self.owned_items = normalize_owned_items(owned_items)
+        self._owned_items_file_signature: tuple[int, int, int] | None = None
         self.characters: list[QuestCharacter] = []
         self.current_character_key = ""
         self.selected_quest_id: int | None = None
@@ -230,6 +257,7 @@ class QuestsPage(QWidget):
         self._loaded_category_names: set[str] = set()
         self._loaded_series_ids: set[str] = set()
         self._hierarchy_completed_quest_ids: frozenset[int] = frozenset()
+        self._rendered_hierarchy = None
         self.current_mode = "TOUTES"
         self.refreshing = False
         self.object_rows_refreshing = False
@@ -237,7 +265,7 @@ class QuestsPage(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        root.setSpacing(UNITY_SPACING_PX["sm"])
 
         self._init_hidden_controls()
         self._build_search_ui(root)
@@ -255,7 +283,7 @@ class QuestsPage(QWidget):
         self.status_callback(f"{len(self.catalog.quests)} quêtes chargées.")
 
     def _init_hidden_controls(self) -> None:
-        self.character_combo = QComboBox()
+        self.character_combo = AtlasComboBox()
         self.character_combo.setVisible(False)
         self.character_combo.currentIndexChanged.connect(self.on_character_changed)
 
@@ -265,10 +293,10 @@ class QuestsPage(QWidget):
             self.mode_list.addItem(mode)
         self.mode_list.setCurrentRow(len(self.MODES) - 1)
 
-        self.state_combo = QComboBox()
+        self.state_combo = AtlasComboBox()
         self.state_combo.setVisible(False)
         self.state_combo.addItems(["Toutes", "Disponibles", "Bloquées", "Terminées"])
-        self.type_combo = QComboBox()
+        self.type_combo = AtlasComboBox()
         self.type_combo.setVisible(False)
         self.type_combo.addItems(["Toutes", "Normales", "Répétables", "Journalières", "Hebdomadaires"])
         self.hide_done_button = HideCompletedButton()
@@ -286,21 +314,18 @@ class QuestsPage(QWidget):
         self.search.setObjectName("EncyclopediaSearch")
         self.search.setPlaceholderText("Rechercher une quête...")
         self.search.setClearButtonEnabled(True)
-        self.search.setMinimumHeight(34)
+        self.search.setMinimumHeight(QUEST_GEOMETRY["search_min_height"])
         self.search.textChanged.connect(lambda _text: self.refresh_quests())
         root.addWidget(self.search)
 
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
+        self.breadcrumb = AtlasBreadcrumb()
+        self.breadcrumb_layout = self.breadcrumb.row
         root.addWidget(self.breadcrumb)
 
         self.quest_model = QuestListModel(self)
         self.quest_list = QuestListFacade(self)
         self.quest_list.setModel(self.quest_model)
-        self.quest_list.setMaximumHeight(220)
+        self.quest_list.setMaximumHeight(QUEST_GEOMETRY["quest_list_max_height"])
         self.quest_list.setVisible(False)
         root.addWidget(self.quest_list)
 
@@ -340,9 +365,9 @@ class QuestsPage(QWidget):
         self.center_panel = view.center_panel
         self.center_scroll = view.center_scroll
         self.center_layout = view.center_layout
-        self.right_panel = view.right_panel
-        self.right_scroll = view.right_scroll
-        self.right_layout = view.right_layout
+        self.right_panel = None
+        self.right_scroll = None
+        self.right_layout = None
 
     def _ensure_quest_detail_view(self):
         if self.quest_detail_view is not None:
@@ -362,7 +387,12 @@ class QuestsPage(QWidget):
                 self.body_splitter.addWidget(view)
             self._quest_detail_placeholder = None
             self.body_splitter.setStretchFactor(1, 1)
-            self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, 900])
+            self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, QUEST_GEOMETRY["detail_initial_width"]])
+            # QSplitter.replaceWidget() does not inherit the replaced
+            # placeholder's visible state. Without this, the first selected
+            # quest owns a hydrated detail widget that remains explicitly
+            # hidden behind an empty splitter column.
+            view.show()
         self._bind_detail_view_aliases()
         view.set_character_key(self.current_character_key)
         return view
@@ -379,20 +409,20 @@ class QuestsPage(QWidget):
         self.hierarchy_content.setObjectName("GuideLeftPanelContent")
         hierarchy_content_layout = QVBoxLayout(self.hierarchy_content)
         hierarchy_content_layout.setContentsMargins(0, 0, 0, 0)
-        hierarchy_content_layout.setSpacing(6)
+        hierarchy_content_layout.setSpacing(UNITY_SPACING_PX["sm"])
         hierarchy_header = QFrame()
         hierarchy_header.setObjectName("GuideStepsHeader")
         hierarchy_header_layout = QHBoxLayout(hierarchy_header)
-        hierarchy_header_layout.setContentsMargins(0, 0, 0, 2)
-        hierarchy_header_layout.setSpacing(6)
+        hierarchy_header_layout.setContentsMargins(0, 0, 0, UNITY_SPACING_PX["xxs"])
+        hierarchy_header_layout.setSpacing(UNITY_SPACING_PX["sm"])
         hierarchy_title = QLabel("CATÉGORIES ET SUITES")
         hierarchy_title.setObjectName("GuideSectionTitle")
         hierarchy_header_layout.addWidget(hierarchy_title, 1)
-        self.hierarchy_collapse_button = QToolButton()
-        self.hierarchy_collapse_button.setObjectName("GuideStepsCollapseButton")
-        self.hierarchy_collapse_button.setText("\u2039")
-        self.hierarchy_collapse_button.setFixedSize(24, 24)
-        self.hierarchy_collapse_button.setFocusPolicy(Qt.NoFocus)
+        collapse_box = QUEST_GEOMETRY["collapse_button_box"]
+        self.hierarchy_collapse_button = configure_unity_tool_button(
+            QToolButton(), object_name="GuideStepsCollapseButton",
+            text="\u2039", box=(collapse_box, collapse_box), focus_policy=Qt.NoFocus,
+        )
         self.hierarchy_collapse_button.setToolTip("Réduire la colonne")
         self.hierarchy_collapse_button.clicked.connect(lambda: self.set_hierarchy_collapsed(True))
         hierarchy_header_layout.addWidget(self.hierarchy_collapse_button)
@@ -419,7 +449,8 @@ class QuestsPage(QWidget):
             placeholder.setObjectName("QuestDetailDeferred")
             placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             placeholder_layout = QVBoxLayout(placeholder)
-            placeholder_layout.setContentsMargins(18, 18, 18, 18)
+            inset = QUEST_GEOMETRY["deferred_detail_padding"]
+            placeholder_layout.setContentsMargins(inset, inset, inset, inset)
             hint = QLabel("Sélectionnez une quête pour afficher sa fiche.")
             hint.setObjectName("MutedLabel")
             hint.setAlignment(Qt.AlignCenter)
@@ -430,7 +461,7 @@ class QuestsPage(QWidget):
             self.body_splitter.addWidget(placeholder)
         self.body_splitter.setStretchFactor(0, 0)
         self.body_splitter.setStretchFactor(1, 1)
-        self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, 900])
+        self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, QUEST_GEOMETRY["detail_initial_width"]])
         root.addWidget(self.body_splitter, 1)
         self._bind_detail_view_aliases()
 
@@ -494,6 +525,25 @@ class QuestsPage(QWidget):
             None,
         )
 
+    def ensure_category_series_loaded(self, category_name: str) -> QTreeWidgetItem | None:
+        item = self.category_items.get(str(category_name))
+        if item is not None:
+            self._materialize_hierarchy_category(item)
+        return item
+
+    def ensure_series_quests_loaded(self, series_id: str) -> QTreeWidgetItem | None:
+        series_id = str(series_id)
+        item = self.series_items.get(series_id)
+        if item is None:
+            category = next((category for category in self.hierarchy.categories
+                             if any(series.id == series_id for series in category.series)), None)
+            if category is not None:
+                self.ensure_category_series_loaded(category.name)
+                item = self.series_items.get(series_id)
+        if item is not None:
+            self._materialize_hierarchy_series(item)
+        return item
+
     def _materialize_hierarchy_category(self, item: QTreeWidgetItem) -> None:
         name = str(item.data(0, HIERARCHY_ID_ROLE) or "")
         if not name or name in self._loaded_category_names:
@@ -556,7 +606,20 @@ class QuestsPage(QWidget):
         self._hierarchy_completed_quest_ids = frozenset(
             int(value) for value in completed_quest_ids
         )
-        self.hierarchy_tree.blockSignals(True)
+        if self._rendered_hierarchy is self.hierarchy and self.hierarchy_tree.topLevelItemCount():
+            for quest_id, items in self.quest_tree_items.items():
+                quest = self.catalog.by_id.get(quest_id)
+                if quest is not None:
+                    label = self.hierarchy_quest_label(quest, self._hierarchy_completed_quest_ids)
+                    for item in items:
+                        if item.text(0) != label:
+                            item.setText(0, label)
+            if selected_id is not None:
+                self.sync_hierarchy_selection(selected_id, preferred_series)
+            self.render_breadcrumb()
+            return
+        previous_blocked = self.hierarchy_tree.blockSignals(True)
+        previous_updates = self.hierarchy_tree.updatesEnabled()
         self.hierarchy_tree.setUpdatesEnabled(False)
         try:
             self.hierarchy_tree.clear()
@@ -570,12 +633,14 @@ class QuestsPage(QWidget):
                 category_item.setData(0, HIERARCHY_KIND_ROLE, "category")
                 category_item.setData(0, HIERARCHY_ID_ROLE, category.name)
                 category_item.setToolTip(0, f"{len(category.series)} suites")
-                category_item.addChild(self._hierarchy_placeholder())
+                if category.series:
+                    category_item.addChild(self._hierarchy_placeholder())
                 self.hierarchy_tree.addTopLevelItem(category_item)
                 self.category_items[category.name] = category_item
+            self._rendered_hierarchy = self.hierarchy
         finally:
-            self.hierarchy_tree.blockSignals(False)
-            self.hierarchy_tree.setUpdatesEnabled(True)
+            self.hierarchy_tree.blockSignals(previous_blocked)
+            self.hierarchy_tree.setUpdatesEnabled(previous_updates)
         if selected_id is not None:
             self.sync_hierarchy_selection(selected_id, preferred_series)
         self.render_breadcrumb()
@@ -590,8 +655,7 @@ class QuestsPage(QWidget):
         else:
             completed = int(quest.id) in completed_quest_ids
         marker = "✓ " if completed else ""
-        level = f" · Niv. {quest.level_min}" if quest.level_min else ""
-        return f"{marker}{quest.name}{level}"
+        return f"{marker}{quest.name}"
 
     def on_hierarchy_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
         if item.data(0, HIERARCHY_KIND_ROLE) != "quest":
@@ -629,21 +693,17 @@ class QuestsPage(QWidget):
             None,
         )
         if quest_item is not None:
-            self.hierarchy_tree.blockSignals(True)
-            self.hierarchy_tree.setCurrentItem(quest_item)
-            self.hierarchy_tree.scrollToItem(quest_item)
-            self.hierarchy_tree.blockSignals(False)
+            previous_blocked = self.hierarchy_tree.blockSignals(True)
+            try:
+                self.hierarchy_tree.setCurrentItem(quest_item)
+                self.hierarchy_tree.scrollToItem(quest_item)
+            finally:
+                self.hierarchy_tree.blockSignals(previous_blocked)
         return path
 
     def render_breadcrumb(self) -> None:
-        while self.breadcrumb_layout.count():
-            item = self.breadcrumb_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
-        home = AtlasButton("Quêtes")
-        home.setObjectName("GuideBreadcrumbButton")
+        clear_unity_widget_layout(self.breadcrumb_layout)
+        home = AtlasButton("Quêtes", variant="guide_breadcrumb")
         home.clicked.connect(lambda _checked=False: self.hierarchy_tree.setFocus())
         self.breadcrumb_layout.addWidget(home)
         if self.selected_quest_id is None:
@@ -654,36 +714,26 @@ class QuestsPage(QWidget):
         if path is None or quest is None:
             self.breadcrumb_layout.addStretch(1)
             return
-        self.add_breadcrumb_separator()
-        category_button = AtlasButton(path.category.name)
-        category_button.setObjectName("GuideBreadcrumbButton")
-        category_button.setMaximumWidth(180)
+        self.breadcrumb.add_separator()
+        category_button = AtlasButton(path.category.name, variant="guide_breadcrumb")
+        category_button.setMaximumWidth(QUEST_GEOMETRY["category_button_max_width"])
         category_button.setToolTip(path.category.name)
         category_button.clicked.connect(
             lambda _checked=False, name=path.category.name: self.focus_hierarchy_category(name)
         )
         self.breadcrumb_layout.addWidget(category_button)
-        self.add_breadcrumb_separator()
-        series_button = AtlasButton(path.series.name)
-        series_button.setObjectName("GuideBreadcrumbButton")
-        series_button.setMaximumWidth(280)
+        self.breadcrumb.add_separator()
+        series_button = AtlasButton(path.series.name, variant="guide_breadcrumb")
+        series_button.setMaximumWidth(QUEST_GEOMETRY["series_button_max_width"])
         series_button.setToolTip(path.series.name)
         series_button.clicked.connect(
             lambda _checked=False, series_id=path.series.id: self.focus_hierarchy_series(series_id)
         )
         self.breadcrumb_layout.addWidget(series_button)
-        self.add_breadcrumb_separator()
-        current = QLabel(quest.name)
-        current.setObjectName("GuideBreadcrumbCurrent")
-        current.setWordWrap(False)
+        self.breadcrumb.add_separator()
+        current = self.breadcrumb.add_current(quest.name)
         current.setToolTip(quest.name)
         current.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self.breadcrumb_layout.addWidget(current, 1)
-
-    def add_breadcrumb_separator(self) -> None:
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
 
     def focus_hierarchy_category(self, category_name: str) -> None:
         item = self.category_items.get(str(category_name))
@@ -694,7 +744,7 @@ class QuestsPage(QWidget):
             self.hierarchy_tree.setFocus()
 
     def focus_hierarchy_series(self, series_id: str) -> None:
-        item = self.series_items.get(str(series_id))
+        item = self.ensure_series_quests_loaded(series_id)
         if item is not None:
             item.parent().setExpanded(True)
             item.setExpanded(True)
@@ -709,31 +759,29 @@ class QuestsPage(QWidget):
             self.client_index_path,
             connected_only=True,
         )
-        self.character_combo.blockSignals(True)
-        self.character_combo.clear()
-        selected_index = 0
-        for index, character in enumerate(self.characters):
-            self.character_combo.addItem(character.label, character)
-            if character.key == previous:
-                selected_index = index
-            elif not previous and character.connected:
-                selected_index = index
-        self.character_combo.setCurrentIndex(selected_index)
-        self.character_combo.blockSignals(False)
-        current = self.character_combo.currentData()
-        self.current_character_key = (
-            current.key if isinstance(current, QuestCharacter) else previous
+        self.current_character_key = populate_character_combo(
+            self.character_combo, self.characters, previous,
         )
 
     def on_character_changed(self) -> None:
         character = self.character_combo.currentData()
-        self.current_character_key = character.key if isinstance(character, QuestCharacter) else ""
+        self.set_character_key(character.key if isinstance(character, QuestCharacter) else "")
+
+    def set_character_key(self, character_key: str) -> None:
+        """One character-switch pipeline for standalone and embedded Quests."""
+        character_key = str(character_key or "")
+        select_character_combo_key(self.character_combo, character_key)
+        if character_key == self.current_character_key:
+            return
+        self.current_character_key = character_key
         self.progress = self.quest_progress_service.reload()
         self._sync_achievement_progress()
         self.rebuild_hierarchy()
         self.refresh_quests()
         if self.selected_quest_id is not None:
             self.show_quest_detail(self.selected_quest_id)
+        elif self.quest_detail_view is not None:
+            self.quest_detail_view.set_character_key(character_key, refresh=False)
 
     def on_mode_changed(self, text: str) -> None:
         self.current_mode = text or "TOUTES"
@@ -767,15 +815,14 @@ class QuestsPage(QWidget):
     def quest_state(self, quest: QuestRecord) -> str:
         if self.is_quest_done(quest.id):
             return "Terminée"
-        missing = [quest_id for quest_id in self.graph.previous_ids(quest.id) if not self.is_quest_done(quest_id)]
-        if missing:
+        if any(not self.is_quest_done(quest_id) for quest_id in self.graph.previous_ids(quest.id)):
             return "Bloquée"
         if self.graph.is_repeatable(quest):
             return "Répétable"
         return "Disponible"
 
     def repeatability_kind(self, quest: QuestRecord) -> str:
-        text = normalize_text(" ".join([quest.category, quest.start_criterion, *quest.info]))
+        text = normalize_text(quest_repeatability_text(quest))
         if any(token in text for token in ("hebdomadaire", "weekly", "chaque semaine")):
             return "Hebdomadaire"
         if any(token in text for token in ("journaliere", "journalier", "daily", "chaque jour")):
@@ -789,16 +836,10 @@ class QuestsPage(QWidget):
             return []
         query = normalize_text(self.search.text())
         tokens = [token for token in query.split("_") if token]
-        hide_done = False
-        state_filter = "Toutes"
-        type_filter = "Toutes"
+        # Inactive filters must not hydrate details or read progress.
         matches: list[QuestRecord] = []
         for quest in self.catalog.quests:
             if not self._matches_search_tokens(quest, tokens):
-                continue
-            if not self._matches_state_filter(quest, hide_done, state_filter):
-                continue
-            if not self._matches_type_filter(quest, type_filter):
                 continue
             if not self._matches_current_mode(quest):
                 continue
@@ -810,6 +851,8 @@ class QuestsPage(QWidget):
         return not tokens or all(token in haystack for token in tokens)
 
     def _matches_state_filter(self, quest: QuestRecord, hide_done: bool, state_filter: str) -> bool:
+        if not hide_done and state_filter == "Toutes":
+            return True
         state = self.quest_state(quest)
         if hide_done and state == "Terminée":
             return False
@@ -822,6 +865,8 @@ class QuestsPage(QWidget):
         return True
 
     def _matches_type_filter(self, quest: QuestRecord, type_filter: str) -> bool:
+        if type_filter == "Toutes":
+            return True
         repeatability = self.repeatability_kind(quest)
         if type_filter == "Normales":
             return repeatability == "Normale"
@@ -849,18 +894,23 @@ class QuestsPage(QWidget):
 
     def quest_search_text(self, quest: QuestRecord) -> str:
         guides = self.guide_provider.get_guides_for_entity("quest", quest.id) if self.guide_provider is not None else []
-        values = [
-            quest.search_text,
-            " ".join(step.name for step in quest.steps),
-            " ".join(objective.text for step in quest.steps for objective in step.objectives),
-            " ".join(reward.name for reward in quest.rewards),
-            " ".join(guide.title for guide in guides),
-            " ".join(self.graph.achievement_names(quest.id)),
-        ]
-        return normalize_text(" ".join(values))
+        prebuilt = getattr(self.catalog, "_prebuilt_quest_search_text", None)
+        document = prebuilt.get(int(quest.id)) if isinstance(prebuilt, dict) else None
+        return quest_context_search_text(
+            quest, self.graph.achievement_names(quest.id),
+            (guide.title for guide in guides), document=document,
+        )
+
+    def _clear_search_projection(self) -> None:
+        self.quest_model.set_quests([], {})
+        self.quest_list.clearSelection()
+        self.quest_list.setVisible(False)
 
     def refresh_quests(self) -> None:
-        if not self.current_character_key:
+        if not self.current_character_key or len(self.search.text().strip()) < MIN_QUEST_SEARCH_CHARS:
+            # The search list is independent of the selected hierarchy sheet.
+            # A closed or incomplete search must not erase that sheet.
+            self._clear_search_projection()
             return
         current_id = self.selected_quest_id
         matches = self.matching_quests()
@@ -869,22 +919,22 @@ class QuestsPage(QWidget):
         self.quest_list.setVisible(len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS and bool(matches))
         if self.count_label.isVisible():
             done_count = len(self.quest_progress_service.completed_quest_ids(self.current_character_key))
-            self.count_label.setText(f"{len(matches)} / {len(self.catalog.quests)} quêtes • {done_count} terminées")
+            self.count_label.setText(f"{format_grouped_int(len(matches))} / {format_grouped_int(len(self.catalog.quests))} quêtes • {format_grouped_int(done_count)} terminées")
         if current_id is not None:
             row = self.quest_model.row_for_quest(current_id)
             if row >= 0:
                 index = self.quest_model.index(row, 0)
                 self.quest_list.setCurrentIndex(index)
-            else:
+            elif getattr(self, "_search_worker", None) is None:
                 self.render_empty_detail("Quête masquée par le filtre.")
 
     def close_search_results(self) -> None:
-        self.search.blockSignals(True)
-        self.search.clear()
-        self.search.blockSignals(False)
-        self.quest_model.set_quests([], {})
-        self.quest_list.clearSelection()
-        self.quest_list.setVisible(False)
+        blocked = self.search.blockSignals(True)
+        try:
+            self.search.clear()
+        finally:
+            self.search.blockSignals(blocked)
+        self._clear_search_projection()
 
     def select_quest_from_search(self, quest_id: int) -> None:
         self.close_search_results()
@@ -936,33 +986,49 @@ class QuestsPage(QWidget):
         return quest_id if quest_id > 0 else None
 
     def save_last_quest_id(self, quest_id: int) -> None:
-        payload = read_json(self.profile_path, {})
-        if not isinstance(payload, dict):
-            payload = {}
-        payload[KEY_LAST_SELECTED_QUEST_ID] = int(quest_id)
-        write_json(self.profile_path, payload)
+        from app.services.profile_settings_service import ProfileSettingsService
+        ProfileSettingsService(self.profile_path).set_value(KEY_LAST_SELECTED_QUEST_ID, int(quest_id))
 
     def clear_detail_columns(self) -> None:
         self.detail.set_compat_html("")
         if self.quest_detail_view is not None:
             self.quest_detail_view.clear()
 
-    def on_shared_quest_progress_changed(self, quest_id: int) -> None:
-        quest_id = int(quest_id)
-        self.progress = self.quest_progress_service.reload()
+    def _refresh_after_quest_progress_change(
+        self, quest_id: int, *, reload_progress: bool,
+        refresh_list: bool, refresh_detail: bool,
+    ) -> None:
+        self.progress = (self.quest_progress_service.reload() if reload_progress
+                         else self.quest_progress_service.progress)
         self._sync_achievement_progress()
         self.refresh_hierarchy_quest_state(quest_id)
-        if len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS:
+        if refresh_list:
             self.refresh_quests()
+        if refresh_detail:
+            self.show_quest_detail(quest_id)
+
+    def on_shared_quest_progress_changed(self, quest_id: int) -> None:
+        quest_id = int(quest_id)
+        self._refresh_after_quest_progress_change(
+            quest_id, reload_progress=True,
+            refresh_list=len(self.search.text().strip()) >= MIN_QUEST_SEARCH_CHARS,
+            refresh_detail=False,
+        )
         self.selected_quest_id = quest_id
 
     def refresh_hierarchy_quest_state(self, quest_id: int) -> None:
         quest = self.catalog.by_id.get(int(quest_id))
         if quest is None:
             return
-        text = self.hierarchy_quest_label(quest)
+        completed = bool(self.current_character_key and self.is_quest_done(int(quest_id)))
+        if completed:
+            self._hierarchy_completed_quest_ids = self._hierarchy_completed_quest_ids | {int(quest_id)}
+        else:
+            self._hierarchy_completed_quest_ids = self._hierarchy_completed_quest_ids - {int(quest_id)}
+        text = self.hierarchy_quest_label(quest, self._hierarchy_completed_quest_ids)
         for item in self.quest_tree_items.get(int(quest_id), ()):
-            item.setText(0, text)
+            if item.text(0) != text:
+                item.setText(0, text)
 
     def set_quest_checked(self, quest_id: int, done: bool) -> None:
         self.quest_progress_service.set_quest_completed(
@@ -970,11 +1036,9 @@ class QuestsPage(QWidget):
             int(quest_id),
             bool(done),
         )
-        self.progress = self.quest_progress_service.progress
-        self._sync_achievement_progress()
-        self.refresh_hierarchy_quest_state(int(quest_id))
-        self.refresh_quests()
-        self.show_quest_detail(int(quest_id))
+        self._refresh_after_quest_progress_change(
+            int(quest_id), reload_progress=False, refresh_list=True, refresh_detail=True,
+        )
 
     def show_quest_detail(self, quest_id: int) -> None:
         quest = self.catalog.by_id.get(int(quest_id))
@@ -987,19 +1051,14 @@ class QuestsPage(QWidget):
         related_guides = self.guide_provider.get_guides_for_entity("quest", quest.id) if self.guide_provider is not None else []
         related_achievements = self.achievement_provider.get_by_quest(quest.id) if self.achievement_provider is not None else []
         achievement_state = self.achievement_progress_service.state_for(self.current_character_key)
-        self.detail.set_compat_html(
-            quest_detail_html(
-                quest,
-                done,
-                self.owned_items,
-                related_guides=related_guides,
-                related_achievements=related_achievements,
-                achievement_state=achievement_state,
-            )
-        )
+        self.detail.set_lazy_payload((
+            quest, done, dict(self.owned_items),
+            tuple(related_guides), tuple(related_achievements), achievement_state,
+        ))
         view = self._ensure_quest_detail_view()
         from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
 
+        view.set_character_key(self.current_character_key, refresh=False)
         active_series = self.hierarchy.series_by_id.get(self.active_series_id)
         view.show_quest(
             int(quest.id),
@@ -1031,8 +1090,13 @@ class QuestsPage(QWidget):
         self.status_callback("Lien externe désactivé dans Quêtes.")
 
     def refresh_owned_items(self) -> None:
-        if self.owned_items_path.exists():
-            self.owned_items = load_owned_items(self.owned_items_path)
+        signature = mtime_ctime_size_stamp(self.owned_items_path)
+        if signature == self._owned_items_file_signature:
+            return
+        # A disappeared file means an empty persisted selection, not stale
+        # quantities. Initial caller-supplied quantities remain a valid fallback.
+        self.owned_items = load_owned_items(self.owned_items_path) if signature is not None else {}
+        self._owned_items_file_signature = signature
 
     def set_copy_feedback(self, text: str) -> None:
         self.copy_feedback.setText(text)
@@ -1069,14 +1133,13 @@ class QuestsPage(QWidget):
         )
         row.setObjectName("QuestItemRow")
         layout = row.layout()
-        required_label = QLabel(f"/ {format_number(required)}")
+        required_label = QLabel(f"/ {format_grouped_int(required)}")
         required_label.setObjectName("MutedLabel")
-        quantity = QSpinBox()
-        quantity.setObjectName("QuestItemQuantity")
-        quantity.setRange(0, required)
-        quantity.setValue(owned)
-        quantity.setFixedWidth(88)
-        quantity.setAlignment(Qt.AlignCenter)
+        quantity = configure_unity_number_spinbox(
+            QSpinBox(), minimum=0, maximum=required,
+            value=owned, object_name="QuestItemQuantity",
+            centered=True,
+        )
         quantity.valueChanged.connect(lambda value, data=dict(item), maximum=required: self.set_owned_item_quantity(data, value, maximum))
         layout.addWidget(quantity)
         layout.addWidget(required_label)
@@ -1104,10 +1167,19 @@ class QuestsPage(QWidget):
         if self.object_rows_refreshing:
             return
         quantity = max(0, min(int(value or 0), int(maximum)))
-        self.owned_items[int(item["item_id"])] = quantity
-        if quantity <= 0:
-            self.owned_items.pop(int(item["item_id"]), None)
-        save_owned_item_quantity(item, quantity, self.owned_items_path)
+        ident = int(item["item_id"])
+        try:
+            save_owned_item_quantity(item, quantity, self.owned_items_path)
+        except (InvalidPersistentJsonError, OSError, TimeoutError) as exc:
+            counter = self.sender()
+            if isinstance(counter, QSpinBox):
+                restore_unity_number_value(counter, min(counter.maximum(), self.owned_items.get(ident, 0)))
+            self.status_callback(f"Quantité non enregistrée : {exc}")
+            return
+        if quantity > 0:
+            self.owned_items[ident] = quantity
+        else:
+            self.owned_items.pop(ident, None)
 
 
 def empty_detail_html(message: str) -> str:
@@ -1132,8 +1204,14 @@ def quest_detail_html(
     level = f"Niveau {quest.level_min}" if quest.level_min else "Niveau non indiqué"
     if quest.level_max and quest.level_max != quest.level_min:
         level = f"{level} - {quest.level_max}"
+    launch_instruction = quest_launch_instruction(quest.source_info)
+    launch_section = (
+        f"<h2>Lancement</h2><p>{linkify_travel_coordinates(launch_instruction)}</p>"
+        if launch_instruction else ""
+    )
     sections = [
         achievement_context_section(related_achievements or [], achievement_state, quest.achievements),
+        launch_section,
         list_section("Prérequis", quest.prerequisites, "Aucun prérequis détecté."),
         list_section("Info", quest.info, "Aucune information particulière."),
         rewards_section(quest),
@@ -1148,12 +1226,12 @@ body {{
   font-family: @FONT_FAMILY;
   background: @PANEL;
   color: @TEXT;
-  font-size: 12px;
+  font-size: @FONT_BODY;
   margin: 0;
 }}
-h1 {{ font-size: 22px; margin: 0 0 6px 0; }}
-h2 {{ font-size: 15px; margin: 18px 0 6px 0; color: @TEXT; }}
-h3 {{ font-size: 13px; margin: 12px 0 4px 0; color: @TEXT_SOFT; }}
+h1 {{ font-size: @FONT_CONTENT_H1; margin: 0 0 6px 0; }}
+h2 {{ font-size: @FONT_CONTENT_H2; margin: 18px 0 6px 0; color: @TEXT; }}
+h3 {{ font-size: @FONT_CONTENT_H3; margin: 12px 0 4px 0; color: @TEXT_SOFT; }}
 p {{ line-height: 1.35; margin: 0; padding: 0; }}
 ul {{ margin: 0 0 0 14px; padding: 0; }}
 li {{ line-height: 1.35; margin: 0; padding: 0; }}
@@ -1221,14 +1299,10 @@ def achievement_context_section(achievements: list[Any], achievement_state: Any,
     for achievement in achievements[:8]:
         aid = int(getattr(achievement, "id", 0) or 0)
         objectives = list(getattr(achievement, "objectives", ()) or ())
-        completed = bool(achievement_state.is_achievement_completed(aid)) if achievement_state is not None and aid else False
-        done_objectives = (
-            sum(1 for objective in objectives if achievement_state.is_objective_completed(aid, int(getattr(objective, "id", 0) or 0)))
-            if achievement_state is not None and aid
-            else 0
+        from app.modules.encyclopedia.services.achievement_progress_logic import achievement_progress_snapshot
+        done_objectives, total_objectives, _completed, percent = achievement_progress_snapshot(
+            achievement, achievement_state,
         )
-        total_objectives = len(objectives)
-        percent = 100 if completed else int(round((done_objectives / total_objectives) * 100)) if total_objectives else 0
         objective_rows = []
         for objective in objectives[:12]:
             oid = int(getattr(objective, "id", 0) or 0)
@@ -1289,28 +1363,7 @@ def local_image_url(path: str) -> str:
 
 
 def normalize_owned_items(payload: Any) -> dict[int, int]:
-    if not isinstance(payload, dict):
-        return {}
-    rows: Any
-    if isinstance(payload.get("items"), list):
-        rows = payload.get("items")
-    else:
-        rows = [
-            {"item_id": ident, "quantity": row.get("quantity") if isinstance(row, dict) else 0}
-            for ident, row in payload.items()
-        ]
-    owned: dict[int, int] = {}
-    for row in rows if isinstance(rows, list) else []:
-        if not isinstance(row, dict):
-            continue
-        try:
-            ident = int(row.get("ankama_id") or row.get("item_id"))
-            quantity = int(row.get("quantity") or 0)
-        except (TypeError, ValueError):
-            continue
-        if ident > 0 and quantity > 0:
-            owned[ident] = owned.get(ident, 0) + quantity
-    return owned
+    return selection_quantities(payload, allow_legacy=True)
 
 
 def load_owned_items(path: Path = CRAFT_SELECTION_FILE) -> dict[int, int]:
@@ -1318,54 +1371,13 @@ def load_owned_items(path: Path = CRAFT_SELECTION_FILE) -> dict[int, int]:
 
 
 def save_owned_item_quantity(item: dict[str, Any], quantity: int, path: Path = CRAFT_SELECTION_FILE) -> None:
-    payload = read_json(path, {"items": []})
-    rows = payload.get("items") if isinstance(payload, dict) else []
-    if not isinstance(rows, list):
-        rows = []
-    item_id_value = int(item["item_id"])
-    next_rows = []
-    replaced = False
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        try:
-            ident = int(row.get("ankama_id") or row.get("item_id"))
-        except (TypeError, ValueError):
-            next_rows.append(row)
-            continue
-        if ident != item_id_value:
-            next_rows.append(row)
-            continue
-        replaced = True
-        if quantity > 0:
-            updated = dict(row)
-            updated.update(
-                {
-                    "item_id": item_id_value,
-                    "ankama_id": item_id_value,
-                    "name": str(item.get("name") or row.get("name") or ""),
-                    "quantity": int(quantity),
-                }
-            )
-            next_rows.append(updated)
-    if quantity > 0 and not replaced:
-        next_rows.append(
-            {
-                "item_id": item_id_value,
-                "ankama_id": item_id_value,
-                "name": str(item.get("name") or ""),
-                "quantity": int(quantity),
-            }
-        )
-    write_json(path, {"items": next_rows})
+    persist_selection_quantity(
+        path, int(item["item_id"]), str(item.get("name") or ""), int(quantity),
+    )
 
 
 def clear_layout(layout: QVBoxLayout) -> None:
-    while layout.count():
-        item = layout.takeAt(0)
-        widget = item.widget()
-        if widget is not None:
-            widget.deleteLater()
+    clear_unity_widget_layout(layout, detach_widgets=False)
 
 
 def quest_required_items(quest: QuestRecord) -> list[dict[str, Any]]:
@@ -1421,7 +1433,7 @@ def rewards_section(quest: QuestRecord) -> str:
 
 def reward_label(reward: Any) -> str:
     if getattr(reward, "kind", "item") == "kamas":
-        return f"{format_number(int(reward.quantity or 0))} Kamas"
+        return f"{format_grouped_int(int(reward.quantity or 0))} Kamas"
     if getattr(reward, "kind", "item") == "job":
         return f"Métier : {reward.name}"
     if getattr(reward, "kind", "item") == "spell":
@@ -1430,7 +1442,7 @@ def reward_label(reward: Any) -> str:
         return f"Titre : {reward.name}"
     if getattr(reward, "kind", "item") == "emote":
         return f"Émote : {reward.name}"
-    quantity = f"x{format_number(int(reward.quantity))} " if int(reward.quantity or 1) > 1 else ""
+    quantity = f"x{format_grouped_int(int(reward.quantity))} " if int(reward.quantity or 1) > 1 else ""
     return quantity + str(reward.name)
 
 
@@ -1466,19 +1478,19 @@ def linkify_travel_coordinates(value: str) -> str:
     text = escape(str(value or ""))
 
     def replace(match: re.Match[str]) -> str:
-        x = int(match.group(1))
-        y = int(match.group(2))
-        label = escape(match.group(0))
-        return f'<a class="coord" href="atlas-travel:{x},{y}">{label}</a>'
+        x, y, dimension = match.groups()
+        if dimension:
+            return f"<b>{match.group(0)}</b>"
+        coordinates = normalize_coordinate_pair(x, y)
+        if coordinates is None:
+            return match.group(0)
+        return f'<b><a class="coord" href="atlas-travel:{coordinates}">[{coordinates}]</a></b>'
 
-    return TRAVEL_COORD_RE.sub(replace, text)
+    return DOCUMENTARY_POSITION_RE.sub(replace, text)
 
 
 def travel_command_from_url(url: QUrl) -> str:
     text = url.toString()
     if url.scheme() != "atlas-travel":
         return ""
-    match = TRAVEL_URL_RE.search(text)
-    if not match:
-        return ""
-    return f"/travel {int(match.group(1))},{int(match.group(2))}"
+    return travel_command_from_link(text) or ""

@@ -3,11 +3,15 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from functools import lru_cache
+from html import escape
 from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QLabel, QVBoxLayout
 
+from app.core.map_coordinates import DOCUMENTARY_POSITION_RE, SENTINEL_COORD, quest_launch_instruction
+from app.core.numbers import optional_int
+from app.core.text import normalize_key as normalize_text
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     clean_requirement_line,
     clean_text,
@@ -15,11 +19,13 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_start_info,
 )
 from app.modules.encyclopedia.views.guide_ultime_generated_view import GuideUltimeCard
-from app.core.text import normalize_key as normalize_text
 
 
-SENTINEL_COORD = -2147483648
 COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+
+
+def launch_instruction_html(text: str) -> str:
+    return DOCUMENTARY_POSITION_RE.sub(lambda match: f"<b>{match[0]}</b>", escape(text))
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,6 +64,9 @@ class QuestWalkthroughIndex:
         if not _valid_position_text(position):
             return npc, "", ""
         return npc, position, zone
+
+    def start_instruction(self, quest_id: int) -> str:
+        return quest_launch_instruction(getattr(self.quest(quest_id), "source_info", None))
 
     @lru_cache(maxsize=4096)
     def objective(self, quest_id: int, objective_id: int) -> ObjectiveWalkthrough:
@@ -190,8 +199,8 @@ class GuideUltimeWalkthroughCard(GuideUltimeCard):
             self._add_action_row(body, row, start_rows=start_rows)
 
     def _add_action_row(self, body: QVBoxLayout, row: dict[str, Any], *, start_rows: bool) -> None:
-        qid = self._safe_int(row.get("quest_id"))
-        oid = self._safe_int(row.get("objective_id"))
+        qid = optional_int(row.get("quest_id"))
+        oid = optional_int(row.get("objective_id"))
         quest_name = str(row.get("quest_name") or "").strip()
         if qid is not None:
             quest_name = self.walkthrough.quest_name(qid) or quest_name or f"Quête #{qid}"
@@ -229,11 +238,11 @@ class GuideUltimeWalkthroughCard(GuideUltimeCard):
             qid
             for section in ("a_prendre", "a_faire_ici")
             for row in self.card.get(section, []) or []
-            if isinstance(row, dict) and (qid := self._safe_int(row.get("quest_id"))) is not None
+            if isinstance(row, dict) and (qid := optional_int(row.get("quest_id"))) is not None
         }
         quest_rows: list[tuple[int, str]] = []
         for raw in progress.get("quest_ids", []) or []:
-            qid = self._safe_int(raw)
+            qid = optional_int(raw)
             if qid is None or qid in primary_quests:
                 continue
             name = self.walkthrough.quest_name(qid)
@@ -310,6 +319,10 @@ class GuideUltimeWalkthroughCard(GuideUltimeCard):
         body.addWidget(title)
         npc = position = zone = ""
         if quest_id is not None:
+            instruction = self.walkthrough.start_instruction(quest_id)
+            if instruction:
+                self._add_detail_label(body, instruction, completed, important=True, launch_instruction=True)
+                return
             npc, position, zone = self.walkthrough.start_details(int(quest_id))
         if npc:
             self._add_detail_label(body, f"Parler à {npc} pour prendre « {quest_name} ».", completed, important=True)
@@ -367,11 +380,16 @@ class GuideUltimeWalkthroughCard(GuideUltimeCard):
         return bool(a and a != b and a not in b and b not in a)
 
     @staticmethod
-    def _add_detail_label(body: QVBoxLayout, text: str, completed: bool, *, important: bool = False) -> None:
+    def _add_detail_label(
+        body: QVBoxLayout, text: str, completed: bool, *, important: bool = False,
+        launch_instruction: bool = False,
+    ) -> None:
         value = str(text or "").strip()
         if not value:
             return
-        label = QLabel(value)
+        label = QLabel(launch_instruction_html(value) if launch_instruction else value)
+        if launch_instruction:
+            label.setTextFormat(Qt.RichText)
         label.setObjectName("GuideUltimeWalkthroughImportant" if important else "GuideUltimeWalkthroughDetail")
         label.setProperty("state", "done" if completed else "todo")
         label.setWordWrap(True)

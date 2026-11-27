@@ -94,6 +94,9 @@ class GuideRoutePlannerTests(unittest.TestCase):
             RouteLocation(map_id=20, x=missing, y=6),
             RouteLocation(map_id=20, x=6, y=missing),
             RouteLocation(map_id=20, x=6, y=None),
+            RouteLocation(map_id=20, x=2**31, y=6),
+            RouteLocation(map_id=20, x=6, y=-(2**31)-1),
+            RouteLocation(map_id=20, x=True, y=6),
         ):
             with self.subTest(destination=destination):
                 self.assertEqual(
@@ -204,6 +207,21 @@ class GuideRoutePlannerTests(unittest.TestCase):
             start.travel_plan.participant_keys,
             ("character:1", "character:2"),
         )
+
+    def test_zaap_evidence_for_same_map_with_conflicting_coordinates_is_not_reused(self) -> None:
+        route = VerifiedZaapRoute(
+            destination=RouteLocation(map_id=10, x=6, y=-2, zone="Amakna"),
+            zaap=RouteLocation(map_id=2, x=0, y=0),
+            world="Monde des Douze",
+            eligible_character_keys=frozenset({"character:1"}),
+            evidence="verified:test",
+        )
+        plan = GuideRoutePlanner(_engine()).plan(
+            [GuideParticipantState("character:1", world="Monde des Douze")],
+            verified_zaap_routes=[route],
+        )
+        start = next(row for row in plan.activities if row.action.action_id == "quest:start")
+        self.assertEqual(start.travel_plan.mode, TravelMode.DIRECT)
 
     def test_no_team_zaap_when_a_participant_is_already_on_the_map(self) -> None:
         route = VerifiedZaapRoute(

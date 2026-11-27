@@ -55,16 +55,17 @@ class NormalizeTextCanonicalBoundaryTests(unittest.TestCase):
                         for node in imports
                     )
                 )
-                self.assertTrue(
-                    any(
-                        node.module == "app.core.text"
-                        and any(
-                            alias.name == "normalize_key" and alias.asname == "normalize_text"
-                            for alias in node.names
+                if any(isinstance(node, ast.Name) and node.id == "normalize_text" for node in ast.walk(tree)):
+                    self.assertTrue(
+                        any(
+                            node.module == "app.core.text"
+                            and any(
+                                alias.name == "normalize_key" and alias.asname == "normalize_text"
+                                for alias in node.names
+                            )
+                            for node in imports
                         )
-                        for node in imports
                     )
-                )
 
 if __name__ == "__main__":
     unittest.main()

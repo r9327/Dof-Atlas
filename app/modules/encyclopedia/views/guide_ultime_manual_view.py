@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import html
+import logging
 import re
 from typing import Any
 from urllib.parse import quote, unquote
 
-from PySide6.QtCore import QSize, QTimer, Signal, Qt
-from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import QTimer, Signal, Qt
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -14,7 +15,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QPushButton,
     QToolButton,
     QToolTip,
     QVBoxLayout,
@@ -26,14 +26,21 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     quest_items_from_objectives,
 )
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
+from app.core.numbers import coerce_positive_int
+from app.core.map_coordinates import BRACKETED_POSITION_RE as _COORD_RE
+from app.core.map_coordinates import DOCUMENTARY_POSITION_RE, normalize_coordinate_pair, travel_command_from_link
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
+from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
+from app.ui.components import (
+    AtlasButton, clear_unity_widget_layout, set_unity_widget_property,
+    atlas_quest_shortcut_icon as _quest_shortcut_icon, configure_unity_tool_button,
+    set_unity_progress_counts,
+)
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 
 
-NPC_COLOR = PALETTE["YELLOW"]
-RESOURCE_COLOR = PALETTE["GREEN"]
-POSITION_COLOR = PALETTE["TEXT_SOFT"]
-_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+_LOGGER = logging.getLogger(__name__)
 _COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
 _NPC_NAME = rf"{_NAME_WORD}(?:\s+(?:(?:de|des|du|d['’]|of|le|la|l['’])\s+)?{_NAME_WORD}){{0,3}}"
@@ -47,23 +54,6 @@ _RESOURCE_STOP_WORDS = {"de", "du", "des", "la", "le", "les", "d", "l", "à", "a
 _NPC_CONNECTORS = {"de", "des", "du", "d'", "d’", "of", "le", "la", "l'", "l’"}
 
 
-def _quest_shortcut_icon() -> QIcon:
-    """Draw a theme-coloured quest page instead of a platform file icon."""
-    pixmap = QPixmap(18, 18)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(PALETTE["TEXT_SOFT"]), 1.5)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-    painter.drawRoundedRect(3, 1, 12, 16, 2, 2)
-    painter.drawLine(6, 6, 12, 6)
-    painter.drawLine(6, 9, 12, 9)
-    painter.drawLine(6, 12, 10, 12)
-    painter.end()
-    return QIcon(pixmap)
 
 
 class _QuestShortcutButton(QToolButton):
@@ -144,12 +134,12 @@ class GuideUltimeManualCard(QFrame):
         title.setObjectName("GuideManualLegendTitle")
         heading.addWidget(title)
         heading.addStretch(1)
-        toggle = QToolButton()
-        toggle.setObjectName("GuideManualLegendToggle")
-        toggle.setText("Afficher l’aide")
+        toggle = configure_unity_tool_button(
+            QToolButton(), object_name="GuideManualLegendToggle",
+            text="Afficher l’aide", pointing=True,
+        )
         toggle.setCheckable(True)
         toggle.setArrowType(Qt.RightArrow)
-        toggle.setCursor(Qt.PointingHandCursor)
         heading.addWidget(toggle)
         layout.addLayout(heading)
         details = QWidget()
@@ -176,7 +166,7 @@ class GuideUltimeManualCard(QFrame):
             "Validation : automatique quand Atlas dispose de la preuve, manuelle seulement en secours.",
         )
         for text in rows:
-            label = QLabel(f"• {text}")
+            label = QLabel(text)
             label.setObjectName("GuideManualLegendText")
             label.setWordWrap(True)
             details_layout.addWidget(label)
@@ -321,14 +311,14 @@ class GuideUltimeManualCard(QFrame):
             if not name:
                 continue
             self._shown_quest_ids.add(int(quest_id))
-            button = _QuestShortcutButton()
-            button.setObjectName("GuideManualQuestInlineButton")
+            box = UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_box"]
+            button = configure_unity_tool_button(
+                _QuestShortcutButton(), object_name="GuideManualQuestInlineButton",
+                box=(box, box), icon_size=UNITY_CONTROL_SIZES_PX["guide_quest_shortcut_icon"],
+                pointing=True, focus_policy=Qt.StrongFocus,
+            )
             button.setIcon(_quest_shortcut_icon())
-            button.setIconSize(QSize(18, 18))
             button.setAutoRaise(True)
-            button.setCursor(Qt.PointingHandCursor)
-            button.setFocusPolicy(Qt.StrongFocus)
-            button.setFixedSize(30, 30)
             button.setToolTip(name)
             button.setAccessibleName(name)
             button.clicked.connect(
@@ -450,11 +440,7 @@ class GuideUltimeManualCard(QFrame):
 
     @staticmethod
     def _safe_positive_int(value: Any) -> int | None:
-        try:
-            number = int(value)
-        except (TypeError, ValueError):
-            return None
-        return number if number > 0 else None
+        return coerce_positive_int(value)
 
     def _combat_toggled(self, quest_id: int, objective_id: int, checkbox: QCheckBox, checked: bool) -> None:
         progress = getattr(self.service, "quest_progress", None)
@@ -462,9 +448,7 @@ class GuideUltimeManualCard(QFrame):
         if not callable(setter):
             return
         setter(self.character_key, int(quest_id), int(objective_id), bool(checked))
-        checkbox.setProperty("state", "done" if checked else "todo")
-        checkbox.style().unpolish(checkbox)
-        checkbox.style().polish(checkbox)
+        set_unity_widget_property(checkbox, "state", "done" if checked else "todo")
         parent = self.parentWidget()
         while parent is not None:
             handler = getattr(parent, "_manual_objective_changed", None)
@@ -518,11 +502,7 @@ class GuideUltimeManualCard(QFrame):
             name = unquote(value.removeprefix("item-copy:")).strip()
             return name or None
         if value.startswith("travel-copy:"):
-            raw = value.removeprefix("travel-copy:")
-            match = re.fullmatch(r"(-?\d+),(-?\d+)", raw)
-            if not match:
-                return None
-            return f"/travel {int(match.group(1))},{int(match.group(2))}"
+            return travel_command_from_link(value, manual=True)
         return None
 
     def _copy_link_target(self, href: str) -> None:
@@ -531,7 +511,15 @@ class GuideUltimeManualCard(QFrame):
             return
         travel_callback = getattr(self, "travel_command_callback", None)
         if value.startswith("/travel ") and callable(travel_callback):
-            launched = bool(travel_callback(value))
+            try:
+                launched = bool(travel_callback(value))
+            except Exception:
+                _LOGGER.exception("Envoi de la commande de voyage impossible")
+                launched = False
+            if not launched:
+                # The network may be offline or the selection unverified.
+                # "Commande copiée" must reflect an actual clipboard write.
+                QApplication.clipboard().setText(value)
             QToolTip.showText(
                 QCursor.pos(),
                 "Déplacement demandé" if launched else "Commande copiée",
@@ -638,8 +626,15 @@ class GuideUltimeManualCard(QFrame):
                 return
             spans.append((start, end, kind, payload))
 
-        for match in _COORD_RE.finditer(plain):
-            add_span(match.start(), match.end(), "position", f"{int(match.group(1))},{int(match.group(2))}")
+        for match in DOCUMENTARY_POSITION_RE.finditer(plain):
+            x, y, dimension = match.groups()
+            if dimension:
+                add_span(match.start(), match.end(), "documentary_position")
+                continue
+            coordinates = normalize_coordinate_pair(x, y)
+            # Invalid, missing or oversized locations remain documentary text.
+            if coordinates is not None:
+                add_span(match.start(), match.end(), "position", coordinates)
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
             for match in pattern.finditer(plain):
@@ -658,15 +653,22 @@ class GuideUltimeManualCard(QFrame):
             if start < cursor:
                 continue
             rendered.append(html.escape(plain[cursor:start]))
-            value = html.escape(plain[start:end])
+            value = plain[start:end]
             if kind == "npc":
-                rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
+                rendered.append(entity_text_markup(value, "npc", PALETTE))
             elif kind == "resource":
-                href = html.escape(f"item-copy:{quote(payload, safe='')}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                rendered.append(entity_link_markup(
+                    value, "item", f"item-copy:{quote(payload, safe='')}", PALETTE,
+                ))
+            elif kind == "documentary_position":
+                rendered.append(f"<b>{html.escape(value)}</b>")
             else:
-                href = html.escape(f"travel-copy:{payload}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{POSITION_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                # Every actionable map coordinate is bold in the shared Guide,
+                # while its existing Unity link colour and copy/travel action
+                # stay unchanged. One formatter covers all roadbook sheets.
+                rendered.append("<b>" + entity_link_markup(
+                    value, "position", f"travel-copy:{payload}", PALETTE,
+                ) + "</b>")
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
@@ -713,14 +715,11 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
 
     def _refresh_header(self) -> None:
         completed, total = self.service.route_sheet_progress(self.character_key)
-        if total <= 0:
-            self.route_bar.setRange(0, 0)
+        percent = set_unity_progress_counts(self.route_bar, completed, total, busy_when_empty=True)
+        if percent is None:
             self.route_progress_label.setText("")
             self.nav_page_label.setText("")
             return
-        self.route_bar.setRange(0, total)
-        self.route_bar.setValue(min(completed, total))
-        percent = min(100, round(completed * 100 / total))
         page = max(1, min(total, int(self.view_index) + 1))
         self.nav_page_label.setText(f"Page {page} / {total}")
         self.route_progress_label.setText(f"{percent} %")
@@ -757,18 +756,16 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self._return_to_guides_catalog()
 
     def _set_validation_widget(self, widget: QWidget) -> None:
-        while self.validation_layout.count():
-            item = self.validation_layout.takeAt(0)
-            previous = item.widget()
-            if previous is not None:
-                previous.setParent(None)
-                previous.deleteLater()
+        clear_unity_widget_layout(self.validation_layout)
         self.validation_layout.addWidget(widget)
 
-    def _add_manual_order_choice(self, card: dict[str, Any]) -> None:
+    def _add_manual_order_choice(
+        self, card: dict[str, Any], *, character_key: str | None = None,
+    ) -> None:
+        target_key = self.character_key if character_key is None else character_key
         required = getattr(self.service, "manual_order_choice_required", None)
         options_for_card = getattr(self.service, "manual_order_options_for_card", None)
-        if not callable(required) or not required(self.character_key, card) or not callable(options_for_card):
+        if not callable(required) or not required(target_key, card) or not callable(options_for_card):
             return
         options = tuple(options_for_card(card))
         if not options:
@@ -789,16 +786,22 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         buttons = QHBoxLayout()
         buttons.setSpacing(8)
         for option in options:
-            button = QPushButton(option)
+            button = AtlasButton(option)
             button.setObjectName("GuideManualOrderButton")
-            button.clicked.connect(lambda _checked=False, value=option: self._select_manual_order(value))
+            button.clicked.connect(
+                lambda _checked=False, value=option, target=target_key:
+                self._select_manual_order(value, target)
+            )
             buttons.addWidget(button)
         layout.addLayout(buttons)
         self.cards_layout.addWidget(frame)
 
-    def _select_manual_order(self, order_name: str) -> None:
-        self.service.set_bonta_order(self.character_key, order_name)
-        self.active_index = self.service.first_incomplete_index(self.character_key)
+    def _select_manual_order(
+        self, order_name: str, character_key: str | None = None,
+    ) -> None:
+        target_key = self.character_key if character_key is None else character_key
+        self.service.set_bonta_order(target_key, order_name)
+        self.active_index = self.service.first_incomplete_index(target_key)
         self._show_index(self.active_index)
 
     def refresh_external_progress(self) -> None:

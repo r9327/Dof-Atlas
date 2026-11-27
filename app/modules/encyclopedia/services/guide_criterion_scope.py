@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+
+from app.core.numbers import optional_int
 from typing import Sequence
 
 
@@ -19,10 +21,7 @@ class CriterionAtom:
 
     @property
     def int_value(self) -> int | None:
-        try:
-            return int(self.value)
-        except (TypeError, ValueError):
-            return None
+        return optional_int(self.value)
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -13,7 +12,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QPushButton,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -21,8 +19,15 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero, mtime_ctime_size_stamp
+from app.core.numbers import clamped_percent, format_grouped_int
+from app.core.text import clean_auto_group_name, strip_accents
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.ui.components import atlas_application_icon
+from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon, configure_unity_progress_bar, configure_unity_tool_button, set_unity_widget_property
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
+
+HOME_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["home"]
+from app.ui.unity_skin import apply_unity_panel_shadow, unity_original_preview_icon
 from app.ui.network_bridge import network_ui_bridge
 
 if TYPE_CHECKING:
@@ -34,6 +39,13 @@ if TYPE_CHECKING:
         GuideUltimeManualRuntimeService,
     )
     from app.quest_catalog import QuestCatalog
+
+
+def local_character_preview(title: str) -> tuple[str, str]:
+    from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
+
+    _, _, class_name = title.partition(" - ")
+    return clean_auto_group_name(title), str(cached_class_icon_path_for_window_name(class_name) or "")
 
 
 HOME_GUIDE_BANNER_PATH = Path(LOGO_PATH).parent / "home_guide_banner.png"
@@ -95,9 +107,9 @@ def _persisted_manual_summary(character_key: str) -> dict[str, Any]:
         steps = set()
     completed = sum(1 for value in steps if str(value).startswith("page:"))
     completed = min(completed, total) if total else completed
-    percent = int(round((completed / total) * 100)) if total else 0
+    percent = clamped_percent(completed, total)
     return {
-        "percent": max(0, min(100, percent)),
+        "percent": percent,
         "chapter": "Progression sauvegardée",
         "step": (
             f"{completed} / {total} fiches validées localement"
@@ -129,8 +141,8 @@ class HomeBannerLabel(QLabel):
         super().__init__(parent)
         self.setObjectName("HomeGuideBanner")
         self.setAlignment(Qt.AlignCenter)
-        self.setMinimumHeight(145)
-        self.setMaximumHeight(205)
+        self.setMinimumHeight(HOME_GEOMETRY["banner_min_height"])
+        self.setMaximumHeight(HOME_GEOMETRY["banner_max_height"])
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._source = QPixmap(str(image_path)) if image_path.exists() else QPixmap()
         self.setVisible(not self._source.isNull())
@@ -153,46 +165,55 @@ class HomeBannerLabel(QLabel):
 
 
 class HomeTrackingRow(QWidget):
-    def __init__(self, icon: str, label: str, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, icon: str, label: str, parent: QWidget | None = None,
+        *, sprite_key: str | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("HomeTrackingRow")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(7)
+        layout.setSpacing(HOME_GEOMETRY["tracking_spacing"])
 
         icon_label = QLabel(icon)
         icon_label.setObjectName("HomeTrackingIcon")
         icon_label.setAlignment(Qt.AlignCenter)
-        icon_label.setFixedWidth(20)
+        icon_label.setFixedWidth(HOME_GEOMETRY["tracking_icon_width"])
+        # Reuse the same local-only Unity pictograms as the application shell.
+        # An absent or damaged user asset keeps the readable legacy glyph.
+        icon_asset = (
+            unity_original_preview_icon(sprite_key, UNITY_SIZES_PX["icon_small"])
+            if sprite_key else QIcon()
+        )
+        if not icon_asset.isNull():
+            icon_label.setPixmap(icon_asset.pixmap(18, 18))
         layout.addWidget(icon_label)
 
         name = QLabel(label)
         name.setObjectName("HomeTrackingLabel")
-        name.setMinimumWidth(92)
+        name.setMinimumWidth(HOME_GEOMETRY["tracking_name_min_width"])
         layout.addWidget(name)
 
-        self.bar = QProgressBar()
-        self.bar.setObjectName("HomeTrackingBar")
-        self.bar.setRange(0, 100)
+        self.bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="HomeTrackingBar",
+        )
         self.bar.setValue(0)
-        self.bar.setTextVisible(False)
-        self.bar.setMinimumWidth(62)
+        self.bar.setMinimumWidth(HOME_GEOMETRY["tracking_bar_min_width"])
         layout.addWidget(self.bar, 1)
 
         self.value = QLabel("0 %")
         self.value.setObjectName("HomeTrackingValue")
         self.value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.value.setMinimumWidth(46)
+        self.value.setMinimumWidth(HOME_GEOMETRY["tracking_value_min_width"])
         layout.addWidget(self.value)
 
     def set_progress(self, completed: int, total: int, *, show_count: bool = False) -> None:
         completed = max(0, int(completed))
         total = max(0, int(total))
-        percent = int(round((completed / total) * 100)) if total else 0
-        percent = max(0, min(100, percent))
+        percent = clamped_percent(completed, total)
         self.bar.setValue(percent)
         if show_count and total:
-            self.value.setText(f"{completed} / {total}")
+            self.value.setText(f"{format_grouped_int(completed)} / {format_grouped_int(total)}")
         else:
             self.value.setText(f"{percent} %")
 
@@ -202,6 +223,7 @@ class HomePage(QWidget):
 
     continueRequested = Signal(str, object)
     changeCharacterRequested = Signal()
+    almanaxRequested = Signal()
 
     _DOFUS_KEYWORDS = (
         "dofus",
@@ -246,46 +268,52 @@ class HomePage(QWidget):
         self._guide_ultime_runtime_allowed = False
         self.character_key = ""
         self.character_label = "Aucun personnage connecté"
+        self._local_dofus_sessions: tuple[str, ...] = ()
         self.character_icon_path = ""
+        self._character_icon_signature = None
         self.current_guide_id = ""
         self.current_quest_id: int | None = None
         self._last_progress_signature: tuple[object, ...] | None = None
         self.network_bridge = network_ui_bridge()
         self.network_bridge.statusChanged.connect(self._on_network_status)
         self.network_bridge.progressChanged.connect(self._on_network_progress_changed)
+        self.network_bridge.localSessionsChanged.connect(self._on_local_dofus_sessions)
 
         root = QHBoxLayout(self)
-        root.setContentsMargins(26, 26, 26, 26)
-        root.setSpacing(18)
+        page_margin = HOME_GEOMETRY["page_margin"]
+        root.setContentsMargins(page_margin, page_margin, page_margin, page_margin)
+        root.setSpacing(HOME_GEOMETRY["column_gutter"])
 
         self.left_column = QWidget()
         self.left_column.setObjectName("HomeLeftColumn")
-        self.left_column.setMinimumWidth(286)
-        self.left_column.setMaximumWidth(350)
+        self.left_column.setMinimumWidth(HOME_GEOMETRY["left_column_min_width"])
+        self.left_column.setMaximumWidth(HOME_GEOMETRY["left_column_max_width"])
         left_layout = QVBoxLayout(self.left_column)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(16)
+        left_layout.setSpacing(HOME_GEOMETRY["left_column_spacing"])
 
         self.character_card = self._card("HomeCharacterCard")
         char_layout = self.character_card.layout()
         self._add_card_title(char_layout, "Personnage sélectionné")
 
         identity = QHBoxLayout()
-        identity.setContentsMargins(0, 4, 0, 2)
-        identity.setSpacing(14)
-        self.character_portrait = QToolButton()
-        self.character_portrait.setObjectName("HomeCharacterPortrait")
-        self.character_portrait.setFixedSize(98, 98)
-        self.character_portrait.setIconSize(QSize(88, 88))
+        identity.setContentsMargins(*HOME_GEOMETRY["identity_margins"])
+        identity.setSpacing(HOME_GEOMETRY["identity_spacing"])
+        portrait_box = HOME_GEOMETRY["portrait_box"]
+        self.character_portrait = configure_unity_tool_button(
+            QToolButton(), object_name="HomeCharacterPortrait",
+            box=(portrait_box, portrait_box), icon_size=HOME_GEOMETRY["portrait_artwork"],
+        )
         self.character_portrait.setEnabled(False)
         identity.addWidget(self.character_portrait, 0, Qt.AlignVCenter)
 
         identity_text = QVBoxLayout()
         identity_text.setContentsMargins(0, 0, 0, 0)
-        identity_text.setSpacing(8)
+        identity_text.setSpacing(HOME_GEOMETRY["identity_text_spacing"])
         identity_text.addStretch(1)
         self.character_name = QLabel(self.character_label)
         self.character_name.setObjectName("HomeCharacterName")
+        self.character_name.setTextFormat(Qt.PlainText)
         self.character_name.setWordWrap(True)
         identity_text.addWidget(self.character_name)
         self.character_progress = QLabel("Guide terminé : 0 %")
@@ -296,7 +324,7 @@ class HomePage(QWidget):
         identity.addLayout(identity_text, 1)
         char_layout.addLayout(identity)
 
-        change_button = QPushButton("Changer de personnage")
+        change_button = AtlasButton("Changer de personnage")
         change_button.setObjectName("HomeChangeCharacterButton")
         change_button.clicked.connect(self.changeCharacterRequested)
         char_layout.addWidget(change_button)
@@ -307,16 +335,16 @@ class HomePage(QWidget):
         self._add_card_title(tracking_layout, "Progression globale")
         tracking_layout.addSpacing(3)
         self.tracking_rows: dict[str, HomeTrackingRow] = {}
-        for key, icon, label in (
-            ("quests", "◆", "Quêtes"),
-            ("achievement_quests", "✦", "Succès (Quêtes)"),
-            ("achievement_monsters", "●", "Succès (Monstres)"),
-            ("achievement_dungeons", "▥", "Succès (Donjons)"),
-            ("dungeons", "▣", "Donjons"),
-            ("dofus", "◉", "Dofus"),
-            ("alignment", "★", "Alignement"),
+        for key, icon, label, sprite_key in (
+            ("quests", "◆", "Quêtes", "quest"),
+            ("achievement_quests", "✦", "Succès (Quêtes)", "success"),
+            ("achievement_monsters", "●", "Succès (Monstres)", "success"),
+            ("achievement_dungeons", "▥", "Succès (Donjons)", "success"),
+            ("dungeons", "▣", "Donjons", None),
+            ("dofus", "◉", "Dofus", "dofus"),
+            ("alignment", "★", "Alignement", None),
         ):
-            row = HomeTrackingRow(icon, label)
+            row = HomeTrackingRow(icon, label, sprite_key=sprite_key)
             self.tracking_rows[key] = row
             tracking_layout.addWidget(row)
 
@@ -324,7 +352,7 @@ class HomePage(QWidget):
         left_layout.addWidget(self.tracking_card, 1)
 
         self.guide_card = self._card("HomeGuideCard")
-        self.guide_card.setMinimumWidth(500)
+        self.guide_card.setMinimumWidth(HOME_GEOMETRY["guide_min_width"])
         guide_layout = self.guide_card.layout()
         self._add_card_title(guide_layout, "Guide progression")
 
@@ -337,8 +365,8 @@ class HomePage(QWidget):
         guide_layout.addWidget(self.guide_banner)
 
         progress_row = QHBoxLayout()
-        progress_row.setContentsMargins(0, 7, 0, 0)
-        progress_row.setSpacing(8)
+        progress_row.setContentsMargins(*HOME_GEOMETRY["guide_progress_margins"])
+        progress_row.setSpacing(HOME_GEOMETRY["guide_progress_spacing"])
         progress_label = QLabel("Progression générale")
         progress_label.setObjectName("HomeGuideProgressLabel")
         self.progress_percent = QLabel("0 %")
@@ -348,11 +376,10 @@ class HomePage(QWidget):
         progress_row.addWidget(self.progress_percent)
         guide_layout.addLayout(progress_row)
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setObjectName("HomeProgressBar")
-        self.progress_bar.setRange(0, 100)
+        self.progress_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="HomeProgressBar",
+        )
         self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(False)
         guide_layout.addWidget(self.progress_bar)
         guide_layout.addSpacing(10)
 
@@ -361,60 +388,81 @@ class HomePage(QWidget):
         self.zone_value = self._add_guide_detail_row(guide_layout, "●", "Zone actuelle :")
         guide_layout.addStretch(1)
 
-        self.continue_button = QPushButton("Continuer")
+        self.continue_button = AtlasButton("Continuer")
         self.continue_button.setObjectName("HomeContinueButton")
         self.continue_button.setEnabled(False)
         self.continue_button.clicked.connect(self._emit_continue)
         guide_layout.addWidget(self.continue_button)
 
         self.almanax_card = self._card("HomeAlmanaxCard")
-        self.almanax_card.setMinimumWidth(250)
-        self.almanax_card.setMaximumWidth(330)
+        self.almanax_card.setMinimumWidth(HOME_GEOMETRY["right_column_min_width"])
+        self.almanax_card.setMaximumWidth(HOME_GEOMETRY["right_column_max_width"])
         almanax_layout = self.almanax_card.layout()
         self._add_card_title(almanax_layout, "Almanax")
         almanax_layout.addStretch(1)
 
-        self.almanax_icon = QToolButton()
-        self.almanax_icon.setObjectName("HomeAlmanaxPlaceholderIcon")
-        self.almanax_icon.setFixedSize(150, 150)
-        self.almanax_icon.setIconSize(QSize(126, 126))
-        self.almanax_icon.setEnabled(False)
-        if Path(LOGO_PATH).exists():
+        almanax_box = HOME_GEOMETRY["almanax_box"]
+        self.almanax_icon = configure_unity_tool_button(
+            QToolButton(), object_name="HomeAlmanaxPlaceholderIcon",
+            box=(almanax_box, almanax_box), icon_size=HOME_GEOMETRY["almanax_artwork"],
+        )
+        self.almanax_icon.setToolTip("Ouvrir le calendrier Almanax")
+        self.almanax_icon.clicked.connect(self.almanaxRequested.emit)
+        almanax_sprite = unity_original_preview_icon(
+            "almanax", UNITY_SIZES_PX["icon_xlarge"]
+        )
+        if not almanax_sprite.isNull():
+            self.almanax_icon.setIcon(almanax_sprite)
+        elif Path(LOGO_PATH).exists():
             self.almanax_icon.setIcon(atlas_application_icon())
         almanax_layout.addWidget(self.almanax_icon, 0, Qt.AlignHCenter)
 
-        badge = QLabel("En travaux")
-        badge.setObjectName("HomePlaceholderBadge")
-        badge.setAlignment(Qt.AlignCenter)
+        badge = AtlasStatusBadge("Données indisponibles", state="blocked")
+        self.almanax_badge = badge
+        self.almanax_day_key = ""
         almanax_layout.addWidget(badge, 0, Qt.AlignHCenter)
+        self.almanax_item_icon = QLabel()
+        self.almanax_item_icon.setObjectName("AlmanaxOfferingIcon")
+        self.almanax_item_icon.setFixedSize(
+            UNITY_SIZES_PX["icon_xlarge"], UNITY_SIZES_PX["icon_xlarge"]
+        )
+        self.almanax_item_icon.setAlignment(Qt.AlignCenter)
+        self.almanax_item_icon.setVisible(False)
+        almanax_layout.addWidget(self.almanax_item_icon, 0, Qt.AlignHCenter)
 
-        almanax_text = QLabel("Le module Almanax sera intégré ici.")
+        almanax_text = QLabel(
+            "Calendrier consultable. Offrandes et bonus en attente "
+            "de données locales vérifiées."
+        )
         almanax_text.setObjectName("HomeAlmanaxText")
+        self.almanax_text = almanax_text
         almanax_text.setAlignment(Qt.AlignCenter)
         almanax_text.setWordWrap(True)
+        almanax_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
         almanax_layout.addWidget(almanax_text)
         almanax_layout.addStretch(1)
 
-        almanax_button = QPushButton("Voir l’Almanax")
-        almanax_button.setObjectName("HomeAlmanaxButton")
-        almanax_button.setEnabled(False)
-        almanax_layout.addWidget(almanax_button)
+        self.almanax_button = AtlasButton("Voir l’Almanax")
+        self.almanax_button.setObjectName("HomeAlmanaxButton")
+        self.almanax_button.clicked.connect(self.almanaxRequested.emit)
+        almanax_layout.addWidget(self.almanax_button)
 
         self.right_column = QWidget()
         self.right_column.setObjectName("HomeRightColumn")
-        self.right_column.setMinimumWidth(250)
-        self.right_column.setMaximumWidth(330)
+        self.right_column.setMinimumWidth(HOME_GEOMETRY["right_column_min_width"])
+        self.right_column.setMaximumWidth(HOME_GEOMETRY["right_column_max_width"])
         right_layout = QVBoxLayout(self.right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(12)
+        right_layout.setSpacing(HOME_GEOMETRY["right_column_spacing"])
 
         self.network_card = QFrame()
         self.network_card.setObjectName("HomeNetworkMiniCard")
-        self.network_card.setMinimumHeight(64)
-        self.network_card.setMaximumHeight(72)
+        apply_unity_panel_shadow(self.network_card)
+        self.network_card.setMinimumHeight(HOME_GEOMETRY["network_card_min_height"])
+        self.network_card.setMaximumHeight(HOME_GEOMETRY["network_card_max_height"])
         network_layout = QHBoxLayout(self.network_card)
-        network_layout.setContentsMargins(15, 10, 15, 10)
-        network_layout.setSpacing(10)
+        network_layout.setContentsMargins(*HOME_GEOMETRY["network_card_margins"])
+        network_layout.setSpacing(HOME_GEOMETRY["network_card_spacing"])
         self.network_indicator = QLabel("●")
         self.network_indicator.setObjectName("HomeNetworkIndicator")
         self.network_indicator.setProperty("state", "pending")
@@ -423,7 +471,7 @@ class HomePage(QWidget):
 
         network_text = QVBoxLayout()
         network_text.setContentsMargins(0, 0, 0, 0)
-        network_text.setSpacing(1)
+        network_text.setSpacing(HOME_GEOMETRY["network_text_spacing"])
         network_title = QLabel("Suivi automatique")
         network_title.setObjectName("HomeNetworkMiniTitle")
         network_text.addWidget(network_title)
@@ -431,6 +479,16 @@ class HomePage(QWidget):
         self.network_status.setObjectName("HomeNetworkMiniStatus")
         network_text.addWidget(self.network_status)
         network_layout.addLayout(network_text, 1)
+
+        # Explicit recovery after a refused UAC prompt or a failed runtime.
+        # Unlike a permanent network control, this uses the indexed Unity
+        # button and stays hidden while capture is working normally.
+        self.network_retry = AtlasButton("Relancer", variant="secondary", size="compact")
+        self.network_retry.setAccessibleName("Relancer le suivi réseau")
+        self.network_retry.setToolTip("Relancer la détection ou la capture réseau")
+        self.network_retry.clicked.connect(self._retry_network_tracking)
+        self.network_retry.setVisible(False)
+        network_layout.addWidget(self.network_retry, 0, Qt.AlignVCenter)
 
         right_layout.addWidget(self.network_card, 0)
         right_layout.addWidget(self.almanax_card, 1)
@@ -449,9 +507,11 @@ class HomePage(QWidget):
     def _card(object_name: str) -> QFrame:
         card = QFrame()
         card.setObjectName(object_name)
+        apply_unity_panel_shadow(card)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(10)
+        inset = HOME_GEOMETRY["card_padding"]
+        layout.setContentsMargins(inset, inset, inset, inset)
+        layout.setSpacing(HOME_GEOMETRY["card_gutter"])
         return card
 
     @staticmethod
@@ -466,13 +526,13 @@ class HomePage(QWidget):
         row = QWidget()
         row.setObjectName("HomeGuideDetailRow")
         row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(5, 9, 5, 9)
-        row_layout.setSpacing(10)
+        row_layout.setContentsMargins(*HOME_GEOMETRY["detail_row_margins"])
+        row_layout.setSpacing(HOME_GEOMETRY["detail_row_spacing"])
 
         icon_label = QLabel(icon)
         icon_label.setObjectName("HomeGuideDetailIcon")
         icon_label.setAlignment(Qt.AlignCenter)
-        icon_label.setFixedWidth(28)
+        icon_label.setFixedWidth(HOME_GEOMETRY["detail_row_icon_width"])
         row_layout.addWidget(icon_label)
 
         label_widget = QLabel(label)
@@ -487,6 +547,68 @@ class HomePage(QWidget):
         layout.addWidget(row)
         return value
 
+    def set_almanax_day(self, day: object, *, cached: bool = False) -> None:
+        """Display actual sourced offering/bonus for today on the Home card."""
+
+        offering = str(getattr(day, "offering", "") or "")
+        quantity = int(getattr(day, "quantity", 0) or 0)
+        bonus = str(getattr(day, "bonus", "") or "")
+        reward = int(getattr(day, "reward_kamas", 0) or 0)
+        lines = [
+            f"Offrande : {format_grouped_int(quantity)} × {offering}" if offering
+            else "Offrande non renseignée par la source",
+            f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
+        ]
+        if reward > 0:
+            lines.append(f"Récompense : {format_grouped_int(reward)} kamas")
+        self.almanax_item_icon.clear()
+        self.almanax_item_icon.hide()
+        self.almanax_day_key = str(getattr(day, "date", "") or "")
+        self.almanax_text.setText("\n".join(lines))
+        self.almanax_badge.setText(
+            "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"
+        )
+        self.almanax_badge.set_state("info" if cached else "active")
+
+    def set_almanax_item_icon(self, day_key: str, pixmap: QPixmap) -> None:
+        if self.almanax_day_key != day_key or pixmap.isNull():
+            return
+        pixels = UNITY_SIZES_PX["icon_xlarge"]
+        self.almanax_item_icon.setPixmap(
+            pixmap.scaled(pixels, pixels, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
+        self.almanax_item_icon.show()
+
+    def set_almanax_loading(self, day_key: str) -> None:
+        # Never display yesterday's offering under today's Home heading.
+        if (
+            self.almanax_day_key == day_key
+            and self.almanax_badge.property("state") in ("active", "info")
+        ):
+            return
+        self.almanax_day_key = ""
+        self.almanax_item_icon.clear()
+        self.almanax_item_icon.hide()
+        self.almanax_badge.setText("Chargement de l'Almanax…")
+        self.almanax_badge.set_state("neutral")
+        self.almanax_text.setText("Recherche de l'offrande et du bonus du jour…")
+
+    def set_almanax_unavailable(self, day_key: str = "") -> None:
+        # A genuine cache for this exact day remains useful offline.
+        if (
+            day_key == self.almanax_day_key
+            and self.almanax_badge.property("state") in ("active", "info")
+        ):
+            return
+        self.almanax_day_key = ""
+        self.almanax_item_icon.clear()
+        self.almanax_item_icon.hide()
+        self.almanax_badge.setText("Données indisponibles")
+        self.almanax_badge.set_state("blocked")
+        self.almanax_text.setText(
+            "Offrande et bonus indisponibles : réessayez depuis le calendrier."
+        )
+
     def set_character(self, character_key: str, character_label: str, icon_path: str = "") -> None:
         next_key = str(character_key or "")
         next_label = str(character_label or "Personnage")
@@ -496,13 +618,27 @@ class HomePage(QWidget):
             and next_label == self.character_label
             and next_icon_path == self.character_icon_path
         ):
+            self._update_character_identity()
             return
         self.character_key = next_key
         self.character_label = next_label
         self.character_icon_path = next_icon_path
-        self.character_name.setText(self.character_label)
-        self._update_character_icon()
+        self._update_character_identity()
         self.refresh_progress()
+
+    def _on_local_dofus_sessions(self, sessions: tuple[str, ...]) -> None:
+        self._local_dofus_sessions = sessions
+        self._update_character_identity()
+
+    def _update_character_identity(self) -> None:
+        label = self.character_label
+        icon_path = self.character_icon_path
+        named_sessions = tuple(title for title in self._local_dofus_sessions if title)
+        if not self.character_key and len(named_sessions) == 1:
+            preview_label, icon_path = local_character_preview(named_sessions[0])
+            label = preview_label or label
+        self.character_name.setText(label)
+        self._update_character_icon(icon_path)
 
     def apply_encyclopedia_context(
         self,
@@ -565,40 +701,102 @@ class HomePage(QWidget):
             return
         text, state = self._network_summary(status)
         self.network_status.setText(text)
-        if self.network_indicator.property("state") != state:
-            self.network_indicator.setProperty("state", state)
-            self.network_indicator.style().unpolish(self.network_indicator)
-            self.network_indicator.style().polish(self.network_indicator)
+        self.network_status.setToolTip(self._network_explanation(status))
+        # A failed stop/cleanup can leave a privileged capture helper alive:
+        # never offer a second capture until the first one is truly stopped.
+        reason = str(status.reason or "")
+        from app.core.network_presentation import capture_retry_allowed
+
+        safe_to_retry = capture_retry_allowed(reason)
+        self.network_retry.setText("Relancer")
+        self.network_retry.setVisible(
+            safe_to_retry and (
+                state == "error"
+                or state == "idle" and reason in {
+                    "no_window_handles", "build_fingerprint_unavailable", "runtime_stopped",
+                }
+            )
+        )
+        set_unity_widget_property(self.network_indicator, "state", state)
+
+    def _retry_network_tracking(self) -> None:
+        """User-initiated retry; no expensive catalogue reload in the UI."""
+        bridge = self.network_bridge
+        reason = str(bridge.last_status.reason or "")
+        from app.core.network_presentation import capture_retry_allowed
+
+        if not capture_retry_allowed(reason):
+            self.network_status.setText("Arrêt à vérifier")
+            self.network_status.setToolTip(
+                "Capture précédente non arrêtée : vérifier le processus avant toute relance."
+            )
+            self.network_retry.setVisible(False)
+            return
+        # One worker command owns context loading, calibration and UAC.
+        # A separate prepare_capture + start_runtime sequence can prompt
+        # twice after a cancelled permission and start even if preparation
+        # failed. Never report a queue-only capture preparation as "connected".
+        accepted = bridge.request_verified_runtime()
+        if accepted:
+            self.network_retry.setVisible(False)
+            self.network_status.setText("Relance demandée…")
+            self.network_status.setToolTip(
+                "Tentative de connexion demandée ; l'état réseau se mettra à jour."
+            )
+        else:
+            self.network_status.setText("Suivi indisponible")
+            self.network_status.setToolTip(
+                "Le suivi réseau est arrêté ; les fonctions hors ligne restent accessibles."
+            )
+
+    @staticmethod
+    def _network_explanation(status: NetworkApplicationStatus) -> str:
+        """Make verified capture failures actionable without exposing raw codes."""
+        reason = str(status.reason or "")
+        known = {
+            "capture_elevation_cancelled": "Autorisation Windows de capture annulée.",
+            "build_changed": "La version du client DOFUS a changé. Atlas relance le suivi pour la nouvelle build.",
+            "awaiting_character_identity": (
+                "Client DOFUS détecté. Atlas attend une preuve d’identité pour cette version."
+            ),
+            "mapping_invalid": "Le profil réseau de cette version de DOFUS est invalide.",
+            "mapping_ambiguous_exact_match": "Plusieurs profils réseau correspondent au client : sélection automatique bloquée.",
+            "quest_snapshot_missed": "Journal des quêtes non reçu pendant la calibration.",
+            "stop_failed": "Arrêt de la capture non confirmé : vérifier le processus avant de réessayer.",
+            "capture_helper_cleanup_failed": "Arrêt de la capture non confirmé : le processus Windows doit être vérifié.",
+            "coordinator_cleanup_failed": "Arrêt de la capture non confirmé : vérifier les composants réseau avant toute relance.",
+            "runtime_stopped": "Suivi automatique hors ligne : relancer la capture si nécessaire.",
+            "no_window_handles": "Aucune fenêtre DOFUS suivie détectée.",
+            "build_fingerprint_unavailable": "Identification de la version de DOFUS indisponible.",
+            "build_fingerprint_error": "Erreur pendant l'identification de la version DOFUS. Réessayer la connexion.",
+            "mapping_no_exact_match": "Version DOFUS non reconnue : calibration automatique demandée.",
+            "mapping_missing_required_events": "Profil réseau incomplet : calibration automatique demandée.",
+            "mapping_current_profile_noncanonical": "Profil réseau incompatible : nouvelle calibration nécessaire.",
+            "capture_ready_waiting_context": (
+                "Capture Windows préparée. Le suivi démarre automatiquement "
+                "dès que le contexte réseau est prêt."
+            ),
+            "network_context_loading": "Chargement des données Quêtes pour le Réseau en arrière-plan.",
+            "network_context_load_failed": "Catalogue réseau indisponible : réessayer ou utiliser Atlas hors ligne.",
+        }
+        if reason in known:
+            return known[reason]
+        if reason.startswith("capture_helper") or "permission" in reason or "admin" in reason:
+            return "Capture Windows indisponible : vérifier les autorisations et les journaux."
+        _label, state = HomePage._network_summary(status)
+        if state == "error":
+            return "Erreur réseau : consulter les journaux Atlas pour le diagnostic."
+        if state == "idle":
+            return "Suivi automatique hors ligne."
+        if state == "active":
+            return "Capture réseau active ; aucune position Zaap n'est déduite."
+        return "Connexion et calibration du suivi automatique en cours."
 
     @staticmethod
     def _network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
-        if status.running:
-            return "Actif", "active"
-        reason = str(status.reason or "")
-        if status.calibrating or reason in {
-            "calibrating",
-            "awaiting_character_identity",
-            "awaiting_quest_journal",
-            "awaiting_distinct_quest_completions",
-            "mapping_installed_not_started",
-            "mapping_already_installed",
-            "mapping_already_ready",
-        }:
-            return "Connexion…", "pending"
-        if reason == "no_window_handles":
-            return "En attente de Dofus", "idle"
-        if (
-            reason == "capture_elevation_cancelled"
-            or reason == "build_changed"
-            or reason.startswith("capture_helper")
-            or "admin" in reason
-            or "permission" in reason
-            or "failed" in reason
-            or "error" in reason
-            or "ambiguous" in reason
-        ):
-            return "Attention requise", "error"
-        return "Préparation…", "pending"
+        from app.core.network_presentation import network_summary
+
+        return network_summary(status)
 
     def _rebuild_guide_ultime_service(self) -> None:
         self.guide_ultime_service = None
@@ -639,12 +837,8 @@ class HomePage(QWidget):
         self.refresh_progress()
 
     @staticmethod
-    def _progress_file_stamp(path: Path) -> tuple[int, int]:
-        try:
-            stat = Path(path).stat()
-        except OSError:
-            return (0, 0)
-        return (int(stat.st_mtime_ns), int(stat.st_size))
+    def _progress_file_stamp(path: Path) -> tuple[int, int, int]:
+        return mtime_ctime_size_stamp_or_zero(path)
 
     def _progress_input_signature(self) -> tuple[object, ...]:
         from app.modules.encyclopedia.services import (
@@ -664,7 +858,11 @@ class HomePage(QWidget):
 
     def refresh_progress(self) -> None:
         character_key = str(self.character_key or "").strip()
-        if character_key and (self.catalog is None or self.guide_provider is None):
+        if character_key and (
+            self.catalog is None or (
+                self.guide_provider is None and not self._guide_ultime_runtime_allowed
+            )
+        ):
             summary = _persisted_manual_summary(character_key)
             _apply_saved_progress(self, summary)
             return
@@ -739,8 +937,7 @@ class HomePage(QWidget):
         # canonical route; this block remains so the Home screen stays usable if
         # a malformed manual bundle prevents the runtime service from loading.
         progress = calculator.guide_progress(guide, self.character_key)
-        percent = int(round((progress.completed / progress.total) * 100)) if progress.total else 0
-        percent = max(0, min(100, percent))
+        percent = clamped_percent(progress.completed, progress.total)
 
         self.current_guide_id = guide.id
         self.progress_bar.setValue(percent)
@@ -773,8 +970,7 @@ class HomePage(QWidget):
 
     def _refresh_manual_guide_progress(self, service: GuideUltimeManualRuntimeService) -> None:
         completed, total = service.route_sheet_progress(self.character_key)
-        percent = int(round((completed / total) * 100)) if total else 0
-        percent = max(0, min(100, percent))
+        percent = clamped_percent(completed, total)
 
         self.current_guide_id = GUIDE_ULTIME_LEGACY_ID
         # The legacy id remains a navigation alias only. Progress and the active
@@ -949,13 +1145,8 @@ class HomePage(QWidget):
 
     @staticmethod
     def _plain_key(value: str) -> str:
-        normalized = unicodedata.normalize("NFKD", str(value or ""))
         return " ".join(
-            "".join(character for character in normalized if not unicodedata.combining(character))
-            .casefold()
-            .replace("’", "'")
-            .replace("-", " ")
-            .split()
+            strip_accents(value).casefold().replace("’", "'").replace("-", " ").split()
         )
 
     def _emit_continue(self) -> None:
@@ -963,13 +1154,26 @@ class HomePage(QWidget):
             return
         self.continueRequested.emit(self.current_guide_id, self.current_quest_id)
 
-    def _update_character_icon(self) -> None:
-        path = Path(self.character_icon_path)
+    def _update_character_icon(self, icon_path: str | None = None) -> None:
+        icon_path = self.character_icon_path if icon_path is None else icon_path
+        path = Path(icon_path) if icon_path else None
         fallback = Path(LOGO_PATH)
-        selected = path if path.exists() else fallback if fallback.exists() else None
+        selected = path if path is not None and path.is_file() else fallback if fallback.is_file() else None
+        signature = (str(selected), mtime_ctime_size_stamp(selected) if selected is not None else None)
+        if signature == self._character_icon_signature:
+            return
+        self._character_icon_signature = signature
         if selected is None:
             self.character_portrait.setIcon(QIcon())
             return
-        self.character_portrait.setIcon(
-            atlas_application_icon() if selected == fallback else QIcon(str(selected))
-        )
+        if selected == fallback:
+            self.character_portrait.setIcon(atlas_application_icon())
+        else:
+            from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+            pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(selected, self.character_portrait.iconSize())
+            icon = QIcon(pixmap)
+            # This decorative button is disabled, but its artwork needs the
+            # original class colors just like the portrait in the selector.
+            if not pixmap.isNull():
+                icon.addPixmap(pixmap, QIcon.Disabled)
+            self.character_portrait.setIcon(icon)

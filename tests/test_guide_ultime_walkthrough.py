@@ -94,7 +94,7 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
             start_criterion="",
             zones=["Zone test"],
             source_solution_steps=[QuestStep(id=-1, name="La rencontre", description="Présentez-vous au capitaine.", objectives=[source_objective])],
-            steps=[QuestStep(id=1, name="", description="", objectives=[QuestObjective(id=4201, text="Parler au PNJ", type_id=1)])],
+            steps=[QuestStep(id=1, name="", description="", objectives=[QuestObjective(id=4201, text=source_objective.text, type_id=1)])],
             source_info={
                 "launch_position": {"position": "[5,6]"},
                 "source_meta": {"startNpc": "Garde Départ", "startCoords": "[5,6]", "zone": "Zone test"},
@@ -125,6 +125,23 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
         self.assertFalse(any("Prendre — Quête test" == box.text() for box in checkboxes))
         self.assertFalse(self.q.is_quest_completed("hero", 42))
         widget.close()
+
+    def test_documented_launch_stays_readable_without_a_travel_action(self):
+        quest = self.provider.get_quest(42)
+        quest.source_info = {"launch_position": {
+            "instruction": "Choisissez le départ [3,4] ou [1,17!] selon votre classe.",
+            "source_url": "https://example.org/quete",
+        }}
+        view = GuideUltimeUniversalView(self.service, character_key="hero", quest_provider=self.provider)
+        try:
+            QApplication.processEvents()
+            launch = next(label for label in view.findChildren(QLabel)
+                          if label.property("documentaryLaunchInstruction"))
+            self.assertIn("<b>[3,4]</b> ou <b>[1,17!]</b>", launch.text())
+            self.assertFalse(launch.property("travelCopyEnabled"))
+            self.assertIsNone(launch.property("travelCommand"))
+        finally:
+            view.close()
 
     def test_objective_uses_documentary_walkthrough_text_and_position(self):
         index = QuestWalkthroughIndex(self.provider)
@@ -163,7 +180,7 @@ class GuideUltimeWalkthroughTests(unittest.TestCase):
                 return ("character:101", "character:202")
 
             @staticmethod
-            def available_characters():
+            def available_travel_characters():
                 return (
                     SimpleNamespace(key="character:101", connected=True),
                     SimpleNamespace(key="character:202", connected=True),

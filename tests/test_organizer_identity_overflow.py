@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -44,6 +45,26 @@ class OrganizerIdentityOverflowTests(unittest.TestCase):
             SimpleNamespace(clients=(SimpleNamespace(handle=101.9),)), 101,
         ))
 
+    def test_verified_roster_cache_reuses_shared_signature_and_invalidates(self):
+        from app.core.file_stamp import resolved_mtime_size_stamp
+
+        owner = CharacterSessionsMixin()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bindings.json"
+            owner.network_character_bindings_file = path
+            row = {"source": "verified_network_identity", "name": "Panda"}
+            with patch(
+                "app.pages.organizer.character_sessions.read_json",
+                return_value={"characters": {"101": row}},
+            ) as reader:
+                self.assertEqual(owner._verified_character_rows(), ((101, row),))
+                self.assertEqual(owner._verified_character_rows_stamp, resolved_mtime_size_stamp(path))
+                self.assertEqual(owner._verified_character_rows(), ((101, row),))
+                reader.assert_called_once()
+                path.write_text("{}", encoding="utf-8")
+                self.assertEqual(owner._verified_character_rows(), ((101, row),))
+                self.assertEqual(reader.call_count, 2)
+
     def test_verified_identity_scan_skips_invalid_digit_strings(self):
         owner = CharacterSessionsMixin()
         owner.network_character_bindings_file = Path(
@@ -85,6 +106,56 @@ class OrganizerIdentityOverflowTests(unittest.TestCase):
         self.assertEqual(owner.profiles[KEY_PRIMARY_WINDOW], "original")
         record.assert_called_once()
         owner.status_callback.assert_called_once()
+
+    def test_compatibility_class_lookup_delegates_to_the_same_metadata_rule(self):
+        from app.pages.organizer import common
+        from app.pages import organizer_page
+        payload = {"clients": [
+            {"character_name": "Witsis", "class_key": "pandawa"},
+            {"character_name": "Witsis", "class_key": "cra"},
+        ]}
+        self.assertIsNone(common.class_key_from_client_index("Witsis", payload))
+        with patch.object(organizer_page, "read_json", return_value=payload):
+            self.assertIsNone(organizer_page.dofus_class_key_for_character_name("Witsis"))
+            payload["clients"].pop()
+            self.assertEqual(organizer_page.dofus_class_key_for_character_name("Witsis"), "pandawa")
+        with tempfile.TemporaryDirectory() as directory:
+            dirs = (Path(directory),)
+            with patch.object(organizer_page, "CLASS_ICON_DIRS", dirs):
+                self.assertEqual(organizer_page.class_icon_candidates("pandawa"),
+                                 common.class_icon_candidates("pandawa", directories=dirs))
+
+    def test_cached_and_direct_class_lookup_share_ambiguity_rules(self):
+        from app.pages.organizer.common import client_class_candidates, class_key_from_client_index
+        from app.pages.organizer_icon_cache import _collect_client_candidates
+        payload = {"clients": [
+            {"character_name": "Alpha", "class_key": "cra"},
+            {"character_name": "Alpha", "name": "Alpha - Pandawa"},
+            {"character_name": "Beta", "name": "Beta - Crâ"},
+            {"character_name": "", "class_key": "cra"},
+        ]}
+        expected = {"alpha": {"cra", "pandawa"}, "beta": {"cra"}}
+        self.assertEqual(client_class_candidates(payload), expected)
+        cached = {}
+        _collect_client_candidates(payload, cached)
+        self.assertEqual(cached, expected)
+        self.assertIsNone(class_key_from_client_index("Alpha", payload))
+        self.assertEqual(class_key_from_client_index("Beta", payload), "cra")
+
+    def test_both_identity_paths_reject_duplicate_live_name_and_class(self):
+        owner = CharacterSessionsMixin()
+        owner.sessions = [{"nom": "Witsis", "hwnd": 101, "pid": 42},
+                          {"nom": "Witsis", "hwnd": 102, "pid": 43}]
+        owner._verified_character_rows = Mock(return_value=(
+            (101, {"pid": 42, "name": "Witsis", "class_key": "panda"}),
+        ))
+        with patch("app.pages.organizer.character_sessions.session_is_detected", return_value=True), \
+             patch("app.pages.organizer.character_sessions.dofus_class_key_from_window_name", return_value="panda"):
+            self.assertEqual(owner.verified_character_token_for_session(owner.sessions[0]), "")
+            self.assertEqual(owner.fallback_primary_token_for_session(owner.sessions[0]), "")
+            owner._verified_character_rows.assert_not_called()
+            owner.sessions.pop()
+            self.assertEqual(owner.verified_character_token_for_session(owner.sessions[0]), "character:101")
 
     def test_verified_identity_still_matches_unique_name_when_pid_overflows(self):
         owner = CharacterSessionsMixin()

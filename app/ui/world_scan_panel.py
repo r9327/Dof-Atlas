@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from threading import Thread
 from typing import Any
-import unicodedata
 
 from PySide6.QtCore import QEvent, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPen, QPixmap
@@ -12,9 +11,15 @@ from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QPushBu
 from app.cartography.map_asset_loader import resolve_asset_path
 from app.cartography.world_service import WorldService
 from app.constants import LOGGER
+from app.core.text import normalize_world_label
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
+from app.ui.components import AtlasButton, AtlasPageTitle, clear_unity_widget_layout, configure_unity_scroll_area, configure_unity_tool_button
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
+
+WORLD_SCAN_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["world_scan"]
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 DEFAULT_WORLD_CONTEXT = f"{DEFAULT_WORLD_NAME} / {DEFAULT_WORLD_AREA}"
@@ -72,27 +77,27 @@ class WorldScanPanel(QWidget):
         self._restore_selected_coord: tuple[int, int] | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(12, 10, 12, 10)
-        root.setSpacing(8)
+        root.setContentsMargins(*WORLD_SCAN_GEOMETRY["page_margins"])
+        root.setSpacing(WORLD_SCAN_GEOMETRY["page_gutter"])
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
-        header.setSpacing(10)
+        header.setSpacing(WORLD_SCAN_GEOMETRY["header_spacing"])
         accent = QFrame()
         accent.setObjectName("TitleAccent")
-        accent.setFixedSize(4, 24)
-        title = QLabel("Scan Monde")
-        title.setObjectName("PageTitle")
-        title.setFixedHeight(28)
+        accent.setFixedSize(*WORLD_SCAN_GEOMETRY["header_accent_size"])
+        title = AtlasPageTitle("Scan Monde")
+        title.setFixedHeight(WORLD_SCAN_GEOMETRY["header_title_height"])
         header.addWidget(accent, alignment=Qt.AlignVCenter)
         header.addWidget(title, 1)
         root.addLayout(header)
 
         toolbar = QFrame()
         toolbar.setObjectName("MapToolbar")
+        apply_unity_panel_shadow(toolbar)
         toolbar_layout = QHBoxLayout(toolbar)
-        toolbar_layout.setContentsMargins(10, 8, 10, 8)
-        toolbar_layout.setSpacing(8)
+        toolbar_layout.setContentsMargins(*WORLD_SCAN_GEOMETRY["toolbar_margins"])
+        toolbar_layout.setSpacing(WORLD_SCAN_GEOMETRY["toolbar_spacing"])
         self.reload_button = self.make_button("Recharger", "secondaryButton")
         self.verify_button = self.make_button("Marquer map OK", "primaryButton")
         self.unverify_button = self.make_button("Marquer non vérif", "secondaryButton")
@@ -109,19 +114,20 @@ class WorldScanPanel(QWidget):
 
         self.breadcrumb_label = QLabel(DEFAULT_WORLD_CONTEXT)
         self.breadcrumb_label.setObjectName("BreadcrumbLabel")
-        self.breadcrumb_label.setFixedHeight(24)
+        self.breadcrumb_label.setFixedHeight(WORLD_SCAN_GEOMETRY["breadcrumb_height"])
         root.addWidget(self.breadcrumb_label)
 
         self.canvas = MapCanvasWidget()
         self.canvas.set_map_placeholder("Chargement de la cartographie…")
         root.addWidget(self.canvas, 1)
 
-        self.planet_button = QToolButton(self.canvas)
-        self.planet_button.setObjectName("WorldPlanetButton")
-        self.planet_button.setFixedSize(60, 60)
-        self.planet_button.setCursor(Qt.PointingHandCursor)
+        icon_box = WORLD_SCAN_GEOMETRY["world_icon_box"]
+        self.planet_button = configure_unity_tool_button(
+            QToolButton(self.canvas), object_name="WorldPlanetButton",
+            box=(icon_box, icon_box), icon_size=WORLD_SCAN_GEOMETRY["world_icon_artwork"],
+            pointing=True,
+        )
         self.planet_button.setIcon(self.planet_icon())
-        self.planet_button.setIconSize(QSize(34, 34))
         self.planet_button.setToolTip("Sélection du monde")
         self.planet_button.clicked.connect(self.toggle_world_menu)
         self.planet_button.move(14, 14)
@@ -130,19 +136,19 @@ class WorldScanPanel(QWidget):
         self.world_menu.setObjectName("WorldMenu")
         self.world_menu.hide()
         menu_layout = QVBoxLayout(self.world_menu)
-        menu_layout.setContentsMargins(6, 6, 6, 6)
+        menu_layout.setContentsMargins(*WORLD_SCAN_GEOMETRY["menu_margins"])
         menu_layout.setSpacing(0)
         self.world_menu_scroll = WorldMenuScrollArea(self.world_menu)
         self.world_menu_scroll.setObjectName("WorldMenuScroll")
-        self.world_menu_scroll.setWidgetResizable(True)
-        self.world_menu_scroll.setFrameShape(QFrame.NoFrame)
-        self.world_menu_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.world_menu_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        configure_unity_scroll_area(
+            self.world_menu_scroll, borderless=True,
+            vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.world_menu_contents = QWidget()
         self.world_menu_contents.setObjectName("WorldMenuContents")
         self.world_menu_list = QVBoxLayout(self.world_menu_contents)
-        self.world_menu_list.setContentsMargins(2, 2, 2, 2)
-        self.world_menu_list.setSpacing(4)
+        self.world_menu_list.setContentsMargins(*WORLD_SCAN_GEOMETRY["menu_item_margins"])
+        self.world_menu_list.setSpacing(WORLD_SCAN_GEOMETRY["menu_item_spacing"])
         self.rebuild_world_menu(list(WORLD_NAMES))
         self.world_menu_scroll.setWidget(self.world_menu_contents)
         menu_layout.addWidget(self.world_menu_scroll)
@@ -150,10 +156,11 @@ class WorldScanPanel(QWidget):
 
         self.detail_panel = QFrame()
         self.detail_panel.setObjectName("WorldDetailPanel")
-        self.detail_panel.setFixedHeight(74)
+        apply_unity_panel_shadow(self.detail_panel)
+        self.detail_panel.setFixedHeight(WORLD_SCAN_GEOMETRY["summary_height"])
         detail_layout = QVBoxLayout(self.detail_panel)
-        detail_layout.setContentsMargins(12, 7, 12, 7)
-        detail_layout.setSpacing(4)
+        detail_layout.setContentsMargins(*WORLD_SCAN_GEOMETRY["detail_margins"])
+        detail_layout.setSpacing(WORLD_SCAN_GEOMETRY["detail_spacing"])
         self.detail_title = QLabel("Détail")
         self.detail_title.setObjectName("WorldDetailTitle")
         detail_layout.addWidget(self.detail_title)
@@ -169,7 +176,7 @@ class WorldScanPanel(QWidget):
 
         self.status_label = QLabel("")
         self.status_label.setObjectName("MutedLabel")
-        self.status_label.setFixedHeight(18)
+        self.status_label.setFixedHeight(WORLD_SCAN_GEOMETRY["status_height"])
         root.addWidget(self.status_label)
 
         self.reload_button.clicked.connect(self.reload_all)
@@ -190,10 +197,10 @@ class WorldScanPanel(QWidget):
         self.update_action_state()
 
     def make_button(self, text: str, object_name: str) -> QPushButton:
-        button = QPushButton(text)
+        button = AtlasButton(text)
         button.setObjectName(object_name)
-        button.setFixedHeight(30)
-        button.setMinimumWidth(108)
+        button.setFixedHeight(WORLD_SCAN_GEOMETRY["toolbar_button_height"])
+        button.setMinimumWidth(WORLD_SCAN_GEOMETRY["menu_button_min_width"])
         button.setCursor(Qt.PointingHandCursor)
         return button
 
@@ -290,7 +297,8 @@ class WorldScanPanel(QWidget):
         self._initial_load_pending = True
 
     def release_runtime(self) -> None:
-        """Drop our global Qt event filter before a reconstructed page is deleted."""
+        """Drop native render data and the global Qt event filter before deletion."""
+        self.canvas.suspend_rendering()
         app = QApplication.instance()
         if app is not None:
             app.removeEventFilter(self)
@@ -434,9 +442,7 @@ class WorldScanPanel(QWidget):
     @staticmethod
     def _world_name_from_view_data(view: dict[str, Any]) -> str:
         name = str(view.get("name") or "").strip()
-        normalized = unicodedata.normalize("NFKD", name)
-        ascii_text = "".join(char for char in normalized if not unicodedata.combining(char))
-        if ascii_text.replace("’", "'").strip().casefold().startswith("monde des douze"):
+        if normalize_world_label(name).startswith("monde des douze"):
             return DEFAULT_WORLD_NAME
         return name or DEFAULT_WORLD_NAME
 
@@ -455,7 +461,7 @@ class WorldScanPanel(QWidget):
                 image = QImage()
         if image.isNull():
             image = QImage(1400, 880, QImage.Format_ARGB32)
-            image.fill(QColor("#0D1724"))
+            image.fill(QColor(unity_painted_ui_color("world_scan.placeholder")))
             is_placeholder = True
         return image, path_text, is_placeholder
 
@@ -847,11 +853,7 @@ class WorldScanPanel(QWidget):
     def _evict_world_menu_items(self) -> None:
         """Remove inactive menu buttons without losing the loaded view data."""
 
-        while self.world_menu_list.count():
-            item = self.world_menu_list.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.world_menu_list, detach_widgets=False)
         self.world_buttons = {}
         self._world_menu_suspended = True
 
@@ -859,9 +861,9 @@ class WorldScanPanel(QWidget):
         self._evict_world_menu_items()
         self._world_menu_suspended = False
         for world in names:
-            item = QPushButton(world)
+            item = AtlasButton(world)
             item.setObjectName("WorldMenuItem")
-            item.setFixedHeight(28)
+            item.setFixedHeight(WORLD_SCAN_GEOMETRY["world_menu_item_height"])
             item.setCursor(Qt.PointingHandCursor)
             item.clicked.connect(lambda _checked=False, name=world: self.on_world_selected(name))
             self.world_menu_list.addWidget(item)
@@ -869,24 +871,22 @@ class WorldScanPanel(QWidget):
             if world == DEFAULT_WORLD_NAME:
                 divider = QFrame()
                 divider.setObjectName("WorldMenuDivider")
-                divider.setFixedHeight(1)
+                divider.setFixedHeight(WORLD_SCAN_GEOMETRY["menu_divider_height"])
                 self.world_menu_list.addWidget(divider)
         self.world_menu_list.addStretch(1)
 
     def normalize_world_name(self, text: str) -> str:
-        normalized = unicodedata.normalize("NFKD", str(text or ""))
-        ascii_text = "".join(char for char in normalized if not unicodedata.combining(char))
-        return ascii_text.replace("’", "'").strip().lower()
+        return normalize_world_label(text, casefold=False)
 
     def planet_icon(self) -> QIcon:
         pixmap = QPixmap(40, 40)
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing, True)
-        pen = QPen(QColor("#F2F6FF"), 2.0)
+        pen = QPen(QColor(unity_painted_ui_color("world_scan.planet_outline")), 2.0)
         pen.setCapStyle(Qt.RoundCap)
         painter.setPen(pen)
-        painter.setBrush(QColor("#0B7F3D"))
+        painter.setBrush(QColor(unity_painted_ui_color("world_scan.planet_fill")))
         painter.drawEllipse(QRectF(5, 5, 30, 30))
         painter.setBrush(Qt.NoBrush)
         painter.drawArc(QRectF(10, 5, 20, 30), 80 * 16, 200 * 16)
@@ -967,7 +967,7 @@ class WorldScanPanel(QWidget):
             # QPixmap is the largest long-lived native allocation in this
             # module (often a full 1400x880 ARGB image). Release pixels but
             # preserve the selected world, coordinates, and navigation history.
-            self.canvas.pixmap = QPixmap()
+            self.canvas.suspend_rendering()
             self._image_suspended = True
         super().hideEvent(event)
 

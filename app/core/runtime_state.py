@@ -11,6 +11,7 @@ from PySide6.QtCore import QCoreApplication, QObject, Signal, Slot
 from app.core.admin import audit_client_admin_rights
 from app.core.logger import get_runtime_logger, set_debug_logging
 from app.core.macro_lock import MacroLock
+from app.core.map_coordinates import normalize_guide_travel_command
 from app.core.settings import AtlasSettings, load_settings
 from app.input.input_state import (
     DeferredMirrorGesture, InputState, MirrorPointerContext, MirrorPointerSnapshot, SyntheticInputGuard,
@@ -512,9 +513,28 @@ class AtlasRuntime:
         self.settings = load_settings()
         self.travel.run_async(text)
 
-    def launch_guide_travel(self, text: str, character_keys) -> None:
+    def launch_guide_travel(self, text: str, character_keys) -> bool:
+        # Guide buttons need the launch result to distinguish a rejected
+        # concurrent/latched macro from an accepted async request.
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Déplacement bloqué : Stop urgence actif.")
+            return False
+        if self.macro_lock.active_label:
+            self._emit_status("Déplacement refusé : macro déjà en cours.")
+            return False
+        command = normalize_guide_travel_command(text)
+        if command is None:
+            self._emit_status("Commande de déplacement invalide.")
+            return False
+        if command.startswith("/zaap "):
+            # Sending chat input does not confirm that the server moved the
+            # character. The Guide sender has no reviewed live confirmation.
+            self._emit_status("Zaap non confirmé en jeu. Utilisez le déplacement direct.")
+            return False
+        # Refresh only after the exclusion checks: a denied request must not
+        # replace the live macro's captured settings/character roster.
         self.settings = load_settings()
-        self.travel.run_async(text, tuple(character_keys or ()))
+        return bool(self.travel.run_async(command, tuple(character_keys or ())))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
         if getattr(self.macro_lock, "emergency_latched", False) is True:

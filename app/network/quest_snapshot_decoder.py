@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256 as _strict_sha256
+from app.network.contracts import (
+    _is_sha256 as _strict_sha256, active_build_matches,
+    forward_decoder_reset, forward_decoder_session_closed,
+    protocol_event_id, required_mapping_identity,
+)
 
-import hashlib
 from dataclasses import dataclass
 from typing import Callable
 
@@ -10,11 +13,11 @@ from app.network.normalizer import DecodedClientMessage
 from app.network.protobuf_fields import (
     ProtobufDecodeError,
     ProtobufFields,
+    historical_quest_entry_id, historical_reinitialized_rows_valid,
     parse_protobuf_fields,
     resolve_field_path,
 )
 from app.network.transport import CapturedProtocolMessage, ProtocolMessageDecoder
-from app.network.wire import IncompleteVarint, InvalidVarint, decode_varint
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,14 +73,9 @@ class FinishedQuestsSnapshotDecoder:
         active_fingerprint_provider: Callable[[], str | None],
         max_finished_entries: int = 4096,
     ) -> None:
-        version = str(mapping_version or "").strip()
-        fingerprint = str(mapping_fingerprint or "").strip().casefold()
-        if not version:
-            raise ValueError("mapping_version cannot be empty")
-        if not self._is_sha256(fingerprint):
-            raise ValueError("mapping_fingerprint must be a SHA-256 digest")
-        if active_fingerprint_provider is None:
-            raise ValueError("active_fingerprint_provider is required")
+        version, fingerprint = required_mapping_identity(
+            mapping_version, mapping_fingerprint, active_fingerprint_provider,
+        )
         self.delegate = delegate
         self.rule = rule
         self.mapping_version = version
@@ -90,11 +88,7 @@ class FinishedQuestsSnapshotDecoder:
             return self.delegate.decode(message)
         if str(message.direction or "").strip().casefold() != "server_to_client":
             return None
-        try:
-            active_fingerprint = str(self.active_fingerprint_provider() or "").strip().casefold()
-        except Exception:
-            return None
-        if active_fingerprint != self.mapping_fingerprint:
+        if not active_build_matches(self.active_fingerprint_provider, self.mapping_fingerprint):
             return None
 
         try:
@@ -142,19 +136,13 @@ class FinishedQuestsSnapshotDecoder:
             "quest_ids": tuple(quest_ids),
             "player_id": int(player_id),
         }
-        digest = hashlib.sha256()
-        digest.update(self.mapping_version.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(self.mapping_fingerprint.encode("ascii"))
-        digest.update(b"\0")
-        digest.update(message.type_url.encode("utf-8", errors="strict"))
-        digest.update(b"\0")
-        digest.update(message.payload)
         return DecodedClientMessage(
             session_id=message.session_id,
             event_type="finished_quests_snapshot",
             fields=decoded_fields,
-            event_id=f"proto:{digest.hexdigest()[:32]}",
+            event_id=protocol_event_id(
+                self.mapping_version, self.mapping_fingerprint, message.type_url, message.payload,
+            ),
             verified=True,
         )
 
@@ -193,70 +181,21 @@ class FinishedQuestsSnapshotDecoder:
 
     @staticmethod
     def _finished_entry_is_valid(raw_entry: object) -> bool:
-        if not isinstance(raw_entry, bytes):
-            return False
-        try:
-            fields = parse_protobuf_fields(raw_entry)
-        except ProtobufDecodeError:
-            return False
-        if not fields or not set(fields).issubset({1, 2}):
-            return False
-        quest_rows = fields.get(1, ())
-        if len(quest_rows) != 1 or not isinstance(quest_rows[0], int) or quest_rows[0] <= 0:
-            return False
-        count_rows = fields.get(2, ())
-        return (
-            len(count_rows) == 1
-            and isinstance(count_rows[0], int)
-            and count_rows[0] > 0
-        )
+        return historical_quest_entry_id(raw_entry, finished=True) is not None
 
     @staticmethod
     def _active_entry_quest_id(raw_entry: object) -> int | None:
-        if not isinstance(raw_entry, bytes):
-            return None
-        try:
-            fields = parse_protobuf_fields(raw_entry)
-        except ProtobufDecodeError:
-            return None
-        if not fields or not set(fields).issubset({1, 2}):
-            return None
-        quest_rows = fields.get(1, ())
-        if len(quest_rows) != 1 or not isinstance(quest_rows[0], int) or quest_rows[0] <= 0:
-            return None
-        details_rows = fields.get(2, ())
-        if len(details_rows) > 1 or any(not isinstance(value, bytes) for value in details_rows):
-            return None
-        return int(quest_rows[0])
+        return historical_quest_entry_id(raw_entry, finished=False)
 
     @staticmethod
     def _reinitialized_rows_are_valid(rows: tuple[object, ...]) -> bool:
-        for row in rows:
-            if isinstance(row, int):
-                if row <= 0:
-                    return False
-                continue
-            if not isinstance(row, bytes):
-                return False
-            offset = 0
-            try:
-                while offset < len(row):
-                    value, offset = decode_varint(row, offset)
-                    if int(value) <= 0:
-                        return False
-            except (IncompleteVarint, InvalidVarint):
-                return False
-        return True
+        return historical_reinitialized_rows_valid(rows)
 
     def session_closed(self, session_id: str) -> None:
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session_id)
+        forward_decoder_session_closed(self.delegate, session_id)
 
     def reset(self) -> None:
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.delegate)
 
     @staticmethod
     def _is_sha256(value: str) -> bool:

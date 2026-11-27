@@ -12,13 +12,18 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import os
 import tempfile
+import zipfile
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-_ASSETS = Path(__file__).resolve().parents[2] / "app/assets/themes/dofus_unity"
+_REPO = Path(__file__).resolve().parents[2]
+_ASSETS = _REPO / "app/assets/themes/dofus_unity"
+_SOURCE_ARCHIVE = _REPO / "docs/design/dofus-unity/sources/atlas_unity_background_original.zip"
+_SOURCE_MEMBER = "selection_perso_original.png"
 SOURCE_SHA256 = "3834e92f6432019e2fde2b5f0ccb7f3b2236fda48ea7a6d368c60a660ef5fdeb"
 SOURCE_SIZE = (1919, 1079)
 # Measured on the SHA-256 verified original; includes all three buttons AND
@@ -210,29 +215,71 @@ def source_sha(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def archive_source(archive: Path) -> bytes:
+    """Read just the inventoried PNG, without extracting any other ZIP member."""
+    with zipfile.ZipFile(archive) as bundle:
+        matches = [entry for entry in bundle.infolist()
+                   if not entry.is_dir() and Path(entry.filename).name == _SOURCE_MEMBER]
+        if len(matches) != 1:
+            raise ValueError("archive must contain exactly one inventoried source PNG")
+        entry = matches[0]
+        if entry.file_size > 32 * 1024 * 1024:
+            raise ValueError("original PNG exceeds the expected size limit")
+        data = bundle.read(entry)
+    if hashlib.sha256(data).hexdigest() != SOURCE_SHA256:
+        raise ValueError("archive source SHA-256 mismatch")
+    return data
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=_ASSETS / "background_selection_original.png")
-    parser.add_argument("--output", type=Path, default=_ASSETS / "background_selection_clean.png")
+    sources = parser.add_mutually_exclusive_group()
+    sources.add_argument("--source", type=Path, default=None)
+    sources.add_argument("--archive", type=Path, nargs="?", const=_SOURCE_ARCHIVE,
+                         help="read the verified original PNG from the local source archive")
+    parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--personal", action="store_true",
+                        help="install only the cleaned wallpaper in the durable personal theme")
     parser.add_argument("--interactive", action="store_true", help="select complete corner strip on original image")
     parser.add_argument("--corner-toolbar", action="store_true", help="use reviewed HUD strip bounds for verified original")
     parser.add_argument("--box", dest="boxes", type=parse_box, action="append", default=[],
                         help="one entire top-right strip or three interior icon boxes")
     parser.add_argument("--preview", type=Path, help="optional separate PNG with red outlines before repair")
     args = parser.parse_args()
+    if args.personal and args.output is not None:
+        parser.error("choose --personal or --output")
+    if args.personal:
+        args.output = (Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share")
+                       / "DofusAtlas/themes/dofus_unity/background_selection_clean.png")
+    elif args.output is None:
+        args.output = _ASSETS / "background_selection_clean.png"
+    if args.source is None and args.archive is None:
+        args.source = _ASSETS / "background_selection_original.png"
+    source_path = args.archive if args.archive is not None else args.source
     if sum(bool(value) for value in (args.interactive, args.corner_toolbar, args.boxes)) != 1:
         parser.error("choose --corner-toolbar, --interactive or --box")
     if args.corner_toolbar:
         args.boxes = [SOURCE_CORNER_TOOLBAR]
     if not args.interactive and len(args.boxes) not in (1, 3):
         parser.error("use one full-edge toolbar --box or three icon --box values")
-    if args.source.resolve() == args.output.resolve():
+    if source_path.resolve() == args.output.resolve():
         parser.error("output must not overwrite the original")
-    if args.preview and args.preview.resolve() in {args.source.resolve(), args.output.resolve()}:
+    if args.preview and args.preview.resolve() in {source_path.resolve(), args.output.resolve()}:
         parser.error("preview must be separate from both the source and repaired output")
-    if not args.source.is_file() or source_sha(args.source) != SOURCE_SHA256:
-        parser.error("source SHA-256 mismatch or image missing; no output written")
-    with Image.open(args.source) as raw:
+
+    def read_source() -> bytes:
+        if args.archive is not None:
+            return archive_source(args.archive)
+        data = args.source.read_bytes()
+        if hashlib.sha256(data).hexdigest() != SOURCE_SHA256:
+            raise ValueError("source SHA-256 mismatch")
+        return data
+
+    try:
+        source_bytes = read_source()
+    except (OSError, ValueError, RuntimeError, zipfile.BadZipFile) as exc:
+        parser.error(f"invalid or missing original; no output written: {exc}")
+    with Image.open(io.BytesIO(source_bytes)) as raw:
         raw.load()
         if raw.size != SOURCE_SIZE:
             parser.error("unexpected original dimensions")
@@ -263,7 +310,7 @@ def main() -> int:
     staging = Path(staging_name)
     try:
         result.save(staging, format="PNG")
-        if source_sha(args.source) != SOURCE_SHA256:
+        if read_source() != source_bytes:
             raise RuntimeError("original unexpectedly changed")
         os.replace(staging, args.output)
     finally:

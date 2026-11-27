@@ -12,6 +12,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class GuideCriterionScopeBoundaryTests(unittest.TestCase):
+    def test_criterion_atoms_share_integer_codec_without_promoting_symbolic_values(self):
+        from app.core.numbers import optional_int
+
+        for raw in ("17", "-3", "NA", "", "999999"):
+            with self.subTest(value=raw):
+                atom = canonical.CriterionAtom("qf", "=", raw)
+                self.assertEqual(atom.int_value, optional_int(raw))
+
     def test_old_tool_exports_same_canonical_functions(self) -> None:
         for name in (
             "criterion_alternatives",

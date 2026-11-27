@@ -1,0 +1,1087 @@
+"""Direct Qt contracts for the shared UI components — no DOFUS runtime."""
+from __future__ import annotations
+
+import os
+import unittest
+from unittest.mock import patch
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QComboBox, QSizePolicy, QSpinBox, QWidget
+
+from app.ui.components import (
+    AtlasButton,
+    AtlasBreadcrumb,
+    AtlasDialog,
+    AtlasPageTitle,
+    AtlasPanelToggle,
+    AtlasStatusBadge,
+    BUTTON_OBJECT_NAMES,
+    fit_unity_number_spinbox,
+    refresh_unity_widget_style,
+    set_unity_widget_property,
+    set_unity_widget_object_name,
+    release_transient_dialog,
+    clear_current_dialog_reference,
+    fill_unity_navigation_menu,
+    configure_unity_scroll_area,
+)
+from app.ui.theme import atlas_stylesheet
+
+
+class SharedUiComponentsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_shared_guide_portrait_donut_and_symbol_geometry(self) -> None:
+        from app.ui.components import (
+            AtlasGuideParticipantPortrait, AtlasGuideProgressDonut, atlas_guide_symbol_icon,
+        )
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+        portrait = AtlasGuideParticipantPortrait("character:1", progress=150)
+        donut = AtlasGuideProgressDonut()
+        try:
+            self.assertEqual(portrait.progress, 100)
+            self.assertEqual(portrait.width(), UNITY_CONTROL_SIZES_PX["guide_portrait_button"])
+            self.assertEqual(donut.width(), UNITY_CONTROL_SIZES_PX["guide_donut_box"])
+            donut.set_percent(-5)
+            self.assertEqual(donut._percent, 0)
+            first = atlas_guide_symbol_icon(portrait, "people")
+            second = atlas_guide_symbol_icon(donut, "people")
+            self.assertFalse(first.isNull())
+            self.assertEqual(first.cacheKey(), second.cacheKey())
+            from app.ui.components import atlas_quest_shortcut_icon
+            self.assertEqual(atlas_quest_shortcut_icon().cacheKey(), atlas_quest_shortcut_icon().cacheKey())
+        finally:
+            portrait.deleteLater()
+            donut.deleteLater()
+
+    def test_shared_symbol_icons_scale_without_clipping(self) -> None:
+        from app.ui.components import atlas_guide_symbol_icon, atlas_quest_shortcut_icon
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        parent = QWidget()
+        try:
+            for size in (12, 18, 36):
+                pixmap = atlas_guide_symbol_icon(parent, "cube", size=size).pixmap(size, size)
+                image = pixmap.toImage()
+                self.assertEqual((image.width(), image.height()), (size, size))
+                # The icon should have artwork in both halves, not be clipped
+                # at the former fixed 18-pixel coordinates.
+                for left, right in ((0, size // 2), (size // 2, size)):
+                    self.assertTrue(any(
+                        image.pixelColor(x, y).alpha() > 0
+                        for x in range(left, right) for y in range(size)
+                    ))
+            with patch.dict(UNITY_CONTROL_SIZES_PX, {"guide_quest_shortcut_icon": 30}):
+                self.assertEqual(atlas_quest_shortcut_icon().availableSizes()[0].width(), 30)
+        finally:
+            parent.deleteLater()
+
+    def test_global_progress_details_reuse_labels_and_clear_removed_characters(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide exemple")
+        try:
+            header.set_global_detail_lines(("Alpha · 0 %", "Beta · 50 %"))
+            label = header.global_details_layout.itemAt(0).widget()
+            header.set_global_detail_lines(("Alpha · 100 %",))
+            self.assertIs(header.global_details_layout.itemAt(0).widget(), label)
+            self.assertEqual(label.text(), "Alpha · 100 %")
+            self.assertEqual(header.global_details_layout.count(), 1)
+            header.set_global_detail_lines(())
+            self.assertIs(header.global_details_layout.itemAt(0).widget(), label)
+            self.assertEqual(label.objectName(), "GuidePreparationEmpty")
+        finally:
+            header.deleteLater()
+
+    def test_shared_preparation_notice_survives_drawer_transitions(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide exemple")
+        panel = QWidget()
+        try:
+            header.attach_preparation(panel)
+            header.set_preparation_description("Quantités non certifiées")
+            self.assertEqual(header.preparation_button.toolTip(),
+                             "Afficher Préparation — Quantités non certifiées")
+            header.preparation_button.click()
+            self.assertEqual(header.preparation_button.toolTip(),
+                             "Masquer Préparation — Quantités non certifiées")
+            header.preparation_button.click()
+            self.assertEqual(header.preparation_button.toolTip(),
+                             "Afficher Préparation — Quantités non certifiées")
+        finally:
+            header.deleteLater()
+
+    def test_shared_summary_refresh_escapes_source_and_ignores_invalid_rows(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide exemple")
+        titles = ["<Coffre> & clef", "Seconde fiche"]
+        requests = []
+        try:
+            header.set_summary_provider(lambda: tuple(titles))
+            header.summaryRequested.connect(requests.append)
+            header.global_details_button.click()
+            header.summary_button.click()
+            self.assertEqual(header.summary_panel.item(0).text(), "1. <Coffre> & clef")
+            self.assertEqual(header.summary_panel.item(0).toolTip(),
+                             "<qt>1. &lt;Coffre&gt; &amp; clef</qt>")
+            header.set_summary_position(1)
+            titles[:] = ["Nouvelle fiche"]
+            header.set_summary_position(0)
+            self.assertEqual(header.summary_panel.count(), 1)
+            self.assertEqual(header.summary_panel.currentRow(), 0)
+            self.assertEqual(requests, [])
+            header.global_details_button.click()
+            titles[:] = ["Fiche mise à jour", "Suite"]
+            header.set_summary_position(1)
+            self.assertEqual(header.summary_panel.count(), 1)
+            header.global_details_button.click()
+            self.assertEqual(header.summary_panel.count(), 2)
+            self.assertEqual(header.summary_panel.currentRow(), 1)
+            header._request_summary_row(-1)
+            header._request_summary_row(2)
+            self.assertEqual(requests, [])
+            header.summary_button.click()
+            self.assertEqual(header.summary_button.toolTip(), "Afficher Sommaire")
+        finally:
+            header.deleteLater()
+
+    def test_shared_guide_header_owns_controls_and_sheet_navigation(self) -> None:
+        from app.ui.components import (
+            AtlasGuidePreparationPanel, AtlasGuideReadingHeader, AtlasGuideSheetHeader,
+        )
+        header = AtlasGuideReadingHeader("Guide exemple")
+        sheet = AtlasGuideSheetHeader("Fiche exemple", total=20, page=4)
+        panel = AtlasGuidePreparationPanel(("Ressources",))
+        header.attach_preparation(panel)
+        try:
+            self.assertIs(header.content_layout.itemAt(1).widget(), header.participants_panel)
+            self.assertIs(header.preparation_bar.parentWidget(), header.preparation_column)
+            self.assertIs(header.global_progress_bar.parentWidget(), header.progress_group)
+            self.assertEqual(header.global_progress_bar.objectName(), "GuideGlobalProgress")
+            self.assertFalse(header.global_progress_bar.isTextVisible())
+            self.assertIs(header.preparation_column.parentWidget(), header.global_details_panel)
+            self.assertIs(header.summary_column.parentWidget(), header.global_details_panel)
+            self.assertIs(header.global_details_panel.parentWidget(), header.progress_group)
+            self.assertFalse(header.preparation_button.isVisibleTo(header))
+            self.assertFalse(header.summary_button.isVisibleTo(header))
+            self.assertTrue(header.global_progress_bar.isVisibleTo(header))
+            header.global_details_button.click()
+            self.assertTrue(header.preparation_button.isVisibleTo(header))
+            self.assertTrue(header.summary_button.isVisibleTo(header))
+            header.set_summary_provider(lambda: ("Première fiche", "Seconde fiche"))
+            header.preparation_button.click()
+            header.summary_button.click()
+            header.resize(760, 360)
+            header.show()
+            self.app.processEvents()
+            self.assertEqual(panel.size(), header.summary_drawer.size())
+            self.assertTrue(panel.property("guideMetricDrawer"))
+            self.assertTrue(header.summary_drawer.property("guideMetricDrawer"))
+            self.assertEqual(header.summary_panel.item(1).text(), "2. Seconde fiche")
+            self.assertEqual(header.summary_panel.item(1).toolTip(), "<qt>2. Seconde fiche</qt>")
+            self.assertEqual(header.summary_panel.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(header.summary_panel.textElideMode(), Qt.ElideRight)
+            self.assertEqual(header.summary_button.toolTip(), "Masquer Sommaire")
+            requested = []
+            header.summaryRequested.connect(requested.append)
+            header.set_summary_position(0)
+            self.assertEqual(requested, [])
+            header.summary_panel.setCurrentRow(1)
+            self.assertEqual(requested, [1])
+            header.set_summary_position(1)
+            self.assertEqual(requested, [1])
+            self.assertTrue(header.summary_panel.isVisibleTo(header))
+            self.assertTrue(panel.isVisibleTo(header))
+            header.global_details_button.click()
+            self.assertFalse(header.global_details_panel.isVisibleTo(header))
+            self.assertFalse(header.preparation_button.isVisibleTo(header))
+            self.assertFalse(header.summary_button.isVisibleTo(header))
+            self.assertFalse(panel.isVisibleTo(header))
+            self.assertFalse(header.summary_panel.isVisibleTo(header))
+            self.assertTrue(header.global_progress_bar.isVisibleTo(header))
+            header.global_details_button.click()
+            self.assertTrue(panel.isVisibleTo(header))
+            self.assertTrue(header.summary_panel.isVisibleTo(header))
+            header.participants_button.click()
+            self.assertTrue(header.participants_panel.isVisibleTo(header))
+            self.assertTrue(panel.isVisibleTo(header))
+            seen = []
+            sheet.page_jump.valueChanged.connect(seen.append)
+            sheet.set_page(10, 20)
+            self.assertEqual(seen, [])
+            self.assertEqual(sheet.page_jump.value(), 10)
+            self.assertEqual(sheet.page_jump.suffix(), "/20")
+            sheet.page_jump.setValue(11)
+            self.assertEqual(seen, [11])
+            sheet.set_page(1, 0)
+            self.assertEqual((sheet.page_jump.value(), sheet.page_jump.suffix()), (0, "/0"))
+            self.assertFalse(sheet.page_jump.isEnabled())
+            sheet.set_page(2, 3)
+            self.assertTrue(sheet.page_jump.isEnabled())
+            self.assertEqual(seen, [11])
+            self.assertEqual(header.global_details_button.accessibleName(), "Replier la progression globale")
+            self.assertEqual(header.preparation_button.accessibleName(), "Masquer Préparation")
+        finally:
+            header.deleteLater()
+            sheet.deleteLater()
+
+    def test_guide_overview_uses_same_shell_without_invented_preparation(self) -> None:
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Guide classique", overview=True)
+        try:
+            self.assertEqual(header.objectName(), "GuideHeader")
+            self.assertFalse(hasattr(header, "preparation_button"))
+            self.assertFalse(hasattr(header, "participants_button"))
+            header.set_overview_progress(2, 5)
+            self.assertEqual(header.global_progress_label.text(), "2/5")
+            self.assertEqual(header.global_progress_bar.value(), 2)
+            self.assertEqual(header.global_progress_bar.maximum(), 5)
+            header.set_overview_progress(0, 0)
+            self.assertEqual(header.global_progress_label.text(), "—")
+            header.set_overview_progress(2, 5, visible=False)
+            self.assertTrue(header.global_progress_bar.isHidden())
+            self.assertTrue(header.global_progress_label.isHidden())
+        finally:
+            header.deleteLater()
+
+    def test_empty_guide_metric_closes_and_reappears_without_stale_drawer(self):
+        from app.ui.components import AtlasGuideReadingHeader
+
+        header = AtlasGuideReadingHeader("Guide exemple")
+        try:
+            header.summary_button.setChecked(True)
+            header.set_metric_available("summary", False)
+            self.assertTrue(header.summary_column.isHidden())
+            self.assertFalse(header.summary_button.isChecked())
+            self.assertTrue(header.summary_panel.isHidden())
+            header.set_metric_available("summary", True)
+            self.assertFalse(header.summary_column.isHidden())
+            self.assertFalse(header.summary_button.isChecked())
+            header.set_metric_available("preparation", False)
+            self.assertTrue(header.preparation_column.isHidden())
+        finally:
+            header.deleteLater()
+
+    def test_shared_dialog_add_header_preserves_single_indexed_widget(self) -> None:
+        from app.ui.components import AtlasDialogHeader
+
+        dialog = AtlasDialog()
+        try:
+            title = dialog.add_header("Titre", "Sous-titre")
+            self.assertIsInstance(title, AtlasDialogHeader)
+            self.assertIs(title.parentWidget(), dialog)
+            self.assertIs(dialog.content_layout.itemAt(0).widget(), title)
+            self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
+            self.assertEqual(title.title_label.text(), "Titre")
+            self.assertEqual(title.subtitle_label.text(), "Sous-titre")
+            self.assertEqual(title.styleSheet(), "")
+        finally:
+            dialog.deleteLater()
+
+    def test_numeric_editor_clamps_python_integers_before_qt_conversion(self):
+        from app.core.numbers import INT32_MIN, INT32_MAX
+        from app.ui.components import configure_unity_number_spinbox, restore_unity_number_value
+        counter = QSpinBox()
+        try:
+            configure_unity_number_spinbox(counter, minimum=-(2**80), maximum=2**80, value=2**70)
+            self.assertEqual((counter.minimum(), counter.maximum(), counter.value()), (INT32_MIN, INT32_MAX, INT32_MAX))
+            restore_unity_number_value(counter, -(2**70))
+            self.assertEqual(counter.value(), INT32_MIN)
+        finally:
+            counter.deleteLater()
+
+    def test_optional_drawer_count_update_preserves_rows_and_open_state(self):
+        from PySide6.QtWidgets import QLabel
+        from app.ui.components import AtlasGuideReadingHeader
+        header = AtlasGuideReadingHeader("Test", overview=True)
+        row = QLabel("Objet")
+        try:
+            header.set_optional_sections([("Préparation", "0/1", [row])])
+            button = header.optional_section_buttons["Préparation"]
+            button.setChecked(True)
+            self.assertTrue(header.set_optional_section_count("Préparation", "1/1"))
+            self.assertIs(header.optional_section_buttons["Préparation"], button)
+            self.assertTrue(button.isChecked())
+            self.assertEqual(button.text(), "Préparation  1/1")
+            self.assertIsNotNone(row.parent())
+            self.assertFalse(header.set_optional_section_count("Absent", "1/1"))
+        finally:
+            header.deleteLater()
+
+    def test_quest_item_icon_uses_shared_decoder_and_fallback(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtGui import QImage
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.services.guide_quest_view_model import DisplayItem
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        from app.modules.encyclopedia.widgets.quest_item_row import item_row
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "item.png"
+            image = QImage(200, 100, QImage.Format_ARGB32)
+            image.fill(0xFF336699)
+            self.assertTrue(image.save(str(path)))
+            item = DisplayItem(name="Test", quantity=2, item_id=1, image_path=str(path))
+            with patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled",
+                              wraps=ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled) as decode:
+                row = item_row(item, checked=False)
+                button = row.findChild(QToolButton, "GuideItemIcon")
+                self.assertFalse(button.icon().isNull())
+                decode.assert_called_once_with(path, button.iconSize())
+                row.deleteLater()
+
+    def test_guide_cover_reuses_bounded_thumbnail_decoder(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtGui import QImage
+        from app.ui.components import AtlasGuideCover
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        cover = AtlasGuideCover()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "cover.png"
+                image = QImage(800, 500, QImage.Format_ARGB32)
+                image.fill(0xFF336699)
+                self.assertTrue(image.save(str(path)))
+                with patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled",
+                                  wraps=ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled) as load:
+                    self.assertTrue(cover.set_artwork(path))
+                    load.assert_called_once_with(path, cover.size())
+                    self.assertLessEqual(cover.pixmap().width(), cover.width())
+                    self.assertLessEqual(cover.pixmap().height(), cover.height())
+        finally:
+            cover.deleteLater()
+
+    def test_application_icon_recovers_when_asset_appears_or_changes(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from PySide6.QtGui import QImage
+        from app.ui import components
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "logo.png"
+            with patch.object(components, "APP_ICON_PATH", path), \
+                 patch.object(components, "_APPLICATION_ICON", None), \
+                 patch.object(components, "_APPLICATION_ICON_STAMP", None):
+                self.assertTrue(components.atlas_application_icon().isNull())
+                first = QImage(24, 24, QImage.Format_ARGB32)
+                first.fill(0xFF336699)
+                self.assertTrue(first.save(str(path)))
+                icon = components.atlas_application_icon()
+                self.assertFalse(icon.isNull())
+                self.assertEqual(icon.cacheKey(), components.atlas_application_icon().cacheKey())
+                second = QImage(42, 42, QImage.Format_ARGB32)
+                second.fill(0xFF669933)
+                self.assertTrue(second.save(str(path)))
+                updated = components.atlas_application_icon()
+                self.assertFalse(updated.isNull())
+                self.assertNotEqual(icon.cacheKey(), updated.cacheKey())
+
+    def test_numeric_editor_keeps_outer_signal_block_on_configuration(self):
+        from app.ui.components import configure_unity_number_spinbox
+        counter = QSpinBox()
+        try:
+            counter.blockSignals(True)
+            configure_unity_number_spinbox(counter, minimum=0, maximum=10, value=4)
+            self.assertTrue(counter.signalsBlocked())
+            counter.blockSignals(False)
+            configure_unity_number_spinbox(counter, minimum=0, maximum=10, value=5)
+            self.assertFalse(counter.signalsBlocked())
+        finally:
+            counter.deleteLater()
+
+    def test_shared_numeric_editor_configuration_and_rollback_are_silent(self):
+        from unittest.mock import Mock
+        from app.ui.components import configure_unity_number_spinbox, restore_unity_number_value
+        counter = QSpinBox()
+        changed = Mock()
+        counter.valueChanged.connect(changed)
+        try:
+            self.assertIs(configure_unity_number_spinbox(
+                counter, minimum=0, maximum=1234, value=123,
+                object_name="QuestItemQuantity", suffix="/1234", centered=True, compact=True,
+            ), counter)
+            self.assertEqual(counter.text(), "123/1234")
+            self.assertEqual(counter.alignment(), Qt.AlignCenter)
+            changed.assert_not_called()
+            counter.setValue(3)
+            changed.assert_called_once_with(3)
+            counter.blockSignals(True)
+            restore_unity_number_value(counter, 123)
+            self.assertTrue(counter.signalsBlocked())
+            self.assertEqual(counter.value(), 123)
+            changed.assert_called_once_with(3)
+        finally:
+            counter.deleteLater()
+
+    def test_count_projection_distinguishes_empty_busy_and_large_totals(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import set_unity_progress_counts
+        bar = QProgressBar()
+        try:
+            self.assertEqual(set_unity_progress_counts(bar, 3, 4), 75)
+            self.assertEqual((bar.minimum(), bar.maximum(), bar.value()), (0, 4, 3))
+            self.assertIsNone(set_unity_progress_counts(bar, 0, 0))
+            self.assertEqual((bar.maximum(), bar.value()), (1, 0))
+            self.assertIsNone(set_unity_progress_counts(bar, 0, 0, busy_when_empty=True))
+            self.assertEqual((bar.minimum(), bar.maximum()), (0, 0))
+            self.assertEqual(set_unity_progress_counts(bar, 2**39, 2**40), 50)
+            self.assertEqual((bar.maximum(), bar.value()), (100, 50))
+        finally:
+            bar.deleteLater()
+
+    def test_progress_geometry_and_format_use_shared_configuration(self) -> None:
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import configure_unity_progress_bar
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        for role in ("progress_primary", "progress_secondary",
+                     "progress_home_compact", "progress_route", "progress_generated_route"):
+            with self.subTest(role=role):
+                bar = QProgressBar()
+                try:
+                    self.assertIs(configure_unity_progress_bar(
+                        bar, maximum=3, text_visible=True, height_role=role,
+                        expanding=True, display_format="%p %"), bar)
+                    bar.setValue(2)
+                    self.assertEqual((bar.minimum(), bar.maximum(), bar.value()), (0, 3, 2))
+                    self.assertEqual(bar.minimumHeight(), UNITY_CONTROL_SIZES_PX[role])
+                    self.assertEqual(bar.maximumHeight(), UNITY_CONTROL_SIZES_PX[role])
+                    self.assertEqual(bar.sizePolicy().horizontalPolicy(), QSizePolicy.Expanding)
+                    self.assertEqual(bar.sizePolicy().verticalPolicy(), QSizePolicy.Fixed)
+                    self.assertEqual(bar.format(), "%p %")
+                    self.assertTrue(bar.isTextVisible())
+                finally:
+                    bar.deleteLater()
+
+    def test_shared_tool_button_keeps_native_state_and_callbacks(self) -> None:
+        from PySide6.QtCore import QSize
+        from PySide6.QtWidgets import QToolButton
+        from app.ui.components import configure_unity_tool_button
+
+        button = QToolButton()
+        button.setCheckable(True)
+        calls = []
+        button.clicked[bool].connect(calls.append)
+        try:
+            self.assertIs(configure_unity_tool_button(
+                button, object_name="ResourceTile", box=(56, 42), icon_size=16,
+                text="Test", pointing=True, focus_policy=Qt.NoFocus,
+            ), button)
+            self.assertEqual(button.minimumSize(), QSize(56, 42))
+            self.assertEqual(button.maximumSize(), QSize(56, 42))
+            self.assertEqual(button.iconSize(), QSize(16, 16))
+            self.assertEqual(button.objectName(), "ResourceTile")
+            self.assertEqual(button.cursor().shape(), Qt.PointingHandCursor)
+            self.assertEqual(button.focusPolicy(), Qt.NoFocus)
+            button.click()
+            self.assertEqual(calls, [True])
+        finally:
+            button.deleteLater()
+
+    def test_shared_scroll_defaults_preserve_native_frame_and_optional_vertical_policy(self) -> None:
+        from PySide6.QtWidgets import QFrame, QScrollArea
+
+        area = QScrollArea()
+        original_frame = area.frameShape()
+        try:
+            self.assertIs(configure_unity_scroll_area(area), area)
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(area.frameShape(), original_frame)
+            configure_unity_scroll_area(
+                area, borderless=True, vertical_policy=Qt.ScrollBarAlwaysOn,
+            )
+            self.assertEqual(area.frameShape(), QFrame.NoFrame)
+            self.assertEqual(area.verticalScrollBarPolicy(), Qt.ScrollBarAlwaysOn)
+            self.assertEqual(area.styleSheet(), "")
+        finally:
+            area.deleteLater()
+
+    def test_shared_dialog_scroll_slot_keeps_native_scrolling(self) -> None:
+        from PySide6.QtWidgets import QLabel, QScrollArea
+
+        dialog = AtlasDialog(density="compact")
+        try:
+            rows = dialog.add_scroll_rows()
+            rows.addWidget(QLabel("Ligne de test"))
+            area = dialog.findChild(QScrollArea)
+            self.assertIsNotNone(area)
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertIs(rows.parentWidget(), area.widget())
+            self.assertEqual(area.widget().layout().count(), 1)
+            self.assertEqual(area.styleSheet(), "")
+        finally:
+            dialog.deleteLater()
+
+    def test_shared_dialog_footer_retains_order_and_click_behaviour(self) -> None:
+        dialog = AtlasDialog()
+        dismiss = AtlasButton("Annuler", variant="secondary")
+        confirm = AtlasButton("Valider", variant="primary")
+        dismiss.clicked.connect(dialog.reject)
+        confirm.clicked.connect(dialog.accept)
+        try:
+            row = dialog.add_action_row(dismiss, confirm)
+            self.assertEqual(row.count(), 3)
+            self.assertIs(row.itemAt(1).widget(), dismiss)
+            self.assertIs(row.itemAt(2).widget(), confirm)
+            confirm.click()
+            self.assertEqual(dialog.result(), AtlasDialog.DialogCode.Accepted)
+        finally:
+            dialog.deleteLater()
+
+    def test_transient_dialog_cleanup_is_deferred_until_close(self) -> None:
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+
+        dialog = QDialog()
+        release_transient_dialog(dialog)
+        self.assertTrue(isValid(dialog))
+        dialog.show()
+        dialog.reject()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(dialog))
+
+    def test_shared_navigation_menu_preserves_action_order_and_dispatch(self) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        visited: list[str] = []
+        menu = QMenu()
+        try:
+            self.assertIs(
+                fill_unity_navigation_menu(
+                    menu, (("Premier", "one"), ("Deuxième", "two")), visited.append,
+                ), menu,
+            )
+            self.assertEqual([a.text() for a in menu.actions()], ["Premier", "Deuxième"])
+            menu.actions()[1].trigger()
+            menu.actions()[0].trigger()
+            self.assertEqual(visited, ["two", "one"])
+            self.assertEqual(menu.styleSheet(), "")
+        finally:
+            menu.deleteLater()
+
+    def test_transient_presenter_replaces_and_releases_dialogs(self) -> None:
+        from types import SimpleNamespace
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+        from app.ui.components import present_transient_dialog
+
+        owner = SimpleNamespace(active=None)
+        first, second = QDialog(), QDialog()
+        present_transient_dialog(owner, "active", first)
+        present_transient_dialog(owner, "active", second)
+        self.assertIs(owner.active, second)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(first))
+        second.reject()
+        self.assertIsNone(owner.active)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(second))
+
+    def test_transient_presenter_respects_refused_close_and_does_not_orphan_dialog(self) -> None:
+        from types import SimpleNamespace
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+        from app.ui.components import present_transient_dialog
+
+        class RefusingDialog(QDialog):
+            refuse_close = True
+
+            def closeEvent(self, event):
+                if self.refuse_close:
+                    event.ignore()
+                else:
+                    super().closeEvent(event)
+
+        owner = SimpleNamespace(active=None)
+        first, second = RefusingDialog(), QDialog()
+        self.assertTrue(present_transient_dialog(owner, "active", first))
+        self.assertFalse(present_transient_dialog(owner, "active", second))
+        self.assertIs(owner.active, first)
+        self.assertTrue(first.isVisible())
+        self.assertFalse(second.isVisible())
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(second))
+        first.refuse_close = False
+        first.close()
+        self.assertIsNone(owner.active)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(first))
+
+    def test_parentless_transient_is_disposed_with_its_owner(self) -> None:
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QDialog
+        from shiboken6 import isValid
+        from app.ui.components import present_transient_dialog
+
+        owner = QWidget()
+        owner.active = None
+        dialog = QDialog()
+        present_transient_dialog(owner, "active", dialog)
+        owner.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        self.assertFalse(isValid(dialog))
+
+    def test_shared_image_popup_keeps_popup_flags_and_indexed_zoom(self) -> None:
+        from PySide6.QtGui import QPixmap
+        from PySide6.QtWidgets import QLabel
+        from app.ui.components import AtlasImagePopup
+        parent = QWidget()
+        screen = parent.screen()
+        if screen is not None:
+            parent.move(screen.availableGeometry().bottomRight())
+        source = QPixmap(200, 100)
+        source.fill(Qt.transparent)
+        dialog = AtlasImagePopup(source, parent, title="Agrandissement")
+        try:
+            self.assertEqual(dialog.windowType(), Qt.Popup)
+            self.assertEqual(dialog.objectName(), "AtlasDialog")
+            self.assertEqual(dialog.windowTitle(), "Agrandissement")
+            image = dialog.findChild(QLabel, "QuestSolutionImage")
+            self.assertIsNotNone(image)
+            self.assertFalse(image.pixmap().isNull())
+            self.assertLessEqual(abs(image.pixmap().width() - 2 * image.pixmap().height()), 1)
+            if screen is not None:
+                self.assertTrue(screen.availableGeometry().contains(dialog.geometry()))
+        finally:
+            dialog.deleteLater()
+            parent.deleteLater()
+
+    def test_stale_dialog_never_clears_its_newer_replacement(self) -> None:
+        from types import SimpleNamespace
+        from PySide6.QtWidgets import QDialog
+
+        first, second = QDialog(), QDialog()
+        owner = SimpleNamespace(active=second)
+        try:
+            self.assertFalse(clear_current_dialog_reference(owner, "active", first))
+            self.assertIs(owner.active, second)
+            self.assertTrue(clear_current_dialog_reference(owner, "active", second))
+            self.assertIsNone(owner.active)
+            self.assertFalse(clear_current_dialog_reference(owner, "active", first))
+        finally:
+            first.deleteLater()
+            second.deleteLater()
+
+    def test_qt_state_style_refresh_is_owned_by_shared_component(self) -> None:
+        button = AtlasButton("Contrôle")
+        badge = AtlasStatusBadge("Statut", "neutral")
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                button.set_style_name("SharedStyleTest")
+                badge.set_state("ready")
+                self.assertEqual(refresh.call_count, 2)
+                self.assertIs(refresh.call_args_list[0].args[0], button)
+                self.assertIs(refresh.call_args_list[1].args[0], badge)
+            refresh_unity_widget_style(button)
+        finally:
+            button.deleteLater()
+            badge.deleteLater()
+
+    def test_hide_completed_button_reuses_shared_style_refresh(self) -> None:
+        from app.modules.encyclopedia.widgets.dashboard import HideCompletedButton
+
+        toggle = HideCompletedButton()
+        events: list[bool] = []
+        toggle.stateChanged.connect(events.append)
+        try:
+            with patch("app.modules.encyclopedia.widgets.dashboard.refresh_unity_widget_style") as refresh:
+                toggle.setChecked(True)
+                self.assertEqual(toggle.text(), "✓ Terminées masquées")
+                refresh.assert_called_once_with(toggle)
+                toggle.setChecked(False)
+                self.assertEqual(toggle.text(), "Masquer les terminées")
+                self.assertEqual(refresh.call_count, 2)
+                self.assertEqual(events, [True, False])
+        finally:
+            toggle.deleteLater()
+
+    def test_shared_dynamic_property_avoids_repolish_for_same_state(self) -> None:
+        control = QWidget()
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                self.assertTrue(set_unity_widget_property(control, "state", "done"))
+                self.assertFalse(set_unity_widget_property(control, "state", "done"))
+                self.assertTrue(set_unity_widget_property(control, "state", "todo"))
+                self.assertEqual(refresh.call_count, 2)
+        finally:
+            control.deleteLater()
+
+    def test_shared_dynamic_property_updates_once_without_local_qss(self) -> None:
+        label = QWidget()
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                self.assertTrue(set_unity_widget_property(label, "atlasTestRole", "ready"))
+                self.assertEqual(label.property("atlasTestRole"), "ready")
+                self.assertFalse(set_unity_widget_property(label, "atlasTestRole", "ready"))
+                self.assertTrue(set_unity_widget_property(label, "atlasTestRole", "error"))
+                self.assertEqual(refresh.call_count, 2)
+            self.assertEqual(label.styleSheet(), "")
+        finally:
+            label.deleteLater()
+
+    def test_shared_object_name_change_repolishes_once(self) -> None:
+        widget = AtlasButton("Style")
+        try:
+            with patch("app.ui.components.refresh_unity_widget_style") as refresh:
+                self.assertTrue(set_unity_widget_object_name(widget, "AtlasCustomRole"))
+                self.assertFalse(set_unity_widget_object_name(widget, "AtlasCustomRole"))
+                self.assertEqual(widget.objectName(), "AtlasCustomRole")
+                self.assertEqual(refresh.call_count, 1)
+        finally:
+            widget.deleteLater()
+
+    def test_dialog_standard_and_compact_sizes_use_shared_tokens(self) -> None:
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+
+        normal = AtlasDialog()
+        compact = AtlasDialog(density="compact")
+        try:
+            for dialog, prefix in ((normal, "dialog_"), (compact, "dialog_compact_")):
+                with self.subTest(density=dialog.layout_density):
+                    x = UNITY_LAYOUT_SIZES_PX[f"{prefix}padding_x"]
+                    y = UNITY_LAYOUT_SIZES_PX[f"{prefix}padding_y"]
+                    self.assertEqual(
+                        dialog.content_layout.getContentsMargins(), (x, y, x, y)
+                    )
+                    self.assertEqual(
+                        dialog.content_layout.spacing(),
+                        UNITY_LAYOUT_SIZES_PX[f"{prefix}gap"],
+                    )
+                    self.assertEqual(dialog.objectName(), "AtlasDialog")
+                    self.assertEqual(dialog.styleSheet(), "")
+            self.assertLess(
+                compact.content_layout.spacing(), normal.content_layout.spacing()
+            )
+            with self.assertRaises(ValueError):
+                AtlasDialog(density="unknown")
+        finally:
+            normal.deleteLater()
+            compact.deleteLater()
+
+    def test_shared_numeric_selector_fits_minimum_prefix_and_special_text(self) -> None:
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        selector = QSpinBox()
+        try:
+            selector.setRange(-123456, 99)
+            selector.setPrefix("Niveau ")
+            selector.setSuffix(" / 99")
+            selector.setValue(99)
+            width = fit_unity_number_spinbox(selector)
+            metrics = selector.fontMetrics()
+            expected_min = (
+                metrics.horizontalAdvance("Niveau -123456 / 99")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]
+            )
+            self.assertGreaterEqual(width, expected_min)
+            self.assertEqual(selector.width(), width)
+            self.assertEqual(selector.styleSheet(), "")
+
+            selector.setSpecialValueText("Aucune sélection disponible")
+            width_with_special = fit_unity_number_spinbox(selector)
+            expected_special = (
+                metrics.horizontalAdvance("Aucune sélection disponible")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]
+            )
+            self.assertGreaterEqual(width_with_special, expected_special)
+            self.assertGreaterEqual(width_with_special, width)
+        finally:
+            selector.deleteLater()
+
+    def test_character_combo_projection_preserves_identity_and_blocked_signals(self):
+        from types import SimpleNamespace
+        from app.ui.components import AtlasComboBox, populate_character_combo, select_character_combo_key
+        combo = AtlasComboBox()
+        rows = (
+            SimpleNamespace(key="character:1", label="Alpha", connected=True),
+            SimpleNamespace(key="character:2", label="Alpha", connected=False),
+        )
+        try:
+            combo.blockSignals(True)
+            self.assertEqual(populate_character_combo(combo, rows, "character:2"), "character:2")
+            self.assertTrue(combo.signalsBlocked())
+            self.assertEqual(combo.currentIndex(), 1)
+            self.assertTrue(select_character_combo_key(combo, "character:1"))
+            self.assertEqual(combo.currentIndex(), 0)
+            self.assertEqual(combo.toolTip(), "Alpha")
+            self.assertTrue(combo.signalsBlocked())
+            self.assertFalse(select_character_combo_key(combo, "character:9"))
+            self.assertEqual(combo.currentIndex(), 0)
+            self.assertEqual(populate_character_combo(combo, (), "character:1"), "character:1")
+        finally:
+            combo.deleteLater()
+
+    def test_atlas_combo_owns_content_size_policy(self) -> None:
+        from app.ui.components import AtlasComboBox
+
+        combo = AtlasComboBox()
+        try:
+            self.assertEqual(combo.sizePolicy().horizontalPolicy(), QSizePolicy.Maximum)
+            self.assertEqual(combo.sizePolicy().verticalPolicy(), QSizePolicy.Fixed)
+            self.assertEqual(combo.sizeAdjustPolicy(), QComboBox.AdjustToContents)
+        finally:
+            combo.deleteLater()
+
+    def test_shared_dropdown_popup_fits_available_screen(self) -> None:
+        from app.ui.components import AtlasComboBox
+
+        screen = self.app.primaryScreen()
+        self.assertIsNotNone(screen)
+        bounds = screen.availableGeometry()
+        root = QWidget()
+        root.setStyleSheet(atlas_stylesheet())
+        root.move(bounds.right() - 180, bounds.bottom() - 100)
+        root.resize(170, 90)
+        combo = AtlasComboBox(root)
+        combo.resize(110, 32)
+        combo.move(45, 35)
+        combo.addItems(
+            ["Une option extrêmement longue pour vérifier la largeur du menu"]
+            + [f"Choix {i}" for i in range(20)]
+        )
+        try:
+            root.show()
+            combo.show()
+            self.app.processEvents()
+            combo.showPopup()
+            self.app.processEvents()
+            popup = combo.view().window()
+            rect = popup.geometry()
+            available = combo.screen().availableGeometry()
+            self.assertGreater(rect.width(), 0)
+            self.assertGreater(rect.height(), 0)
+            self.assertGreaterEqual(rect.left(), available.left())
+            self.assertGreaterEqual(rect.top(), available.top())
+            self.assertLessEqual(rect.right(), available.right())
+            self.assertLessEqual(rect.bottom(), available.bottom())
+            self.assertLessEqual(combo.maxVisibleItems(), 8)
+        finally:
+            combo.hidePopup()
+            root.close()
+            root.deleteLater()
+
+    def test_number_selector_uses_polished_font_before_first_show(self) -> None:
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        selector = QSpinBox()
+        try:
+            selector.setRange(0, 999999)
+            selector.setSuffix(" unités")
+            selector.setStyleSheet("QSpinBox { font-size: 24px; }")
+            width = fit_unity_number_spinbox(selector)
+            expected = selector.fontMetrics().horizontalAdvance("999999 unités")
+            self.assertGreaterEqual(width, expected +
+                                    UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"])
+            self.assertEqual(selector.minimumWidth(), selector.maximumWidth())
+        finally:
+            selector.deleteLater()
+
+    def test_guide_page_number_reserves_left_text_inset_without_widening_quantities(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_CONTROL_SIZES_PX, UNITY_SPACING_PX,
+        )
+
+        page = QSpinBox()
+        quantity = QSpinBox()
+        try:
+            for widget in (page, quantity):
+                widget.setRange(1, 123456)
+                widget.setSuffix("/123456")
+            page.setObjectName("GuideCompactPageJump")
+            quantity.setObjectName("GuidePreparationQuantity")
+            page_width = fit_unity_number_spinbox(page)
+            quantity_width = fit_unity_number_spinbox(quantity)
+            # The application stylesheet can assign different fonts to the
+            # two roles. Compare the padding after accounting for each font.
+            value = "123456/123456"
+            page_text_width = page.fontMetrics().horizontalAdvance(value)
+            quantity_text_width = quantity.fontMetrics().horizontalAdvance(value)
+            self.assertEqual(
+                (page_width - page_text_width) - (quantity_width - quantity_text_width),
+                UNITY_SPACING_PX["sm"],
+            )
+            self.assertGreaterEqual(
+                page_width,
+                page.fontMetrics().horizontalAdvance("123456/123456")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]
+                + UNITY_SPACING_PX["sm"],
+            )
+            self.assertEqual(page.styleSheet(), "")
+            self.assertEqual(quantity.styleSheet(), "")
+        finally:
+            page.deleteLater()
+            quantity.deleteLater()
+
+    def test_breadcrumb_insets_use_the_shared_size_index(self) -> None:
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX, UNITY_SPACING_PX
+
+        values = UNITY_LAYOUT_SIZES_PX
+        for compact, inset_key in (
+            (True, "breadcrumb_compact_inset"),
+            (False, "breadcrumb_normal_inset"),
+        ):
+            breadcrumb = AtlasBreadcrumb(compact=compact)
+            try:
+                inset = values[inset_key]
+                self.assertEqual(
+                    breadcrumb.row.getContentsMargins(),
+                    (UNITY_SPACING_PX["md"], inset, UNITY_SPACING_PX["md"], inset),
+                )
+                self.assertEqual(breadcrumb.row.spacing(),
+                                 values["breadcrumb_item_gap"])
+            finally:
+                breadcrumb.deleteLater()
+
+    def test_shared_button_variant_roles_and_real_qt_click(self) -> None:
+        root = QWidget()
+        root.resize(480, 160)
+        root.setStyleSheet(atlas_stylesheet())
+        button = AtlasButton("Ouvrir", root, variant="secondary")
+        button.resize(130, 34)
+        calls: list[str] = []
+        button.clicked.connect(lambda: calls.append(button.objectName()))
+        try:
+            root.show()
+            button.show()
+            self.app.processEvents()
+            self.assertEqual(button.styleSheet(), "")
+            self.assertEqual(button.objectName(), BUTTON_OBJECT_NAMES["secondary"])
+            QTest.mouseClick(button, Qt.LeftButton)
+            self.assertEqual(calls, ["SecondaryButton"])
+
+            for variant in (
+                "primary", "danger", "selected", "navigation", "navigation_active",
+                "guide_breadcrumb", "guide_quest_link", "zaap_favorite",
+                "guide_achievement_link",
+            ):
+                button.set_variant(variant)
+                self.assertEqual(button.objectName(), BUTTON_OBJECT_NAMES[variant])
+                self.assertEqual(button.styleSheet(), "")
+            QTest.mouseClick(button, Qt.LeftButton)
+            self.assertEqual(calls[-1], "GuideInlineAchievementButton")
+            self.assertEqual(len(calls), 2)
+        finally:
+            root.close()
+            root.deleteLater()
+
+    def test_shared_toggle_updates_host_state_and_accessibility(self) -> None:
+        root = QWidget()
+        root.resize(300, 100)
+        toggle = AtlasPanelToggle(root)
+        toggle.resize(56, 36)
+        events: list[bool] = []
+        toggle.clicked.connect(
+            lambda: (
+                toggle.set_collapsed(not bool(toggle.property("collapsed"))),
+                events.append(bool(toggle.property("collapsed"))),
+            )
+        )
+        try:
+            root.show()
+            toggle.show()
+            self.app.processEvents()
+            QTest.mouseClick(toggle, Qt.LeftButton)
+            self.assertEqual(events, [True])
+            self.assertIn("Réafficher", toggle.accessibleName())
+            QTest.mouseClick(toggle, Qt.LeftButton)
+            self.assertEqual(events, [True, False])
+            self.assertIn("Masquer", toggle.accessibleName())
+            self.assertEqual(toggle.styleSheet(), "")
+        finally:
+            root.close()
+            root.deleteLater()
+
+    def test_compact_guide_controls_use_indexed_geometry(self) -> None:
+        from app.ui.components import AtlasGuideDisclosure, AtlasGuideParticipantButton
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX as sizes
+
+        participant = AtlasGuideParticipantButton()
+        disclosure = AtlasGuideDisclosure()
+        try:
+            participant.setCheckable(True)
+            participant.configure_compact()
+            disclosure.configure_compact()
+            self.assertTrue(participant.isCheckable())
+            self.assertTrue(disclosure.isCheckable())
+            self.assertEqual(participant.width(), sizes["guide_character_button"])
+            self.assertEqual(participant.height(), sizes["guide_character_button"])
+            self.assertEqual(participant.iconSize().width(), sizes["guide_character_icon"])
+            self.assertEqual(disclosure.width(), sizes["progress_toggle_width"])
+            self.assertEqual(disclosure.height(), sizes["progress_toggle_height"])
+            self.assertEqual(disclosure.iconSize().width(), sizes["progress_toggle_icon"])
+        finally:
+            participant.deleteLater()
+            disclosure.deleteLater()
+
+    def test_guide_character_button_compatibility_with_importer(self) -> None:
+        from app.ui.components import (
+            AtlasGuideParticipantButton, AtlasGuideCharacterButton,
+            GUIDE_CHARACTER_BUTTON_PX, GUIDE_CHARACTER_ICON_PX,
+        )
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        self.assertIs(AtlasGuideCharacterButton, AtlasGuideParticipantButton)
+        self.assertEqual(
+            GUIDE_CHARACTER_BUTTON_PX,
+            UNITY_CONTROL_SIZES_PX["guide_character_button"],
+        )
+        self.assertEqual(
+            GUIDE_CHARACTER_ICON_PX,
+            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
+        )
+        button = AtlasGuideCharacterButton()
+        try:
+            self.assertEqual(button.objectName(), "GuideParticipantsButton")
+            self.assertEqual(button.styleSheet(), "")
+        finally:
+            button.deleteLater()
+        qss = atlas_stylesheet()
+        self.assertIn("QFrame#GuideGlobalDetailsPanel", qss)
+        self.assertIn("QPushButton#GuidePreparationModeTab", qss)
+
+    def test_status_badge_is_passive_and_uses_shared_state(self) -> None:
+        root = QWidget()
+        root.setStyleSheet(atlas_stylesheet())
+        badge = AtlasStatusBadge("En travaux", state="blocked", parent=root)
+        try:
+            self.assertEqual(badge.objectName(), "StatusBadge")
+            self.assertEqual(badge.property("state"), "blocked")
+            self.assertEqual(badge.cursor().shape(), Qt.ArrowCursor)
+            self.assertEqual(badge.styleSheet(), "")
+            badge.set_state("done")
+            self.assertEqual(badge.property("state"), "done")
+            badge.set_state("danger")
+            self.assertEqual(badge.property("state"), "danger")
+            self.assertIn("Statut En travaux", badge.accessibleName())
+        finally:
+            root.close()
+            root.deleteLater()
+
+    def test_dialog_and_page_title_use_shared_styles_without_local_qss(self) -> None:
+        dialog = AtlasDialog()
+        page_title = AtlasPageTitle("Préférences")
+        try:
+            dialog.content_layout.addWidget(page_title)
+            self.assertEqual(dialog.objectName(), "AtlasDialog")
+            self.assertTrue(dialog.isModal())
+            self.assertEqual(page_title.objectName(), "PageTitle")
+            self.assertEqual(dialog.styleSheet(), "")
+            self.assertEqual(page_title.styleSheet(), "")
+        finally:
+            dialog.close()
+            dialog.deleteLater()
+
+
+if __name__ == "__main__":
+    unittest.main()

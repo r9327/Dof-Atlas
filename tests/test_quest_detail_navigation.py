@@ -45,19 +45,14 @@ class QuestDetailNavigationTests(unittest.TestCase):
             QTest.qWait(20)
             self.app.processEvents()
             center_bar = view.center_scroll.verticalScrollBar()
-            right_bar = view.right_scroll.verticalScrollBar()
             self.assertGreater(center_bar.maximum(), 0)
             center_bar.setValue(center_bar.maximum())
-            if right_bar.maximum() > 0:
-                right_bar.setValue(right_bar.maximum())
             self.assertGreater(center_bar.value(), 0)
 
             self.assertTrue(view.show_quest(691))
             self.assertEqual(center_bar.value(), 0)
-            self.assertEqual(right_bar.value(), 0)
             self.app.processEvents()
             self.assertEqual(center_bar.value(), 0)
-            self.assertEqual(right_bar.value(), 0)
 
             view.close()
             view.deleteLater()

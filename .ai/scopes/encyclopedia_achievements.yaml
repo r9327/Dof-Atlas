@@ -2,12 +2,18 @@ schema_version: 1
 scope: encyclopedia_achievements
 kind: feature
 working_set:
+  - tests/test_achievement_frozen_detail_runtime.py
   - app/modules/encyclopedia/views/achievements_view.py
   - app/modules/encyclopedia/achievement_catalog_policy.py
   - app/modules/encyclopedia/providers/achievement_provider.py
+  - app/modules/encyclopedia/providers/memory_bound_achievement_provider.py
+  - tests/test_achievement_compact_subprocess_lifecycle.py
   - app/modules/encyclopedia/services/serialized_achievement_progress_service.py
   - app/modules/encyclopedia/services/achievement_progress_logic.py
   - app/modules/encyclopedia/widgets/achievement_detail_widget.py
+  - app/modules/encyclopedia/widgets/filter_panel.py
+  - tests/test_achievements_view.py
+  - tests/test_encyclopedia_success_detail_prewarm.py
 shared_dependencies:
   - dofus_data
   - persistence_identity

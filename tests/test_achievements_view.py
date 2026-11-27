@@ -1,0 +1,862 @@
+from __future__ import annotations
+
+import os
+import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QListWidgetItem, QTreeWidgetItem
+
+from app.modules.encyclopedia.views.achievements_view import AchievementsView
+
+
+class AchievementsThirdColumnTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
+    def make_view(self):
+        provider = Mock()
+        provider._recent_rich_details = None
+        provider._detail_cache_id = None
+        provider._detail_cache = None
+        provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Succès de test"
+        )
+        provider.is_retained.return_value = True
+        provider.get_detail_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Succès de test"
+        )
+        view = AchievementsView(
+            lambda _status: None,
+            provider,
+            Mock(),
+            quest_provider=Mock(),
+            quest_graph=Mock(),
+            quest_progress_service=Mock(),
+            defer_runtime=True,
+        )
+        self.addCleanup(view.close)
+        self.addCleanup(view.deleteLater)
+        return view, provider
+
+    @staticmethod
+    def add_success(view, achievement_id: int) -> QListWidgetItem:
+        item = QListWidgetItem(f"Succès {achievement_id}")
+        item.setData(Qt.UserRole, achievement_id)
+        view.list_widget.addItem(item)
+        return item
+
+    def test_category_refresh_preserves_signal_state_on_error(self):
+        view, provider = self.make_view()
+        tree = view.category_tree
+        for previous in (True, False):
+            tree.blockSignals(previous)
+            with patch.object(tree, "clear", side_effect=RuntimeError("provider")):
+                with self.assertRaisesRegex(RuntimeError, "provider"):
+                    view.populate_categories()
+            self.assertEqual(tree.signalsBlocked(), previous)
+
+    def test_achievement_summary_shares_progress_percentage_with_detail(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.modules.encyclopedia.widgets.achievement_summary_widget import (
+            AchievementSummaryWidget,
+        )
+
+        achievement = SimpleNamespace(
+            id=9, name="Test succès", points=15,
+            objectives=[SimpleNamespace(id=101), SimpleNamespace(id=102)],
+        )
+        progress = SimpleNamespace(
+            is_objective_completed=lambda _aid, oid: oid == 101,
+            is_achievement_completed=lambda _aid: False,
+        )
+        card = AchievementSummaryWidget(achievement, progress)
+        try:
+            self.assertEqual(card.findChild(QProgressBar).value(), 50)
+            self.assertTrue(any("50 %" in label.text() for label in card.findChildren(QLabel)))
+        finally:
+            card.deleteLater()
+
+    def test_success_objective_edit_updates_effective_progress_without_rebuilding(self):
+        import tempfile
+        from pathlib import Path
+        from app.modules.encyclopedia.models.achievement import Achievement, AchievementObjective
+        from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
+        from app.modules.encyclopedia.widgets.achievement_detail_widget import AchievementDetailWidget
+        from app.modules.encyclopedia.widgets.achievement_summary_widget import AchievementSummaryWidget
+        from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
+        from PySide6.QtWidgets import QProgressBar
+        achievement = Achievement(
+            id=10, original_id=10, name="Test", description="", category_id=1,
+            category_name="Quêtes", subcategory_id=None, subcategory_name="", level=1, points=1,
+            objectives=(
+                AchievementObjective(1, 10, "Objectif", ""),
+                AchievementObjective(2, 10, "Interne", "", objective_type="critère PL"),
+                AchievementObjective(3, 10, "Interne", "", objective_type="critère BI"),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            service = AchievementProgressService(Path(tmp) / "progress.json")
+            key = "character:1"
+            changed = []
+            widget = AchievementDetailWidget(achievement, service, key, completion_changed_callback=changed.append)
+            try:
+                row = widget.findChild(AchievementObjectiveWidget)
+                self.assertIsNotNone(row)
+                self.assertEqual(widget.progress_bar.value(), 0)
+                row.check.setChecked(True)
+                self.assertEqual(widget.progress_bar.value(), 100)
+                self.assertIn("1 / 1", widget.progress_text.text())
+                self.assertIs(widget.findChild(AchievementObjectiveWidget), row)
+                summary = AchievementSummaryWidget(achievement, service.state_for(key))
+                try:
+                    self.assertEqual(summary.findChild(QProgressBar).value(), 100)
+                finally:
+                    summary.deleteLater()
+                row.check.setChecked(False)
+                self.assertEqual(widget.progress_bar.value(), 0)
+                self.assertEqual(changed, [False, False])
+            finally:
+                widget.deleteLater()
+
+    def test_shared_progress_bar_supports_indeterminate_and_native_text(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import configure_unity_progress_bar
+
+        bar = configure_unity_progress_bar(
+            QProgressBar(), maximum=0, text_visible=True,
+        )
+        try:
+            self.assertEqual((bar.minimum(), bar.maximum()), (0, 0))
+            self.assertTrue(bar.isTextVisible())
+            configure_unity_progress_bar(bar, maximum=3, text_visible=True)
+            self.assertEqual((bar.minimum(), bar.maximum()), (0, 3))
+            self.assertTrue(bar.isTextVisible())
+        finally:
+            bar.deleteLater()
+
+    def test_shared_progress_bar_preserves_role_range_and_initial_value(self):
+        from PySide6.QtWidgets import QProgressBar
+        from app.ui.components import configure_unity_progress_bar
+
+        for maximum in (1, 100):
+            with self.subTest(maximum=maximum):
+                bar = QProgressBar()
+                bar.setValue(0)
+                self.assertIs(
+                    configure_unity_progress_bar(
+                        bar, object_name="EncyclopediaProgressBar", maximum=maximum,
+                    ), bar,
+                )
+                self.assertEqual(bar.objectName(), "EncyclopediaProgressBar")
+                self.assertEqual((bar.minimum(), bar.maximum()), (0, maximum))
+                self.assertFalse(bar.isTextVisible())
+                self.assertEqual(bar.value(), 0)
+                bar.deleteLater()
+
+    def test_reusable_progress_card_matches_shared_percentage_bounds(self):
+        from app.modules.encyclopedia.widgets.progress_card import ProgressCard
+
+        card = ProgressCard()
+        try:
+            for completed, total, label, percent in (
+                (2, 3, "2 / 3 · 67%", 67),
+                (7, 4, "4 / 4 · 100%", 100),
+                (-1, 4, "0 / 4 · 0%", 0),
+                (9, 0, "0 / 0 · 0%", 0),
+            ):
+                with self.subTest(completed=completed, total=total):
+                    card.set_progress(completed, total)
+                    self.assertEqual(card.value_label.text(), label)
+                    self.assertEqual(card.bar.value(), percent)
+        finally:
+            card.deleteLater()
+
+    def test_shared_widget_cleanup_recurses_only_when_requested(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+        from app.ui.components import clear_unity_widget_layout
+
+        host = QWidget()
+        outer = QVBoxLayout(host)
+        inner = QHBoxLayout()
+        label = QLabel("nested")
+        inner.addWidget(label)
+        outer.addLayout(inner)
+        outer.addStretch(1)
+        try:
+            clear_unity_widget_layout(outer, recursive=True)
+            self.assertEqual(outer.count(), 0)
+            self.assertEqual(inner.count(), 0)
+            self.assertIsNone(label.parent())
+        finally:
+            host.deleteLater()
+
+    def test_shared_widget_cleanup_hides_guides_before_detaching(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout
+        from app.ui.components import clear_unity_widget_layout
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        label = QLabel("ancienne fiche")
+        layout.addWidget(label)
+        try:
+            host.show()
+            self.app.processEvents()
+            self.assertFalse(label.isHidden())
+            clear_unity_widget_layout(layout, hide_widgets=True)
+            self.assertTrue(label.isHidden())
+            self.assertIsNone(label.parent())
+            self.assertEqual(layout.count(), 0)
+        finally:
+            host.deleteLater()
+
+    def test_success_detail_refresh_releases_previous_widget(self):
+        view, _provider = self.make_view()
+        marker = QLabel("previous detail")
+        view.detail_layout.addWidget(marker)
+        view.clear_detail()
+        self.assertEqual(view.detail_layout.count(), 0)
+        self.assertIsNone(marker.parent())
+
+    def test_compact_and_detail_scrollers_share_widget_cleanup(self):
+        from app.modules.encyclopedia.widgets.dashboard import CompactScroll
+        from app.modules.encyclopedia.widgets.detail_panel import DetailPanel
+
+        for create, action in (
+            (CompactScroll, "clear"),
+            (DetailPanel, "clear_content"),
+        ):
+            with self.subTest(scroller=create.__name__):
+                area = create()
+                label = QLabel("Élément temporaire")
+                try:
+                    area.layout.addWidget(label)
+                    area.layout.addStretch(1)
+                    getattr(area, action)()
+                    self.assertEqual(area.layout.count(), 0)
+                    self.assertIsNone(label.parent())
+                    getattr(area, action)()
+                    self.assertEqual(area.layout.count(), 0)
+                finally:
+                    area.deleteLater()
+
+    def test_compact_dashboard_scroller_keeps_legacy_frame_and_overflow(self):
+        from app.modules.encyclopedia.widgets.dashboard import CompactScroll
+
+        area = CompactScroll()
+        try:
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.frameShape(), QFrame.NoFrame)
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            self.assertEqual(area.objectName(), "CompactScroll")
+        finally:
+            area.deleteLater()
+
+    def test_shared_scroll_policy_supports_existing_horizontal_modes(self):
+        from PySide6.QtWidgets import QScrollArea
+        from app.ui.components import configure_unity_scroll_area
+
+        area = configure_unity_scroll_area(
+            QScrollArea(),
+            borderless=True,
+            horizontal_policy=Qt.ScrollBarAsNeeded,
+            vertical_policy=Qt.ScrollBarAlwaysOn,
+        )
+        try:
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            self.assertEqual(area.verticalScrollBarPolicy(), Qt.ScrollBarAlwaysOn)
+            self.assertEqual(area.frameShape(), QFrame.NoFrame)
+        finally:
+            area.deleteLater()
+
+    def test_filter_projection_preserves_block_and_canonical_numeric_range(self):
+        from app.modules.encyclopedia.widgets.filter_panel import AchievementFilterPanel
+        panel = AchievementFilterPanel()
+        try:
+            panel.category_combo.blockSignals(True)
+            panel.subcategory_combo.blockSignals(True)
+            panel.set_categories([])
+            self.assertTrue(panel.category_combo.signalsBlocked())
+            self.assertTrue(panel.subcategory_combo.signalsBlocked())
+            self.assertEqual((panel.min_level.minimum(), panel.min_level.maximum(), panel.min_level.value()), (0, 999, 0))
+            self.assertEqual((panel.max_level.minimum(), panel.max_level.maximum(), panel.max_level.value()), (0, 999, 999))
+            panel.set_category_cards([("Test", 1, 2)])
+            panel.set_category_cards([])
+            self.assertEqual(panel.category_layout.count(), 1)  # only the stretch
+        finally:
+            panel.deleteLater()
+
+    def test_category_scroll_uses_shared_policy_without_losing_frame(self):
+        from app.modules.encyclopedia.widgets.filter_panel import AchievementFilterPanel
+        from PySide6.QtWidgets import QScrollArea
+
+        panel = AchievementFilterPanel()
+        try:
+            area = panel.category_area
+            self.assertIsInstance(area, QScrollArea)
+            self.assertTrue(area.widgetResizable())
+            self.assertEqual(area.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(area.frameShape(), QFrame.StyledPanel)
+            self.assertEqual(area.objectName(), "CategoryProgressArea")
+        finally:
+            panel.deleteLater()
+
+    def test_third_column_is_visible_and_has_help_before_first_selection(self):
+        view, provider = self.make_view()
+        self.assertEqual(view.splitter.count(), 3)
+        self.assertIs(view.splitter.widget(2), view.detail_stack)
+        self.assertFalse(view.splitter.isCollapsible(2))
+        self.assertGreaterEqual(view.detail_stack.minimumWidth(), 240)
+        from app.ui.unity_palette import UNITY_SPACING_PX
+        self.assertEqual(view.layout().spacing(), UNITY_SPACING_PX["md"])
+        for panel in (view.category_panel, view.success_panel):
+            layout = panel.layout()
+            self.assertEqual(layout.spacing(), UNITY_SPACING_PX["md"])
+            margins = layout.contentsMargins()
+            self.assertEqual(
+                (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                (UNITY_SPACING_PX["lg"],) * 4,
+            )
+        self.assertIs(view.detail_stack.currentWidget(), view.detail_scroll)
+        self.assertTrue(view.detail_scroll.widgetResizable())
+        self.assertEqual(view.detail_scroll.frameShape(), QFrame.NoFrame)
+        self.assertEqual(view.detail_scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+        self.assertIn(
+            "Sélectionnez un succès",
+            " ".join(label.text() for label in view.detail_content.findChildren(QLabel)),
+        )
+        provider.get_detail_by_id.assert_not_called()
+
+    def test_corrupt_list_item_id_does_not_replace_open_success(self):
+        view, provider = self.make_view()
+        view.current_achievement_id = 42
+        view._detail_open = True
+        view.show_achievement = Mock()
+        for bad in (None, "", "bad", -7, True, 1.2):
+            with self.subTest(raw=repr(bad)):
+                item = QListWidgetItem("Enregistrement corrompu")
+                item.setData(Qt.UserRole, bad)
+                view.on_achievement_clicked(item)
+        view.show_achievement.assert_not_called()
+        self.assertEqual(view.current_achievement_id, 42)
+        self.assertTrue(view._detail_open)
+        provider.get_detail_by_id.assert_not_called()
+
+    def test_malformed_show_success_id_does_not_close_current_detail(self):
+        view, provider = self.make_view()
+        view.current_achievement_id = 42
+        view._detail_open = True
+        for bad in (None, "bad", 0, -1, True, 1.5):
+            with self.subTest(raw=repr(bad)):
+                view.show_achievement(bad)
+        self.assertEqual(view.current_achievement_id, 42)
+        self.assertTrue(view._detail_open)
+        provider.is_retained.assert_not_called()
+        provider.get_detail_by_id.assert_not_called()
+
+    def test_loading_and_error_drop_old_lazy_success_batches(self):
+        view, _provider = self.make_view()
+        for label, announce in (
+            ("chargement", lambda: view.show_runtime_loading()),
+            ("erreur", lambda: view.show_runtime_error("Données indisponibles")),
+        ):
+            with self.subTest(state=label):
+                view._achievement_pending_rows = [42, 43, 44]
+                view._achievement_visible_row_by_id = {42: 0}
+                view._achievement_pending_selected_id = 42
+                view._achievement_rows_dirty = True
+                view._catalog_refresh_signature = (7, "ancien")
+                view.filtered = [SimpleNamespace(id=42)]
+                view._achievement_batch_timer.start()
+                generation = view._achievement_render_generation
+                announce()
+
+                self.assertFalse(view._achievement_batch_timer.isActive())
+                self.assertEqual(view._achievement_render_generation, generation + 1)
+                self.assertEqual(view._achievement_pending_rows, [])
+                self.assertEqual(view._achievement_visible_row_by_id, {})
+                self.assertIsNone(view._achievement_pending_selected_id)
+                self.assertFalse(view._achievement_rows_dirty)
+                self.assertIsNone(view._catalog_refresh_signature)
+                self.assertEqual(view.filtered, [])
+                self.assertEqual(view.list_widget.count(), 1)
+                self.assertFalse(view.list_widget.item(0).flags() & Qt.ItemIsEnabled)
+
+    def test_clicking_selected_success_twice_keeps_detail_open(self):
+        view, provider = self.make_view()
+        rendered = []
+        view._display_achievement = lambda achievement: (
+            rendered.append(achievement.id),
+            setattr(view, "_detail_open", True),
+        )
+        item = self.add_success(view, 42)
+        view.on_achievement_clicked(item)
+        view.on_achievement_clicked(item)
+        self.assertEqual(rendered, [42])
+        self.assertEqual(view.current_achievement_id, 42)
+        self.assertTrue(view._detail_open)
+        self.assertEqual(provider.get_detail_by_id.call_count, 1)
+
+    def test_malformed_success_deep_link_is_rejected_without_qt_exception(self):
+        view, provider = self.make_view()
+        provider.get_by_id.side_effect = AssertionError("no summary read")
+        for malformed in (None, "", "not-an-id", "42/other", -1, 0, True, 1.5e999):
+            with self.subTest(value=repr(malformed)):
+                self.assertFalse(view.select_achievement(malformed))
+        provider.is_retained.assert_not_called()
+        provider.get_by_id.assert_not_called()
+        provider.get_detail_by_id.assert_not_called()
+
+    def test_every_cross_module_entity_link_rejects_invalid_numeric_ids(self):
+        view, provider = self.make_view()
+        view.navigate_callback = Mock(return_value=True)
+        view.quest_provider.get_quest.return_value = SimpleNamespace(id=42)
+        for invalid in (None, "", "abc", "42-other", -1, 0, True, 1.5, "9" * 5000):
+            with self.subTest(value=repr(invalid)[:50]):
+                self.assertFalse(view.show_quest(invalid))
+                self.assertFalse(view.open_quest_in_quests(invalid))
+                self.assertFalse(view.open_linked_entity("quest", invalid))
+                self.assertFalse(view.open_linked_entity("achievement", invalid))
+                self.assertFalse(view.open_linked_entity("monster", invalid))
+                self.assertFalse(view.open_prerequisite_in_quests(invalid))
+                self.assertFalse(view.open_shared_entity("quest", invalid))
+                self.assertFalse(view.open_shared_entity("achievement", invalid))
+                view.on_alignment_quest_activated("quest", invalid)
+        view.navigate_callback.assert_not_called()
+        view.quest_provider.get_quest.assert_not_called()
+        provider.is_retained.assert_not_called()
+
+    def test_cross_module_entity_links_preserve_valid_ids_and_context(self):
+        view, _provider = self.make_view()
+        view.navigate_callback = Mock(return_value=True)
+        view.quest_provider.get_quest.side_effect = (
+            lambda quest_id: SimpleNamespace(id=quest_id) if quest_id == 42 else None
+        )
+        view.current_achievement_id = 8
+        self.assertTrue(view.open_shared_entity("quest", " 42 "))
+        view.navigate_callback.assert_called_once_with(
+            "quest", 42, source="achievement_link", achievement_id=8,
+        )
+        view.navigate_callback.reset_mock()
+        self.assertTrue(view.open_linked_entity("monster", "42"))
+        view.navigate_callback.assert_called_once_with(
+            "monster", 42, source="achievement",
+        )
+        view.navigate_callback.reset_mock()
+        self.assertTrue(view.open_prerequisite_in_quests("42"))
+        view.navigate_callback.assert_called_once_with(
+            "quest", 42, source="achievement_prerequisite", achievement_id=8,
+        )
+        with patch.object(view, "select_achievement", return_value=True) as select:
+            self.assertTrue(view.open_shared_entity("achievement", "42"))
+            self.assertTrue(view.open_linked_entity("achievement", "42"))
+            self.assertEqual(select.call_count, 2)
+
+    def test_invalid_success_direct_link_skips_compatibility_jsonl_read(self):
+        view, provider = self.make_view()
+        provider.is_retained.return_value = False
+        provider.get_by_id.side_effect = AssertionError(
+            "A missing Success ID must never hydrate on the Qt thread"
+        )
+        with patch.object(view.category_tree, "setCurrentItem") as select:
+            self.assertFalse(view.select_achievement(999999))
+            provider.is_retained.assert_called_once_with(999999)
+            provider.get_by_id.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            select.assert_not_called()
+
+    def test_cold_detail_click_skips_compatibility_summary_on_qt_thread(self):
+        view, provider = self.make_view()
+        provider._recent_rich_details = {}
+        provider.detail_sources_ready = False
+        provider.detail_source_index_required.return_value = False
+        provider.get_by_id.side_effect = AssertionError(
+            "A cold click must not read the compact summary on the UI thread"
+        )
+        view._display_achievement = Mock()
+
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(93)
+            provider.is_retained.assert_called_with(93)
+            provider.get_by_id.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_called_once()
+
+            # The real rich read belongs only to the existing detail worker.
+            thread.call_args.kwargs["target"]()
+            self.app.processEvents()
+
+        provider.get_detail_by_id.assert_called_once_with(93)
+
+    def test_invalid_detail_id_does_not_start_worker_or_read_summary(self):
+        view, provider = self.make_view()
+        provider.is_retained.return_value = False
+        provider.get_by_id.side_effect = AssertionError(
+            "An unknown Success should fail membership before reading detail"
+        )
+
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(9999)
+            provider.get_by_id.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_not_called()
+        self.assertIsNone(view.current_achievement_id)
+
+    def test_catalogue_only_preload_skips_reward_source_index(self):
+        from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+
+        provider = AchievementProvider()
+        with (
+            patch.object(provider, "_ensure_loaded") as catalogue,
+            patch.object(provider, "prepare_detail_sources") as rewards,
+        ):
+            self.assertIsNone(provider.load_catalogue_only())
+            catalogue.assert_called_once_with()
+            rewards.assert_not_called()
+            self.assertEqual(provider.load_all(), [])
+            self.assertEqual(catalogue.call_count, 2)
+            rewards.assert_called_once_with()
+
+    def test_installed_provider_defers_reward_index_until_detail(self):
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            MemoryBoundAchievementProvider,
+        )
+
+        provider = MemoryBoundAchievementProvider()
+        with (
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.sys.frozen",
+                True, create=True,
+            ),
+            patch.object(provider, "_ensure_loaded") as catalogue,
+            patch.object(provider, "prepare_detail_sources") as rewards,
+        ):
+            self.assertTrue(provider.detail_source_index_required())
+            provider.load_runtime()
+            catalogue.assert_called_once_with()
+            rewards.assert_not_called()
+        # A development subprocess never needs an in-process index.
+        with patch(
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.sys.frozen",
+            False, create=True,
+        ):
+            self.assertFalse(provider.detail_source_index_required())
+
+    def test_subprocess_detail_skips_unneeded_reward_index(self):
+        view, provider = self.make_view()
+        provider._recent_rich_details = {}
+        provider.detail_sources_ready = False
+        provider.detail_source_index_required.return_value = False
+        view._display_achievement = Mock()
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(93)
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_called_once()
+            thread.call_args.kwargs["target"]()
+            self.app.processEvents()
+        provider.prepare_detail_sources.assert_not_called()
+        provider.get_detail_by_id.assert_called_once_with(93)
+
+    def test_first_cold_detail_prepares_rewards_only_on_worker(self):
+        view, provider = self.make_view()
+        provider.detail_sources_ready = False
+        provider.prepare_detail_sources.side_effect = (
+            lambda: setattr(provider, "detail_sources_ready", True)
+        )
+        view._display_achievement = Mock()
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(42)
+            # The Qt click may schedule work but must not index reward sources.
+            provider.prepare_detail_sources.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_called_once()
+            thread.return_value.start.assert_called_once()
+            self.assertEqual(view._detail_requested[1], 42)
+
+            # Execute the captured task deterministically without spinning a
+            # background thread; the real threaded path uses this same target.
+            task = thread.call_args.kwargs["target"]
+            task()
+            self.app.processEvents()
+
+        provider.prepare_detail_sources.assert_called_once_with()
+        provider.get_detail_by_id.assert_called_once_with(42)
+        self.assertTrue(provider.detail_sources_ready)
+        self.assertEqual(view._detail_worker_running, False)
+
+    def test_compact_direct_link_avoids_qt_summary_read(self):
+        view, provider = self.make_view()
+        calls = []
+
+        class _CompactCategoryProvider:
+            def __init__(self, delegate):
+                self.delegate = delegate
+
+            def __getattr__(self, name):
+                return getattr(self.delegate, name)
+
+            def catalogue_category_for_id(self, achievement_id):
+                calls.append(achievement_id)
+                return 19
+
+        view.provider = _CompactCategoryProvider(provider)
+        provider.get_by_id.side_effect = AssertionError(
+            "Direct links must use compact category membership"
+        )
+        category = QTreeWidgetItem(["Catégorie rapide"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.filtered = [SimpleNamespace(id=42)]
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertEqual(calls, [42])
+        self.assertIs(view.category_tree.currentItem(), category)
+        provider.get_by_id.assert_not_called()
+        view.show_achievement.assert_called_once_with(42)
+
+    def test_compact_deep_link_without_visible_category_never_blocks_qt(self):
+        view, provider = self.make_view()
+
+        class _CompactWithoutVisibleCategory:
+            def __init__(self, delegate, category_id):
+                self.delegate = delegate
+                self.category_id = category_id
+
+            def __getattr__(self, name):
+                return getattr(self.delegate, name)
+
+            def catalogue_category_for_id(self, achievement_id):
+                self.delegate.is_retained.assert_called_with(achievement_id)
+                return self.category_id
+
+        provider.get_by_id.side_effect = AssertionError(
+            "Missing compact category or tree row must not read JSONL on Qt"
+        )
+        view.filtered = [SimpleNamespace(id=17)]
+        self.add_success(view, 17)
+        view.show_achievement = Mock()
+
+        for category_id in (None, 9999):
+            with self.subTest(category_id=category_id):
+                # None means an absent sidecar mapping; 9999 means a stale
+                # mapping whose category was never built into the tree.
+                view.provider = _CompactWithoutVisibleCategory(provider, category_id)
+                view.list_widget.setCurrentRow(0)
+                view.show_achievement.reset_mock()
+                self.assertTrue(view.select_achievement(42))
+                provider.is_retained.assert_called_with(42)
+                provider.get_by_id.assert_not_called()
+                self.assertEqual(view.list_widget.currentRow(), -1)
+                self.assertEqual(view._achievement_pending_selected_id, 42)
+                view.show_achievement.assert_called_once_with(42)
+
+    def test_compact_deep_link_with_stale_filtered_category_still_opens(self):
+        view, provider = self.make_view()
+
+        class _CompactRetainedCategory:
+            def __init__(self, delegate):
+                self.delegate = delegate
+
+            def __getattr__(self, name):
+                return getattr(self.delegate, name)
+
+            def catalogue_category_for_id(self, achievement_id):
+                self.delegate.is_retained.assert_called_with(achievement_id)
+                return 19
+
+        view.provider = _CompactRetainedCategory(provider)
+        provider.get_by_id.side_effect = AssertionError(
+            "Retained deep link must not decode Success JSONL on the Qt thread"
+        )
+        category = QTreeWidgetItem(["Catégorie récupérée"])
+        category.setData(0, Qt.UserRole, 19)
+        view._tree_items[19] = category
+        view.category_tree.addTopLevelItem(category)
+        view.filtered = [SimpleNamespace(id=17)]
+        self.add_success(view, 17)
+        view.list_widget.setCurrentRow(0)
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertIs(view.category_tree.currentItem(), category)
+        self.assertEqual(view.list_widget.currentRow(), -1)
+        self.assertEqual(view._achievement_pending_selected_id, 42)
+        view.show_achievement.assert_called_once_with(42)
+        provider.get_by_id.assert_not_called()
+
+    def test_direct_link_selects_actual_visible_id_after_a_skipped_cache_row(self):
+        view, provider = self.make_view()
+        provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Cible",
+            subcategory_id=None, category_id=19,
+        )
+        category = QTreeWidgetItem(["Succès"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.category_tree.setCurrentItem(category)
+        view.filtered = [
+            SimpleNamespace(id=10),
+            SimpleNamespace(id=20),
+            SimpleNamespace(id=42),
+        ]
+        view.list_widget.clear()
+        self.add_success(view, 10)
+        self.add_success(view, 42)
+        # The compact row for ID 20 was skipped; filtered index 2 is not a
+        # widget row. The actual Success 42 is widget row 1.
+        view._achievement_visible_row_by_id = {10: 0, 42: 1}
+        view.list_widget.setCurrentRow(0)
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertEqual(view.list_widget.currentRow(), 1)
+        self.assertEqual(
+            view.list_widget.currentItem().data(Qt.UserRole), 42
+        )
+        view.show_achievement.assert_called_once_with(42)
+
+    def test_direct_link_does_not_select_wrong_item_when_target_not_yet_visible(self):
+        view, provider = self.make_view()
+        provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Cible",
+            subcategory_id=None, category_id=19,
+        )
+        category = QTreeWidgetItem(["Succès"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.category_tree.setCurrentItem(category)
+        view.filtered = [
+            SimpleNamespace(id=10),
+            SimpleNamespace(id=42),
+            SimpleNamespace(id=99),
+        ]
+        view.list_widget.clear()
+        self.add_success(view, 10)
+        self.add_success(view, 99)
+        view._achievement_visible_row_by_id = {10: 0, 99: 1}
+        view.list_widget.setCurrentRow(0)
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        # The detail can open before the target row is rendered, but the
+        # previously selected Success 10 must no longer appear selected.
+        self.assertEqual(view.list_widget.currentRow(), -1)
+        self.assertEqual(view._achievement_pending_selected_id, 42)
+        view.show_achievement.assert_called_once_with(42)
+
+        # Lazy render later materializes exactly the intended Success.
+        self.add_success(view, 42)
+        view._achievement_visible_row_by_id[42] = 2
+        view._apply_pending_achievement_selection()
+        self.assertEqual(view.list_widget.currentRow(), 2)
+        self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 42)
+
+    def test_category_change_cancels_debounced_search_and_refreshes_immediately(self):
+        view, _provider = self.make_view()
+        view.search.setText("ancienne recherche")
+        self.assertTrue(view._search_debounce_timer.isActive())
+
+        target = QTreeWidgetItem(["Nouvelle catégorie"])
+        target.setData(0, Qt.UserRole, 19)
+        with patch.object(view, "refresh") as refresh:
+            view.on_category_changed(target, None)
+            refresh.assert_called_once_with()
+
+        self.assertEqual(view.selected_category_id, 19)
+        self.assertEqual(view.search.text(), "")
+        self.assertFalse(view._search_debounce_timer.isActive())
+
+    def test_direct_link_in_current_category_refreshes_stale_search(self):
+        view, provider = self.make_view()
+        category = QTreeWidgetItem(["Quêtes"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.category_tree.setCurrentItem(category)
+        view.selected_category_id = 19
+
+        view._runtime_ready = True
+        view.progress_service.state_for.return_value = SimpleNamespace(
+            completed_achievements=set()
+        )
+        provider.catalogue_ids.return_value = [42]
+        provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Cible", category_id=19,
+            subcategory_id=None,
+        )
+        view.filtered = [SimpleNamespace(id=99)]
+        view.search.setText("ancien filtre")
+        view.list_widget.clear()
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertEqual(view.search.text(), "")
+        self.assertEqual([row.id for row in view.filtered], [42])
+        self.assertFalse(view._search_debounce_timer.isActive())
+        view.show_achievement.assert_called_once_with(42)
+
+    def test_tall_viewport_continues_loading_until_it_can_scroll(self):
+        view, provider = self.make_view()
+        view.resize(1600, 1200)
+        view.show()
+        self.app.processEvents()
+
+        provider.catalogue_row_by_id.side_effect = (
+            lambda achievement_id: (achievement_id, f"Succès {achievement_id}", None, 0)
+        )
+        # defer_runtime adds a loading placeholder; hydrated catalogues
+        # replace it before rendering their first real row.
+        view.list_widget.clear()
+        view._achievement_completed_ids = frozenset()
+        view._achievement_pending_rows = list(range(1, 41))
+        view._achievement_rows_dirty = True
+
+        # First batch is followed by the usual initial batch.
+        view._render_next_achievement_batch()
+        view._achievement_batch_timer.stop()
+        view._render_next_achievement_batch()
+
+        self.assertEqual(view.list_widget.count(), 16)
+        self.assertEqual(view.list_widget.verticalScrollBar().maximum(), 0)
+        self.assertGreater(view.list_widget.viewport().height(), 0)
+        self.assertTrue(
+            view._achievement_batch_timer.isActive(),
+            "Pending achievements must remain reachable on a tall window with no scrollbar",
+        )
+
+        # If the user leaves before the next batch, showing the tab must
+        # restore the timer even when the initial 16 items already exist.
+        view._achievement_batch_timer.stop()
+        view.hide()
+        view.show()
+        self.assertTrue(
+            view._achievement_batch_timer.isActive(),
+            "Returning to a tall Success tab must resume pending rows",
+        )
+
+    def test_keyboard_item_activation_opens_details_without_extra_load(self):
+        view, provider = self.make_view()
+        rendered = []
+        view._display_achievement = lambda achievement: (
+            rendered.append(achievement.id),
+            setattr(view, "_detail_open", True),
+        )
+        item = self.add_success(view, 84)
+        view.list_widget.itemActivated.emit(item)
+        self.assertEqual(rendered, [84])
+        view.list_widget.itemActivated.emit(item)
+        self.assertEqual(rendered, [84])
+        self.assertEqual(provider.get_detail_by_id.call_count, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

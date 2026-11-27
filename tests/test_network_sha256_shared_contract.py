@@ -49,6 +49,74 @@ def validators_in_module(short_name: str):
 
 
 class SharedNetworkShaContractTests(unittest.TestCase):
+    def test_shared_event_digest_preserves_every_namespace(self):
+        import hashlib
+        from app.network.contracts import protocol_event_id, required_mapping_identity
+
+        for namespace in ("", "quest_journal_snapshot", "quest_completed_info", "character_identified"):
+            parts = [b"3.6", b"a" * 64]
+            if namespace:
+                parts.append(namespace.encode("ascii"))
+            parts.extend([b"type.ankama.com/abc", b"\x08\x01"])
+            expected = "proto:" + hashlib.sha256(b"\0".join(parts)).hexdigest()[:32]
+            self.assertEqual(protocol_event_id("3.6", "a" * 64, "type.ankama.com/abc", b"\x08\x01", namespace=namespace), expected)
+        self.assertEqual(required_mapping_identity(" 3.6 ", "A" * 64, object()), ("3.6", "a" * 64))
+
+    def test_three_quest_decoders_share_safe_active_build_check(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.network.quest_journal_decoder import QuestJournalDecoder
+        from app.network.quest_completion_info_decoder import QuestCompletionInfoDecoder
+        from app.network.quest_snapshot_decoder import FinishedQuestsSnapshotDecoder
+        from app.network.transport import CapturedProtocolMessage
+
+        broken = Mock(side_effect=OSError("fingerprint inaccessible"))
+        fake = SimpleNamespace(
+            active_fingerprint_provider=broken, mapping_fingerprint="a" * 64,
+        )
+        self.assertFalse(QuestJournalDecoder._build_matches(fake))
+        self.assertFalse(QuestCompletionInfoDecoder._build_matches(fake))
+
+        # Snapshot previously inlined this same fail-closed check in decode().
+        # Its route must still reject the exact mapped message when unavailable.
+        fake.rule = SimpleNamespace(type_url="type.ankama.com/qzx")
+        fake.delegate = Mock()
+        message = CapturedProtocolMessage(
+            session_id="test", type_url="type.ankama.com/qzx",
+            direction="server_to_client", payload=b"",
+        )
+        self.assertIsNone(FinishedQuestsSnapshotDecoder.decode(fake, message))
+        fake.delegate.decode.assert_not_called()
+
+    def test_shared_active_build_and_decoder_lifecycle_are_fail_closed(self):
+        from unittest.mock import Mock
+        from app.network.contracts import (
+            active_build_matches, forward_decoder_session_closed,
+            forward_decoder_reset, is_current_ankama_alias,
+        )
+
+        fingerprint = "aB" * 32
+        self.assertTrue(active_build_matches(lambda: " AB" * 32, fingerprint.casefold()) is False)
+        self.assertTrue(active_build_matches(lambda: fingerprint.upper(), fingerprint.casefold()))
+        self.assertFalse(active_build_matches(lambda: None, fingerprint.casefold()))
+        self.assertFalse(active_build_matches(
+            Mock(side_effect=RuntimeError("build not available")), fingerprint.casefold(),
+        ))
+        delegate = Mock()
+        forward_decoder_session_closed(delegate, "session:1")
+        forward_decoder_reset(delegate)
+        delegate.session_closed.assert_called_once_with("session:1")
+        delegate.reset.assert_called_once_with()
+        forward_decoder_session_closed(object(), "session:2")
+        forward_decoder_reset(object())
+        for value, expected in (
+            ("type.ankama.com/idr", True), ("type.ankama.com/IDR", False),
+            ("type.ankama.com/abcd", False), ("ankama.com/idr", False),
+            ("type.ankama.com/idé", False), ("type.ankama.com/idz", True),
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(is_current_ankama_alias(value), expected)
+
     def test_canonical_validator_rejects_legacy_whitespace_bypass(self):
         wrong = "aa" + " " * 60 + "bb"
         self.assertEqual(len(wrong), 64)

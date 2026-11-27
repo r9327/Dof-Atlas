@@ -2,6 +2,10 @@ schema_version: 1
 scope: quality_ci
 kind: shared_infrastructure
 working_set:
+  - tests/test_memory_policy_contract.py
+  - tests/test_clean_foundation_guardrails.py
+  - tests/test_project_guardrails.py
+  - tests/test_phase8_preload_benchmark_contract.py
   - .gitignore
   - tests/test_distribution_craft_seed.py
   - .github/workflows/
@@ -21,6 +25,7 @@ working_set:
   - tools/tool_audit.py
   - tools/ai_context.py
   - tools/atlas_integrity.py
+  - tools/atlas_mutation.py
   - tools/atlas_integrity_policy.json
   - tools/atlas_lifecycle_soak.py
   - tests/test_atlas_lifecycle_soak.py

@@ -3,16 +3,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QBoxLayout, QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton,
+    QBoxLayout, QFrame, QHBoxLayout, QLabel, QProgressBar,
     QVBoxLayout, QWidget,
 )
 
+from app.core.numbers import clamped_percent
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from app.ui.theme import PALETTE
-from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path, unity_enabled
+from app.ui.components import AtlasButton, configure_unity_progress_bar
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
+
+GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
 
 FEATURED = (
@@ -31,55 +36,33 @@ class FeaturedGuideCard(QFrame):
         self.setFocusPolicy(Qt.StrongFocus)
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName(title)
-        # A widget-local stylesheet overrides the global Unity QSS. Keep
-        # the Atlas default unchanged, but give Unity its intended alpha.
-        card_background = (
-            "qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-            "stop:0 #354971, stop:1 #1B2947)"
-            if unity_enabled() else PALETTE["PANEL_2"]
-        )
-        self.setStyleSheet(
-            "#GuideFeaturedCard { background: " + card_background
-            + "; border: 1px solid " + PALETTE["GREEN_BORDER"]
-            + "; border-radius: 8px; }"
-            "#GuideFeaturedCard:hover { background: rgba(50, 70, 114, 0.96); "
-            "border: 1px solid #AACB77; }"
-            "#GuideFeaturedCard:focus { border: 2px solid #C6E691; }"
-            "#GuideFeaturedCard QLabel { border: 0; background: transparent; }"
-        )
-        apply_unity_panel_shadow(self, blur=16, vertical=3)
+        # All card/child colors and states come from the shared Unity QSS.
+        apply_unity_panel_shadow(self)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(9, 6, 9, 6)
-        layout.setSpacing(3)
-        self.setMinimumHeight(64)
-        self.setMaximumHeight(85)
+        layout.setContentsMargins(*GUIDE_CARD_GEOMETRY["featured_compact_margins"])
+        layout.setSpacing(GUIDE_CARD_GEOMETRY["featured_compact_spacing"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["featured_compact_min_height"])
+        self.setMaximumHeight(GUIDE_CARD_GEOMETRY["featured_compact_max_height"])
         self.title = QLabel(title)
-        self.title.setStyleSheet(
-            f"color: {PALETTE['TEXT']}; font-weight: 800; font-size: 12px;"
-        )
+        self.title.setObjectName("GuideFeaturedTitle")
         title_row = QHBoxLayout()
         self.artwork = QLabel()
-        self.artwork.setFixedSize(28, 28)
+        artwork_box = GUIDE_CARD_GEOMETRY["featured_compact_artwork_box"]
+        self.artwork.setFixedSize(artwork_box, artwork_box)
         self.artwork.setAlignment(Qt.AlignCenter)
         title_row.addWidget(self.artwork)
         title_row.addWidget(self.title, 1)
         layout.addLayout(title_row)
         self.subtitle = QLabel("")
         self.subtitle.setObjectName("FeaturedSubtitle")
-        self.subtitle.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']};")
         self.subtitle.setWordWrap(False)
         layout.addWidget(self.subtitle)
-        self.progress = QProgressBar()
-        self.progress.setMaximumHeight(5)
-        self.progress.setTextVisible(False)
-        self.progress.setStyleSheet(
-            f"QProgressBar {{ border: 0; background: {PALETTE['BORDER_SOFT']};"
-            f" border-radius: 4px; }}"
-            f"QProgressBar::chunk {{ background: {PALETTE['GREEN']};"
-            f" border-radius: 4px; }}"
+        self.progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideFeaturedProgress",
         )
+        self.progress.setMaximumHeight(GUIDE_CARD_GEOMETRY["featured_compact_progress_max_height"])
         layout.addWidget(self.progress)
-        self.open_button = QPushButton("Ouvrir →")
+        self.open_button = AtlasButton("Ouvrir →")
         self.open_button.setObjectName("FeaturedGuideOpen")
         self.open_button.clicked.connect(lambda: on_open(self.guide_id))
         # A card already opens on click, Enter and Space; a second visible
@@ -105,10 +88,18 @@ class FeaturedGuideCard(QFrame):
         super().keyPressEvent(event)
 
     def set_guide(self, guide, values: tuple[int, int, str]) -> None:
-        # Progress refresh and library filtering can call this many times with
-        # identical data. Avoid repeatedly clearing and decoding two icons.
+        # Artwork has an independent source revision. Progress-only updates
+        # must not trigger another image decode or replace the current pixmap.
+        raw_image = getattr(guide, "image_path", None)
+        image_path = Path(raw_image) if raw_image else None
+        local_icon = sprite_icon_path("guide" if self.guide_id == "guide_complet" else "dofus")
+        artwork_signature = (
+            str(image_path), mtime_ctime_size_stamp(image_path) if image_path is not None else None,
+            str(local_icon), mtime_ctime_size_stamp(Path(local_icon)) if local_icon else None,
+        )
+        artwork_changed = artwork_signature != getattr(self, "_artwork_signature", None)
         if (getattr(self, "_rendered_guide", object()) is guide
-                and getattr(self, "_rendered_values", None) == values):
+                and getattr(self, "_rendered_values", None) == values and not artwork_changed):
             return
         self._rendered_guide = guide
         self._rendered_values = values
@@ -135,20 +126,20 @@ class FeaturedGuideCard(QFrame):
         # No total means no percentage is known; keep the bar hidden.
         self.progress.setVisible(usable and total > 0)
         if total > 0:
-            self.progress.setValue(max(0, min(100, round(done * 100 / total))))
+            self.progress.setValue(clamped_percent(done, total))
+        if not artwork_changed:
+            return
+        self._artwork_signature = artwork_signature
         self.artwork.clear()
-        local_icon = sprite_icon_path("guide" if self.guide_id == "guide_complet" else "dofus")
         # Only two featured QIcons, backed by local assets when explicitly enabled.
         # Visual artwork belongs on the card, not the hidden compatibility button.
         if local_icon:
             self.artwork.setPixmap(QIcon(str(local_icon)).pixmap(24, 24))
-        if usable:
-            image_path = getattr(guide, "image_path", None)
-            if image_path and Path(image_path).is_file():
-                from PySide6.QtCore import QSize
-                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(image_path), QSize(28, 28))
-                if pixmap is not None and not pixmap.isNull():
-                    self.artwork.setPixmap(pixmap)
+        if usable and image_path is not None and image_path.is_file():
+            art_box = GUIDE_CARD_GEOMETRY["featured_compact_artwork_box"]
+            pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(art_box, art_box))
+            if not pixmap.isNull():
+                self.artwork.setPixmap(pixmap)
 
 
 class FeaturedPair(QWidget):
@@ -158,14 +149,18 @@ class FeaturedPair(QWidget):
         super().__init__(parent)
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
         # Reserve a few pixels so the real card shadows aren't cropped.
-        layout.setContentsMargins(3, 3, 5, 7)
-        layout.setSpacing(7)
+        layout.setContentsMargins(*GUIDE_CARD_GEOMETRY["featured_pair_margins"])
+        layout.setSpacing(GUIDE_CARD_GEOMETRY["featured_pair_spacing"])
         for card in cards:
             layout.addWidget(card, 1)
         self.pair_layout = layout
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        wanted = QBoxLayout.LeftToRight if event.size().width() >= 580 else QBoxLayout.TopToBottom
+        wanted = (
+            QBoxLayout.LeftToRight
+            if event.size().width() >= GUIDE_CARD_GEOMETRY["featured_pair_horizontal_min_width"]
+            else QBoxLayout.TopToBottom
+        )
         if self.pair_layout.direction() != wanted:
             self.pair_layout.setDirection(wanted)

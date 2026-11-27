@@ -6,6 +6,8 @@ from typing import Any
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtWidgets import QLabel, QWidget
 
+from app.ui.components import set_unity_widget_object_name
+
 from .common import SESSION_SLOT_COUNT, empty_session_slot, session_is_detected, session_is_empty
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,10 +23,7 @@ class OrganizerDragDropMixin:
         return "characterSlot" if session_is_detected(session) else "characterSlotMissing"
 
     def set_session_row_state(self, row: QWidget, object_name: str) -> None:
-        row.setObjectName(object_name)
-        row.style().unpolish(row)
-        row.style().polish(row)
-        row.update()
+        set_unity_widget_object_name(row, object_name)
 
     def bind_session_drag_events(self, widget: QWidget, index: int, row: QWidget) -> None:
         widget._atlas_drag_index = index

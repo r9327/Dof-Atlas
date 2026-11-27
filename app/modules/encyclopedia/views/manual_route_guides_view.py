@@ -6,7 +6,6 @@ from app.modules.encyclopedia.services.guide_catalog_route_stats import (
     catalog_route_map_count_hint,
 )
 from app.modules.encyclopedia.views.guides_view import (
-    GUIDE_ULTIME_LEGACY_ID,
     GuidesView as _BaseGuidesView,
 )
 
@@ -24,6 +23,8 @@ CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})
 
 class ManualRouteGuidesView(_BaseGuidesView):
     """Guides catalogue with shared road-book rendering for optimized routes."""
+
+    _compact_guide_ultime_runtime = True
 
     def __init__(self, *args, **kwargs) -> None:
         self._catalog_manual_services: dict[str, GuideCatalogManualRuntimeService] = {}
@@ -67,62 +68,9 @@ class ManualRouteGuidesView(_BaseGuidesView):
         super().refresh_home()
         self._refresh_catalog_route_home_labels()
 
-    def ensure_guide_ultime_view(self) -> SharedGuideManualView | None:
-        """Keep Guide Succès on the canonical service but use the shared renderer."""
-        if self.guide_ultime_view is not None:
-            return self.guide_ultime_view  # type: ignore[return-value]
-
-        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
-            GuideUltimeManualRuntimeService,
-        )
-        from app.modules.encyclopedia.views.shared_manual_guide_view import (
-            SharedGuideManualView,
-        )
-
-        service = self.guide_ultime_service
-        if service is None:
-            service = GuideUltimeManualRuntimeService(
-                self.quest_progress_service,
-                self.achievement_progress_service,
-                self.guide_progress_service,
-                quest_provider=self.quest_provider,
-                autoload=False,
-                cache_manual_bundle=False,
-                compact_runtime=True,
-            )
-            if not service.available:
-                service.load()
-            service.achievement_provider = self.achievement_provider
-            # The player renders one sheet at a time. A full 267-card validation
-            # contract duplicates route data and creates a large first-open peak.
-            # Per-card Success resolution remains lazy through the compact index.
-            service.auto_validation_contract = None
-            self.guide_ultime_service = service
-
-        if not service.available:
-            return None
-
-        view = SharedGuideManualView(
-            service,
-            character_key=self.current_character_key,
-            quest_provider=self.quest_provider,
-            quest_graph=getattr(self, "graph", None),
-            travel_callback=self.launch_travel_callback,
-            participant_service=self.guide_participant_service,
-        )
-        view.navigate_entity = self.link_service.navigate_to_entity
-        view.questProgressChanged.connect(self._on_guide_ultime_quest_progress_changed)
-        self.stack.addWidget(view)
-        self.guide_ultime_view = view
-        self._refresh_guide_ultime_home_labels()
-        return view
-
     def ensure_catalog_manual_view(self, guide_id: str) -> SharedGuideManualView | None:
         from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
             GuideCatalogManualRuntimeService,
-        )
-        from app.modules.encyclopedia.views.shared_manual_guide_view import (
-            SharedGuideManualView,
         )
 
         guide_id = str(guide_id or "")
@@ -144,15 +92,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
         if not service.available:
             return None
 
-        view = SharedGuideManualView(
-            service,
-            character_key=self.current_character_key,
-            quest_provider=self.quest_provider,
-            quest_graph=getattr(self, "graph", None),
-            travel_callback=self.launch_travel_callback,
-            participant_service=self.guide_participant_service,
-        )
-        view.navigate_entity = self.link_service.navigate_to_entity
+        view = self._build_manual_route_reader(service)
         view.questProgressChanged.connect(
             lambda quest_id, gid=guide_id: self._on_catalog_manual_quest_progress_changed(
                 gid,
@@ -190,12 +130,11 @@ class ManualRouteGuidesView(_BaseGuidesView):
         return True
 
     def show_guide_overview(self, guide_id: str, preserve_scroll: bool = False) -> None:
-        del preserve_scroll
         guide_id = str(guide_id or "")
         if guide_id in CATALOG_MANUAL_GUIDE_IDS:
             self.select_guide(guide_id)
             return
-        super().show_guide_overview(guide_id, preserve_scroll=False)
+        super().show_guide_overview(guide_id, preserve_scroll=preserve_scroll)
 
     def set_character_key(self, character_key: str) -> None:
         previous = self.current_character_key

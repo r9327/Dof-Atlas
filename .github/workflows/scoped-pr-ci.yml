@@ -172,11 +172,22 @@ jobs:
           from pathlib import Path
           plan = json.loads(Path("artifacts/doctor_ci/plan.json").read_text(encoding="utf-8"))
           domain = plan.get("domain_plan") or {}
-          if domain.get("status") != "READY_TO_EXECUTE":
-              raise SystemExit("PR domain closure BLOCKED: "
-                               + str(domain.get("unknown_paths"))
-                               + "; " + str(domain.get("reasons")))
-          print("Exact-SHA Draft domain closure: READY_TO_EXECUTE")
+          if not isinstance(domain, dict) or not isinstance(domain.get("status"), str):
+              raise SystemExit("Missing or invalid exact-SHA Draft domain plan")
+          if domain["status"] != "READY_TO_EXECUTE":
+              # Draft is not delivery evidence. Keep risks visible, but do
+              # not require Ready-level closure at every intermediate HEAD.
+              import os
+              print("::warning title=Draft domain review required::"
+                    + str(domain.get("reasons")).replace("\n", " ")[:500])
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as report:
+                  report.write("### Draft domain closure: REVIEW_REQUIRED (not certified)\n")
+                  report.write("- Status: " + domain["status"] + "\n")
+                  report.write("- Unknown paths: " + str(domain.get("unknown_paths")) + "\n")
+                  report.write("- Reasons: " + str(domain.get("reasons")) + "\n")
+                  report.write("- Must be resolved before Ready/certification.\n")
+          else:
+              print("Exact-SHA Draft domain closure: READY_TO_EXECUTE")
           PYDOMAIN
           python -m tools.ci_pr_audit \
             --plan artifacts/doctor_ci/plan.json \

@@ -4,7 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from threading import current_thread
+from concurrent.futures import ThreadPoolExecutor
 
 from app.modules.encyclopedia.providers import AchievementProvider, QuestProvider
 from app.quest_catalog import QuestCatalog
@@ -75,18 +75,15 @@ class AchievementProviderLazyRewardTests(unittest.TestCase):
             self.assertEqual([reward.kind for reward in light.rewards], ["achievement_points"])
             self.assertFalse(provider.detail_sources_ready)
 
-            with self.assertRaises(RuntimeError):
-                provider.get_detail_by_id(10)
-
-            provider.load_all()
+            with ThreadPoolExecutor(max_workers=1, thread_name_prefix="test-achievement-detail") as worker:
+                detail = worker.submit(provider.get_detail_by_id, 10).result(timeout=15)
             self.assertTrue(provider.detail_sources_ready)
-            detail = provider.get_detail_by_id(10)
             self.assertIsNotNone(detail)
             assert detail is not None
             self.assertEqual([reward.kind for reward in detail.rewards], ["achievement_points", "item"])
             self.assertEqual(detail.rewards[1].name, "Objet test")
             self.assertEqual(detail.rewards[1].quantity, 2)
-            self.assertEqual(provider.last_detail_thread_name, current_thread().name)
+            self.assertTrue(provider.last_detail_thread_name.startswith("test-achievement-detail"))
 
             still_light = provider.get_by_id(10)
             self.assertIsNotNone(still_light)

@@ -8,11 +8,9 @@ from PySide6.QtGui import QImage
 from app.modules.encyclopedia.services.image_service import (
     DEFAULT_IMAGE_CACHE_BYTES,
     DEFAULT_IMAGE_CACHE_ITEMS,
+    read_scaled_image,
 )
-from app.modules.encyclopedia.views.guide_image_runtime_policy import (
-    SOLUTION_DECODE_MAX_SIZE,
-    decode_scaled_image,
-)
+from app.modules.encyclopedia.views.guides_view import SOLUTION_DECODE_MAX_SIZE
 
 
 def test_guide_decode_never_keeps_full_source_raster(tmp_path: Path) -> None:
@@ -21,7 +19,7 @@ def test_guide_decode_never_keeps_full_source_raster(tmp_path: Path) -> None:
     path = tmp_path / "large.png"
     assert source.save(str(path), "PNG")
 
-    decoded = decode_scaled_image(path, QSize(230, 86), kind="guide")
+    decoded = read_scaled_image(path, QSize(230, 86))
 
     assert not decoded.isNull()
     assert decoded.width() <= 230

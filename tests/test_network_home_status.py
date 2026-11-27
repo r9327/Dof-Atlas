@@ -43,6 +43,44 @@ class NetworkHomeStatusTests(unittest.TestCase):
         self.assertEqual(live_only, ("Actif", "active"))
         self.assertEqual(full, ("Actif", "active"))
 
+    def test_running_worker_with_explicit_failure_never_looks_active(self) -> None:
+        for reason in (
+            "runtime_stop_failed_before_calibration",
+            "coordinator_error",
+            "capture_helper_start_failed",
+            "build_changed",
+            "capture_elevation_cancelled",
+            "quest_snapshot_missed",
+            "mapping_invalid",
+        ):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(
+                        self._status(running=True, reason=reason)
+                    ),
+                    ("Attention requise", "error"),
+                )
+        self.assertEqual(
+            HomePage._network_summary(self._status(running=True, reason="running")),
+            ("Actif", "active"),
+        )
+
+    def test_running_flag_cannot_override_explicit_waiting_or_calibration(self) -> None:
+        for reason, expected in (
+            ("stopped", ("Hors ligne", "idle")),
+            ("waiting_context", ("Hors ligne", "idle")),
+            ("no_window_handles", ("En attente de Dofus", "idle")),
+            ("build_fingerprint_unavailable", ("En attente de Dofus", "idle")),
+            ("calibration_running", ("Connexion…", "pending")),
+            ("network_context_loading", ("Chargement Réseau…", "pending")),
+            ("capture_ready_waiting_context", ("En attente de données", "pending")),
+        ):
+            for calibrating in (False, True):
+                with self.subTest(reason=reason, calibrating=calibrating):
+                    self.assertEqual(HomePage._network_summary(
+                        self._status(running=True, calibrating=calibrating, reason=reason)
+                    ), expected)
+
     def test_calibration_details_are_reduced_to_connection_state(self) -> None:
         for reason in (
             "awaiting_character_identity",
@@ -58,16 +96,827 @@ class NetworkHomeStatusTests(unittest.TestCase):
                 )
 
     def test_waiting_and_error_states_remain_short_but_distinct(self) -> None:
-        self.assertEqual(
-            HomePage._network_summary(self._status(reason="no_window_handles")),
-            ("En attente de Dofus", "idle"),
-        )
+        for reason in ("waiting_context", "stopped", "runtime_stopped"):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(self._status(reason=reason)),
+                    ("Hors ligne", "idle"),
+                )
+        for reason in ("no_window_handles", "build_fingerprint_unavailable"):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(self._status(reason=reason)),
+                    ("En attente de Dofus", "idle"),
+                )
         self.assertEqual(
             HomePage._network_summary(
                 self._status(reason="capture_elevation_cancelled")
             ),
             ("Attention requise", "error"),
         )
+        self.assertEqual(
+            HomePage._network_summary(self._status(reason="stop_failed")),
+            ("Attention requise", "error"),
+        )
+
+    def test_network_failure_explanation_is_actionable_without_raw_codes(self) -> None:
+        from unittest.mock import Mock
+
+        expected = {
+            "capture_elevation_cancelled": "Autorisation Windows",
+            "build_changed": "version du client DOFUS",
+            "mapping_invalid": "profil réseau",
+            "quest_snapshot_missed": "Journal des quêtes",
+            "stop_failed": "Arrêt de la capture",
+            "no_window_handles": "fenêtre DOFUS",
+        }
+        for reason, fragment in expected.items():
+            with self.subTest(reason=reason):
+                status = self._status(running=True, reason=reason)
+                self.assertIn(fragment, HomePage._network_explanation(status))
+                page = Mock()
+                page._network_summary.return_value = ("Attention requise", "error")
+                page._network_explanation.return_value = HomePage._network_explanation(status)
+                HomePage._on_network_status(page, status)
+                page.network_status.setToolTip.assert_called_once_with(
+                    HomePage._network_explanation(status)
+                )
+
+    def test_network_tooltip_tracks_recovery_and_offline_state(self) -> None:
+        self.assertIn(
+            "hors ligne",
+            HomePage._network_explanation(self._status(reason="stopped")),
+        )
+        self.assertIn(
+            "active",
+            HomePage._network_explanation(self._status(running=True, reason="running")),
+        )
+        self.assertNotIn(
+            "capture",
+            HomePage._network_explanation(self._status(reason="context_ready")).lower(),
+        )
+
+    def test_relaunch_after_cancelled_uac_requests_runtime_only_once(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        bridge = Mock(last_status=self._status(reason="capture_elevation_cancelled"))
+        bridge.request_verified_runtime.return_value = True
+        page = SimpleNamespace(
+            network_bridge=bridge, network_retry=Mock(), network_status=Mock(),
+        )
+        HomePage._retry_network_tracking(page)
+        bridge.prepare_capture.assert_not_called()
+        bridge.request_verified_runtime.assert_called_once_with()
+        page.network_retry.setVisible.assert_called_once_with(False)
+        page.network_status.setText.assert_called_once_with("Relance demandée…")
+
+    def test_relaunch_runtime_retries_without_permission_prompt_when_available(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        bridge = Mock(last_status=self._status(reason="mapping_invalid"))
+        bridge.request_verified_runtime.return_value = True
+        page = SimpleNamespace(
+            network_bridge=bridge, network_retry=Mock(), network_status=Mock(),
+        )
+        HomePage._retry_network_tracking(page)
+        bridge.request_verified_runtime.assert_called_once_with()
+        bridge.prepare_capture.assert_not_called()
+
+    def test_relaunch_without_context_cannot_claim_queued_capture_as_success(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        bridge = Mock(last_status=self._status(reason="no_window_handles"))
+        bridge.request_verified_runtime.return_value = False
+        page = SimpleNamespace(
+            network_bridge=bridge, network_retry=Mock(), network_status=Mock(),
+        )
+        HomePage._retry_network_tracking(page)
+        bridge.prepare_capture.assert_not_called()
+        page.network_status.setText.assert_called_once_with("Suivi indisponible")
+        page.network_retry.setVisible.assert_not_called()
+
+    def test_mapping_recovery_states_are_actionable_not_false_active(self) -> None:
+        for reason in (
+            "mapping_no_exact_match", "mapping_missing_required_events",
+            "mapping_current_profile_noncanonical",
+        ):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(self._status(reason=reason)),
+                    ("Connexion…", "pending"),
+                )
+                self.assertIn(
+                    "calibration",
+                    HomePage._network_explanation(self._status(reason=reason)).lower(),
+                )
+        self.assertEqual(
+            HomePage._network_summary(
+                self._status(reason="capture_ready_waiting_context"),
+            ),
+            ("En attente de données", "pending"),
+        )
+
+    def test_stop_cleanup_failures_cannot_launch_duplicate_capture(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        for reason in ("stop_failed", "runtime_start_cleanup_failed"):
+            with self.subTest(reason=reason):
+                bridge = Mock(last_status=self._status(reason=reason))
+                page = SimpleNamespace(
+                    network_bridge=bridge,
+                    network_retry=Mock(),
+                    network_status=Mock(),
+                )
+                HomePage._retry_network_tracking(page)
+                bridge.prepare_capture.assert_not_called()
+                bridge.request_verified_runtime.assert_not_called()
+                page.network_retry.setVisible.assert_called_once_with(False)
+
+    def test_retry_visibility_reflects_active_and_safe_error_states(self) -> None:
+        from unittest.mock import Mock
+
+        page = Mock(
+            _network_summary=HomePage._network_summary,
+            _network_explanation=HomePage._network_explanation,
+        )
+        page.network_indicator.property.return_value = "idle"
+        for reason, visible in (
+            ("capture_elevation_cancelled", True),
+            ("build_fingerprint_error", True),
+            ("runtime_stop_failed", False),
+            ("runtime_start_cleanup_failed", False),
+            ("running", False),
+        ):
+            with self.subTest(reason=reason):
+                page.reset_mock()
+                page.network_indicator.property.return_value = "idle"
+                HomePage._on_network_status(
+                    page, self._status(reason=reason),
+                )
+                page.network_retry.setVisible.assert_called_once_with(visible)
+
+    def test_explicit_home_network_activation_is_offloaded_from_qt(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.request_start_compact_runtime.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        try:
+            self.assertTrue(bridge.request_verified_runtime())
+            coordinator.request_start_compact_runtime.assert_called_once_with()
+            coordinator.request_start_verified_runtime.assert_not_called()
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_home_does_not_require_activation_when_capture_is_waiting_for_catalogue(self) -> None:
+        from unittest.mock import Mock
+
+        page = Mock(
+            _network_summary=HomePage._network_summary,
+            _network_explanation=HomePage._network_explanation,
+        )
+        page.network_indicator.property.return_value = "pending"
+        status = self._status(reason="capture_ready_waiting_context")
+        HomePage._on_network_status(page, status)
+        page.network_retry.setText.assert_called_once_with("Relancer")
+        page.network_retry.setVisible.assert_called_once_with(False)
+        self.assertIn("automatiquement", HomePage._network_explanation(status))
+
+    def test_home_displays_local_session_without_assigning_progress_identity(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        page = SimpleNamespace(
+            character_name=Mock(), character_key="", character_label="Aucun personnage connecté",
+            character_icon_path="", _update_character_icon=Mock(),
+        )
+        page._update_character_identity = lambda: HomePage._update_character_identity(page)
+        from unittest.mock import patch
+
+        with patch(
+            "app.pages.organizer_icon_cache.cached_class_icon_path_for_window_name",
+            return_value="pandawa.png",
+        ) as icon_lookup:
+            HomePage._on_local_dofus_sessions(page, ("Héros - Pandawa",))
+        icon_lookup.assert_called_once_with("Pandawa")
+        page.character_name.setText.assert_called_with("Héros")
+        page._update_character_icon.assert_called_with("pandawa.png")
+        self.assertEqual(page.character_key, "")
+        page.character_key = "character:42"
+        page.character_label = "Personnage vérifié"
+        HomePage._on_local_dofus_sessions(page, ("Autre fenêtre", ""))
+        page.character_name.setText.assert_called_with("Personnage vérifié")
+
+        self.assertEqual(
+            HomePage._network_summary(self._status(reason="network_context_loading")),
+            ("Chargement Réseau…", "pending"),
+        )
+        self.assertEqual(
+            HomePage._network_summary(self._status(reason="network_context_load_failed")),
+            ("Attention requise", "error"),
+        )
+
+    def test_network_bridge_reuses_compact_worker_context_then_releases_rich(self) -> None:
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = Mock()
+        coordinator.worker_compact_context_ready = True
+        bridge = self._new_network_bridge(coordinator)
+        try:
+            self.assertTrue(bridge.configure_compact_context())
+            coordinator.configure_context.assert_not_called()
+            self.assertTrue(bridge._compact_context_ready)
+
+            # When a rich Encyclopedia graph replaces the compact context,
+            # Home must be allowed to recreate the compact one later.
+            self.assertTrue(bridge.configure_context(
+                quest_catalog=QuestCatalog([]),
+                achievement_provider=object(),
+            ))
+            coordinator.configure_context.assert_called_once()
+            self.assertFalse(bridge._compact_context_ready)
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_compact_context_replacement_never_loads_catalogue_on_qt_thread(self) -> None:
+        from unittest.mock import Mock, patch
+        coordinator = Mock()
+        coordinator.worker_compact_context_ready = False
+        coordinator.request_configure_compact_context.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        try:
+            with patch("app.quest_catalog_details.load_network_catalog",
+                       side_effect=AssertionError("no catalogue I/O on Qt")):
+                self.assertTrue(bridge.configure_compact_context())
+                coordinator.request_configure_compact_context.assert_called_once_with()
+                coordinator.configure_context.assert_not_called()
+                self.assertFalse(bridge._compact_context_ready)
+                coordinator.worker_compact_context_ready = True
+                self.assertTrue(bridge.configure_compact_context())
+                self.assertTrue(bridge._compact_context_ready)
+                coordinator.request_configure_compact_context.assert_called_once_with()
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def _new_network_bridge(self, coordinator):
+        from unittest.mock import patch
+        from app.ui.network_bridge import NetworkUiBridge
+
+        coordinator.latest_status.return_value = self._status()
+        with patch(
+            "app.network.application_coordinator.NetworkApplicationCoordinator",
+            return_value=coordinator,
+        ):
+            bridge = NetworkUiBridge()
+        bridge._timer.stop()
+        return bridge
+
+    def test_network_bridge_stop_from_status_signal_drops_old_results(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = [
+            self._status(running=True, reason="running")
+        ]
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True,
+                character_key="character:1", reason="character_identified",
+            )
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        bridge.characterActivated.connect(activations.append)
+        coordinator.latest_status.return_value = self._status(running=True, reason="running")
+        bridge.statusChanged.connect(
+            lambda status: bridge.stop() if status.running else None
+        )
+        try:
+            bridge._poll()
+            self.assertEqual(bridge.last_status.reason, "stopped")
+            coordinator.drain_results.assert_not_called()
+            self.assertEqual(activations, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_ui_uses_current_status_even_with_older_queued_notifications(self) -> None:
+        from unittest.mock import Mock
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = [self._status(running=True, reason="running")]
+        coordinator.drain_results.return_value = []
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received = []
+        bridge.statusChanged.connect(received.append)
+        try:
+            latest = self._status(reason="runtime_stop_failed")
+            coordinator.latest_status.return_value = latest
+            bridge._poll()
+            bridge._poll()
+            self.assertEqual(received, [latest])
+            self.assertFalse(bridge.request_verified_runtime())
+            coordinator.request_start_compact_runtime.assert_not_called()
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_window_discovery_is_stable_across_foreground_changes(self) -> None:
+        from unittest.mock import patch
+        from app.ui.network_bridge import _live_dofus_sessions
+
+        def windows(count):
+            return [
+                {"hwnd": handle, "detected_title": f"Héros {handle} - Pandawa"}
+                for handle in range(count, 0, -1)
+            ] + [{"hwnd": 99, "detected_title": "Autre application Unity"}]
+
+        try:
+            with (
+                patch("app.windows_embed.scan_unity_sessions") as scan,
+                patch("app.macros.mirror_plan.is_dofus_unity_process",
+                      side_effect=lambda handle: handle != 99),
+            ):
+                for count in (0, 1, 2, 4, 6, 8):
+                    with self.subTest(count=count):
+                        rows = windows(count)
+                        scan.side_effect = [rows, list(reversed(rows))]
+                        expected = tuple(
+                            (i, f"Héros {i} - Pandawa") for i in range(1, count + 1)
+                        )
+                        self.assertEqual(_live_dofus_sessions(count * 2), expected)
+                        self.assertEqual(_live_dofus_sessions(count * 2 + 1), expected)
+        finally:
+            _live_dofus_sessions.cache_clear()
+
+    def test_fast_retry_refreshes_an_unchanged_status(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_results.return_value = []
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received = []
+        bridge.statusChanged.connect(received.append)
+        try:
+            initial = bridge.last_status
+            coordinator.drain_statuses.return_value = [
+                self._status(reason="network_retry_starting"), initial,
+            ]
+            bridge._poll()
+            self.assertEqual(received, [initial])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_bridge_stop_from_activation_signal_drops_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True,
+                character_key="character:1", reason="character_identified",
+            )
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        progression = []
+        bridge.characterActivated.connect(
+            lambda key: (activations.append(key), bridge.stop())
+        )
+        bridge.progressChanged.connect(progression.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(activations, ["character:1"])
+            self.assertEqual(progression, [])
+            self.assertEqual(bridge._pending_progress_characters, set())
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_multiple_verified_logins_are_reported_in_one_batch(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="character_identified",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:1",
+                reason="character_identified_with_quest_journal",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="character_identified",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="quest_journal_reconciled",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        batches, activations, progress = [], [], []
+        bridge.charactersIdentified.connect(batches.append)
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._progress_timer.stop()
+                bridge._emit_pending_progress()
+            self.assertEqual(batches, [("character:1", "character:2")])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, ["character:1"])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_shutdown_during_identity_batch_drops_older_events(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="character_identified_with_quest_journal",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received, activations, progress = [], [], []
+        bridge.charactersIdentified.connect(
+            lambda keys: (received.append(keys), bridge.stop())
+        )
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(received, [("character:1",)])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_transport_reset_and_recovery_refresh_membership_without_progress_or_focus(self) -> None:
+        from unittest.mock import Mock, patch
+        from app.network.character_runtime_state import CharacterRuntimeStateStore
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = False
+        coordinator.stop.return_value = True
+        state = CharacterRuntimeStateStore()
+        with patch("app.network.character_runtime_state.character_runtime_state", return_value=state):
+            bridge = self._new_network_bridge(coordinator)
+        membership, activations, progress = [], [], []
+        bridge.connectionsChanged.connect(membership.append)
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            state.identify(session_id="tcp:1:1", character_key="character:1",
+                           character_id=1, name="Alpha")
+            bridge._poll()
+            bridge._poll()
+            self.assertEqual(membership, [("character:1",)])
+            state.identify(session_id="tcp:1:2", character_key="character:1",
+                           character_id=1, name="Alpha")
+            state.close_session("tcp:1:1")
+            bridge._poll()
+            self.assertEqual(membership, [("character:1",)])
+            state.clear_sessions()
+            bridge._poll()
+            bridge._poll()
+            self.assertEqual(membership, [("character:1",), ("character:1",)])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, [])
+            coordinator.drain_results.assert_not_called()
+            coordinator.drain_statuses.assert_not_called()
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_verified_disconnects_refresh_accounts_once_without_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:3",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=False, changed=True, character_key="character:4",
+                reason="session_closed",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        disconnects, activations, progress = [], [], []
+        bridge.connectionsChanged.connect(disconnects.append)
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._emit_pending_progress()
+            self.assertEqual(disconnects, [("character:1", "character:2")])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_identify_and_close_same_poll_refresh_only_once(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="character_identified",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        identities, disconnects = [], []
+        bridge.charactersIdentified.connect(identities.append)
+        bridge.connectionsChanged.connect(disconnects.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(identities, [("character:2",)])
+            self.assertEqual(disconnects, [])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_disconnect_signal_obeys_stop_boundary(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="quest_completed",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        disconnected, progress = [], []
+        bridge.connectionsChanged.connect(
+            lambda ids: (disconnected.append(ids), bridge.stop())
+        )
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(disconnected, [("character:1",)])
+            self.assertEqual(progress, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_journal_progress_does_not_reload_character_profiles(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:1",
+                reason="character_unchanged",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="quest_journal_applied",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="quest_objective_completed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="quest_journal_no_change",
+            ),
+            SimpleNamespace(
+                accepted=False, changed=True, character_key="character:3",
+                reason="quest_completed",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        changes = []
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(changes.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._progress_timer.stop()
+                bridge._emit_pending_progress()
+            self.assertEqual(activations, [])
+            self.assertEqual(changes, ["character:1", "character:2"])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_identity_and_session_close_do_not_refresh_quest_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="character_identified",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="session_closed",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        changes = []
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(changes.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._emit_pending_progress()
+            self.assertEqual(activations, ["character:1"])
+            self.assertEqual(changes, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_bridge_emits_one_verified_activation_with_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="character_identified_with_quest_journal",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        changes = []
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(changes.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._progress_timer.stop()
+                bridge._emit_pending_progress()
+            self.assertEqual(activations, ["character:1"])
+            self.assertEqual(changes, ["character:1"])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_deferred_journal_without_new_quests_activates_without_repaint(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:17",
+                reason="character_identified_with_quest_journal",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activated = []
+        refreshed = []
+        bridge.characterActivated.connect(activated.append)
+        bridge.progressChanged.connect(refreshed.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._emit_pending_progress()
+            self.assertEqual(activated, ["character:17"])
+            self.assertEqual(refreshed, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_bridge_stop_from_progress_signal_drops_next_character(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received = []
+        bridge._pending_progress_characters.update(
+            {"character:1", "character:2"}
+        )
+        bridge.progressChanged.connect(
+            lambda key: (received.append(key), bridge.stop())
+        )
+        try:
+            bridge._emit_pending_progress()
+            self.assertEqual(received, ["character:1"])
+            self.assertEqual(bridge._pending_progress_characters, set())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
 
     def test_home_keeps_only_mini_status_above_almanax(self) -> None:
         page = HomePage()
@@ -77,7 +926,22 @@ class NetworkHomeStatusTests(unittest.TestCase):
         self.assertIs(right_layout.itemAt(1).widget(), page.almanax_card)
         self.assertFalse(hasattr(page, "network_calibration_hint"))
         self.assertFalse(hasattr(page, "network_calibrate_button"))
-        self.assertEqual(page.network_status.text(), "Préparation…")
+        self.assertEqual(page.network_status.text(), "Hors ligne")
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+        geometry = UNITY_MODULE_GEOMETRY_PX["home"]
+        self.assertEqual(page.left_column.layout().spacing(), geometry["left_column_spacing"])
+        self.assertEqual(right_layout.spacing(), geometry["right_column_spacing"])
+        for tracking in page.tracking_rows.values():
+            self.assertEqual(tracking.layout().spacing(), geometry["tracking_spacing"])
+            self.assertEqual(tracking.bar.minimumWidth(), geometry["tracking_bar_min_width"])
+            self.assertEqual(tracking.value.minimumWidth(), geometry["tracking_value_min_width"])
+        self.assertEqual(page.character_card.layout().spacing(), geometry["card_gutter"])
+        self.assertEqual(page.network_card.layout().spacing(), geometry["network_card_spacing"])
+        margins = page.network_card.layout().contentsMargins()
+        self.assertEqual(
+            (margins.left(), margins.top(), margins.right(), margins.bottom()),
+            geometry["network_card_margins"],
+        )
 
         page.deleteLater()
         self.app.processEvents()

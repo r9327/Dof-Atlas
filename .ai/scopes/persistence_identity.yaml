@@ -3,6 +3,8 @@ scope: persistence_identity
 kind: shared_infrastructure
 working_set:
   - app/core/character_identity.py
+  - app/core/file_stamp.py
+  - tests/test_core_shared_state.py
   - app/core/json_store.py
   - app/core/profile_settings.py
   - app/core/progress_coordinator.py

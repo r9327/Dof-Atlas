@@ -42,14 +42,18 @@ class CleanFoundationGuardrailsTests(unittest.TestCase):
         )
 
     def test_progress_compatibility_saves_reject_stale_generations(self) -> None:
+        coordinator = self._text("app/core/progress_coordinator.py")
+        stale_guard = coordinator.split("def _require_current_snapshot_locked(", 1)[1].split("\n    def ", 1)[0]
+        self.assertIn("self._seen_generation != self._coordinator.generation", stale_guard)
+        self.assertIn("self._disk_signature != self._current_disk_signature()", stale_guard)
+        self.assertIn("raise RuntimeError", stale_guard)
         for relative in (
             "app/modules/encyclopedia/services/quest_progress_service.py",
             "app/modules/encyclopedia/services/guide_progress_service.py",
             "app/modules/encyclopedia/services/serialized_achievement_progress_service.py",
         ):
             source = self._text(relative)
-            self.assertIn("self._seen_generation != self._coordinator.generation", source, relative)
-            self.assertIn("raise RuntimeError", source, relative)
+            self.assertIn("self._require_current_snapshot_locked(", source, relative)
 
     def test_mutable_progress_persistence_uses_common_json_store(self) -> None:
         quest_catalog = self._text("app/quest_catalog.py")

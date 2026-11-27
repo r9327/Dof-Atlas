@@ -17,16 +17,28 @@ from PySide6.QtWidgets import QFrame, QWidget
 
 from app.ui.components import AtlasButton
 from app.ui.unity_skin import UNITY_PALETTE, wallpaper_path
+from app.ui.unity_palette import (
+    UNITY_GLASS_INTENSITY,
+    unity_rgba as _canonical_rgba,
+    unity_glass_gradient as _canonical_glass_gradient,
+)
 
 
-# The user-approved glass surface at 50% of the previous visual intensity.
+# The shared 16% Unity glass optical treatment.
 # A single factor controls transmission and highlights, without altering
 # the canonical Unity colors, geometry or interactive behavior.
-GLASS_INTENSITY = 0.5
+GLASS_INTENSITY = UNITY_GLASS_INTENSITY
 
 
 def _reflection_alpha(alpha: int) -> int:
     return round(alpha * GLASS_INTENSITY)
+
+
+def _unity_glint(alpha: int) -> QColor:
+    """Glass reflections use the same Unity text highlight role everywhere."""
+    color = QColor(UNITY_PALETTE["TEXT_SOFT"])
+    color.setAlpha(_reflection_alpha(alpha))
+    return color
 
 
 def _surface_alpha(alpha: int) -> int:
@@ -35,19 +47,17 @@ def _surface_alpha(alpha: int) -> int:
 
 
 def unity_rgba(role: str, opacity: int) -> str:
-    """Give a canonical Unity color an alpha channel, not a second palette."""
-    color = QColor(UNITY_PALETTE[role])
-    return f"rgba({color.red()}, {color.green()}, {color.blue()}, {opacity})"
+    """Keep the public Organizer helper, backed by the canonical tokens."""
+    return _canonical_rgba(role, opacity)
 
 
 def unity_glass_gradient(top: str = "PANEL_ACTIVE",
                          bottom: str = "PANEL_2", *,
                          top_alpha: int = 180,
                          bottom_alpha: int = 196) -> str:
-    return (
-        "qlineargradient(x1:0,y1:0,x2:0,y2:1,"
-        f"stop:0 {unity_rgba(top, _surface_alpha(top_alpha))},"
-        f"stop:1 {unity_rgba(bottom, _surface_alpha(bottom_alpha))})"
+    """Compatibility wrapper: identical pixels, no duplicated color formula."""
+    return _canonical_glass_gradient(
+        top, bottom, top_alpha=top_alpha, bottom_alpha=bottom_alpha,
     )
 
 
@@ -131,22 +141,22 @@ class OrganizerGlassCard(QFrame):
 
         # Optical reflection, not a brighter invented blue.
         glint = QLinearGradient(0, 0, self.width(), self.height())
-        glint.setColorAt(0, QColor(255, 255, 255, _reflection_alpha(46)))
-        glint.setColorAt(0.27, QColor(255, 255, 255, _reflection_alpha(10)))
-        glint.setColorAt(0.68, QColor(255, 255, 255, 0))
-        glint.setColorAt(1, QColor(255, 255, 255, _reflection_alpha(24)))
+        glint.setColorAt(0, _unity_glint(46))
+        glint.setColorAt(0.27, _unity_glint(10))
+        glint.setColorAt(0.68, _unity_glint(0))
+        glint.setColorAt(1, _unity_glint(24))
         painter.fillPath(outline, QBrush(glint))
         painter.setClipping(False)
 
         edge = QLinearGradient(0, 0, self.width(), self.height())
-        edge.setColorAt(0, QColor(245, 250, 255, _reflection_alpha(132)))
-        edge.setColorAt(0.52, QColor(214, 229, 255, _reflection_alpha(49)))
-        edge.setColorAt(1, QColor(240, 250, 255, _reflection_alpha(87)))
+        edge.setColorAt(0, _unity_glint(132))
+        edge.setColorAt(0.52, _unity_glint(49))
+        edge.setColorAt(1, _unity_glint(87))
         painter.setPen(QPen(QBrush(edge), 1.0))
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(outline)
         if self.width() >= 38:
-            painter.setPen(QPen(QColor(255, 255, 255, _reflection_alpha(60)), 1.0))
+            painter.setPen(QPen(_unity_glint(60), 1.0))
             painter.drawLine(
                 QPoint(15, 2), QPoint(self.width() - 15, 2),
             )
@@ -192,10 +202,10 @@ class OrganizerGlassButton(AtlasButton):
         clip.addRoundedRect(rectangle, 7, 7)
         painter.setClipPath(clip)
         shine = QLinearGradient(0, 0, 0, max(1, self.height() * 0.52))
-        shine.setColorAt(0, QColor(255, 255, 255, _reflection_alpha(31 if not self.isDown() else 13)))
-        shine.setColorAt(1, QColor(255, 255, 255, 0))
+        shine.setColorAt(0, _unity_glint(31 if not self.isDown() else 13))
+        shine.setColorAt(1, _unity_glint(0))
         painter.fillRect(QRectF(0, 0, self.width(), self.height() * 0.52), QBrush(shine))
         painter.setClipping(False)
-        painter.setPen(QPen(QColor(244, 250, 255, _reflection_alpha(75)), 1.0))
+        painter.setPen(QPen(_unity_glint(75), 1.0))
         painter.drawLine(QPoint(9, 2), QPoint(self.width() - 9, 2))
         painter.end()

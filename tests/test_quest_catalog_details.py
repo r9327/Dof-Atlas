@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import closing
+from contextlib import closing
 import tempfile
 import threading
 import time
@@ -18,6 +19,7 @@ from app.quest_catalog_details import (
     _solution_combat_rows,
     ensure_detail_source_offsets,
     load_lazy_catalog,
+    load_quest_ids,
 )
 from app.quest_source_index import (
     JsonSourceMapping,
@@ -31,6 +33,178 @@ def record(quest_id):
 
 
 class QuestDetailsTests(unittest.TestCase):
+    def test_native_start_review_identifies_source_blockers_without_guessing(self):
+        maps = {10: {"posX": 1, "posY": 2}, 11: {"posX": 1, "posY": 2},
+                12: {"posX": True, "posY": 2}}
+        cases = (
+            ([], "NO_NATIVE_START_MAP", []),
+            ([{"mapId": 10}, None], "INVALID_NATIVE_START_MAP", [10]),
+            ([{"mapId": 11}, {"mapId": 10}], "COINCIDENT_NATIVE_START_MAPS", [10, 11]),
+            ([{"mapId": 99}], "NATIVE_MAP_ROW_MISSING", [99]),
+            ([{"mapId": 12}], "INVALID_NATIVE_MAP_COORDINATES", [12]),
+            ([{"mapId": 10}, {"mapId": "10"}], "UNIQUE_NATIVE_START_MAP", [10]),
+        )
+        for starts, reason, ids in cases:
+            with self.subTest(starts=starts):
+                review = qc.native_quest_start_review({"startPosition": starts}, maps)
+                self.assertEqual(review["reason"], reason)
+                self.assertEqual(review["map_ids"], ids)
+                self.assertEqual(bool(qc.native_quest_start_evidence({"startPosition": starts}, maps)),
+                                 reason in {"UNIQUE_NATIVE_START_MAP", "COINCIDENT_NATIVE_START_MAPS"})
+
+    def test_coincident_start_maps_supply_coordinates_without_inventing_map_identity(self):
+        from app.core.map_coordinates import quest_launch_position_evidence
+        quest = {"startPosition": [{"mapId": 10}, {"mapId": 11}]}
+        maps = {10: {"posX": 1, "posY": 2}, 11: {"posX": 1, "posY": 2}}
+        evidence = qc.native_quest_start_evidence(quest, maps)
+        self.assertEqual(evidence, {"native_start": {"map_ids": [10, 11], "position": "[1,2]"}})
+        self.assertEqual(quest_launch_position_evidence(evidence)[:2], ("[1,2]", "NATIVE_START_DECLARED"))
+        for invalid in (
+            {"map_id": 10, "map_ids": [10, 11], "position": "[1,2]"},
+            {"map_ids": [10, 10], "position": "[1,2]"},
+            {"map_ids": [True, 11], "position": "[1,2]"},
+        ):
+            self.assertEqual(quest_launch_position_evidence({"native_start": invalid})[:2],
+                             ("", "NO_DECLARED_START"))
+        maps[11]["posX"] = 3
+        self.assertEqual(qc.native_quest_start_evidence(quest, maps), {})
+        self.assertEqual(qc.native_quest_start_evidence(quest, {10: maps[10]}), {})
+
+    def test_source_map_coordinates_never_coerce_invalid_positions(self):
+        # A valid source map may recover coordinates that the objective lacks.
+        maps = {17: {"posX": "-03", "posY": "04"}}
+        self.assertEqual(qc.map_label(17, {"x": 1, "y": -2}, maps), "[1,-2]")
+        self.assertEqual(qc.map_label(17, {"x": None, "y": 2}, maps), "[-3,4]")
+        self.assertEqual(qc.map_label(17, {"x": 2**31, "y": 3}, maps), "[-3,4]")
+
+        # Do not silently convert booleans, fractional values or overflow
+        # into a navigable /travel link or an objective starting position.
+        invalid = (True, False, 1.5, -2.5, 2**31, -(2**31), -(2**31) - 1)
+        for value in invalid:
+            with self.subTest(value=value):
+                self.assertEqual(qc.map_label(None, {"x": value, "y": 3}, {}), "")
+                self.assertEqual(qc.map_label(None, {"x": 3, "y": value}, {}), "")
+                self.assertEqual(
+                    qc.map_label(5, {"x": None, "y": None},
+                                 {5: {"posX": value, "posY": 3}}),
+                    "",
+                )
+        self.assertEqual(qc.map_label(None, {"x": "3", "y": "-04"}, {}), "[3,-4]")
+        self.assertEqual(qc.map_label(None, {"x": -(2**31) + 1, "y": 0}, {}),
+                         "[-2147483647,0]")
+
+    def test_native_quest_start_uses_only_unique_explicit_map_and_survives_enrichment(self):
+        import json
+        from dataclasses import asdict
+
+        maps = {17: {"posX": "-03", "posY": "04"},
+                19: {"posX": 2, "posY": 8},
+                20: {"posX": -(2**31), "posY": 0}}
+        expected = {"native_start": {"map_id": 17, "position": "[-3,4]"}}
+        self.assertEqual(qc.native_quest_start_evidence(
+            {"startPosition": [{"mapId": 17}, {"mapId": "17"}]}, maps), expected)
+        for starts in ([], [{"mapId": 17}, {"mapId": 19}],
+                       [{"mapId": 17}, {"mapId": 0}], [{"mapId": True}],
+                       [{"mapId": 17.5}], [{"mapId": "1_7"}],
+                       [{"mapId": 99}], [{"mapId": 20}],
+                       [{"mapId": 17}, None]):
+            with self.subTest(starts=starts):
+                self.assertEqual(qc.native_quest_start_evidence({"startPosition": starts}, maps), {})
+        self.assertEqual(qc.native_quest_start_evidence(
+            {"startPosition": [{"mapId": 17}]},
+            {17: {"posX": True, "posY": 4}}), {})
+        quest = record(42)
+        quest.source_info = expected
+        qc.apply_quest_enrichment([quest], payload={"quests": {"42": {
+            "native_start": {"map_id": 99, "position": "[99,99]"},
+            "source_meta": {"startCoords": "[-3,4]"},
+        }}})
+        self.assertEqual(quest.source_info["native_start"], expected["native_start"])
+        restored = qc._record_from_cache(json.loads(json.dumps(asdict(quest))))
+        self.assertEqual(restored.source_info["native_start"], expected["native_start"])
+        unverified = record(43)
+        qc.apply_quest_enrichment([unverified], payload={"quests": {"43": {
+            "native_start": {"map_id": 99, "position": "[99,99]"},
+        }}})
+        self.assertNotIn("native_start", unverified.source_info)
+
+    def test_cold_quest_index_two_workers_build_once(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from app.quest_catalog_details import ensure_lazy_catalog_cache
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "quest.sqlite3"
+            entered = threading.Event()
+            release = threading.Event()
+
+            def source(_data_dir):
+                entered.set()
+                if not release.wait(timeout=10):
+                    raise TimeoutError("test did not release source builder")
+                return [record(42)], [], {}
+
+            with (
+                patch("app.quest_catalog_details._cache_identity", return_value=((), path)),
+                patch("app.quest_catalog_details._signature", return_value=()),
+                patch("app.quest_catalog_details._source_index", side_effect=source) as build,
+                patch("app.quest_catalog_details._guide_evidence_index", return_value={}),
+                patch("app.quest_index_prebuilt.restore_quest_index", return_value=False),
+                ThreadPoolExecutor(max_workers=2) as workers,
+            ):
+                first = workers.submit(ensure_lazy_catalog_cache, root, cache_root=root)
+                try:
+                    self.assertTrue(entered.wait(timeout=10))
+                    second = workers.submit(ensure_lazy_catalog_cache, root, cache_root=root)
+                finally:
+                    release.set()
+                self.assertEqual(first.result(timeout=15), 1)
+                self.assertEqual(second.result(timeout=15), 1)
+                self.assertEqual(build.call_count, 1)
+
+    def test_warm_quest_index_does_not_request_sqlite_writer_lock(self):
+        from app.quest_catalog_details import ensure_lazy_catalog_cache
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "quest.sqlite3"
+            with closing(sqlite3.connect(path)) as writer:
+                writer.execute("PRAGMA journal_mode=WAL")
+                writer.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT)")
+                writer.execute("CREATE TABLE quests (id INTEGER PRIMARY KEY)")
+                writer.execute("INSERT INTO metadata VALUES ('ready', '1')")
+                writer.execute("INSERT INTO quests VALUES (42)")
+                writer.commit()
+                writer.execute("BEGIN IMMEDIATE")
+                with patch("app.quest_catalog_details._cache_identity", return_value=((), path)):
+                    self.assertEqual(ensure_lazy_catalog_cache(root, cache_root=root), 1)
+                writer.rollback()
+
+    def test_compact_quest_id_inventory_preserves_duplicate_titles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            index_path = root / "quest_ids.sqlite3"
+            with closing(sqlite3.connect(index_path)) as connection, connection:
+                connection.execute(
+                    "CREATE TABLE quests (id INTEGER PRIMARY KEY, name TEXT)"
+                )
+                connection.executemany(
+                    "INSERT INTO quests VALUES (?, ?)",
+                    [(20, "Même nom"), (10, "Même nom"), (30, "Autre quête")],
+                )
+            with (
+                patch("app.quest_catalog_details.ensure_lazy_catalog_cache") as ensure,
+                patch(
+                    "app.quest_catalog_details._cache_identity",
+                    return_value=((), index_path),
+                ),
+                patch("app.quest_catalog_details.load_lazy_catalog",
+                      side_effect=AssertionError("must not hydrate Quest objects")),
+            ):
+                self.assertEqual(
+                    load_quest_ids(root, cache_root=root / "cache"),
+                    (10, 20, 30),
+                )
+                ensure.assert_called_once_with(root, cache_root=root / "cache")
+
     def test_solution_combats_have_stable_compact_evidence_without_rich_detail(self):
         evidence = _solution_combat_rows({
             "solution_steps": [
@@ -385,6 +559,83 @@ class QuestDetailsTests(unittest.TestCase):
 
 
 class DeferredQuestUiTests(unittest.TestCase):
+    def test_empty_search_index_is_a_completed_load_not_a_new_worker(self):
+        from unittest.mock import patch
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        from app.pages.quests_page import QuestsPage
+        with patch.object(QuestsPage, "matching_quests", return_value=[]) as match, \
+             patch("app.pages.lazy_quests_page.Thread") as thread:
+            # Bind the method to an actual instance for super() resolution.
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance() or QApplication([])
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                catalog = QuestDetailsTests().build(root)
+                catalog._prebuilt_quest_search_text = {}
+                actual = LazyQuestsPage(lambda _: None, catalog=catalog,
+                    progress_path=root/"progress.json", achievement_progress_path=root/"success.json",
+                    profile_path=root/"profile.json", client_index_path=root/"clients.json",
+                    owned_items_path=root/"items.json")
+                try:
+                    actual.search.blockSignals(True)
+                    actual.search.setText("quest")
+                    match.reset_mock()
+                    self.assertEqual(actual.matching_quests(), [])
+                    match.assert_called_once()
+                    thread.assert_not_called()
+                finally:
+                    actual.deleteLater()
+                    app.processEvents()
+
+    def test_hidden_quest_ignores_worker_result_and_resumes_latest_selection(self):
+        from PySide6.QtWidgets import QApplication
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        app = QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalog = QuestDetailsTests().build(root)
+            entered, release = threading.Event(), threading.Event()
+            def compile(*args, **kwargs):
+                if kwargs["quest_ids"] == {1}:
+                    entered.set()
+                    release.wait(3)
+                return QuestDetailsTests.compile(*args, **kwargs)
+            page = LazyQuestsPage(lambda _: None, catalog=catalog, progress_path=root/"progress.json",
+                achievement_progress_path=root/"success.json", profile_path=root/"profile.json",
+                client_index_path=root/"clients.json", owned_items_path=root/"items.json")
+            try:
+                page.show()
+                app.processEvents()
+                with patch.object(QuestCatalog, "_load_source", side_effect=compile):
+                    page.select_quest(1, persist=False)
+                    self.assertTrue(entered.wait(1))
+                    worker = page._detail_worker
+                    page.hide()
+                    self.assertTrue(page._navigation_suspended)
+                    self.assertFalse(page._detail_timer.isActive())
+                    page.select_quest(2, persist=False)
+                    self.assertIs(page._detail_worker, worker)
+                    release.set()
+                    worker.join(3)
+                    page._collect_detail()
+                    self.assertFalse(page._detail_pending)
+                    self.assertNotEqual(getattr(page.quest_detail_view, "current_quest_id", None), 1)
+                    page.show()
+                    deadline = time.monotonic() + 4
+                    while (page._detail_pending or page._detail_worker is not None) and time.monotonic() < deadline:
+                        app.processEvents()
+                        time.sleep(.005)
+                    self.assertEqual(page.quest_detail_view.current_quest_id, 2)
+                    self.assertFalse(page._detail_pending)
+                    self.assertFalse(page._detail_timer.isActive())
+            finally:
+                release.set()
+                if page._detail_worker is not None:
+                    page._detail_worker.join(4)
+                page.release_runtime()
+                page.deleteLater()
+                app.processEvents()
+
     def test_fast_selection_renders_only_latest_and_reuses_a(self):
         from PySide6.QtWidgets import QApplication
         from app.pages.lazy_quests_page import LazyQuestsPage

@@ -7,7 +7,17 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Iterable
 
-from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
+from app.core.item_artwork import (
+    item_icon_index, item_icon_path,
+)
+from app.core.map_coordinates import (
+    BRACKETED_POSITION_RE as COORD_RE,
+    canonical_declared_coordinate,
+    quest_launch_instruction,
+    quest_launch_position_evidence,
+    travel_command_from_position,
+)
+from app.core.numbers import format_grouped_int, optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
     EntityRef,
@@ -18,13 +28,12 @@ from app.modules.encyclopedia.models import (
 )
 from app.modules.encyclopedia.providers import AchievementProvider
 from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
+from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
 from app.quest_catalog import (
     QuestObjective,
     QuestRecord,
     QuestReward,
     QuestSolutionBlock,
-    build_image_index,
-    doduda_rows,
     normalize_text,
     resolve_local_asset_path,
     safe_int,
@@ -38,7 +47,6 @@ TECHNICAL_CRITERION_RE = re.compile(
     r"\b(?:Qf|Qa|Qo|Ps|Pa|Pz|Po|EM|PL|BT|Sc|SC|ST|OA|HA|AN)\s*[=<>!]",
     re.IGNORECASE,
 )
-COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
 KAMAS_REWARD_RE = re.compile(r"^(\d[\d\s]*)\s*(?:k|kamas)\b", re.IGNORECASE)
 SOURCE_QUANTITY_REWARD_RE = re.compile(r"^(?:x\s*)?\d+\s*x?\s+.+", re.IGNORECASE)
 SOURCE_REWARD_SENTENCE_RE = re.compile(
@@ -77,6 +85,10 @@ class QuestStartInfo:
     zone: str = ""
     map_image_path: str = ""
     map_image_paths: tuple[str, ...] = ()
+    declared_launch_position: str = ""
+    declared_launch_npc: str = ""
+    launch_status: str = "NO_DECLARED_START"
+    launch_instruction: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,14 +160,8 @@ def quest_level_text(quest: QuestRecord) -> str:
 
 
 def guide_step_count_text(guide: Guide) -> str:
-    total = len([step for step in guide.required_steps if step.counts_for_completion])
-    if not total:
-        return ""
-    required = list(guide.required_steps)
-    word = "quête" if total == 1 and all(step.step_type == "quest" for step in required) else "quêtes"
-    if not all(step.step_type == "quest" for step in required):
-        word = "étape" if total == 1 else "étapes"
-    return f"{total} {word}"
+    total = sum(1 for step in guide.required_steps if step.counts_for_completion)
+    return f"{total} {guide_progress_noun(guide, total)}" if total else ""
 
 
 def guide_prerequisites(
@@ -623,9 +629,9 @@ def display_rewards_from_achievement(achievement: Achievement) -> list[DisplayRe
 def reward_label(reward: DisplayReward) -> str:
     quantity = int(reward.quantity or 0)
     if reward.kind == "xp":
-        return f"{format_number(quantity)} XP"
+        return f"{format_grouped_int(quantity)} XP"
     if reward.kind == "kamas":
-        return f"{format_number(quantity)} Kamas"
+        return f"{format_grouped_int(quantity)} Kamas"
     if reward.kind == "achievement_points":
         return f"{quantity} points de succès"
     prefixes = {
@@ -640,7 +646,7 @@ def reward_label(reward: DisplayReward) -> str:
     if prefix:
         return f"{prefix} : {reward.name}"
     if quantity > 1:
-        return f"x{format_number(quantity)} {reward.name}"
+        return f"x{format_grouped_int(quantity)} {reward.name}"
     return reward.name
 
 
@@ -684,17 +690,51 @@ def _aggregate_global_rewards(
     return tuple(merged[key] for key in order)
 
 
+def _canonical_source_coordinate(value: object) -> str:
+    """Only exact numeric coordinates enter the shared copyable start field."""
+
+    return canonical_declared_coordinate(clean_text(value))
+
+
+def _documented_quest_position(quest: QuestRecord) -> str:
+    """First explicit imported walkthrough coordinate, never inferred prose.
+
+    This is an objective/solution waypoint, NOT a verified quest launch map.
+    The reader labels it accordingly when no independent launch source exists.
+    """
+    for step in getattr(quest, "source_solution_steps", ()) or ():
+        for objective in getattr(step, "objectives", ()) or ():
+            position = _canonical_source_coordinate(
+                getattr(objective, "map_label", ""),
+            )
+            if position:
+                return position
+    for block in getattr(quest, "solution_blocks", ()) or ():
+        position = _canonical_source_coordinate(
+            getattr(block, "position", ""),
+        )
+        if position:
+            return position
+    return ""
+
+
 def quest_start_info(
     quest: QuestRecord, *, include_map_images: bool = True,
 ) -> QuestStartInfo:
     source_info = getattr(quest, "source_info", {}) or {}
-    launch = source_info.get("launch_position") if isinstance(source_info, dict) else {}
-    launch = launch if isinstance(launch, dict) else {}
     source_meta = source_info.get("source_meta") if isinstance(source_info, dict) else {}
     source_meta = source_meta if isinstance(source_meta, dict) else {}
 
     npc = clean_text(source_meta.get("startNpc"))
-    position = clean_text(launch.get("position")) or clean_text(source_meta.get("startCoords"))
+    # Normalize local source coordinates once: Guide copy links and /travel
+    # expect [x,y], regardless of whitespace or zero-padding in the source.
+    # A placeholder must not suppress a valid second source or objective hint.
+    position, start_status, _declarations = quest_launch_position_evidence(source_info)
+    launch_instruction = quest_launch_instruction(source_info)
+    declared_launch_position = (
+        position if start_status in {"NATIVE_START_DECLARED", "LOCAL_START_DECLARED"} else ""
+    )
+    declared_launch_npc = npc
     source_zone = clean_text(source_meta.get("zone"))
     zone = next(
         (value for value in quest.zones if source_zone and normalize_text(source_zone) in normalize_text(value)),
@@ -703,13 +743,17 @@ def quest_start_info(
     # Route generation needs only NPC, position and zone; avoid thousands of
     # filesystem image existence checks that never affect the GPS itinerary.
     map_image_paths = (
-        _explicit_start_map_paths(source_meta) if include_map_images else ()
+        _explicit_start_map_paths(source_meta)
+        if include_map_images and start_status != "DOCUMENTED_START"
+        else ()
     )
     map_image_path = map_image_paths[0] if map_image_paths else ""
     for step in quest.steps:
         for objective in step.objectives:
             if not position and objective.map_label:
-                position = objective.map_label
+                # Imported objective hints are not proven launch positions.
+                # Normalize them before rendering a copyable coordinate.
+                position = _canonical_source_coordinate(objective.map_label)
             if not zone and objective.zone:
                 zone = objective.zone
             if not npc and objective.type_id in NPC_OBJECTIVE_TYPES and objective.image_label:
@@ -718,6 +762,11 @@ def quest_start_info(
                 break
         if position and zone and npc:
             break
+    if not position:
+        # The visible Quest sheet previously omitted perfectly valid GPS
+        # metadata from source walkthrough objectives/blocks. Display the
+        # first such waypoint as unconfirmed objective, not false start.
+        position = _documented_quest_position(quest)
     return QuestStartInfo(
         level=quest_level_text(quest),
         npc=npc,
@@ -725,6 +774,10 @@ def quest_start_info(
         zone=zone,
         map_image_path=map_image_path,
         map_image_paths=map_image_paths,
+        declared_launch_position=declared_launch_position,
+        declared_launch_npc=declared_launch_npc,
+        launch_status=start_status,
+        launch_instruction=launch_instruction,
     )
 
 
@@ -746,27 +799,27 @@ def _explicit_start_map_paths(source_meta: dict[str, object]) -> tuple[str, ...]
     return tuple(paths)
 
 
-def quest_solution_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
+def quest_solution_steps(
+    quest: QuestRecord, *, prefer_source: bool = True,
+) -> tuple[SolutionStep, ...]:
     rows: list[SolutionStep] = []
-    source_steps = getattr(quest, "source_solution_steps", None)
-    local_objective_ids = list(_local_trackable_objective_ids(quest)) if source_steps else []
-    local_objective_index = 0
+    source_steps = getattr(quest, "source_solution_steps", None) if prefer_source else None
+    source_to_local = _verified_source_objective_ids(quest) if source_steps else {}
     for step in source_steps or quest.steps:
+        projected_rows = [
+            (raw_objective, projected)
+            for raw_objective in step.objectives
+            if (projected := solution_objective(raw_objective)) is not None
+        ]
         objectives = tuple(
-            objective
-            for objective in (solution_objective(objective) for objective in step.objectives)
-            if objective is not None
+            replace(projected, objective_id=source_to_local.get(id(raw_objective)))
+            if source_steps else projected
+            for raw_objective, projected in projected_rows
         )
-        if source_steps and objectives:
-            aligned = []
-            for objective in objectives:
-                objective_id = None
-                if local_objective_index < len(local_objective_ids):
-                    objective_id = local_objective_ids[local_objective_index]
-                    local_objective_index += 1
-                aligned.append(replace(objective, objective_id=objective_id))
-            objectives = tuple(aligned)
-        description = clean_text(step.description)
+        # Fallback steps follow the same documentary visibility contract as
+        # explicit blocks; raw protocol criteria and mini-map placeholders
+        # must not appear as false instructions in the reader or source audit.
+        description = documentary_instruction_text(step.description)
         if not description and not objectives and not step.name:
             continue
         title = clean_text(step.name)
@@ -782,25 +835,63 @@ def quest_solution_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
     return tuple(rows)
 
 
+def meaningful_quest_instruction(value: str) -> bool:
+    """An objective number, heading or waypoint is not actionable text."""
+    return bool(
+        value and not _canonical_source_coordinate(value)
+        and not re.fullmatch(r"(?:Objectif|Étape|Etape)\s+\d+", value, re.IGNORECASE)
+    )
+
+
+def quest_blocks_have_instructions(blocks: Iterable[DisplaySolutionBlock]) -> bool:
+    """A heading, illustration or bare waypoint is not an instruction."""
+    return any(
+        meaningful_quest_instruction(block.content)
+        and block.block_type not in {"image", "heading", "title", "subtitle", "section_heading"}
+        for block in blocks
+    )
+
+
+def quest_fallback_instruction_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
+    """Reuse real local objectives; skip title-only and empty placeholders."""
+    def meaningful(steps: Iterable[SolutionStep]) -> tuple[SolutionStep, ...]:
+        return tuple(
+            step for step in steps
+            if meaningful_quest_instruction(step.description)
+            or any(meaningful_quest_instruction(objective.text) for objective in step.objectives)
+        )
+
+    steps = meaningful(quest_solution_steps(quest))
+    if not steps and getattr(quest, "source_solution_steps", None):
+        # An imported array containing only placeholders must not hide the
+        # actual native game objectives. Their IDs and text remain canonical.
+        return meaningful(quest_solution_steps(quest, prefer_source=False))
+    return steps
+
+
 def quest_solution_blocks(quest: QuestRecord) -> tuple[DisplaySolutionBlock, ...]:
     blocks = getattr(quest, "solution_blocks", None) or []
     rows: list[DisplaySolutionBlock] = []
     for block in blocks:
         if not isinstance(block, QuestSolutionBlock):
             continue
-        content = clean_text(block.content)
+        content = documentary_instruction_text(block.content)
         if block.block_type == "heading" and _is_artificial_step_title(content):
             continue
         image_path = str(block.image_path or "")
-        if content and _looks_technical(content):
-            content = ""
-        if not content and not image_path:
+        # A documentary block may carry a real map coordinate separately
+        # from its text. Normalize it before the UI ever offers /travel.
+        position = _canonical_source_coordinate(block.position)
+        textual = block.block_type not in {
+            "image", "heading", "title", "subtitle", "section_heading",
+        }
+        if not content and not image_path and not (position and textual):
             continue
         rows.append(
             DisplaySolutionBlock(
                 block_type=str(block.block_type or "text"),
                 content=content,
-                position=str(block.position or ""),
+                position=position,
                 image_path=image_path,
                 caption=clean_text(block.caption),
                 data=dict(block.data or {}),
@@ -814,7 +905,8 @@ def _is_artificial_step_title(text: str) -> bool:
     return bool(re.fullmatch(r"e?tape_\d+", key))
 
 
-def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
+def trackable_quest_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
+    """Collect real documentary objectives once for view and progress services."""
     ids: list[int] = []
     seen: set[int] = set()
     for quest_step in quest.steps:
@@ -829,19 +921,94 @@ def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
     return tuple(ids)
 
 
+def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
+    """Compatibility alias for established source-objective matching."""
+    return trackable_quest_objective_ids(quest)
+
+
+def _verified_source_objective_ids(quest: QuestRecord) -> dict[int, int]:
+    """Map only uniquely matching source instructions to local progress IDs.
+
+    Enriched walkthroughs are documentary, not a guaranteed one-to-one copy
+    of gameplay objectives. Positional matching can silently check the wrong
+    quest objective when the source inserts, omits or reorders an instruction.
+    Unmatched and ambiguous rows deliberately remain read-only.
+    """
+
+    trackable = frozenset(_local_trackable_objective_ids(quest))
+    if not trackable:
+        return {}
+    local = [
+        objective
+        for step in quest.steps
+        for objective in step.objectives
+        if objective.id in trackable
+    ]
+    source = [
+        objective
+        for step in quest.source_solution_steps
+        for objective in step.objectives
+        if solution_objective(objective) is not None
+    ]
+
+    def matches(left: QuestObjective, right: QuestObjective) -> bool:
+        left_text = normalize_text(documentary_instruction_text(left.text))
+        right_text = normalize_text(documentary_instruction_text(right.text))
+        if not left_text or left_text != right_text:
+            return False
+        left_combat = left.is_combat or left.type_id in COMBAT_OBJECTIVE_TYPES
+        right_combat = right.is_combat or right.type_id in COMBAT_OBJECTIVE_TYPES
+        if bool(left_combat) != bool(right_combat):
+            return False
+        if (
+            left.item_id is not None and right.item_id is not None
+            and left.item_id != right.item_id
+        ):
+            # The same instruction can refer to different inventory items.
+            # Conflicting verified item IDs must never share completion state.
+            return False
+        left_pos = _canonical_source_coordinate(left.map_label)
+        right_pos = _canonical_source_coordinate(right.map_label)
+        # A verified mismatch is evidence against identity, not permission
+        # to attach a different local objective's completion state.
+        return not (left_pos and right_pos and left_pos != right_pos)
+
+    tentative: dict[int, int] = {}
+    for source_objective in source:
+        candidates = [
+            objective.id for objective in local
+            if matches(source_objective, objective)
+        ]
+        if len(candidates) == 1:
+            tentative[id(source_objective)] = candidates[0]
+
+    usage: dict[int, int] = {}
+    for objective_id in tentative.values():
+        usage[objective_id] = usage.get(objective_id, 0) + 1
+    return {
+        source_id: objective_id
+        for source_id, objective_id in tentative.items()
+        if usage[objective_id] == 1
+    }
+
+
 def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
-    text = clean_text(objective.text)
-    text = _clean_solution_instruction_text(text)
+    text = documentary_instruction_text(objective.text)
     if not text:
         return None
     if _looks_like_stat_table_row(text):
         return None
+    position = _canonical_source_coordinate(objective.map_label)
     if DISCOVER_MAP_RE.match(text):
-        text = f"Rendez-vous en {objective.map_label}." if objective.map_label else ""
+        # Doduda can supply the documentary "Découvrir la carte : <id>"
+        # without usable coordinates. Keep the real objective text, but
+        # provide no copyable travel target until a valid map is known.
+        # Dropping the row also loses a real progression objective.
+        text = f"Rendez-vous en {position}." if position else text
     elif objective.type_id in COMBAT_OBJECTIVE_TYPES and objective.image_label:
         text = f"Lancez le combat contre {objective.image_label}"
-        if objective.map_label:
-            text = f"{text} en {objective.map_label}"
+        if position:
+            text = f"{text} en {position}"
         text += "."
     if not text or _looks_technical(text):
         return None
@@ -852,7 +1019,7 @@ def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
         item_id=objective.item_id,
         quantity=max(0, int(objective.item_quantity or 0)),
         combat=objective.is_combat,
-        position=objective.map_label,
+        position=position,
     )
 
 
@@ -869,6 +1036,18 @@ def _clean_solution_instruction_text(text: str) -> str:
         return text
     text = MINIMAP_PLACEHOLDER_RE.sub("", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def documentary_instruction_text(value: object) -> str:
+    """Keep only documentary instructions that will actually appear in a Quest.
+
+    The local coverage audit and the runtime must agree: boilerplate
+    mini-map placeholders and raw technical criteria are not instructions.
+    Normal source text (including a map objective without GPS) remains intact.
+    """
+
+    text = _clean_solution_instruction_text(clean_text(value))
+    return "" if _looks_technical(text) else text
 
 
 def _looks_like_stat_table_row(text: str) -> bool:
@@ -916,21 +1095,61 @@ def related_quests(
 def first_position_from_quest(
     quest: QuestRecord, *, start_info: QuestStartInfo | None = None,
 ) -> str:
-    info = start_info if start_info is not None else quest_start_info(quest)
-    if info.position:
-        return info.position
+    # Guide routing needs coordinates, not start-map artwork: avoid probing
+    # image files for every candidate Quest when choosing its first waypoint.
+    info = start_info if start_info is not None else quest_start_info(
+        quest, include_map_images=False,
+    )
+    position = _canonical_source_coordinate(info.position)
+    if position:
+        return position
     for step in quest.steps:
         for objective in step.objectives:
-            if objective.map_label:
-                return objective.map_label
-    return ""
+            position = _canonical_source_coordinate(objective.map_label)
+            if position:
+                return position
+    # Keep the Guide route and the Quest sheet on the exact same explicit
+    # imported coordinate, even when callers supply an older start_info.
+    return _documented_quest_position(quest)
 
 
 def travel_command(position: str) -> str:
-    match = COORD_RE.search(str(position or ""))
-    if not match:
-        return ""
-    return f"/travel {int(match.group(1))},{int(match.group(2))}"
+    return travel_command_from_position(position) or ""
+
+
+def quest_requirement_target(line: str) -> str:
+    """Extract an explicitly named Quest prerequisite, not a guessed relation."""
+    key = normalize_text(clean_text(line))
+    for prefix in ("quete_terminee_", "quete_active_"):
+        if key.startswith(prefix):
+            return key[len(prefix):]
+    return ""
+
+
+def resolve_quest_requirement(line: str, source, *, owner=None) -> int | None:
+    """Use the catalogue-owned index; preserve lightweight custom providers."""
+    target = quest_requirement_target(line)
+    if not target or source is None:
+        return None
+    resolver = getattr(source, "requirement_name_id", None)
+    if callable(resolver):
+        return resolver(target)
+    # Small injected providers/catalogues used by compatibility hosts may not
+    # expose the catalogue API. Keep their local index scoped to the host.
+    from app.quest_catalog import build_quest_requirement_name_index
+    getter = getattr(source, "list_quests", None)
+    rows = getattr(source, "quests", None)
+    if rows is None:
+        if not callable(getter):
+            return None
+        rows = getter()
+    stamp = (id(source), id(rows), len(rows))
+    cached = getattr(owner, "_compat_requirement_index", None) if owner is not None else None
+    if cached is None or cached[0] != stamp:
+        cached = (stamp, build_quest_requirement_name_index(rows))
+        if owner is not None:
+            owner._compat_requirement_index = cached
+    return cached[1].get(target)
 
 
 def clean_requirement_line(value: str) -> str:
@@ -975,10 +1194,6 @@ def _normalize_clean_text(raw: str) -> str:
     text = text.replace("\r", " ").replace("\n", " ")
     text = re.sub(r"\s+", " ", text).strip()
     return text
-
-
-def format_number(value: int) -> str:
-    return f"{int(value):,}".replace(",", " ")
 
 
 def _positive_level(value: int | None) -> int | None:
@@ -1056,24 +1271,10 @@ def _merge_display_items(items: Iterable[DisplayItem]) -> tuple[DisplayItem, ...
     return tuple(sorted(merged.values(), key=lambda item: normalize_text(item.name)))
 
 
-def _local_item_image_path(item_id: int | None) -> str:
-    if item_id is None:
-        return ""
-    return _local_item_image_index().get(int(item_id), "")
-
-
-@lru_cache(maxsize=1)
-def _local_item_image_index() -> dict[int, str]:
-    image_index = build_image_index(DATA_DIR / "images")
-    rows: dict[int, str] = {}
-    for item_id, row in doduda_rows(RAW_QUEST_DATA_DIR / "items.json").items():
-        icon_id = safe_int(row.get("iconId"))
-        if icon_id is None:
-            continue
-        path = image_index.get(str(icon_id), "")
-        if path:
-            rows[int(item_id)] = path
-    return rows
+# Historical public/internal callers all share one owned index in app.core.
+local_item_image_path = item_icon_path
+_local_item_image_path = item_icon_path
+_local_item_image_index = item_icon_index
 
 
 def _dedupe_rewards(rewards: Iterable[DisplayReward]) -> tuple[DisplayReward, ...]:
@@ -1142,10 +1343,3 @@ def _is_alteration_objective(objective: QuestObjective) -> bool:
 
 def _looks_technical(text: str) -> bool:
     return bool(TECHNICAL_CRITERION_RE.search(str(text or "")))
-
-
-def _safe_int(value: object) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None

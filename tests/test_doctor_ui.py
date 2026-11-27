@@ -11,6 +11,24 @@ from tools.atlas_doctor import build_parser
 from tools.atlas_doctor_lib.doctor_ui import required_assertions, run_ui
 
 
+class RuntimeObservationPathCacheTests(unittest.TestCase):
+    def test_repeated_code_paths_are_resolved_once_including_external_paths(self):
+        from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            observer = RuntimeObserver(root, max_events=200)
+            source = str(root / "app" / "test.py")
+            external = str(root.parent / "outside.py")
+            with patch.object(observer, "_path", wraps=observer._path) as resolve:
+                for _ in range(100):
+                    self.assertEqual(observer._code_path(source), "app/test.py")
+                    self.assertIsNone(observer._code_path(external))
+                self.assertEqual(resolve.call_count, 2)
+                # Audit file targets still use uncached resolution.
+                observer._path(source)
+                self.assertEqual(resolve.call_count, 3)
+
+
 class ScreenshotContrastOracleTests(unittest.TestCase):
     def test_real_color_math_white_on_dark_and_dark_on_dark(self):
         from tools.atlas_doctor_lib.ui_contrast_oracle import inspect_label_pixels
@@ -148,9 +166,12 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertEqual(len(required), len(set(required)))
         self.assertIn("guides-lanyel/combat", required)
         for guide in ("guides-success", "guides-lanyel"):
-            for check in ("manual-persist", "manual-reopen",
+            for check in ("global-open", "global-close",
+                          "manual-persist", "manual-reopen",
                           "character-isolation", "manual-restore",
-                          "combat", "combat-character", "combat-restore"):
+                          "combat", "combat-character", "combat-restore",
+                          "preparation-open", "preparation-filter-potions",
+                          "preparation-filter-objets"):
                 self.assertIn(f"{guide}/{check}", required)
         self.assertIn("guides-success/geometry-3-960", required)
         self.assertIn("guides-success/bottom-3-960", required)
@@ -188,6 +209,9 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertIn("validator-smoke/manual-persist", smoke)
         self.assertIn("validator-smoke/participant-empty-blocked", smoke)
         self.assertIn("validator-smoke/participant-explicit-selection", smoke)
+        self.assertIn("validator-smoke/preparation-open", smoke)
+        self.assertIn("validator-smoke/preparation-filter-potions", smoke)
+        self.assertIn("validator-smoke/preparation-filter-objets", smoke)
 
     def test_timeout_or_native_crash_without_report_is_blocked_with_manifest_and_log(self):
         for effect in (subprocess.TimeoutExpired("worker", 1), subprocess.CompletedProcess([], -11)):

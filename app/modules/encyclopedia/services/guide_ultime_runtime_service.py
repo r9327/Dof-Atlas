@@ -7,6 +7,7 @@ from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
     _norm,
     _safe_int,
+    route_order_names, route_order_quest_ids,
 )
 
 
@@ -92,33 +93,43 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         self.set_manual_checked(character_key, legacy_key, False)
         return True
 
-    def route_sheet_progress(self, character_key: str) -> tuple[int, int]:
-        """Return completion of the route units actually rendered to the player."""
+    def _remember_route_result(self, attribute: str, key: tuple, value: Any) -> None:
+        """Keep at most eight characters of the current route/revision only."""
+        cache = getattr(self, attribute, {})
+        current = {k: v for k, v in cache.items() if k[1:] == key[1:]}
+        current.pop(key, None)
+        current[key] = value
+        while len(current) > 8:
+            current.pop(next(iter(current)))
+        setattr(self, attribute, current)
+
+    def _cached_completion(self, key: tuple) -> bytes | None:
+        return getattr(self, "_route_completion_cache", {}).get(key)
+
+    def route_completion_flags(self, character_key: str) -> bytes:
+        """One compact, revision-scoped completion result per route sheet."""
         self.reload_progress()
-        cache_key = self._route_cache_key(character_key)
-        cache = getattr(self, "_route_sheet_progress_cache", None)
-        if isinstance(cache, dict) and cache_key in cache:
-            return cache[cache_key]
-
-        total = len(self.cards)
+        key = self._route_cache_key(character_key)
+        cached = self._cached_completion(key)
+        if cached is not None:
+            return cached
         completed_quests = self.quest_progress.completed_quest_ids(character_key)
-        completed = sum(
-            1
+        flags = bytes(
+            bool(self.card_state(
+                character_key, card, index, completed_quests=completed_quests,
+            ).complete)
             for index, card in enumerate(self.cards)
-            if self.card_state(
-                character_key,
-                card,
-                index,
-                completed_quests=completed_quests,
-            ).complete
         )
-        result = (completed, total)
+        # Never publish a scan under a different revision. Legacy-key migration
+        # or a concurrent progress writer may have changed it during evaluation.
+        if self._route_cache_key(character_key) == key:
+            self._remember_route_result("_route_completion_cache", key, flags)
+        return flags
 
-        # A lazy legacy-key migration may have published a new guide generation
-        # while card_state() was evaluated. Store under the final revision so the
-        # immediately following header/navigation read can reuse the result.
-        self._route_sheet_progress_cache = {self._route_cache_key(character_key): result}
-        return result
+    def route_sheet_progress(self, character_key: str) -> tuple[int, int]:
+        """Return completion of the same sheets used by team and preparation."""
+        flags = self.route_completion_flags(character_key)
+        return flags.count(1), len(flags)
 
     def active_route_card(self, character_key: str) -> tuple[int, dict[str, Any] | None]:
         """Return the canonical current sheet, or no card when the route is empty."""
@@ -131,43 +142,15 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         return index, self.cards[index]
 
     def bonta_order_names(self) -> tuple[str, ...]:
-        available: dict[str, str] = {}
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            for row in card.get("options", []) or []:
-                if not isinstance(row, dict):
-                    continue
-                name = str(row.get("order") or "").strip()
-                if name:
-                    available.setdefault(_norm(name), name)
-        return tuple(
-            available[_norm(expected)]
-            for expected in BONTA_ORDERS
-            if _norm(expected) in available
-        )
+        available = route_order_names(self.route)
+        return tuple(available[_norm(expected)] for expected in BONTA_ORDERS
+                     if _norm(expected) in available)
 
     def selected_order_quest_ids(self, character_key: str) -> tuple[int, ...]:
         selected = self.selected_order_name(character_key)
         if not selected or _norm(selected) not in {_norm(value) for value in self.bonta_order_names()}:
             return ()
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        ids: list[int] = []
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            option = next(
-                (
-                    row for row in card.get("options", []) or []
-                    if isinstance(row, dict) and _norm(row.get("order")) == _norm(selected)
-                ),
-                None,
-            )
-            qid = _safe_int(option.get("quest_id")) if option else None
-            if qid is not None:
-                ids.append(qid)
-        return tuple(ids[:5])
+        return route_order_quest_ids(self.route, selected)[:5]
 
     def class_gate_satisfied(
         self,
@@ -220,39 +203,28 @@ class GuideUltimeRuntimeService(GuideUltimeGeneratedService):
         )
 
     def first_incomplete_index(self, character_key: str) -> int:
-        # This method is also called directly by navigation handlers. Refresh the
-        # three progress snapshots before consulting the cache so a peer/external
-        # write cannot be hidden behind an otherwise valid old cache entry.
+        """Use the same completion rule for every derived guide runtime.
+
+        The warm path reuses the complete route snapshot. Cold navigation
+        stops at the first incomplete sheet without materializing the route.
+        """
         self.reload_progress()
         cache_key = self._route_cache_key(character_key)
-        cache = getattr(self, "_first_incomplete_cache", None)
-        if isinstance(cache, dict) and cache_key in cache:
+        flags = self._cached_completion(cache_key)
+        if flags is not None:
+            first = flags.find(b"\x00")
+            return first if first >= 0 else max(0, len(flags) - 1)
+        cache = getattr(self, "_first_incomplete_cache", {})
+        if cache_key in cache:
             return int(cache[cache_key])
-
-        # Fast migration path: historical completed cards are skipped from cached
-        # set membership, avoiding thousands of QWidget/state-level operations.
         completed_quests = self.quest_progress.completed_quest_ids(character_key)
-        achievement_state = self.achievement_progress.state_for(character_key)
         result = max(0, len(self.cards) - 1)
         for index, card in enumerate(self.cards):
-            quest_ids = self.card_quest_ids(card)
-            success_ids = self.card_success_ids(card)
-            historical_auto_done = (
-                bool(quest_ids)
-                and all(qid in completed_quests for qid in quest_ids)
-                and all(achievement_state.is_achievement_completed(aid) for aid in success_ids)
-                and self.class_gate_satisfied(character_key, card, completed_quests)
-            )
-            if historical_auto_done:
-                continue
             if not self.card_state(
-                character_key,
-                card,
-                index,
-                completed_quests=completed_quests,
+                character_key, card, index, completed_quests=completed_quests,
             ).complete:
                 result = index
                 break
-
-        self._first_incomplete_cache = {self._route_cache_key(character_key): result}
+        if self._route_cache_key(character_key) == cache_key:
+            self._remember_route_result("_first_incomplete_cache", cache_key, result)
         return result

@@ -1,0 +1,82 @@
+"""Ensure legacy and lazy search share source fields without flattening state."""
+from __future__ import annotations
+
+import unittest
+from types import SimpleNamespace
+
+from app.modules.encyclopedia.services.quest_search_text import quest_repeatability_text, quest_search_fields
+
+
+class QuestSearchFieldsTests(unittest.TestCase):
+    def test_fields_keep_raw_values_order_and_require_no_qt(self):
+        quest = SimpleNamespace(
+            search_text="Quête première",
+            steps=(
+                SimpleNamespace(name="Étape A", objectives=(SimpleNamespace(text="Parler à Bob"),)),
+                SimpleNamespace(name="Étape B", objectives=(SimpleNamespace(text="Voir Astrub"),)),
+            ),
+            rewards=(SimpleNamespace(name="Cawotte"), SimpleNamespace(name="Ortie")),
+        )
+        self.assertEqual(
+            quest_search_fields(quest, ("Succès 1", "Succès 2")),
+            ("Quête première", "Étape A Étape B", "Parler à Bob Voir Astrub",
+             "Cawotte Ortie", "Succès 1 Succès 2"),
+        )
+
+    def test_prebuilt_search_keeps_live_achievement_and_guide_names_without_hydration(self):
+        from app.modules.encyclopedia.services.quest_search_text import (
+            quest_document_text, quest_context_search_text,
+        )
+        from app.pages._quests_page_impl import QuestsPage
+        from app.pages.quests_page import QuestsPage as CachedQuestsPage
+        from app.pages.lazy_quests_page import LazyQuestsPage
+        quest = SimpleNamespace(id=1, search_text="Quête", steps=(), rewards=())
+        document = quest_document_text(quest)
+        self.assertEqual(quest_context_search_text(quest, ["Succès rare"], ["Guide Cawotte"]),
+                         "quete_guide_cawotte_succes_rare")
+        class Deferred:
+            id = 1
+            @property
+            def steps(self):
+                raise AssertionError("unexpected detail load")
+        page = SimpleNamespace(
+            catalog=SimpleNamespace(_prebuilt_quest_search_text={1: document}),
+            graph=SimpleNamespace(achievement_names=lambda _: ["Succès rare"]),
+            guide_provider=SimpleNamespace(get_guides_for_entity=lambda *_: [
+                SimpleNamespace(title="Guide Cawotte"),
+            ]),
+        )
+        self.assertEqual(QuestsPage.quest_search_text(page, Deferred()),
+                         "quete_guide_cawotte_succes_rare")
+        self.assertIs(LazyQuestsPage.quest_search_text, CachedQuestsPage.quest_search_text)
+
+    def test_repeatability_source_is_identical_for_graph_and_view(self):
+        quest = SimpleNamespace(category="Dofus", start_criterion="Qf=3",
+                                info=("Hebdomadaire", "Autre"))
+        self.assertEqual(quest_repeatability_text(quest), "Dofus Qf=3 Hebdomadaire Autre")
+
+    def test_inactive_search_filters_never_read_quest_details_or_progress(self):
+        from app.pages._quests_page_impl import QuestsPage
+        from unittest.mock import Mock
+        page = SimpleNamespace(
+            search=SimpleNamespace(text=lambda: "quête test"),
+            catalog=SimpleNamespace(quests=[SimpleNamespace(id=1)]),
+            _matches_search_tokens=lambda quest, tokens: True,
+            _matches_current_mode=lambda quest: True,
+            _matches_state_filter=Mock(side_effect=AssertionError("inactive state filter")),
+            _matches_type_filter=Mock(side_effect=AssertionError("inactive type filter")),
+            quest_state=Mock(side_effect=AssertionError("inactive state")),
+            repeatability_kind=Mock(side_effect=AssertionError("inactive type")),
+        )
+        quest = page.catalog.quests[0]
+        self.assertEqual(QuestsPage.matching_quests(page), [quest])
+        self.assertTrue(QuestsPage._matches_state_filter(page, quest, False, "Toutes"))
+        self.assertTrue(QuestsPage._matches_type_filter(page, quest, "Toutes"))
+
+    def test_empty_optional_fields_match_original_join_semantics(self):
+        quest = SimpleNamespace(search_text="Nom", steps=(), rewards=())
+        self.assertEqual(quest_search_fields(quest, ()), ("Nom", "", "", "", ""))
+
+
+if __name__ == "__main__":
+    unittest.main()

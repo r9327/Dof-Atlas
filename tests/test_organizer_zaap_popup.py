@@ -96,7 +96,9 @@ class OrganizerZaapPopupTests(unittest.TestCase):
                         self.assertIn("en cours", message)
                         self.assertNotIn("lance:", message)
                     elif accepted is False:
-                        self.assertIn("non lancé", message)
+                        self.assertIn("refusé", message)
+                        self.assertIn("commande copiée", message)
+                        self.assertEqual(self.app.clipboard().text(), "/zaap 1,2")
                     else:
                         self.assertIn("non confirmé", message)
                 finally:
@@ -111,7 +113,8 @@ class OrganizerZaapPopupTests(unittest.TestCase):
         try:
             widget.launch_zaap({"label": "Astrub", "posX": 1, "posY": 2})
             self.assertEqual(observed, [False])
-            self.assertIn("non lancé", widget.status_callback.call_args.args[0])
+            self.assertIn("commande copiée", widget.status_callback.call_args.args[0])
+            self.assertEqual(self.app.clipboard().text(), "/zaap 1,2")
         finally:
             widget.close()
 

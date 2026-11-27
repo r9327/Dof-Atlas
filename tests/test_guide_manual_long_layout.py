@@ -4,12 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 import unittest
-from types import SimpleNamespace
-from unittest.mock import patch
 
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QListWidget, QLineEdit
+from PySide6.QtWidgets import QApplication, QFrame
 
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
@@ -20,41 +18,75 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideM
 
 
 class GuideManualLongLayoutTests(unittest.TestCase):
-    def test_long_summary_search_normalizes_rows_only_on_population(self):
+    def test_global_header_has_no_long_route_summary_index(self):
         QApplication.instance() or QApplication([])
-        view = SimpleNamespace(
-            service=SimpleNamespace(cards=[
-                {"manual_title": "Astrub — entrée"},
-                {"manual_chapter_label": "Amakna", "destination": "Village"},
-                {"manual_title": "Astrub — sortie"},
-            ]),
-            summary_list=QListWidget(),
-            summary_search=QLineEdit(),
+        from tests.test_guide_ultime_manual_ui_navigation import (
+            _FakeManualUiService, _FakeParticipantService,
         )
-        view._filter_summary = lambda value: SharedGuideManualView._filter_summary(view, value)
+        view = SharedGuideManualView(
+            _FakeManualUiService(), character_key="character:1",
+            participant_service=_FakeParticipantService(),
+        )
         try:
-            from app.modules.encyclopedia.views import shared_manual_guide_view as module
-            with patch.object(module, "normalize_text", wraps=module.normalize_text) as normalize:
-                SharedGuideManualView._populate_summary(view)
-                initial_calls = normalize.call_count
-                self.assertEqual(initial_calls, 4)  # 3 labels + initial empty search
-                SharedGuideManualView._filter_summary(view, "Astrub")
-                self.assertEqual(normalize.call_count, initial_calls + 1)
-                self.assertEqual(
-                    [view.summary_list.item(i).isHidden() for i in range(3)],
-                    [False, True, False],
-                )
-                SharedGuideManualView._filter_summary(view, "Village")
-                self.assertEqual(normalize.call_count, initial_calls + 2)
-                self.assertEqual(
-                    [view.summary_list.item(i).isHidden() for i in range(3)],
-                    [True, False, True],
-                )
+            self.assertFalse(hasattr(view, "summary_list"))
+            self.assertFalse(hasattr(view, "summary_search"))
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertIsNotNone(view.findChild(QFrame, "GuideGlobalDetailsPanel"))
+            self.assertIsNotNone(view.preparation_button)
+            self.assertEqual(view.rendered_card_count, 1)
         finally:
-            view.summary_list.deleteLater()
-            view.summary_search.deleteLater()
-            QCoreApplication.sendPostedEvents(view.summary_list, QEvent.DeferredDelete)
-            QCoreApplication.sendPostedEvents(view.summary_search, QEvent.DeferredDelete)
+            view.close()
+            view.deleteLater()
+            QCoreApplication.sendPostedEvents(view, QEvent.DeferredDelete)
+
+    def test_long_shared_summary_is_lazy_and_keeps_existing_rows(self):
+        app = QApplication.instance() or QApplication([])
+        from app.ui.components import AtlasGuideReadingHeader
+
+        header = AtlasGuideReadingHeader("Guide long")
+        titles = tuple(f"Fiche {index + 1}" for index in range(267))
+        calls = []
+        requests = []
+
+        def provide_titles():
+            calls.append(True)
+            return titles
+
+        try:
+            header.set_summary_provider(provide_titles)
+            header.summaryRequested.connect(requests.append)
+            header.set_summary_position(10)
+            self.assertEqual(calls, [])
+            self.assertEqual(header.summary_panel.count(), 0)
+            header.global_details_button.click()
+            self.assertEqual(calls, [])
+            header.summary_button.click()
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(header.summary_panel.count(), 267)
+            self.assertEqual(header.summary_panel.currentRow(), 10)
+            first = header.summary_panel.item(0)
+            self.assertEqual(first.text(), "1. Fiche 1")
+            first.setData(Qt.UserRole, "existing-row")
+
+            header.set_summary_position(266)
+            self.assertEqual(header.summary_panel.currentRow(), 266)
+            self.assertEqual(header.summary_panel.item(266).text(), "267. Fiche 267")
+            self.assertEqual(header.summary_panel.item(0).data(Qt.UserRole), "existing-row")
+            self.assertEqual(requests, [])
+
+            header.global_details_button.click()
+            calls_before = len(calls)
+            header.set_summary_position(20)
+            self.assertEqual(len(calls), calls_before)
+            header.global_details_button.click()
+            self.assertEqual(header.summary_panel.currentRow(), 20)
+            self.assertEqual(header.summary_panel.item(0).data(Qt.UserRole), "existing-row")
+            self.assertEqual(requests, [])
+        finally:
+            header.close()
+            header.deleteLater()
+            QCoreApplication.sendPostedEvents(header, QEvent.DeferredDelete)
+            app.processEvents()
 
     def test_long_canonical_card_scrolls_and_navigation_stays_reachable(self):
         app = QApplication.instance() or QApplication([])

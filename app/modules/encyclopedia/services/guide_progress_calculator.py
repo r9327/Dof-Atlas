@@ -7,7 +7,7 @@ from app.modules.encyclopedia.models import Guide, GuideStep
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
-from app.modules.encyclopedia.services.guide_quest_view_model import solution_objective
+from app.modules.encyclopedia.services.guide_quest_view_model import trackable_quest_objective_ids
 from app.quest_catalog import QuestRecord
 
 
@@ -45,32 +45,15 @@ class GuideProgressCalculator:
         character_key: str,
     ) -> ProgressCount:
         """Count the real, unique quest progress represented by a guide block."""
-        quest_steps: list[GuideStep] = []
-        seen: set[int] = set()
-        for step in steps:
-            if (
-                step.step_type != "quest"
-                or step.entity_id is None
-                or not step.counts_for_completion
-            ):
-                continue
-            quest_id = int(step.entity_id)
-            if quest_id in seen:
-                continue
-            seen.add(quest_id)
-            quest_steps.append(step)
-        completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
-        completed = sum(
-            1
-            for step in quest_steps
-            if self.step_completed(
-                guide,
-                step,
-                character_key,
-                completed_quest_ids=completed_quest_ids,
-            )
+        return self.quest_ids_progress(
+            guide.id,
+            (step.entity_id for step in steps if (
+                step.step_type == "quest"
+                and step.entity_id is not None
+                and step.counts_for_completion
+            )),
+            character_key,
         )
-        return ProgressCount(completed, len(quest_steps))
 
     def quest_ids_progress(
         self,
@@ -88,6 +71,8 @@ class GuideProgressCalculator:
                 continue
             seen.add(quest_id)
             ids.append(quest_id)
+        if not ids:
+            return ProgressCount(0, 0)
 
         completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
         completed = 0
@@ -107,6 +92,8 @@ class GuideProgressCalculator:
 
     def steps_progress(self, guide: Guide, steps: Iterable[GuideStep], character_key: str) -> ProgressCount:
         required = [step for step in steps if step.counts_for_completion]
+        if not required:
+            return ProgressCount(0, 0)
         completed_quest_ids = self.quest_progress_service.completed_quest_ids(character_key)
         completed = sum(
             1
@@ -128,6 +115,8 @@ class GuideProgressCalculator:
         quest_completed: bool | None = None,
     ) -> ProgressCount:
         objective_ids = self._trackable_ids_for(quest)
+        if not objective_ids:
+            return ProgressCount(0, 0)
         if quest_completed is None:
             quest_completed = self.quest_progress_service.is_quest_completed(character_key, quest.id)
         if quest_completed:
@@ -206,15 +195,4 @@ class GuideProgressCalculator:
 
     @staticmethod
     def trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
-        ids: list[int] = []
-        seen: set[int] = set()
-        for quest_step in quest.steps:
-            for raw_objective in quest_step.objectives:
-                objective = solution_objective(raw_objective)
-                if objective is None or objective.objective_id is None:
-                    continue
-                objective_id = int(objective.objective_id)
-                if objective_id not in seen:
-                    seen.add(objective_id)
-                    ids.append(objective_id)
-        return tuple(ids)
+        return trackable_quest_objective_ids(quest)

@@ -214,6 +214,8 @@ class AchievementContextPhase2Tests(unittest.TestCase):
             achievement_slot = page.tabs.widget(page.tab_labels().index(ACHIEVEMENTS_TAB))
             self.assertEqual(achievement_slot.objectName(), "EncyclopediaLazySlot")
             self.assertEqual(achievement_slot.findChildren(QLabel), [])
+            page._achievement_ready = False
+            request_achievement_runtime.assert_not_called()
             page.tabs.setCurrentIndex(page.tab_labels().index(ACHIEVEMENTS_TAB))
             app.processEvents()
             self.assertEqual(page.current_tab_label(), ACHIEVEMENTS_TAB)
@@ -231,6 +233,10 @@ class AchievementContextPhase2Tests(unittest.TestCase):
 
             self.assertEqual(page.current_tab_label(), QUESTS_TAB)
             assert page.quest_page is not None
+            page.show()
+            page.set_character_key("character:201")
+            app.processEvents()
+            page.quest_page.on_mode_changed("TOUTES")
             page.quest_page.search.setText("bouft")
             app.processEvents()
             self.assertEqual(page.quest_page.quest_list.count(), 1)

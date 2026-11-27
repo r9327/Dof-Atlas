@@ -6,21 +6,14 @@ from __future__ import annotations
 
 import math
 
-UNITY_PALETTE = {
-    "background": "#151821",
-    "panel": "#1B2746",
-    "border": "#475F89",
-    "track": "#213154",
-    "text": "#F1F6FB",
-    "muted": "#B8C6E3",
-    "accent": "#9FCE51",
-    "accent_hover": "#B1DC64",
-}
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_TYPOGRAPHY, launcher_colors
 
+LAUNCHER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["launcher"]
 
-# No second launcher palette: the old Atlas UI cannot accidentally reappear.
+# Keep the standalone Tk entry lightweight: this imports a stdlib-only palette.
+UNITY_PALETTE = launcher_colors()
 COLORS = UNITY_PALETTE
-FONT_FAMILY = "Lexend"
+FONT_FAMILY = UNITY_TYPOGRAPHY["FONT_FAMILY"].split(",")[0].strip().strip('"')
 
 # Exact existing Atlas application icon, not a substitute game logo.
 LOGO_PNG_BASE64 = (
@@ -167,12 +160,12 @@ def display_message(message: str) -> str:
 def add_header(tk, window) -> None:
     """Only product icon and application title, no navigation or decorative UI."""
     header = tk.Frame(window, bg=COLORS["background"])
-    header.pack(fill="x", pady=(24, 0))
+    header.pack(fill="x", pady=(LAUNCHER_GEOMETRY["header_top_padding"], 0))
     try:
         logo = tk.PhotoImage(data=LOGO_PNG_BASE64, format="png")
         icon = tk.Label(header, image=logo, bg=COLORS["background"])
         icon.image = logo  # Tk images need a live Python reference.
-        icon.pack(pady=(0, 11))
+        icon.pack(pady=(0, LAUNCHER_GEOMETRY["logo_bottom_padding"]))
     except (tk.TclError, ValueError):
         # Displaying a damaged icon must not block a safe update or startup.
         pass
@@ -187,7 +180,7 @@ def progress_style(style) -> None:
     style.configure(
         "Atlas.Horizontal.TProgressbar",
         troughcolor=COLORS["track"], background=COLORS["accent"],
-        borderwidth=0, thickness=12,
+        borderwidth=0, thickness=LAUNCHER_GEOMETRY["progress_thickness"],
         lightcolor=COLORS["accent"], darkcolor=COLORS["accent"],
     )
 
@@ -195,11 +188,18 @@ def progress_style(style) -> None:
 def button_options() -> dict[str, object]:
     """For first-install folder selection only, never the normal startup."""
     return {
-        "bg": COLORS["accent"],
-        "fg": COLORS["background"],
-        "activebackground": COLORS["accent_hover"],
-        "activeforeground": COLORS["background"],
-        "font": ("Lexend", 10, "bold"),
-        "relief": "flat", "bd": 0, "padx": 16, "pady": 8,
+        # The same blue/green, subtle hover and focus contract as Qt AtlasButton.
+        "bg": COLORS["button_bg"],
+        "fg": COLORS["button_fg"],
+        "activebackground": COLORS["button_hover"],
+        "activeforeground": COLORS["button_hover_fg"],
+        "disabledforeground": COLORS["disabled_text"],
+        "highlightbackground": COLORS["button_border"],
+        "highlightcolor": COLORS["button_focus"],
+        "highlightthickness": 1,
+        "font": (FONT_FAMILY, 10, "bold"),
+        "relief": "flat", "bd": 0,
+        "padx": LAUNCHER_GEOMETRY["button_padding_x"],
+        "pady": LAUNCHER_GEOMETRY["button_padding_y"],
         "cursor": "hand2",
     }

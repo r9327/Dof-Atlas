@@ -57,7 +57,7 @@ ROUTES: tuple[tuple[str, str, str, str, bool], ...] = (
     ("stuffs_pvm", "stuffs", "PvM", "Equipement", False),
     ("stuffs_pvp", "stuffs", "PvP", "Equipement", False),
     ("stuffs_builders", "stuffs", "Builders", "Equipement", False),
-    ("almanax", "page", "Almanax", "Almanax", True),
+    ("almanax", "page", "Almanax", "Almanax", False),
     ("settings", "page", "Settings", "Settings", False),
     ("tutorials", "placeholder", "Tutoriels", "Placeholder::Tutoriels", True),
     ("dofus_noob", "placeholder", "Dofus Noob", "Placeholder::Dofus Noob", True),

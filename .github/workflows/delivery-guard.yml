@@ -23,6 +23,9 @@ concurrency:
 
 jobs:
   delivery-contract:
+    # WIP commits are not delivery evidence. Strict reporting resumes on
+    # ready_for_review and synchronize when this PR is no longer Draft.
+    if: ${{ !github.event.pull_request.draft }}
     name: Atlas Delivery Guard / Delivery Contract
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -101,5 +104,20 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+      - name: Verify candidate checkout identity on every PR event
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then
+            {
+              echo "### Delivery Guard — development snapshot"
+              echo "Draft PR: strict originating-issue accounting runs only when Ready."
+              echo "Exact candidate HEAD: $EXPECTED_SHA"
+              echo "Not a delivery certificate, merge authorization or release approval."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Run candidate unit tests WITHOUT GitHub API credentials
         run: python -m unittest discover -s tests -p 'test_ci_delivery_guard.py' -v

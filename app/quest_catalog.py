@@ -22,8 +22,12 @@ from app.constants import (
     RAW_QUEST_DATA_DIR,
     ROOT_DIR,
 )
-from app.core.character_identity import character_id_from_key
+from app.core.character_identity import character_id_from_key, is_verified_character_binding
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.file_stamp import mtime_size_stamp_optional
+from app.core.doduda_rows import array_rows as array_value, rows_by_id, keyed_rows
+from app.core.numbers import exact_native_integer, optional_int as safe_int
+from app.core.map_coordinates import canonical_declared_coordinate
 from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
 
@@ -63,13 +67,6 @@ QUEST_CATALOG_SOURCE_FILES = (
 
 
 
-def array_value(value: Any) -> list[Any]:
-    if isinstance(value, dict):
-        inner = value.get("Array", [])
-        return inner if isinstance(inner, list) else []
-    return value if isinstance(value, list) else []
-
-
 def read_json_file(path: Path, default: Any) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -85,44 +82,11 @@ def write_json_file(path: Path, payload: Any) -> None:
 
 
 def doduda_rows(path: Path) -> dict[int, dict[str, Any]]:
-    payload = read_json_file(path, {})
-    refs = payload.get("references", {}).get("RefIds", []) if isinstance(payload, dict) else []
-    rows: dict[int, dict[str, Any]] = {}
-    for ref in refs:
-        data = ref.get("data") if isinstance(ref, dict) else None
-        if not isinstance(data, dict):
-            continue
-        try:
-            ident = int(data.get("id"))
-        except (TypeError, ValueError):
-            continue
-        rows[ident] = data
-    return rows
+    return rows_by_id(read_json_file(path, {}))
 
 
 def doduda_keyed_rows(path: Path) -> dict[int, dict[str, Any]]:
-    payload = read_json_file(path, {})
-    if not isinstance(payload, dict):
-        return {}
-    objects = payload.get("objectsById")
-    if not isinstance(objects, dict):
-        return {}
-    keys = array_value(objects.get("m_keys"))
-    values = array_value(objects.get("m_values"))
-    refs = payload.get("references", {}).get("RefIds", [])
-    refs_by_rid = {
-        safe_int(ref.get("rid")): ref.get("data")
-        for ref in refs
-        if isinstance(ref, dict) and isinstance(ref.get("data"), dict)
-    }
-    rows: dict[int, dict[str, Any]] = {}
-    for key, value in zip(keys, values):
-        ident = safe_int(key)
-        rid = safe_int(value.get("rid")) if isinstance(value, dict) else None
-        row = refs_by_rid.get(rid)
-        if ident is not None and isinstance(row, dict):
-            rows[ident] = row
-    return rows
+    return keyed_rows(read_json_file(path, {}))
 
 
 def text_for(entries: dict[str, Any], ident: Any, fallback: str = "") -> str:
@@ -243,6 +207,20 @@ class QuestAchievementSeries:
     quest_ids: tuple[int, ...]
 
 
+def build_quest_requirement_name_index(quests) -> dict[str, int]:
+    """Preserve first authored match; skip malformed names/IDs."""
+    result: dict[str, int] = {}
+    for quest in quests:
+        name = normalize_text(getattr(quest, "name", ""))
+        try:
+            ident = int(getattr(quest, "id", None))
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if name:
+            result.setdefault(name, ident)
+    return result
+
+
 class QuestCatalog:
     def __init__(
         self,
@@ -256,6 +234,17 @@ class QuestCatalog:
         self.errors = errors or []
         self.by_id = {quest.id: quest for quest in quests}
         self.achievement_series = tuple(achievement_series)
+        self._requirement_name_index: tuple[tuple[int, int], dict[str, int]] | None = None
+
+    def requirement_name_id(self, normalized_name: str) -> int | None:
+        """One lazy name index for all hosts of this catalogue generation."""
+        quests = self.quests
+        stamp = (id(quests), len(quests))
+        cached = getattr(self, "_requirement_name_index", None)
+        if cached is None or cached[0] != stamp:
+            cached = (stamp, build_quest_requirement_name_index(quests))
+            self._requirement_name_index = cached
+        return cached[1].get(normalized_name)
 
     @classmethod
     def load(
@@ -395,10 +384,9 @@ class QuestCatalog:
         record_phase("global_names_and_links")
         objectives_by_step: dict[int, list[dict[str, Any]]] = defaultdict(list)
         for objective in objective_rows:
-            try:
-                objectives_by_step[int(objective.get("stepId"))].append(objective)
-            except (TypeError, ValueError):
-                continue
+            step_id = safe_int(objective.get("stepId"))
+            if step_id is not None:
+                objectives_by_step[step_id].append(objective)
         record_phase("objective_lookup")
         rewards_by_id = rewards
 
@@ -415,15 +403,15 @@ class QuestCatalog:
                     zone = zone_for_map(start.get("mapId"), maps, subareas, areas, entries)
                     if zone:
                         add_unique(zones, zone)
-            for step_id in array_value(quest.get("stepIds")):
-                try:
-                    step = quest_steps.get(int(step_id))
-                except (TypeError, ValueError):
-                    step = None
+            for raw_step_id in array_value(quest.get("stepIds")):
+                step_id = safe_int(raw_step_id)
+                if step_id is None:
+                    continue
+                step = quest_steps.get(step_id)
                 if not step:
                     continue
                 step_objectives: list[QuestObjective] = []
-                for objective in objectives_by_step.get(int(step_id), []):
+                for objective in objectives_by_step.get(step_id, []):
                     resolved = resolve_objective(
                         objective,
                         objective_type_names,
@@ -488,6 +476,7 @@ class QuestCatalog:
                     prerequisites=prerequisites,
                     info=info,
                     steps=steps,
+                    source_info=native_quest_start_evidence(quest, maps),
                     rewards=dedupe_rewards(quest_rewards),
                 )
             )
@@ -533,17 +522,15 @@ def quest_catalog_cache_signature(data_dir: Path = RAW_QUEST_DATA_DIR) -> tuple[
         entries.append(_path_signature(label, path))
     entries.append(_path_signature("enrichment", DATA_DIR / "encyclopedia" / "quests" / "quests_enriched.json"))
     entries.append(_path_signature("loader", Path(__file__)))
+    entries.append(_path_signature("coordinate_rules", Path(__file__).with_name("core") / "map_coordinates.py"))
     for folder_name in ("items", "resources", "misc", "archive"):
         entries.append(_path_signature(f"images/{folder_name}", DATA_DIR / "images" / folder_name))
     return tuple(entries)
 
 
 def _path_signature(label: str, path: Path) -> tuple[str, str, int | None, int | None]:
-    try:
-        stat = path.stat()
-    except OSError:
-        return (label, str(path), None, None)
-    return (label, str(path), stat.st_mtime_ns, stat.st_size)
+    stamp = mtime_size_stamp_optional(path)
+    return (label, str(path), *(stamp if stamp is not None else (None, None)))
 
 
 def _catalog_to_cache_payload(catalog: QuestCatalog, data_dir: Path) -> dict[str, Any]:
@@ -700,13 +687,6 @@ def write_quest_catalog_cache(catalog: QuestCatalog, data_dir: Path = RAW_QUEST_
             _LOGGER.debug("Suppression ancien cache quêtes impossible.", exc_info=True)
     except (OSError, TypeError, ValueError):
         return
-
-
-def safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def safe_float(value: Any) -> float:
@@ -874,6 +854,17 @@ def zone_for_map(
     return subarea_name or area_name
 
 
+def _valid_game_map_coordinate(value: Any) -> int | None:
+    """Return an exact signed game coordinate, never a coerced placeholder."""
+
+    # int(True) and int(1.5) silently invent map positions. Numeric source
+    # strings remain supported for old Doduda exports.
+    if isinstance(value, bool) or (isinstance(value, float) and not value.is_integer()):
+        return None
+    coordinate = safe_int(value)
+    return coordinate if coordinate is not None and SENTINEL_COORD < coordinate < 2**31 else None
+
+
 def map_label(
     map_id: Any,
     coords: dict[str, Any] | None,
@@ -881,18 +872,63 @@ def map_label(
 ) -> str:
     x_value = coords.get("x") if isinstance(coords, dict) else SENTINEL_COORD
     y_value = coords.get("y") if isinstance(coords, dict) else SENTINEL_COORD
-    x = safe_int(x_value)
-    y = safe_int(y_value)
-    if x is not None and y is not None and x != SENTINEL_COORD and y != SENTINEL_COORD:
+    x = _valid_game_map_coordinate(x_value)
+    y = _valid_game_map_coordinate(y_value)
+    if x is not None and y is not None:
         return f"[{x},{y}]"
     ident = safe_int(map_id)
     map_row = maps.get(ident or -1)
     if map_row:
-        pos_x = map_row.get("posX")
-        pos_y = map_row.get("posY")
+        pos_x = _valid_game_map_coordinate(map_row.get("posX"))
+        pos_y = _valid_game_map_coordinate(map_row.get("posY"))
+        # Missing, fractional, overflowed or placeholder coordinates cannot
+        # become a clickable position merely by falling back to the map row.
         if pos_x is not None and pos_y is not None:
             return f"[{pos_x},{pos_y}]"
     return ""
+
+
+def native_quest_start_review(quest: Mapping, maps: Mapping) -> dict[str, Any]:
+    """Report why a declared native start is usable or requires source review."""
+    starts = array_value(quest.get("startPosition"))
+    if not starts:
+        return {"reason": "NO_NATIVE_START_MAP", "map_ids": []}
+    ids: set[int] = set()
+    malformed = False
+    for row in starts:
+        ident = exact_native_integer(row.get("mapId"), (1 << 63) - 1) if isinstance(row, dict) else None
+        if ident is None:
+            malformed = True
+        else:
+            ids.add(ident)
+    map_ids = sorted(ids)
+    if malformed:
+        return {"reason": "INVALID_NATIVE_START_MAP", "map_ids": map_ids}
+    positions = set()
+    for map_id in map_ids:
+        row = maps.get(map_id)
+        if not isinstance(row, dict):
+            return {"reason": "NATIVE_MAP_ROW_MISSING", "map_ids": map_ids}
+        if any(type(row.get(key)) not in (int, str) for key in ("posX", "posY")):
+            return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
+        position = canonical_declared_coordinate(f"[{row['posX']},{row['posY']}]")
+        if not position:
+            return {"reason": "INVALID_NATIVE_MAP_COORDINATES", "map_ids": map_ids}
+        positions.add(position)
+    if len(positions) != 1:
+        return {"reason": "MULTIPLE_NATIVE_START_MAPS", "map_ids": map_ids}
+    reason = "UNIQUE_NATIVE_START_MAP" if len(map_ids) == 1 else "COINCIDENT_NATIVE_START_MAPS"
+    return {"reason": reason, "map_ids": map_ids, "position": positions.pop()}
+
+
+def native_quest_start_evidence(quest: Mapping, maps: Mapping) -> dict[str, Any]:
+    """Recover coordinates from explicit game starts, retaining ambiguous map identity."""
+    review = native_quest_start_review(quest, maps)
+    if review["reason"] == "COINCIDENT_NATIVE_START_MAPS":
+        return {"native_start": {"map_ids": review["map_ids"], "position": review["position"]}}
+    if review["reason"] != "UNIQUE_NATIVE_START_MAP":
+        return {}
+    return {"native_start": {"map_id": review["map_ids"][0], "position": review["position"]}}
 
 
 def resolve_objective(
@@ -1214,6 +1250,10 @@ def apply_quest_enrichment(records: list[QuestRecord], *, payload=None) -> None:
             required_items.append(normalized_item)
 
         record.source_info = {
+            # Only the native loader owns this evidence; imported documentary
+            # JSON must never be able to manufacture a native start map.
+            **({"native_start": record.source_info["native_start"]}
+               if "native_start" in record.source_info else {}),
             "status": str(row.get("status") or ""),
             "source": str(row.get("source") or ""),
             "source_url": str(row.get("source_url") or ""),
@@ -1257,8 +1297,10 @@ def enrichment_solution_blocks(row: dict[str, Any]) -> list[QuestSolutionBlock]:
     return blocks
 
 
-def resolve_local_asset_path(value: Any) -> str:
-    """Resolve portable or legacy absolute project paths against this checkout."""
+def resolve_local_asset_path(
+    value: Any, *, roots: tuple[Path, ...] = (),
+) -> str:
+    """Resolve project images, including legacy Windows and custom data roots."""
 
     text = str(value or "").strip()
     if not text:
@@ -1267,7 +1309,10 @@ def resolve_local_asset_path(value: Any) -> str:
     # the checkout is validated on POSIX.  Normalize separators before asking
     # pathlib to identify the portable project-relative ``data`` suffix.
     path = Path(text.replace("\\", "/"))
-    candidates = [path] if path.is_absolute() else [ROOT_DIR / path, path]
+    candidates = (
+        [path] if path.is_absolute()
+        else [ROOT_DIR / path, *(root / path for root in roots), path]
+    )
 
     normalized_parts = [part.casefold() for part in path.parts]
     if "data" in normalized_parts:
@@ -1427,8 +1472,7 @@ def load_quest_characters(
             candidate_id = character_id_from_key(client.get("character_key"))
             row = identities.get(candidate_id) if candidate_id is not None else None
             if (
-                row is None
-                or row.get("source") != "verified_network_identity"
+                not is_verified_character_binding(row)
                 or normalize_text(row.get("name")) != normalize_text(name)
             ):
                 continue
@@ -1473,7 +1517,7 @@ def load_quest_characters(
                 connected=connected is not None,
                 class_key=(
                     str(row.get("class_key") or "").strip().lower()
-                    if row.get("source") == "verified_network_identity"
+                    if is_verified_character_binding(row)
                     and isinstance(row.get("class_key"), str)
                     and str(row.get("class_key")).isascii()
                     and str(row.get("class_key")).isalpha()

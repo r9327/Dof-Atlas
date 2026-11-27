@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256 as _strict_sha256
+from app.network.contracts import _is_sha256 as _strict_sha256, active_build_matches, protocol_event_id
 
-import hashlib
 from dataclasses import dataclass
 from typing import Mapping
 
 from app.network.normalizer import DecodedClientMessage
-from app.network.protobuf_fields import ProtobufDecodeError, resolve_field_path
+from app.network.protobuf_fields import (
+    ProtobufDecodeError,
+    resolve_field_path,
+    resolve_repeated_positive_int_path,
+)
 from app.network.transport import CapturedProtocolMessage
 
 
@@ -23,8 +26,10 @@ class ProtocolFieldRule:
             raise ValueError("protocol field output_name cannot be empty")
         if not self.path or any(int(field_number) <= 0 for field_number in self.path):
             raise ValueError("protocol field path must contain positive field numbers")
-        if self.kind not in {"positive_int", "non_negative_int", "string"}:
+        if self.kind not in {"positive_int", "non_negative_int", "string", "repeated_positive_int"}:
             raise ValueError(f"unsupported protocol field kind: {self.kind}")
+        if self.kind == "repeated_positive_int" and len(self.path) < 2:
+            raise ValueError("repeated_positive_int needs a row field and an ID path")
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,22 +100,22 @@ class StrictMappedProtocolDecoder:
             if not active_version or active_version != self.mapping_version:
                 return None
 
-        if self.mapping_fingerprint:
-            try:
-                active_fingerprint = str(self.active_fingerprint_provider() or "").strip().casefold()
-            except Exception:
-                return None
-            if active_fingerprint != self.mapping_fingerprint:
-                return None
+        if self.mapping_fingerprint and not active_build_matches(
+            self.active_fingerprint_provider, self.mapping_fingerprint,
+        ):
+            return None
 
         fields: dict[str, object] = {}
         try:
             for field_rule in rule.fields:
-                value = resolve_field_path(
-                    message.payload,
-                    field_rule.path,
-                    expected_kind=field_rule.kind,
-                )
+                if field_rule.kind == "repeated_positive_int":
+                    value = resolve_repeated_positive_int_path(message.payload, field_rule.path)
+                else:
+                    value = resolve_field_path(
+                        message.payload,
+                        field_rule.path,
+                        expected_kind=field_rule.kind,
+                    )
                 if value is None:
                     if field_rule.required:
                         return None
@@ -123,19 +128,13 @@ class StrictMappedProtocolDecoder:
                 self._reported_failures.add(message.type_url)
             return None
 
-        digest = hashlib.sha256()
-        digest.update(self.mapping_version.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(self.mapping_fingerprint.encode("ascii"))
-        digest.update(b"\0")
-        digest.update(message.type_url.encode("utf-8", errors="strict"))
-        digest.update(b"\0")
-        digest.update(message.payload)
         return DecodedClientMessage(
             session_id=message.session_id,
             event_type=rule.event_type,
             fields=fields,
-            event_id=f"proto:{digest.hexdigest()[:32]}",
+            event_id=protocol_event_id(
+                self.mapping_version, self.mapping_fingerprint, message.type_url, message.payload,
+            ),
             verified=True,
         )
 

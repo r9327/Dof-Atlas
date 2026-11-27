@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -71,6 +73,21 @@ class NetworkControllerTests(unittest.TestCase):
         self.assertEqual(status.reason, "waiting_context")
         build.assert_not_called()
 
+    def test_mapping_added_after_start_is_noticed_once_for_exact_build(self) -> None:
+        from app.network.current_protocol_profile import dofus_361010_candidate_mapping_payload
+
+        build = "a" * 64
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            controller = NetworkRuntimeController(lambda: (), mapping_roots=(root,))
+            path = root / "mapping.json"
+            self.assertFalse(controller.has_new_exact_mapping(build))
+            path.write_text(json.dumps(dofus_361010_candidate_mapping_payload("b" * 64)), encoding="utf-8")
+            self.assertFalse(controller.has_new_exact_mapping(build))
+            path.write_text(json.dumps(dofus_361010_candidate_mapping_payload(build)), encoding="utf-8")
+            self.assertTrue(controller.has_new_exact_mapping(build))
+            self.assertFalse(controller.has_new_exact_mapping(build))
+
     def test_disabled_bootstrap_remains_optional_and_stopped(self) -> None:
         self.configure()
         disabled = NetworkBootstrapResult(
@@ -121,6 +138,7 @@ class NetworkControllerTests(unittest.TestCase):
         with patch("app.network.bootstrap.build_windows_network_runtime") as build:
             status = self.controller.start_if_ready()
         self.assertTrue(status.running)
+        self.assertEqual(status.reason, "runtime_stop_failed")
         build.assert_not_called()
 
     def test_stale_runtime_cleanup_failure_blocks_new_bootstrap(self) -> None:
@@ -146,6 +164,7 @@ class NetworkControllerTests(unittest.TestCase):
         self.assertFalse(status.running)
         self.assertEqual(status.reason, "runtime_start_cleanup_failed")
         self.assertIs(self.controller._runtime, runtime)
+        self.assertEqual(self.controller.status().reason, "runtime_start_cleanup_failed")
 
     def test_successful_stop_allows_clean_restart(self) -> None:
         self.configure()

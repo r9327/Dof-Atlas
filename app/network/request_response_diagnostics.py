@@ -2,12 +2,23 @@ from __future__ import annotations
 
 import time
 from collections import OrderedDict, deque
+from collections.abc import Callable
 from dataclasses import dataclass
+from hashlib import blake2s
 from logging import Logger
+from secrets import token_bytes, token_hex
 
 from app.core.logger import get_runtime_logger
-from app.network.diagnostics import DEBUG_GATE, network_debug_enabled, network_debug_log
-from app.network.protobuf_fields import ProtobufDecodeError, parse_protobuf_fields
+from app.network.character_runtime_state import character_runtime_state
+from app.network.contracts import _is_sha256, active_build_matches
+from app.network.diagnostics import (
+    DEBUG_GATE,
+    log_zaap_observation,
+    network_debug_enabled,
+    network_debug_log,
+    zaap_diagnostics_enabled,
+)
+from app.network.protobuf_fields import ProtobufDecodeError, ProtobufFields, parse_protobuf_fields
 from app.network.transport import (
     CapturedProtocolMessage,
     ProtocolMessageSource,
@@ -21,6 +32,70 @@ _MAX_TRACKED_SESSIONS = 16
 _MAX_REQUESTS_PER_SESSION = 8
 _CORRELATION_WINDOW_SECONDS = 2.0
 _MAX_DIAGNOSTIC_PROTOBUF_BYTES = 256 * 1024
+_MAX_ZAAP_OBSERVATIONS = 256
+_MAX_ZAAP_DESTINATIONS = 128
+_ZAAP_REVIEW_DIRECTIONS = {
+    "type.ankama.com/hjc": "client_to_server",
+    "type.ankama.com/hjj": "server_to_client",
+    "type.ankama.com/jru": "server_to_client",
+    "type.ankama.com/jss": "server_to_client",
+    "type.ankama.com/kld": "server_to_client",
+    "type.ankama.com/lva": "server_to_client",
+}
+
+
+def _single_scalar(fields: ProtobufFields, tag: int) -> int | None:
+    values = fields.get(tag, ())
+    if len(values) == 1 and isinstance(values[0], int) and 0 <= values[0] < 2**63:
+        return values[0]
+    return None
+
+
+def _destination_field_sample(fields: ProtobufFields, tag: int) -> dict[str, object]:
+    # The archived wire notes and extracted schema disagree between tags 3
+    # and 4. Read both layouts independently and preserve the wire types.
+    values = fields.get(tag, ())
+    entries = tuple(value for value in values if isinstance(value, bytes))
+    maps: list[int] = []
+    for entry in entries[:_MAX_ZAAP_DESTINATIONS]:
+        try:
+            candidate = _single_scalar(
+                parse_protobuf_fields(entry, max_bytes=4096), 5,
+            )
+        except ProtobufDecodeError:
+            candidate = None
+        if candidate:
+            maps.append(candidate)
+    return {
+        "value_count": len(values),
+        "varint_count": sum(isinstance(value, int) for value in values),
+        "embedded_count": len(entries),
+        "sample_truncated": len(entries) > _MAX_ZAAP_DESTINATIONS,
+        "map_id_candidates": maps,
+    }
+
+
+def _zaap_wire_summary(message: CapturedProtocolMessage) -> dict[str, object]:
+    try:
+        fields = parse_protobuf_fields(message.payload, max_bytes=_MAX_DIAGNOSTIC_PROTOBUF_BYTES)
+    except ProtobufDecodeError:
+        return {"malformed": True}
+    if message.type_url == "type.ankama.com/hjj":
+        return {
+            "open_map_candidate": _single_scalar(fields, 2),
+            "destination_tag_3": _destination_field_sample(fields, 3),
+            "destination_tag_4": _destination_field_sample(fields, 4),
+        }
+    if message.type_url == "type.ankama.com/hjc":
+        return {
+            "selection_kind_candidate": _single_scalar(fields, 2),
+            "selection_id_candidate": _single_scalar(fields, 3),
+        }
+    if message.type_url in {"type.ankama.com/kld", "type.ankama.com/lva"}:
+        # These messages also occur outside Zaap travel. Keep only the shape
+        # needed to compare them with the adjacent list/request/map samples.
+        return {"payload_empty": not fields}
+    return {"loaded_map_candidate": _single_scalar(fields, 2)}
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,12 +164,21 @@ class PassiveRequestResponseDiagnostics:
     never authorize a decoder or progression mutation.
     """
 
-    def __init__(self, *, logger: Logger | None = None, phase: str = "runtime") -> None:
+    def __init__(
+        self, *, logger: Logger | None = None, phase: str = "runtime",
+        build_sha256: str = "", active_build_provider: Callable[[], str | None] | None = None,
+    ) -> None:
         self.logger = logger or get_runtime_logger()
         self.phase = str(phase or "runtime")
         self._recent: OrderedDict[str, deque[_RecentRequest]] = OrderedDict()
+        self._build_sha256 = build_sha256.casefold() if _is_sha256(build_sha256) else ""
+        self._active_build_provider = active_build_provider
+        self._zaap_sessions: dict[str, str] = {}
+        self._zaap_identity_salt = b""
+        self._zaap_observation_count = 0
 
     def observe(self, message: CapturedProtocolMessage) -> None:
+        self._observe_zaap(message)
         if not network_debug_enabled():
             return
         type_url = str(message.type_url or "")
@@ -107,10 +191,53 @@ class PassiveRequestResponseDiagnostics:
             self._observe_server(message)
 
     def session_closed(self, session_id: str) -> None:
-        self._recent.pop(str(session_id or ""), None)
+        session = str(session_id or "")
+        self._recent.pop(session, None)
+        alias = self._zaap_sessions.pop(session, None)
+        if alias is not None and self._zaap_observation_count < _MAX_ZAAP_OBSERVATIONS:
+            self._zaap_observation_count += 1
+            log_zaap_observation(
+                self.logger,
+                phase=self.phase, build_sha256=self._build_sha256,
+                sequence=self._zaap_observation_count, session_alias=alias,
+                classification="transport_session_closed",
+            )
 
     def clear(self) -> None:
         self._recent.clear()
+        self._zaap_sessions.clear()
+        self._zaap_identity_salt = b""
+        self._zaap_observation_count = 0
+
+    def _observe_zaap(self, message: CapturedProtocolMessage) -> None:
+        if (
+            not zaap_diagnostics_enabled()
+            or not message.session_id
+            or _ZAAP_REVIEW_DIRECTIONS.get(message.type_url) != message.direction
+            or self._zaap_observation_count >= _MAX_ZAAP_OBSERVATIONS
+            or not self._build_sha256
+            or self._active_build_provider is None
+            or not active_build_matches(self._active_build_provider, self._build_sha256)
+        ):
+            return
+        alias = self._zaap_sessions.get(message.session_id)
+        if alias is None:
+            alias = self._zaap_sessions[message.session_id] = token_hex(8)
+        if not self._zaap_identity_salt:
+            self._zaap_identity_salt = token_bytes(16)
+        profile = character_runtime_state().snapshot_for_session(message.session_id)
+        character_alias = None if profile is None else blake2s(
+            profile.character_key.encode("utf-8"), key=self._zaap_identity_salt, digest_size=8,
+        ).hexdigest()
+        self._zaap_observation_count += 1
+        log_zaap_observation(
+            self.logger,
+            phase=self.phase, build_sha256=self._build_sha256,
+            sequence=self._zaap_observation_count, session_alias=alias,
+            last_verified_character_alias=character_alias, classification="wire_sample_unverified",
+            message_type=message.type_url, direction=message.direction,
+            **_zaap_wire_summary(message),
+        )
 
     def _observe_client(self, message: CapturedProtocolMessage) -> None:
         metadata = client_request_metadata(message)
@@ -223,9 +350,14 @@ class DiagnosticProtocolMessageSource:
         *,
         logger: Logger | None = None,
         phase: str = "runtime",
+        build_sha256: str = "",
+        active_build_provider: Callable[[], str | None] | None = None,
     ) -> None:
         self.delegate = delegate
-        self.diagnostics = PassiveRequestResponseDiagnostics(logger=logger, phase=phase)
+        self.diagnostics = PassiveRequestResponseDiagnostics(
+            logger=logger, phase=phase, build_sha256=build_sha256,
+            active_build_provider=active_build_provider,
+        )
 
     def start(self) -> None:
         self.diagnostics.clear()

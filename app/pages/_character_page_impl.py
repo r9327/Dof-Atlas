@@ -3,11 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QSignalBlocker, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -33,10 +32,17 @@ from app.network.character_runtime_state import (
     CharacterRuntimeStateStore,
     character_runtime_state,
 )
+from app.core.file_stamp import resolved_mtime_size_stamp, mtime_ctime_size_stamp, resolved_file_revision
+from app.core.numbers import format_grouped_int
 from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_name
-from app.quest_catalog import QuestCharacter, load_quest_characters
+from app.quest_catalog import QuestCharacter
+from app.pages.quest_character_cache import cached_load_quest_characters as load_quest_characters
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, read_json
+from app.ui.components import AtlasComboBox, configure_unity_scroll_area
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+CHARACTER_COMPAT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character_compat"]
 
 
 IconResolver = Callable[[str], str | Path | None]
@@ -135,6 +141,7 @@ class CharacterPage(QWidget):
         self.characters: tuple[QuestCharacter, ...] = ()
         self._character_list_signature: tuple[object, ...] | None = None
         self._runtime_generation = self.runtime_state_store.generation
+        self._portrait_signature: tuple[object, ...] | None = None
         self._rebuilding_character_order = False
 
         # Network facts arrive on the worker after the page may already be
@@ -145,8 +152,8 @@ class CharacterPage(QWidget):
         self._runtime_refresh_timer.timeout.connect(self._refresh_runtime_projection)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(20, 18, 20, 20)
-        root.setSpacing(12)
+        root.setContentsMargins(*CHARACTER_COMPAT_GEOMETRY["page_margins"])
+        root.setSpacing(CHARACTER_COMPAT_GEOMETRY["page_spacing"])
 
         title = QLabel("Mon personnage")
         title.setObjectName("PageTitle")
@@ -158,22 +165,22 @@ class CharacterPage(QWidget):
 
         columns = QHBoxLayout()
         columns.setContentsMargins(0, 4, 0, 0)
-        columns.setSpacing(14)
+        columns.setSpacing(CHARACTER_COMPAT_GEOMETRY["columns_spacing"])
         root.addLayout(columns, 1)
 
         self.identity_panel = self._panel(None, "HomeCharacterCard")
-        self.identity_panel.setMinimumWidth(270)
-        self.identity_panel.setMaximumWidth(340)
+        self.identity_panel.setMinimumWidth(CHARACTER_COMPAT_GEOMETRY["identity_min_width"])
+        self.identity_panel.setMaximumWidth(CHARACTER_COMPAT_GEOMETRY["identity_max_width"])
         columns.addWidget(self.identity_panel, 25)
         self._build_identity_panel(self.identity_panel.layout())
 
         self.stats_panel = self._panel("Statistiques", "HomeTrackingCard")
-        self.stats_panel.setMinimumWidth(250)
+        self.stats_panel.setMinimumWidth(CHARACTER_COMPAT_GEOMETRY["stats_min_width"])
         columns.addWidget(self.stats_panel, 25)
         self._build_stats_panel(self.stats_panel.layout())
 
         self.equipment_panel = self._panel("Équipement", "HomeTrackingCard")
-        self.equipment_panel.setMinimumWidth(460)
+        self.equipment_panel.setMinimumWidth(CHARACTER_COMPAT_GEOMETRY["equipment_min_width"])
         columns.addWidget(self.equipment_panel, 50)
         self._build_equipment_panel(self.equipment_panel.layout())
 
@@ -185,8 +192,9 @@ class CharacterPage(QWidget):
         panel.setObjectName(object_name)
         panel.setFrameShape(QFrame.StyledPanel)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
+        inset = CHARACTER_COMPAT_GEOMETRY["panel_padding"]
+        layout.setContentsMargins(inset, inset, inset, inset)
+        layout.setSpacing(CHARACTER_COMPAT_GEOMETRY["panel_spacing"])
         if title:
             label = QLabel(title)
             label.setObjectName("PanelTitle")
@@ -194,10 +202,10 @@ class CharacterPage(QWidget):
         return panel
 
     def _build_identity_panel(self, layout: QVBoxLayout) -> None:
-        self.character_selector = QComboBox()
+        self.character_selector = AtlasComboBox()
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
-        self.character_selector.setIconSize(QSize(36, 36))
-        self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        icon_size = CHARACTER_COMPAT_GEOMETRY["selector_icon"]
+        self.character_selector.setIconSize(QSize(icon_size, icon_size))
         self.character_selector.setToolTip("Changer de personnage")
         self.character_selector.currentIndexChanged.connect(
             self._on_character_selector_changed
@@ -239,14 +247,15 @@ class CharacterPage(QWidget):
 
         self.character_order_list = QListWidget()
         self.character_order_list.setObjectName("CharacterOrderList")
-        self.character_order_list.setIconSize(QSize(30, 30))
+        icon_size = CHARACTER_COMPAT_GEOMETRY["order_icon"]
+        self.character_order_list.setIconSize(QSize(icon_size, icon_size))
         self.character_order_list.setSelectionMode(QAbstractItemView.SingleSelection)
         self.character_order_list.setDragDropMode(QAbstractItemView.InternalMove)
         self.character_order_list.setDefaultDropAction(Qt.MoveAction)
         self.character_order_list.setDropIndicatorShown(True)
         self.character_order_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.character_order_list.setMinimumHeight(132)
-        self.character_order_list.setMaximumHeight(190)
+        self.character_order_list.setMinimumHeight(CHARACTER_COMPAT_GEOMETRY["order_min_height"])
+        self.character_order_list.setMaximumHeight(CHARACTER_COMPAT_GEOMETRY["order_max_height"])
         self.character_order_list.itemDoubleClicked.connect(
             self._on_character_order_item_activated
         )
@@ -291,11 +300,9 @@ class CharacterPage(QWidget):
         layout.addStretch(1)
 
     def _build_stats_panel(self, layout: QVBoxLayout) -> None:
-        self.stats_scroll = QScrollArea()
-        self.stats_scroll.setWidgetResizable(True)
-        self.stats_scroll.setFrameShape(QFrame.NoFrame)
-        self.stats_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.stats_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.stats_scroll = configure_unity_scroll_area(
+            QScrollArea(), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
 
         content = QWidget()
         content_layout = QVBoxLayout(content)
@@ -332,21 +339,21 @@ class CharacterPage(QWidget):
         equipment_widget.setObjectName("CharacterEquipmentGrid")
         equipment_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         grid = QGridLayout(equipment_widget)
-        grid.setContentsMargins(6, 8, 6, 6)
+        grid.setContentsMargins(*CHARACTER_COMPAT_GEOMETRY["equipment_grid_margins"])
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(8)
         self.equipment_slots: dict[str, QToolButton] = {}
 
         for column in range(6):
-            grid.setColumnMinimumWidth(column, 62)
+            grid.setColumnMinimumWidth(column, CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"])
         for row in range(7):
-            grid.setRowMinimumHeight(row, 62)
+            grid.setRowMinimumHeight(row, CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"])
 
         self.portrait = QLabel("◈")
         self.portrait.setObjectName("HomeCharacterPortrait")
         self.portrait.setAlignment(Qt.AlignCenter)
-        self.portrait.setMinimumSize(214, 292)
-        self.portrait.setMaximumSize(274, 332)
+        self.portrait.setMinimumSize(*CHARACTER_COMPAT_GEOMETRY["portrait_min_size"])
+        self.portrait.setMaximumSize(*CHARACTER_COMPAT_GEOMETRY["portrait_max_size"])
         self.portrait.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         grid.addWidget(self.portrait, 0, 1, 6, 4, Qt.AlignCenter)
 
@@ -354,8 +361,10 @@ class CharacterPage(QWidget):
             button = QToolButton()
             button.setObjectName("SecondaryButton")
             button.setProperty("equipmentSlot", slot_key)
-            button.setFixedSize(62, 62)
-            button.setIconSize(QSize(52, 52))
+            slot_box = CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"]
+            button.setFixedSize(slot_box, slot_box)
+            icon_box = CHARACTER_COMPAT_GEOMETRY["equipment_icon"]
+            button.setIconSize(QSize(icon_box, icon_box))
             button.setEnabled(False)
             button.setToolTip(slot_label)
             button.setText("")
@@ -366,12 +375,7 @@ class CharacterPage(QWidget):
 
     @staticmethod
     def _file_stamp(path: Path) -> tuple[str, int, int]:
-        resolved = str(path.resolve())
-        try:
-            stat = path.stat()
-        except OSError:
-            return (resolved, 0, 0)
-        return (resolved, int(stat.st_mtime_ns), int(stat.st_size))
+        return resolved_mtime_size_stamp(path)
 
     def _selected_key_from_profile(self) -> str:
         payload = read_json(self.profile_path, default_profiles())
@@ -398,12 +402,10 @@ class CharacterPage(QWidget):
         )
 
         signature = (
-            self.active_character_key,
-            tuple((row.key, row.label, row.connected) for row in self.characters),
+            tuple((row.key, row.label, row.connected, row.class_key) for row in self.characters),
             self.character_order_service.load_order(),
-            self._file_stamp(self.profile_path),
-            self._file_stamp(self.client_index_path),
-            self._file_stamp(self.binding_path),
+            resolved_file_revision(self.client_index_path),
+            resolved_file_revision(self.binding_path),
         )
         if signature != self._character_list_signature:
             self._character_list_signature = signature
@@ -439,13 +441,15 @@ class CharacterPage(QWidget):
         points_text = str(points) if points is not None else "—"
         return f"{character.label}  ·  {points_text} succès"
 
+    def _selector_icon_path(self, label: str) -> str:
+        return self._visual_path(label)
+
     def _rebuild_character_selector(self) -> None:
-        self.character_selector.blockSignals(True)
-        try:
+        with QSignalBlocker(self.character_selector):
             self.character_selector.clear()
             self.character_selector.setEnabled(bool(self.characters))
             for character in self.characters:
-                visual_path = self._visual_path(character.label)
+                visual_path = self._selector_icon_path(character.label)
                 icon = QIcon(visual_path) if visual_path else QIcon()
                 self.character_selector.addItem(
                     icon,
@@ -453,8 +457,6 @@ class CharacterPage(QWidget):
                     character.key,
                 )
             self._sync_character_selector_selection()
-        finally:
-            self.character_selector.blockSignals(False)
 
     def _sync_character_selector_selection(self) -> None:
         target = -1
@@ -464,26 +466,19 @@ class CharacterPage(QWidget):
                 break
         if self.character_selector.currentIndex() == target:
             return
-        self.character_selector.blockSignals(True)
-        try:
+        with QSignalBlocker(self.character_selector):
             self.character_selector.setCurrentIndex(target)
-        finally:
-            self.character_selector.blockSignals(False)
 
     def _refresh_character_selector_runtime_labels(self) -> None:
         by_key = {character.key: character for character in self.characters}
-        self.character_selector.blockSignals(True)
-        try:
+        with QSignalBlocker(self.character_selector):
             for index in range(self.character_selector.count()):
                 key = str(self.character_selector.itemData(index) or "")
                 character = by_key.get(key)
                 if character is not None:
-                    self.character_selector.setItemText(
-                        index,
-                        self._character_selector_text(character),
-                    )
-        finally:
-            self.character_selector.blockSignals(False)
+                    text = self._character_selector_text(character)
+                    if self.character_selector.itemText(index) != text:
+                        self.character_selector.setItemText(index, text)
 
     def _on_character_selector_changed(self, index: int) -> None:
         if index < 0:
@@ -616,13 +611,14 @@ class CharacterPage(QWidget):
         if answer == QMessageBox.Yes:
             self.characterDeleteRequested.emit(str(character_key))
 
+    def _achievement_text(self, points: int | None) -> str:
+        return f"{format_grouped_int(points)} points de succès" if points is not None else "— points de succès"
+
     def _render_identity(self, character: QuestCharacter | None) -> None:
         snapshot = self.runtime_state_store.snapshot(self.active_character_key)
         points = snapshot.achievement_points if snapshot is not None else None
         level = snapshot.level if snapshot is not None else None
-        self.achievement_points.setText(
-            f"{points} points de succès" if points is not None else "— points de succès"
-        )
+        self.achievement_points.setText(self._achievement_text(points))
         self.character_level.setText(f"Niveau {level}" if level is not None else "")
         self._render_stats(snapshot)
         if character is None:
@@ -632,8 +628,12 @@ class CharacterPage(QWidget):
         self.character_name.setText(character.label)
         self._set_portrait(self._visual_path(character.label))
 
-    def _render_stats(self, snapshot: CharacterRuntimeSnapshot | None) -> None:
+    def _stat_text(self, value: int) -> str:
+        return format_grouped_int(value)
+
+    def _render_stats(self, snapshot: CharacterRuntimeSnapshot | None) -> int:
         values = dict(snapshot.stats) if snapshot is not None else {}
+        visible = 0
         for stat_key, _label_text in CHARACTER_STAT_ROWS:
             row = self.stat_rows[stat_key]
             value_label = self.stat_value_labels[stat_key]
@@ -641,8 +641,10 @@ class CharacterPage(QWidget):
                 value_label.setText("")
                 row.hide()
                 continue
-            value_label.setText(str(values[stat_key]))
+            value_label.setText(self._stat_text(values[stat_key]))
             row.show()
+            visible += 1
+        return visible
 
     def _skin_path(self, label: str) -> str:
         if self.skin_resolver is None:
@@ -652,7 +654,7 @@ class CharacterPage(QWidget):
         except Exception:
             candidate = None
         path = Path(candidate) if candidate else None
-        return str(path) if path is not None and path.exists() else ""
+        return str(path) if path is not None and path.is_file() else ""
 
     def _icon_path(self, label: str) -> str:
         candidate: str | Path | None = None
@@ -667,31 +669,37 @@ class CharacterPage(QWidget):
             except Exception:
                 candidate = None
         path = Path(candidate) if candidate else None
-        return str(path) if path is not None and path.exists() else ""
+        return str(path) if path is not None and path.is_file() else ""
 
     def _visual_path(self, label: str) -> str:
         return self._skin_path(label) or self._icon_path(label)
 
+    def _portrait_placeholder(self) -> str:
+        return "◈"
+
     def _set_portrait(self, icon_path: str) -> None:
         path = Path(icon_path) if icon_path else None
-        if path is None or not path.exists():
-            self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("◈")
+        width = self.portrait.maximumWidth() - 12
+        height = self.portrait.maximumHeight() - 12
+        signature = (str(path), mtime_ctime_size_stamp(path) if path is not None else None, width, height)
+        if signature == self._portrait_signature:
             return
-        pixmap = QPixmap(str(path))
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        pixmap = (
+            ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(width, height))
+            if path is not None and path.is_file() else QPixmap()
+        )
         if pixmap.isNull():
             self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("◈")
-            return
-        self.portrait.setText("")
-        self.portrait.setPixmap(
-            pixmap.scaled(
-                self.portrait.maximumWidth() - 12,
-                self.portrait.maximumHeight() - 12,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
+            self.portrait.setText(self._portrait_placeholder())
+        else:
+            self.portrait.setText("")
+            target = pixmap.size().scaled(QSize(width, height), Qt.KeepAspectRatio)
+            self.portrait.setPixmap(
+                pixmap if target == pixmap.size()
+                else pixmap.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             )
-        )
+        self._portrait_signature = signature
 
     def showEvent(self, event) -> None:
         super().showEvent(event)

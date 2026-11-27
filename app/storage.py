@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from copy import deepcopy
 import difflib
 import inspect
@@ -11,7 +12,7 @@ from threading import local
 from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, QUrl
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImageReader, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QAbstractItemView,
@@ -28,7 +29,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QPushButton,
     QScrollArea,
     QSizePolicy,
     QSplashScreen,
@@ -66,9 +66,12 @@ from app.constants import (
     ZAAP_SHORTCUTS_FILE,
 )
 from app.core.item_identity import item_id
+from app.core.item_artwork import item_artwork_path
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.profile_settings import default_profiles, profile_bool, parse_zaap_click_position
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.zaap_shortcuts import parse_unit_ratio, update_zaap_shortcuts_field, zaap_ratios_from_payload
+from app.core.map_coordinates import explicit_coordinate_query, declared_zaap_coordinates
 from app.core.text import clean_auto_group_name, normalize_key, strip_accents
 from app.services.profile_settings_service import ProfileSettingsService
 from app.ui.components import AtlasButton
@@ -280,20 +283,11 @@ def is_subsequence(needle: str, haystack: str) -> bool:
 
 
 def coordinate_pair(value: Any) -> tuple[int, int] | None:
-    numbers = re.findall(r"-?\d+", str(value or ""))
-    if len(numbers) < 2:
-        return None
-    try:
-        return (int(numbers[0]), int(numbers[1]))
-    except ValueError:
-        return None
+    return explicit_coordinate_query(value)
 
 
 def row_coordinate_pair(row: dict[str, Any]) -> tuple[int, int] | None:
-    try:
-        return (int(row["posX"]), int(row["posY"]))
-    except (KeyError, TypeError, ValueError):
-        return coordinate_pair(row.get("label", ""))
+    return declared_zaap_coordinates(row)
 
 
 def flattened_text_values(value: Any) -> list[str]:
@@ -843,13 +837,8 @@ def load_zaap_index(path: Path = ZAAPS_FILE) -> list[dict[str, Any]]:
 
 
 def local_image_path(item: dict[str, Any]) -> Path | None:
-    raw = item.get("image_path") or item.get("local_image_path") or ""
-    if not raw:
-        return None
-    path = Path(raw)
-    if not path.is_absolute():
-        path = ROOT_DIR / path
-    return path if path.exists() else None
+    """Shared Craft artwork lookup, also used by export and preview."""
+    return item_artwork_path(item)
 
 
 def display_path(path: Path | None) -> str:
@@ -881,51 +870,56 @@ class IconCache:
     def __init__(self, size: int = 32, max_items: int = 1200):
         self.size = size
         self.max_items = max_items
-        self.cache: dict[str, QIcon] = {}
-        self.order: list[str] = []
+        self.cache: OrderedDict[str, QIcon] = OrderedDict()
+        self._stamps: dict[str, tuple[int, int, int]] = {}
+
+    @property
+    def order(self) -> list[str]:
+        """Compatibility view of the cache's oldest-to-newest keys."""
+        return list(self.cache)
 
     def icon_for_item(self, item: dict[str, Any], fallback: QIcon | None = None) -> QIcon:
-        raw = item.get("image_path") or item.get("local_image_path") or ""
-        if not raw:
+        path = local_image_path(item)
+        if path is None:
             return fallback or QIcon()
-        path = Path(raw)
-        if not path.is_absolute():
-            path = ROOT_DIR / path
         key = str(path)
+        stamp = mtime_ctime_size_stamp(path)
+        if stamp is None:
+            self.cache.pop(key, None)
+            self._stamps.pop(key, None)
+            return fallback or QIcon()
         if key in self.cache:
-            return self.cache[key]
-        if not path.exists():
+            if self._stamps.get(key) == stamp:
+                self.cache.move_to_end(key)
+                return QIcon(self.cache[key])
+            self.cache.pop(key, None)
+            self._stamps.pop(key, None)
+
+        # One Qt-thread thumbnail decoder/cache serves Craft, Guides and the
+        # Encyclopedia. The small local QIcon cache keeps item list scrolling
+        # cheap without maintaining a second image decoding implementation.
+        from app.modules.encyclopedia.services.image_service import (
+            ENCYCLOPEDIA_IMAGE_SERVICE,
+        )
+
+        pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(
+            path, QSize(self.size, self.size),
+        )
+        if pixmap.isNull():
             return fallback or QIcon()
-        reader = QImageReader(key)
-        source_size = reader.size()
-        if source_size.isValid():
-            reader.setScaledSize(
-                source_size.scaled(
-                    QSize(self.size, self.size),
-                    Qt.KeepAspectRatio,
-                )
-            )
-        image = reader.read()
-        if image.isNull():
-            return fallback or QIcon()
-        if image.width() > self.size or image.height() > self.size:
-            image = image.scaled(
-                self.size,
-                self.size,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
-            )
-        icon = QIcon(QPixmap.fromImage(image))
-        self.cache[key] = icon
-        self.order.append(key)
-        while len(self.order) > self.max_items:
-            old = self.order.pop(0)
-            self.cache.pop(old, None)
+        icon = QIcon(pixmap)
+        if mtime_ctime_size_stamp(path) != stamp:
+            return icon
+        self.cache[key] = QIcon(icon)
+        self._stamps[key] = stamp
+        while self.cache and len(self.cache) > max(0, self.max_items):
+            old, _ = self.cache.popitem(last=False)
+            self._stamps.pop(old, None)
         return icon
 
     def clear(self) -> None:
         self.cache.clear()
-        self.order.clear()
+        self._stamps.clear()
 
 
 def lock_icon(locked: bool) -> QIcon:
@@ -1000,7 +994,7 @@ class ZaapWidget(QWidget):
         self.zaaps = load_zaap_index()
         self.filtered_zaaps: list[dict[str, Any]] = []
         self.favorite_names = read_zaap_favorites(self.zaaps) if self.show_favorites else []
-        self.favorite_buttons: list[QPushButton] = []
+        self.favorite_buttons: list[AtlasButton] = []
         self.favorite_star_buttons: list[QToolButton] = []
         self.calibration_active = False
         self.launching_zaap = False
@@ -1223,6 +1217,44 @@ class ZaapWidget(QWidget):
         self.refresh_favorite_chips()
         self.status_callback(message)
 
+    def move_favorite(self, name: str, direction: int) -> None:
+        """Reorder the same stored favorites without adding UI controls."""
+        names = list(self.favorite_names)
+        key = normalize_key(name)
+        index = next(
+            (position for position, value in enumerate(names)
+             if normalize_key(value) == key),
+            -1,
+        )
+        target = index + direction
+        if index < 0 or not 0 <= target < len(names):
+            return
+        names[index], names[target] = names[target], names[index]
+        self.favorite_names = save_zaap_favorites(names, self.zaaps)
+        self.refresh_favorite_chips()
+        self.status_callback(f"Ordre des Zaaps mis à jour : {name}")
+
+    def show_favorite_order_menu(
+        self, name: str, button: QPushButton, point: QPoint,
+    ) -> None:
+        """Native context menu; 2-column Organizer grid stays unchanged."""
+        names = [normalize_key(value) for value in self.favorite_names]
+        key = normalize_key(name)
+        if key not in names:
+            return
+        index = names.index(key)
+        menu = QMenu(button)
+        menu.setObjectName("ZaapFavoriteOrderMenu")
+        up = menu.addAction("Monter le favori")
+        down = menu.addAction("Descendre le favori")
+        up.setEnabled(index > 0)
+        down.setEnabled(index < len(names) - 1)
+        chosen = menu.exec(button.mapToGlobal(point))
+        if chosen == up:
+            self.move_favorite(name, -1)
+        elif chosen == down:
+            self.move_favorite(name, 1)
+
     def refresh_favorite_chips(self) -> None:
         if not self.show_favorites:
             self.favorite_buttons = []
@@ -1283,14 +1315,22 @@ class ZaapWidget(QWidget):
             star_button.setFixedSize(16, 26)
             star_button.setCursor(Qt.PointingHandCursor)
             star_button.setToolTip(f"Retirer {name} des favoris")
-            button = QPushButton(short_label(name, 24), chip)
-            button.setObjectName("favoriteChipName")
+            button = AtlasButton(
+                short_label(name, 24), chip, variant="zaap_favorite"
+            )
             button.setFixedHeight(26)
             button.setMaximumWidth(
                 min(152, max(1, chip_width - 38)) if self.compact_favorites else 152
             )
             button.setCursor(Qt.PointingHandCursor)
-            button.setToolTip(name)
+            button.setToolTip(
+                f"{name}\nClic : lancer · clic droit : changer l’ordre des favoris"
+            )
+            button.setContextMenuPolicy(Qt.CustomContextMenu)
+            button.customContextMenuRequested.connect(
+                lambda point, value=name, control=button:
+                self.show_favorite_order_menu(value, control, point)
+            )
             star_button.clicked.connect(lambda _checked=False, value=row: self.toggle_favorite(value))
             button.clicked.connect(lambda _checked=False, value=row: self.launch_zaap(value))
             chip_layout.addWidget(star_button)
@@ -1491,14 +1531,12 @@ class ZaapWidget(QWidget):
         if self.launching_zaap:
             return
         self.launching_zaap = True
-        label = self.suggestion_label(zaap)
-        coords = row_coordinate_pair(zaap)
-        # Close immediately, before callbacks can reload the runtime or
-        # activate another window. The popup must never stay over DOFUS.
-        # Suppress previously scheduled show_suggestions() QTimer callbacks.
-        self._suppress_autoshow_after_launch = True
-        self.hide_suggestions()
         try:
+            label = self.suggestion_label(zaap)
+            coords = row_coordinate_pair(zaap)
+            # Hide before callbacks can reload runtime or activate a window.
+            self._suppress_autoshow_after_launch = True
+            self.hide_suggestions()
             if coords is None:
                 LOGGER.warning("Auto zaap refuse: coordonnees absentes pour %s", label)
                 self.status_callback(f"Zaap invalide (coordonnees absentes) : {label}")
@@ -1506,17 +1544,25 @@ class ZaapWidget(QWidget):
             self.search_input.setText(label)
             if self.config_update_callback is not None:
                 self.config_update_callback()
-            if self.start_callback is None:
-                self.status_callback("Auto zaap indisponible : runtime non connecté.")
-                return
             command = f"/zaap {coords[0]},{coords[1]}"
+            if self.start_callback is None:
+                # The local Zaap index supplied valid explicit coordinates.
+                # Offer the same manual clipboard fallback as Guide travel.
+                QApplication.clipboard().setText(command)
+                self.status_callback(
+                    f"Auto zaap indisponible : commande copiée ({label})."
+                )
+                return
             try:
                 accepted = invoke_compatible_callback(
                     self.start_callback, command, None, None,
                 )
             except Exception:
                 LOGGER.exception("Auto zaap: lancement du runtime impossible.")
-                self.status_callback(f"Auto zaap non lancé : {label}")
+                QApplication.clipboard().setText(command)
+                self.status_callback(
+                    f"Auto zaap non lancé : commande copiée ({label})."
+                )
                 return
             LOGGER.info(
                 "Auto zaap sélection: label=%s coords=%s accepté=%s",
@@ -1525,14 +1571,19 @@ class ZaapWidget(QWidget):
             if accepted is True:
                 self.status_callback(f"Auto zaap en cours : {label}")
             elif accepted is False:
+                QApplication.clipboard().setText(command)
                 self.status_callback(
-                    f"Auto zaap non lancé : macro occupée ou runtime indisponible ({label})."
+                    f"Auto zaap refusé : commande copiée ({label})."
                 )
             else:
                 # Legacy callbacks returning None do not prove acceptance.
                 self.status_callback(f"Auto zaap transmis (démarrage non confirmé) : {label}")
         finally:
-            self._schedule_owned_callback(0, self.reset_launch_guard)
+            try:
+                self._schedule_owned_callback(0, self.reset_launch_guard)
+            except RuntimeError:
+                # Qt may destroy the owning widget during a callback.
+                self.reset_launch_guard()
 
     def reset_launch_guard(self) -> None:
         self.launching_zaap = False

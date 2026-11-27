@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from logging import Logger
 
 from app.core.logger import get_runtime_logger
@@ -8,6 +8,7 @@ from app.network.character_runtime_state import (
     CharacterRuntimeStateStore,
     character_runtime_state,
 )
+from app.network.contracts import forward_decoder_reset, forward_decoder_session_closed
 from app.network.current_protocol_profile import DOFUS_361010_PROFILE
 from app.network.diagnostics import network_debug_enabled, network_debug_log
 from app.network.protobuf_fields import (
@@ -24,8 +25,6 @@ from app.network.transport import CapturedProtocolMessage, ProtocolMessageDecode
 # payload also matches the strict structure. A rotated alias is learned only on
 # the already verified Npcap transport session and only after stronger shape
 # evidence; learned aliases are volatile and never persisted as a global mapping.
-_CHARACTER_STATS_REFERENCE_TYPE_URL = "type.ankama.com/kri"
-_ACHIEVEMENTS_REFERENCE_TYPE_URL = "type.ankama.com/gus"
 # Real 3.6.10.10 captures identify kub as the character-characteristics sheet.
 # Unlike the family-reference aliases above, Atlas accepts this alias only as
 # the exact captured 3.6.10.10 shape and never learns a rotated equivalent.
@@ -37,9 +36,6 @@ _CHARACTER_CHARACTERISTICS_TYPE_URL = "type.ankama.com/kub"
 _VERIFIED_SELECTED_LEVEL_PATH = (1, 1, 1, 3)
 _CANDIDATE_LEVEL_PATHS = ((1, 4, 2), (1, 4, 4))
 _MIN_ACHIEVEMENT_SNAPSHOT_MATCHES = 3
-_ROTATED_ACHIEVEMENT_ONE_SHOT_MATCHES = 5
-_ROTATED_LEVEL_CONFIRMATIONS = 2
-_ROTATED_ACHIEVEMENT_CONFIRMATIONS = 2
 _MAX_PROFILE_DISCOVERY_PAYLOAD_BYTES = 512 * 1024
 
 # Names are kept semantic and UI-neutral. IDs are the ones explicitly resolved
@@ -318,27 +314,15 @@ class CharacterRuntimeProtocolMessageDecoder:
         *,
         state: CharacterRuntimeStateStore | None = None,
         achievement_points_by_id: Mapping[int, int] | None = None,
+        active_profile_matches: Callable[[], bool] | None = None,
         logger: Logger | None = None,
     ) -> None:
         self.delegate = delegate
         self.state = state or character_runtime_state()
-        self.achievement_points_by_id: dict[int, int] = {}
-        for raw_achievement_id, raw_points in (achievement_points_by_id or {}).items():
-            try:
-                achievement_id = int(raw_achievement_id)
-                points = int(raw_points)
-            except (TypeError, ValueError, OverflowError):
-                continue
-            if achievement_id > 0 and points >= 0:
-                self.achievement_points_by_id[achievement_id] = points
+        self.active_profile_matches = active_profile_matches
+        # Keep the legacy keyword for callers. Profile projection uses the
+        # reviewed live profile and no longer constructs a points lookup.
         self.logger = logger or get_runtime_logger()
-
-        self._level_type_by_session: dict[str, str] = {}
-        self._achievement_type_by_session: dict[str, str] = {}
-        self._level_evidence: dict[tuple[str, str], tuple[int, int]] = {}
-        self._achievement_evidence: dict[
-            tuple[str, str], tuple[tuple[int, ...], int, int]
-        ] = {}
 
     def decode(self, message: CapturedProtocolMessage):
         decoded = self.delegate.decode(message)
@@ -348,21 +332,16 @@ class CharacterRuntimeProtocolMessageDecoder:
         return decoded
 
     def session_closed(self, session_id: str) -> None:
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session_id)
-        self._forget_session_discovery(session_id)
-        self.state.close_session(session_id)
+        try:
+            forward_decoder_session_closed(self.delegate, session_id)
+        finally:
+            self.state.close_session(session_id)
 
     def reset(self) -> None:
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
-        self._level_type_by_session.clear()
-        self._achievement_type_by_session.clear()
-        self._level_evidence.clear()
-        self._achievement_evidence.clear()
-        self.state.clear_sessions()
+        try:
+            forward_decoder_reset(self.delegate)
+        finally:
+            self.state.clear_sessions()
 
     def _project_verified_identity(self, message: CapturedProtocolMessage, decoded) -> None:
         if not bool(getattr(decoded, "verified", False)):
@@ -383,10 +362,7 @@ class CharacterRuntimeProtocolMessageDecoder:
         if character_id <= 0 or not name:
             return
 
-        previous = self.state.snapshot_for_session(decoded_session)
         next_key = f"character:{character_id}"
-        if previous is not None and previous.character_key != next_key:
-            self._forget_session_discovery(decoded_session)
         identified = self.state.identify(
             session_id=decoded_session,
             character_key=next_key,
@@ -445,35 +421,22 @@ class CharacterRuntimeProtocolMessageDecoder:
             )
 
     def _project_profile_facts(self, message: CapturedProtocolMessage) -> None:
+        if message.type_url != _CHARACTER_CHARACTERISTICS_TYPE_URL:
+            return
         if str(message.direction or "").strip().casefold() != "server_to_client":
             return
         if len(message.payload) > _MAX_PROFILE_DISCOVERY_PAYLOAD_BYTES:
             return
 
         session = str(message.session_id or "").strip()
-        type_url = str(message.type_url or "").strip()
-        if not session or not type_url:
-            return
-        routed = self.state.snapshot_for_session(session)
-        if routed is None:
+        if not session or self.state.snapshot_for_session(session) is None:
             # Profile facts before verified kvi+kva identity are intentionally
             # discarded instead of being queued for a later character.
             return
 
-        # kva has its own exact-build level projection above. Do not also feed
-        # the identity payload into rotated stats-shape discovery.
-        if type_url == DOFUS_361010_PROFILE.character_selected_type_url:
+        if self.active_profile_matches is not None and not self.active_profile_matches():
             return
-
-        if type_url == _CHARACTER_CHARACTERISTICS_TYPE_URL:
-            self._try_apply_character_stats(session, message.payload)
-            return
-
-        # Historical family aliases and repeated payload shapes do not prove
-        # current message semantics. In particular, a list of catalogue IDs
-        # cannot establish real achievement points. Keep those research helpers
-        # out of the runtime projection until an exact-build rule is reviewed.
-        # This also avoids parsing every unrelated packet several times.
+        self._try_apply_character_stats(session, message.payload)
 
     def _try_apply_character_stats(self, session: str, payload: bytes) -> None:
         stats = _candidate_character_stats(payload)
@@ -501,184 +464,5 @@ class CharacterRuntimeProtocolMessageDecoder:
                 changed=changed,
                 reason="reviewed_361010_kub_shape",
             )
-
-    def _try_apply_level(self, session: str, type_url: str, payload: bytes) -> None:
-        level, values = _candidate_level(payload)
-        if level is None:
-            if type_url == _CHARACTER_STATS_REFERENCE_TYPE_URL and network_debug_enabled():
-                self._log_level_candidate(session, type_url, values, None, trusted=False)
-            return
-
-        trusted = False
-        reason = ""
-        learned = self._level_type_by_session.get(session, "")
-        if type_url == _CHARACTER_STATS_REFERENCE_TYPE_URL:
-            trusted = True
-            reason = "reviewed_family_alias_and_shape"
-        elif learned == type_url:
-            trusted = True
-            reason = "session_alias_already_verified"
-        else:
-            key = (session, type_url)
-            previous_level, previous_count = self._level_evidence.get(key, (level, 0))
-            count = previous_count + 1 if previous_level == level else 1
-            self._level_evidence[key] = (level, count)
-            if count >= _ROTATED_LEVEL_CONFIRMATIONS:
-                trusted = True
-                reason = "rotated_alias_repeated_shape"
-
-        if trusted:
-            self._level_type_by_session[session] = type_url
-            self.state.update_verified_profile(session, level=level)
-            self._drop_other_level_evidence(session, type_url)
-        if network_debug_enabled():
-            self._log_level_candidate(
-                session,
-                type_url,
-                values,
-                level,
-                trusted=trusted,
-                reason=reason or "awaiting_rotated_alias_confirmation",
-            )
-
-    def _try_apply_achievement_points(self, session: str, type_url: str, payload: bytes) -> None:
-        # A zero-achievement character serializes an empty AchievementsEvent.
-        # Only the known family alias may assign zero from an empty body because
-        # an arbitrary empty protobuf has no structural identity of its own.
-        if type_url == _ACHIEVEMENTS_REFERENCE_TYPE_URL and not payload:
-            self._achievement_type_by_session[session] = type_url
-            self.state.update_verified_profile(session, achievement_points=0)
-            if network_debug_enabled():
-                self._log_achievement_candidate(
-                    session,
-                    type_url,
-                    (),
-                    0,
-                    trusted=True,
-                    reason="reviewed_family_alias_empty_snapshot",
-                )
-            return
-
-        learned = self._achievement_type_by_session.get(session, "")
-        minimum = 1 if type_url == _ACHIEVEMENTS_REFERENCE_TYPE_URL or learned == type_url else _MIN_ACHIEVEMENT_SNAPSHOT_MATCHES
-        snapshot = _candidate_achievement_snapshot(
-            payload,
-            self.achievement_points_by_id,
-            minimum_matches=minimum,
-        )
-        if snapshot is None:
-            return
-        achievement_ids, points = snapshot
-
-        trusted = False
-        reason = ""
-        if type_url == _ACHIEVEMENTS_REFERENCE_TYPE_URL:
-            trusted = True
-            reason = "reviewed_family_alias_and_shape"
-        elif learned == type_url:
-            trusted = True
-            reason = "session_alias_already_verified"
-        elif len(achievement_ids) >= _ROTATED_ACHIEVEMENT_ONE_SHOT_MATCHES:
-            trusted = True
-            reason = "rotated_alias_strong_catalog_shape"
-        else:
-            key = (session, type_url)
-            previous_ids, previous_points, previous_count = self._achievement_evidence.get(
-                key,
-                (achievement_ids, points, 0),
-            )
-            count = (
-                previous_count + 1
-                if previous_ids == achievement_ids and previous_points == points
-                else 1
-            )
-            self._achievement_evidence[key] = (achievement_ids, points, count)
-            if count >= _ROTATED_ACHIEVEMENT_CONFIRMATIONS:
-                trusted = True
-                reason = "rotated_alias_repeated_catalog_shape"
-
-        if trusted:
-            self._achievement_type_by_session[session] = type_url
-            self.state.update_verified_profile(session, achievement_points=points)
-            self._drop_other_achievement_evidence(session, type_url)
-        if network_debug_enabled():
-            self._log_achievement_candidate(
-                session,
-                type_url,
-                achievement_ids,
-                points,
-                trusted=trusted,
-                reason=reason or "awaiting_rotated_alias_confirmation",
-            )
-
-    def _log_level_candidate(
-        self,
-        session: str,
-        type_url: str,
-        values: tuple[int | None, int | None],
-        level: int | None,
-        *,
-        trusted: bool,
-        reason: str = "",
-    ) -> None:
-        network_debug_log(
-            self.logger,
-            "[NETWORK][CHARACTER_PROFILE][LEVEL]",
-            session=session,
-            message_type=type_url,
-            reference_alias_match=type_url == _CHARACTER_STATS_REFERENCE_TYPE_URL,
-            candidate_paths=_CANDIDATE_LEVEL_PATHS,
-            candidate_values=values,
-            level=level,
-            trusted=trusted,
-            reason=reason,
-        )
-
-    def _log_achievement_candidate(
-        self,
-        session: str,
-        type_url: str,
-        achievement_ids: tuple[int, ...],
-        points: int,
-        *,
-        trusted: bool,
-        reason: str,
-    ) -> None:
-        network_debug_log(
-            self.logger,
-            "[NETWORK][CHARACTER_PROFILE][ACHIEVEMENTS]",
-            session=session,
-            message_type=type_url,
-            reference_alias_match=type_url == _ACHIEVEMENTS_REFERENCE_TYPE_URL,
-            achievement_count=len(achievement_ids),
-            achievement_ids=achievement_ids[:20],
-            achievement_points=points,
-            trusted=trusted,
-            reason=reason,
-        )
-
-    def _forget_session_discovery(self, session_id: str) -> None:
-        session = str(session_id or "").strip()
-        if not session:
-            return
-        self._level_type_by_session.pop(session, None)
-        self._achievement_type_by_session.pop(session, None)
-        for key in tuple(self._level_evidence):
-            if key[0] == session:
-                self._level_evidence.pop(key, None)
-        for key in tuple(self._achievement_evidence):
-            if key[0] == session:
-                self._achievement_evidence.pop(key, None)
-
-    def _drop_other_level_evidence(self, session: str, accepted_type: str) -> None:
-        for key in tuple(self._level_evidence):
-            if key[0] == session and key[1] != accepted_type:
-                self._level_evidence.pop(key, None)
-
-    def _drop_other_achievement_evidence(self, session: str, accepted_type: str) -> None:
-        for key in tuple(self._achievement_evidence):
-            if key[0] == session and key[1] != accepted_type:
-                self._achievement_evidence.pop(key, None)
-
 
 __all__ = ["CharacterRuntimeProtocolMessageDecoder"]

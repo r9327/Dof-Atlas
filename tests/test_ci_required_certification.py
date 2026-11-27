@@ -349,6 +349,11 @@ class CertificationMergeGateTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS_DOMAINS_AUTHENTICATED_NOT_PHASE_RELEASE")
         self.assertEqual(result["domain_evidence_run"], 418)
         self.assertIsNone(result["full_evidence_run"])
+        # A host-attested domain pass cannot substitute for FULL on deletion
+        # or type-change diffs, even if all other checks are successful.
+        removed = evaluate_merge(**kwargs, deleted_paths=["app/local_data_cache.py"])
+        self.assertEqual(removed["status"], "BLOCKED")
+        self.assertIsNone(removed["full_evidence_run"])
         for delta in ({"pr_number": 1}, {"base_sha": "c" * 40},
                       {"safe_validation": "failure"}, {"head_ref": "other"}):
             with self.subTest(delta=delta):

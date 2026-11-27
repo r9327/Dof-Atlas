@@ -201,6 +201,18 @@ def _open_runtime(
     return milliseconds(started), max_ui_block_ms
 
 
+def _achievement_catalogue_observation(window: Any) -> dict[str, Any]:
+    """Inspect an existing provider only, without loading a catalogue or cache."""
+    page = _current_encyclopedia_page(window)
+    service = getattr(page, "service", None)
+    peek = getattr(service, "peek_achievement_provider", None)
+    provider = peek() if callable(peek) else None
+    return {
+        "loaded": bool(getattr(provider, "_loaded", False)),
+        "load_source": str(getattr(provider, "last_catalogue_load_source", "UNKNOWN")),
+    }
+
+
 def _first_achievement_detail(app: Any, window: Any) -> tuple[float, int, float]:
     page = _current_encyclopedia_page(window)
     if page is None:
@@ -222,8 +234,25 @@ def _first_achievement_detail(app: Any, window: Any) -> tuple[float, int, float]
     call_block_ms = round((time.perf_counter() - call_started) * 1000.0, 2)
     if not selected:
         raise RuntimeError(f"Unable to select Success {achievement_id} from canonical view.")
-    _pump_events(app, 0.01)
-    return milliseconds(started), achievement_id, call_block_ms
+
+    def detail_is_displayed() -> bool:
+        if getattr(view, "current_achievement_id", None) != achievement_id:
+            return False
+        if bool(getattr(view, "_detail_open", False)):
+            return True
+        if (
+            getattr(view, "_detail_requested", None) is None
+            and not bool(getattr(view, "_detail_worker_running", False))
+        ):
+            raise RuntimeError(f"Success {achievement_id} detail failed to render.")
+        return False
+
+    # A cold Success detail is loaded on a Qt worker. The old 10-ms event
+    # pump measured only the click and routinely missed the real load time.
+    wait_block_ms = _wait_until_with_ui_block(
+        app, detail_is_displayed, 30.0, f"Success {achievement_id} detail"
+    )
+    return milliseconds(started), achievement_id, max(call_block_ms, wait_block_ms)
 
 
 def _first_guide_detail(app: Any, window: Any) -> tuple[float, str, float]:
@@ -306,11 +335,13 @@ def measure_sample(root: Path) -> dict[str, Any]:
         _pump_events(app, 0.05)
         rss_after_quests_mb = current_rss_mb()
 
+        achievement_catalogue_before = _achievement_catalogue_observation(window)
         achievements_open_ms, achievements_ui_block_ms = _open_runtime(
             app, window, ACHIEVEMENTS_TAB
         )
         _pump_events(app, 0.05)
         rss_after_achievements_mb = current_rss_mb()
+        achievement_catalogue_after = _achievement_catalogue_observation(window)
         achievement_detail_ms, achievement_id, achievement_detail_block_ms = (
             _first_achievement_detail(app, window)
         )
@@ -393,6 +424,10 @@ def measure_sample(root: Path) -> dict[str, Any]:
                 "git_head": git_head(root),
             },
             "metrics": metrics,
+            "success_catalogue": {
+                "before_open": achievement_catalogue_before,
+                "after_open": achievement_catalogue_after,
+            },
         }
     finally:
         shutdown = getattr(window, "_shutdown_background_services", None)
@@ -424,11 +459,87 @@ def _median_tree(values: list[Any]) -> Any:
     return copy.deepcopy(first)
 
 
+_SUCCESS_DISTRIBUTION_METRICS = (
+    "achievements_open_ms",
+    "achievements_open_max_ui_block_ms",
+    "first_achievement_detail_ms",
+    "first_achievement_detail_max_ui_block_ms",
+    "rss_after_achievements_mb",
+    "rss_after_first_achievement_detail_mb",
+)
+
+
+def _achievement_distributions(samples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Descriptive nearest-rank percentiles; never confuse 3 runs with a stable p99."""
+
+    output: dict[str, dict[str, Any]] = {}
+    for metric in _SUCCESS_DISTRIBUTION_METRICS:
+        values = sorted(
+            float(value)
+            for sample in samples
+            for value in [(sample.get("metrics") or {}).get(metric)]
+            if isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and 0 <= float(value) < float("inf")
+        )
+        if not values:
+            continue
+
+        def rank(pct: int) -> float:
+            # ceil(n * pct / 100) - 1, without Python's round-to-even.
+            index = max(0, min(len(values) - 1, (len(values) * pct + 99) // 100 - 1))
+            return round(values[index], 3)
+
+        output[metric] = {
+            "unit": "MB" if metric.endswith("_mb") else "ms",
+            "sample_count": len(values),
+            "planned_samples": len(samples),
+            "p50": rank(50),
+            "p95": rank(95),
+            "p99": rank(99),
+            # At <100 samples nearest-rank p99 is usually only the observed
+            # maximum, not a reliable 99th percentile population estimate.
+            "p99_quality": "DESCRIPTIVE_ONLY" if len(values) < 100 else "SAMPLED",
+        }
+    return output
+
+
+def _success_catalogue_strata(samples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Keep distinct loading paths separate; older evidence stays UNKNOWN."""
+    groups: dict[str, list[dict[str, Any]]] = {}
+    known_sources = {"COMPACT_CACHE", "DISPOSABLE_WORKER", "IN_PROCESS_CUSTOM", "IN_PROCESS_FROZEN"}
+    for sample in samples:
+        observation = sample.get("success_catalogue") or {}
+        before = observation.get("before_open") or {}
+        after = observation.get("after_open") or {}
+        if before.get("loaded") is True:
+            label = "ALREADY_LOADED"
+        elif before.get("loaded") is False and after.get("loaded") is True and after.get("load_source") in known_sources:
+            label = after["load_source"]
+        else:
+            label = "UNKNOWN"
+        groups.setdefault(label, []).append(sample)
+    return {
+        label: {"sample_count": len(rows), "distributions": _achievement_distributions(rows)}
+        for label, rows in sorted(groups.items())
+    }
+
+
 def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
     if not samples:
         raise ValueError("At least one runtime sample is required.")
-    medians = _median_tree([sample.get("metrics") or {} for sample in samples])
     environment = dict(samples[0].get("environment") or {})
+    # A p95 across different code revisions or Qt environments is not
+    # evidence for any exact-SHA certification.
+    for index, sample in enumerate(samples[1:], 2):
+        observed = sample.get("environment") or {}
+        for key in (*ENVIRONMENT_KEYS, "git_head"):
+            if observed.get(key) != environment.get(key):
+                raise ValueError(
+                    f"Runtime sample {index} differs on {key}; "
+                    "refusing mixed-SHA/environment benchmark."
+                )
+    medians = _median_tree([sample.get("metrics") or {} for sample in samples])
     environment["sample_count"] = len(samples)
     return {
         "schema_version": SCHEMA_VERSION,
@@ -436,6 +547,8 @@ def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
         "environment": environment,
         "sample_count": len(samples),
         "samples": samples,
+        "distributions": _achievement_distributions(samples),
+        "success_catalogue_strata": _success_catalogue_strata(samples),
         "medians": medians,
         # Doctor compare/report historically reads benchmark.after. Keep that
         # compatibility key while making medians the explicit canonical aggregate.
@@ -483,6 +596,18 @@ def compare_to_baseline(
 
     current_environment = current.get("environment") or {}
     baseline_environment = baseline.get("environment") or {}
+    missing_environment = [
+        key for key in (*ENVIRONMENT_KEYS, "git_head")
+        if any(not isinstance(env.get(key), str)
+               or env[key].strip().lower() in {"", "unknown"}
+               for env in (current_environment, baseline_environment))
+    ]
+    if missing_environment:
+        return {
+            "status": "UNAVAILABLE",
+            "reason": "Runtime environment or revision identity is missing.",
+            "missing_environment": missing_environment,
+        }
     mismatches = [
         key
         for key in ENVIRONMENT_KEYS
@@ -504,6 +629,8 @@ def compare_to_baseline(
             continue
         before = baseline_values[metric]
         after = current_values[metric]
+        if not (0 <= before < float("inf") and 0 <= after < float("inf")):
+            continue
         delta = after - before
         percent = None if before == 0 else round((delta / before) * 100.0, 2)
         rows.append(
@@ -515,6 +642,13 @@ def compare_to_baseline(
                 "delta_percent": percent,
             }
         )
+    if not rows:
+        return {
+            "status": "UNAVAILABLE",
+            "reason": "No common valid runtime cost metrics.",
+            "baseline_git_head": baseline_environment.get("git_head"),
+            "metrics": [],
+        }
     regressions = [
         row
         for row in rows

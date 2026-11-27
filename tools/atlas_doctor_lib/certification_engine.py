@@ -117,7 +117,7 @@ def _required_boundary_modules(root: Path, paths: list[str]) -> list[str]:
 
 
 def _safe_paths(paths: list[str]) -> bool:
-    if not paths or len(paths) > 100:
+    if not paths:
         return False
     for path in paths:
         if not isinstance(path, str):
@@ -152,14 +152,18 @@ def plan(
     baseline_ok = bool(SHA_RE.fullmatch(base_sha)) and bool(SHA_RE.fullmatch(head_sha))
     if not baseline_ok:
         reasons.append("INVALID_EXACT_SHA")
-    if not _safe_paths(changed) or (deleted and not _safe_paths(deleted)):
+    safe_diff = _safe_paths(changed) and (not deleted or _safe_paths(deleted))
+    oversized_diff = len(changed) > 100 or len(deleted) > 100
+    if not safe_diff:
         reasons.append("INVALID_DIFF_PATHS")
-    if (root / ".git").is_dir() and any(not (root / p).exists() for p in changed if p not in deleted):
+    if oversized_diff:
+        reasons.append("DIFF_SCOPE_EXCEEDS_ADAPTIVE_BUDGET")
+    if safe_diff and (root / ".git").is_dir() and any(not (root / p).exists() for p in changed if p not in deleted):
         reasons.append("MISSING_WORKTREE_PATH")
     if set(changed) & CRITICAL_PATHS:
         reasons.append("CERTIFICATION_ROOT_OF_TRUST_CHANGE")
 
-    risk = classify_risk(changed) if _safe_paths(changed) else {"risk": "CRITICAL"}
+    risk = classify_risk(changed) if safe_diff and not oversized_diff else {"risk": "CRITICAL"}
     high_smart = (risk.get("risk") == "HIGH"
                   and high_smart_eligible(root, changed, deleted=deleted))
     if risk.get("risk") in {"HIGH", "CRITICAL"} and not high_smart:

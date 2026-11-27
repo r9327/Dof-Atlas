@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.core.numbers import positive_int as _positive_int
+from app.network.contracts import forward_decoder_reset, forward_decoder_session_closed
 from app.network.normalizer import DecodedClientMessage
 from app.network.transport import CapturedProtocolMessage, ProtocolMessageDecoder
 from app.quest_catalog import QuestCatalog
@@ -46,24 +48,12 @@ class FinalQuestStepEvidenceDecoder:
         return decoded
 
     def session_closed(self, session_id: str) -> None:
-        hook = getattr(self.inner, "session_closed", None)
-        if callable(hook):
-            hook(session_id)
+        forward_decoder_session_closed(self.inner, session_id)
 
     def reset(self) -> None:
-        hook = getattr(self.inner, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.inner)
 
 
-def _positive_int(value: Any) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 __all__ = ["FinalQuestStepEvidenceDecoder"]

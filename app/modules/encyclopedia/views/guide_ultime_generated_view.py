@@ -2,24 +2,26 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
-    QPushButton,
     QScrollArea,
     QSizePolicy,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
+from app.core.numbers import optional_int
+from app.ui.components import (
+    AtlasButton, AtlasComboBox, AtlasGuideReadingHeader, AtlasPageNavigator,
+    clear_unity_widget_layout, configure_unity_scroll_area,
+    set_unity_progress_counts,
+)
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
-    GuideUltimeGeneratedService,
+    GuideUltimeGeneratedService, GuideUltimeCardState,
 )
 
 
@@ -43,6 +45,7 @@ class GuideUltimeCard(QFrame):
         quest_toggle: QuestToggle,
         objective_toggle: ObjectiveToggle,
         parent: QWidget | None = None,
+        state: GuideUltimeCardState | None = None,
     ) -> None:
         super().__init__(parent)
         self.service = service
@@ -53,7 +56,8 @@ class GuideUltimeCard(QFrame):
         self.compact = compact
         self.quest_toggle = quest_toggle
         self.objective_toggle = objective_toggle
-        state = service.card_state(character_key, card, index)
+        if state is None:
+            state = service.card_state(character_key, card, index)
         self.setObjectName("GuideUltimeCard")
         self.setProperty("state", "active" if active else "done" if state.complete else "future")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
@@ -135,8 +139,8 @@ class GuideUltimeCard(QFrame):
             return
         body = self._section(root, title)
         for row in values:
-            qid = self._safe_int(row.get("quest_id"))
-            oid = self._safe_int(row.get("objective_id"))
+            qid = optional_int(row.get("quest_id"))
+            oid = optional_int(row.get("objective_id"))
             checked = self.service.action_completed(self.character_key, row)
             text = str(row.get("title") or row.get("quest_name") or "Action")
             line = QCheckBox(text)
@@ -155,7 +159,7 @@ class GuideUltimeCard(QFrame):
 
     def _add_progress_also(self, root: QVBoxLayout) -> None:
         progress = self.card.get("progresse_aussi") if isinstance(self.card.get("progresse_aussi"), dict) else {}
-        quest_ids = [self._safe_int(value) for value in progress.get("quest_ids", []) or []]
+        quest_ids = [optional_int(value) for value in progress.get("quest_ids", []) or []]
         quest_ids = [value for value in quest_ids if value is not None]
         monster = [row for row in self.card.get("succes_monstres_a_faire", []) or [] if isinstance(row, dict)]
         dungeon = [row for row in self.card.get("succes_donjon_a_faire", []) or [] if isinstance(row, dict)]
@@ -166,7 +170,7 @@ class GuideUltimeCard(QFrame):
         body = self._section(root, "PROGRESSE AUSSI")
         for qid in quest_ids:
             done = self.service.quest_progress.is_quest_completed(self.character_key, qid)
-            label = QLabel(f"{'✓' if done else '•'} Quête #{qid}")
+            label = QLabel(f"{'✓ ' if done else ''}Quête #{qid}")
             label.setProperty("state", "done" if done else "todo")
             label.setObjectName("GuideUltimeInfoLine")
             body.addWidget(label)
@@ -177,16 +181,16 @@ class GuideUltimeCard(QFrame):
         for row in ocre:
             text = str(row.get("action") or "Capture Ocre")
             boss = str(row.get("boss") or "").strip()
-            label = QLabel(f"• Ocre : {text}{' — ' + boss if boss else ''}")
+            label = QLabel(f"Ocre : {text}{' — ' + boss if boss else ''}")
             label.setObjectName("GuideUltimeInfoLine")
             label.setWordWrap(True)
             body.addWidget(label)
 
     def _add_success_line(self, body: QVBoxLayout, row: dict[str, Any], kind: str) -> None:
-        aid = self._safe_int(row.get("achievement_id"))
+        aid = optional_int(row.get("achievement_id"))
         done = bool(aid is not None and self.service.achievement_progress.is_achievement_completed(self.character_key, aid))
         name = str(row.get("name") or f"Succès #{aid}")
-        label = QLabel(f"{'✓' if done else '•'} Succès {kind} — {name}")
+        label = QLabel(f"{'✓ ' if done else ''}Succès {kind} — {name}")
         label.setObjectName("GuideUltimeInfoLine")
         label.setProperty("state", "done" if done else "todo")
         label.setWordWrap(True)
@@ -201,7 +205,7 @@ class GuideUltimeCard(QFrame):
         for index, row in enumerate(rows):
             key = self.service.resource_key(self.card, row, index, self.index)
             checked = self.service.manual_checked(self.character_key, key)
-            quantity = self._safe_int(row.get("quantity")) or 1
+            quantity = optional_int(row.get("quantity")) or 1
             name = str(row.get("name") or "Ressource")
             recommendation = str(row.get("recommended_source") or row.get("acquisition_default") or row.get("source") or "").strip()
             text = f"{quantity} × {name}"
@@ -277,13 +281,6 @@ class GuideUltimeCard(QFrame):
         self.service.set_manual_checked(self.character_key, key, bool(value))
         self.manualChanged.emit()
 
-    @staticmethod
-    def _safe_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
-
 
 class GuideUltimeGeneratedView(QWidget):
     questProgressChanged = Signal(int)
@@ -314,27 +311,8 @@ class GuideUltimeGeneratedView(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(8)
 
-        self.progress_frame = QFrame()
-        self.progress_frame.setObjectName("GuideUltimeProgressHeader")
-        progress_layout = QVBoxLayout(self.progress_frame)
-        progress_layout.setContentsMargins(14, 12, 14, 12)
-        progress_layout.setSpacing(6)
-
-        top = QHBoxLayout()
-        title = QLabel("GUIDE ULTIME")
-        title.setObjectName("GuideUltimeTitle")
-        top.addWidget(title)
-        top.addStretch(1)
-        self.route_progress_label = QLabel()
-        self.route_progress_label.setObjectName("GuideUltimeProgressText")
-        top.addWidget(self.route_progress_label)
-        progress_layout.addLayout(top)
-
-        self.route_bar = QProgressBar()
-        self.route_bar.setObjectName("GuideUltimeProgressBar")
-        self.route_bar.setTextVisible(False)
-        self.route_bar.setFixedHeight(8)
-        progress_layout.addWidget(self.route_bar)
+        self._build_route_progress_header(root, "GUIDE ULTIME")
+        progress_layout = self.reading_header.content_layout
 
         self.progress_details = QLabel()
         self.progress_details.setObjectName("GuideUltimeProgressDetails")
@@ -348,50 +326,39 @@ class GuideUltimeGeneratedView(QWidget):
         self.order_label = QLabel("Ordre Bonta :")
         self.order_label.setObjectName("GuideUltimeBranchStatus")
         branch_row.addWidget(self.order_label)
-        self.order_combo = QComboBox()
+        self.order_combo = AtlasComboBox()
         self.order_combo.setObjectName("GuideUltimeOrderCombo")
-        self.order_combo.setMinimumWidth(190)
         self.order_combo.currentIndexChanged.connect(self._order_changed)
         branch_row.addWidget(self.order_combo)
         branch_row.addStretch(1)
         progress_layout.addLayout(branch_row)
-        root.addWidget(self.progress_frame)
-
         nav = QFrame()
         nav.setObjectName("GuideUltimeNav")
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 6, 8, 6)
         nav_layout.setSpacing(6)
-        self.prev_button = QToolButton()
-        self.prev_button.setText("←")
-        self.prev_button.setToolTip("Carte précédente")
-        self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
-        nav_layout.addWidget(self.prev_button)
-        self.current_button = QPushButton("Premier objectif non terminé")
+        self.page_navigator = AtlasPageNavigator()
+        self.prev_button = self.page_navigator.previous_button
+        self.next_button = self.page_navigator.next_button
+        self.position_label = self.page_navigator.page_label
+        self.page_navigator.pageRequested.connect(
+            lambda page: self.navigate_relative(page - self.view_index - 1)
+        )
+        nav_layout.addWidget(self.page_navigator)
+        self.current_button = AtlasButton("Premier objectif non terminé")
         self.current_button.setObjectName("GuideUltimeCurrentButton")
         self.current_button.clicked.connect(self.go_active)
         nav_layout.addWidget(self.current_button)
-        self.next_button = QToolButton()
-        self.next_button.setText("→")
-        self.next_button.setToolTip("Carte suivante")
-        self.next_button.clicked.connect(lambda: self.navigate_relative(1))
-        nav_layout.addWidget(self.next_button)
         nav_layout.addStretch(1)
-        self.position_label = QLabel()
-        self.position_label.setObjectName("GuideUltimePosition")
-        nav_layout.addWidget(self.position_label)
-        self.filter_combo = QComboBox()
+        self.filter_combo = AtlasComboBox()
         self.filter_combo.addItems(["Tout", "À faire", "Terminé"])
         self.filter_combo.setCurrentText(self.filter_mode)
         self.filter_combo.currentTextChanged.connect(self._filter_changed)
         nav_layout.addWidget(self.filter_combo)
         root.addWidget(nav)
 
-        self.scroll = QScrollArea()
+        self.scroll = configure_unity_scroll_area(QScrollArea(), borderless=True)
         self.scroll.setObjectName("GuideUltimeScroll")
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content = QWidget()
         self.content.setObjectName("GuideUltimeContent")
         self.cards_layout = QVBoxLayout(self.content)
@@ -400,6 +367,15 @@ class GuideUltimeGeneratedView(QWidget):
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
 
+
+    def _build_route_progress_header(self, root: QVBoxLayout, title: str) -> None:
+        # Historical generated routes have no certified preparation or team
+        # progress model. Reuse the real overview shell without inventing one.
+        self.reading_header = AtlasGuideReadingHeader(title, overview=True, show_cover=False)
+        self.progress_frame = self.reading_header
+        self.route_bar = self.reading_header.global_progress_bar
+        self.route_progress_label = self.reading_header.global_progress_label
+        root.addWidget(self.reading_header)
 
     def set_character_key(self, character_key: str) -> None:
         normalized = character_key or ""
@@ -449,14 +425,12 @@ class GuideUltimeGeneratedView(QWidget):
 
     def _refresh_header(self) -> None:
         progress = self.service.progress(self.character_key)
-        percent = progress.common_percent
-        if percent is None:
-            self.route_bar.setRange(0, 0)
-            self.route_progress_label.setText("Route commune — progression indisponible")
-        else:
-            self.route_bar.setRange(0, max(1, progress.common_total))
-            self.route_bar.setValue(min(progress.common_completed, progress.common_total))
-            self.route_progress_label.setText(f"{percent} %")
+        percent = set_unity_progress_counts(
+            self.route_bar, progress.common_completed, progress.common_total, busy_when_empty=True,
+        )
+        self.route_progress_label.setText(
+            "Route commune — progression indisponible" if percent is None else f"{percent} %"
+        )
         details = [f"{progress.common_completed} / {progress.common_total} quêtes de la route commune"]
         if progress.qq_required:
             details.append(f"QQ : {progress.qq_completed} / {progress.qq_required} quêtes validées")
@@ -475,14 +449,13 @@ class GuideUltimeGeneratedView(QWidget):
     def _sync_order_combo(self) -> None:
         selected = self.service.selected_order_name(self.character_key)
         allowed = self.service.bonta_order_names()
-        self.order_combo.blockSignals(True)
-        self.order_combo.clear()
-        self.order_combo.addItem("Choisir un Ordre", "")
-        for name in allowed:
-            self.order_combo.addItem(name, name)
-        target = self.order_combo.findData(selected) if selected else 0
-        self.order_combo.setCurrentIndex(max(0, target))
-        self.order_combo.blockSignals(False)
+        with QSignalBlocker(self.order_combo):
+            self.order_combo.clear()
+            self.order_combo.addItem("Choisir un Ordre", "")
+            for name in allowed:
+                self.order_combo.addItem(name, name)
+            target = self.order_combo.findData(selected) if selected else 0
+            self.order_combo.setCurrentIndex(max(0, target))
 
     def _order_changed(self, index: int) -> None:
         value = str(self.order_combo.itemData(index) or "").strip()
@@ -511,12 +484,11 @@ class GuideUltimeGeneratedView(QWidget):
         self.cards_layout.addWidget(frame)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 0
-        self.route_bar.setRange(0, 1)
-        self.route_bar.setValue(0)
+        set_unity_progress_counts(self.route_bar, 0, 0)
         self.route_progress_label.setText("Source V5 absente")
         self.progress_details.setText("Aucune progression inventée.")
 
-    def _visible_indices(self) -> list[int]:
+    def _visible_indices(self, states: dict[int, GuideUltimeCardState] | None = None) -> list[int]:
         if not self.service.cards:
             return []
         start = max(0, self.view_index - self.WINDOW_BEFORE)
@@ -524,6 +496,8 @@ class GuideUltimeGeneratedView(QWidget):
         result: list[int] = []
         for index in range(start, stop):
             state = self.service.card_state(self.character_key, self.service.cards[index], index)
+            if states is not None:
+                states[index] = state
             if self.filter_mode == "À faire" and state.complete and index != self.view_index:
                 continue
             if self.filter_mode == "Terminé" and not state.complete and index != self.view_index:
@@ -538,10 +512,10 @@ class GuideUltimeGeneratedView(QWidget):
         self._clear_cards()
         if not self.service.cards:
             return
-        indices = self._visible_indices()
+        states: dict[int, GuideUltimeCardState] = {}
+        indices = self._visible_indices(states)
         for index in indices:
             card = self.service.cards[index]
-            state = self.service.card_state(self.character_key, card, index)
             active = index == self.active_index
             compact = index != self.view_index and not active
             widget = GuideUltimeCard(
@@ -551,6 +525,7 @@ class GuideUltimeGeneratedView(QWidget):
                 index,
                 active=active,
                 compact=compact,
+                state=states.get(index),
                 quest_toggle=self._set_quest,
                 objective_toggle=self._set_objective,
             )
@@ -559,19 +534,13 @@ class GuideUltimeGeneratedView(QWidget):
             self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = len(indices)
-        self.position_label.setText(
-            f"Carte {self.view_index + 1} / {len(self.service.cards)}  •  active {self.active_index + 1}"
+        self.page_navigator.set_page(self.view_index + 1, len(self.service.cards))
+        self.page_navigator.setToolTip(
+            f"Objectif actif : {self.active_index + 1}"
         )
-        self.prev_button.setEnabled(self.view_index > 0)
-        self.next_button.setEnabled(self.view_index < len(self.service.cards) - 1)
 
     def _set_quest(self, quest_id: int, completed: bool) -> None:
         self.service.quest_progress.set_quest_completed(self.character_key, int(quest_id), bool(completed))
-        self.service.achievement_progress.sync_from_quest_progress(
-            self.character_key,
-            getattr(self, "achievement_provider", None) or _NullAchievementProvider(),
-            self.service.quest_progress,
-        ) if False else None
 
     def _set_objective(self, quest_id: int, objective_id: int, completed: bool) -> None:
         self.service.quest_progress.set_objective_completed(
@@ -590,14 +559,4 @@ class GuideUltimeGeneratedView(QWidget):
         self._render_window()
 
     def _clear_cards(self) -> None:
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-
-
-
-class _NullAchievementProvider:
-    def load_retained(self):
-        return ()
+        clear_unity_widget_layout(self.cards_layout, detach_widgets=False)

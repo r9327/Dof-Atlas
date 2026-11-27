@@ -85,6 +85,22 @@ class DoctorEvidenceHubTests(unittest.TestCase):
         self.assertEqual(x["coverage"]["app_navigation"]["status"], "FAIL")
         self.assertEqual(x["status"], "BLOCKED")
 
+    def test_single_instance_requires_its_own_native_job(self):
+        from tools.atlas_doctor_lib.evidence_hub import job_result_sources, EXPECTED
+        self.assertIn("app_single_instance", EXPECTED)
+        self.assertNotIn("app_multi_instance", EXPECTED)
+        for jobs, status in (
+            ({"EIGHT_ATLAS": "success"}, "NOT_RUN"),
+            ({"SINGLE_INSTANCE": "failure"}, "FAIL"),
+            ({"SINGLE_INSTANCE": "success"}, "PASS"),
+        ):
+            result = summarize_sources(
+                sha=SHA, required=("app_single_instance",),
+                inputs=job_result_sources(SHA, jobs), job_results=jobs,
+            )
+            self.assertEqual(result["coverage"]["app_single_instance"]["status"], status)
+            self.assertEqual(result["status"], "PASS" if status == "PASS" else "BLOCKED")
+
     def test_collects_cost_and_deduplicates_repeated_suspect(self):
         cost = {"shares": [{"phase": "guide", "wall_pct_of_entire_probe": 34.5}],
                 "repeated_work_suspects": [{"route": "guide",
@@ -160,8 +176,16 @@ class DoctorASTDuplicateEvidenceTests(unittest.TestCase):
 
     def test_exceeded_duplicate_budget_and_incomplete_function_scan_block(self):
         from tools.atlas_doctor_lib.duplicate_evidence import summarize_ast_duplicates
-        x = summarize_ast_duplicates(self.inspection(duplicates=81), sha=SHA)
+        from tools.atlas_doctor_lib.deep_intelligence import MAX_DUPLICATE_FINDINGS
+        complete = summarize_ast_duplicates(
+            self.inspection(duplicates=MAX_DUPLICATE_FINDINGS), sha=SHA)
+        self.assertEqual(complete["status"], "PASS")
+        x = summarize_ast_duplicates(
+            self.inspection(duplicates=MAX_DUPLICATE_FINDINGS + 1), sha=SHA)
         self.assertEqual(x["status"], "BLOCKED")
+        partial = self.inspection(duplicates=2)
+        partial["source"]["duplicate_bodies"].pop()
+        self.assertEqual(summarize_ast_duplicates(partial, sha=SHA)["status"], "BLOCKED")
         y = self.inspection()
         y["source"]["budgets"]["function_limit_reached"] = True
         self.assertEqual(summarize_ast_duplicates(y, sha=SHA)["status"], "BLOCKED")
@@ -254,6 +278,15 @@ class DoctorWorkflowArtifactSelectionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 latest_attempt_report(Path(temp), artifact_prefix="atlas",
                                       report_name="report.json", run_id="oops", max_attempt=2)
+
+    def test_complete_workflow_checks_single_instance_not_parallel_atlas(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" /
+                    "atlas-doctor-complete-benchmark.yml").read_text(encoding="utf-8")
+        self.assertIn("single-atlas-instance:", workflow)
+        self.assertIn("test_single_instance.py", workflow)
+        self.assertIn("needs.single-atlas-instance.result", workflow)
+        self.assertNotIn("parallel_instances: 8", workflow)
+        self.assertNotIn("eight-atlas-processes", workflow)
 
     def test_workflow_uses_attempt_selection_for_hub_and_optimization(self):
         workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" /

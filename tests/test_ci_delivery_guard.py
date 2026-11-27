@@ -234,6 +234,23 @@ class DeliveryGuardTests(unittest.TestCase):
         self.assertIn('--checkout "$GITHUB_WORKSPACE/candidate"', workflow)
         self.assertNotIn("working-directory: candidate", workflow)
 
+    def test_draft_delivery_accounting_is_ready_only(self):
+        workflow = (Path(__file__).resolve().parents[1]
+                    / ".github/workflows/delivery-guard.yml").read_text(encoding="utf-8")
+        contract_job = workflow.split("  delivery-contract:", 1)[1].split(
+            "  candidate-self-tests:", 1
+        )[0]
+        candidate_job = workflow.split("  candidate-self-tests:", 1)[1]
+        self.assertIn("if: ${{ !github.event.pull_request.draft }}", contract_job)
+        self.assertNotIn("continue-on-error: true", contract_job)
+        self.assertIn("ready_for_review", workflow)
+        self.assertIn("synchronize", workflow)
+        self.assertIn("converted_to_draft", workflow)
+        self.assertIn('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"', candidate_job)
+        self.assertIn("Run candidate unit tests WITHOUT GitHub API credentials", candidate_job)
+        self.assertNotIn("if: ${{ !github.event.pull_request.draft }}", candidate_job)
+        self.assertIn("Not a delivery certificate", candidate_job)
+
     def test_workflow_event_fails_on_fork(self):
         import json
         event = {

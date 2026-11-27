@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from app.network.build_fingerprint import ProtocolBuildFiles
-from app.network.protocol_extract import ProtocolExtractionError, extract_protocol_from_build
+from app.network.protocol_extract import ProtocolExtractionError, _sha256_file, extract_protocol_from_build
 
 
 class FakeExtractionRunner:
@@ -107,6 +108,12 @@ class NetworkProtocolExtractionTests(unittest.TestCase):
         self.assertNotIn(str(self.root), serialized)
         self.assertNotIn(str(self.game_assembly), serialized)
         self.assertNotIn(str(self.metadata), serialized)
+
+    def test_tool_digest_uses_shared_sha256_and_preserves_missing_file_error(self) -> None:
+        expected = hashlib.sha256(self.il2cpp_tool.read_bytes()).hexdigest()
+        self.assertEqual(_sha256_file(self.il2cpp_tool), expected)
+        with self.assertRaisesRegex(ProtocolExtractionError, "cannot hash tool executable"):
+            _sha256_file(self.root / "missing-tool.exe")
 
     def test_existing_nonempty_output_is_never_reused(self) -> None:
         self.output.mkdir()

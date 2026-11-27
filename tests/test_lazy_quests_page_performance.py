@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from threading import Event
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -566,6 +567,7 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         gate = SimpleNamespace(mark_failed=Mock())
         stable_view = SimpleNamespace(show_runtime_error=Mock())
         page = SimpleNamespace(
+            _runtime_released=Event(),
             _related_preload_started=True,
             _related_preload_gate=gate,
             status_callback=Mock(),
@@ -591,7 +593,11 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
 
         guide_provider = Mock()
         guide_provider.reload.return_value = [object()]
-        page = SimpleNamespace(
+        class Page(SimpleNamespace):
+            _build_guide_progress_snapshot = Mock(return_value={"guide_complet": (0, 0, "")})
+
+        page = Page(
+            _runtime_released=Event(),
             _pending_lazy_tab="",
             _guide_runtime_ready=False,
             _related_preload_started=False,
@@ -608,9 +614,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             guide_progress_service=SimpleNamespace(path=Path("guide_progress.json")),
             achievement_progress_service=SimpleNamespace(
                 path=Path("achievement_progress.json")
-            ),
-            _build_guide_progress_snapshot=Mock(
-                return_value={"guide_complet": (0, 0, "")}
             ),
             guideRuntimeFinished=SimpleNamespace(emit=Mock()),
             open_pending_lazy_tab=Mock(),
@@ -826,7 +829,11 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
         empty_provider.include_drafts = False
         recovered_provider = Mock()
         recovered_provider.reload.return_value = [SimpleNamespace(id="dofus_cawotte")]
-        page = SimpleNamespace(
+        class Page(SimpleNamespace):
+            _build_guide_progress_snapshot = Mock(return_value={})
+
+        page = Page(
+            _runtime_released=Event(),
             _pending_lazy_tab="",
             _guide_runtime_ready=False,
             _related_preload_started=False,
@@ -844,7 +851,6 @@ class LazyQuestsPagePerformanceTests(unittest.TestCase):
             achievement_progress_service=SimpleNamespace(
                 path=Path("achievement_progress.json")
             ),
-            _build_guide_progress_snapshot=Mock(return_value={}),
             guideRuntimeFinished=SimpleNamespace(emit=Mock()),
             open_pending_lazy_tab=Mock(),
             status_callback=Mock(),

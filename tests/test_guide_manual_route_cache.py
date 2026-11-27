@@ -429,7 +429,11 @@ class GuideManualRouteCacheTests(unittest.TestCase):
 
     def test_catalog_position_keys_equivalent_and_cache_bounded(self) -> None:
         from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
-            GuideCatalogManualRuntimeService, _position_key_short, _position_key_uncached,
+            GuideCatalogManualRuntimeService,
+        )
+        from app.modules.encyclopedia.services.guide_catalog_step_index import (
+            _route_position_key_short as _position_key_short,
+            _route_position_key_uncached as _position_key_uncached,
         )
         key = GuideCatalogManualRuntimeService._position_key
         _position_key_short.cache_clear()
@@ -556,7 +560,7 @@ class GuideManualRouteCacheTests(unittest.TestCase):
         with patch.object(model, "quest_start_info", side_effect=AssertionError(
             "GPS must reuse its already extracted start metadata",
         )):
-            self.assertEqual(model.first_position_from_quest(quest, start_info=gps), "[1, 2]")
+            self.assertEqual(model.first_position_from_quest(quest, start_info=gps), "[1,2]")
 
     def test_fast_solution_text_filter_preserves_legacy_double_clean(self) -> None:
         import re
@@ -588,6 +592,7 @@ class GuideManualRouteCacheTests(unittest.TestCase):
 
     def test_catalog_deferred_quest_segments_keep_identical_cards(self) -> None:
         from app.modules.encyclopedia.services import guide_catalog_manual_runtime_service as catalog_module
+        from app.modules.encyclopedia.services.guide_quest_view_model import QuestStartInfo
         from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import (
             GuideCatalogManualRuntimeService,
         )
@@ -603,7 +608,10 @@ class GuideManualRouteCacheTests(unittest.TestCase):
                 SimpleNamespace(text="Action 3", position="[1,1]", combat=True),
             ),
         )
-        start = SimpleNamespace(position="[0,0]", zone="Astrub", npc="PNJ")
+        start = QuestStartInfo(
+            position="[0,0]", declared_launch_position="[0,0]", zone="Astrub",
+            npc="PNJ", declared_launch_npc="PNJ",
+        )
         with (
             patch.object(catalog_module, "quest_start_info", return_value=start),
             patch.object(catalog_module, "quest_items_from_objectives", return_value=()),

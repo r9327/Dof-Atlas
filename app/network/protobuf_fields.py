@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -74,6 +75,101 @@ def parse_protobuf_fields(payload: bytes, *, max_bytes: int = 4 * 1024 * 1024) -
     except (IncompleteVarint, InvalidVarint) as exc:
         raise ProtobufDecodeError(str(exc)) from exc
     return {field_number: tuple(rows) for field_number, rows in values.items()}
+
+
+def _iter_packed_positive_varints(payload: bytes, *, limit: int | None = None) -> Iterator[int]:
+    offset = 0
+    count = 0
+    while offset < len(payload):
+        if limit is not None and count >= limit:
+            raise ProtobufDecodeError("packed ID list exceeds configured limit")
+        value, offset = decode_varint(payload, offset)
+        if value <= 0:
+            raise ProtobufDecodeError("packed IDs must be positive")
+        count += 1
+        yield int(value)
+
+
+def decode_packed_positive_varints(payload: bytes, *, limit: int | None = None) -> tuple[int, ...] | None:
+    """Decode all positive packed wire IDs, rejecting malformed or excessive lists."""
+    try:
+        return tuple(_iter_packed_positive_varints(payload, limit=limit))
+    except (IncompleteVarint, InvalidVarint, ProtobufDecodeError):
+        return None
+
+
+def historical_quest_entry_id(raw_entry: object, *, finished: bool) -> int | None:
+    """The historical QuestsEvent entry shape, shared by discovery and runtime."""
+    if not isinstance(raw_entry, bytes):
+        return None
+    try:
+        fields = parse_protobuf_fields(raw_entry)
+    except ProtobufDecodeError:
+        return None
+    if not fields or not set(fields).issubset({1, 2}):
+        return None
+    quest_rows = fields.get(1, ())
+    if len(quest_rows) != 1 or not isinstance(quest_rows[0], int) or quest_rows[0] <= 0:
+        return None
+    details = fields.get(2, ())
+    if finished:
+        if len(details) != 1 or not isinstance(details[0], int) or details[0] <= 0:
+            return None
+    elif len(details) > 1 or any(not isinstance(value, bytes) for value in details):
+        return None
+    return int(quest_rows[0])
+
+
+def _iter_historical_reinitialized_ids(rows: tuple[object, ...]) -> Iterator[int]:
+    for row in rows:
+        if isinstance(row, int):
+            if row <= 0:
+                raise ProtobufDecodeError("reinitialized IDs must be positive")
+            yield int(row)
+        elif isinstance(row, bytes):
+            yield from _iter_packed_positive_varints(row)
+        else:
+            raise ProtobufDecodeError("invalid reinitialized ID field")
+
+
+def historical_reinitialized_ids(rows: tuple[object, ...]) -> tuple[int, ...] | None:
+    """Historical repeated/packed IDs, retaining the first occurrence order."""
+    try:
+        return tuple(dict.fromkeys(_iter_historical_reinitialized_ids(rows)))
+    except (IncompleteVarint, InvalidVarint, ProtobufDecodeError):
+        return None
+
+
+def historical_reinitialized_rows_valid(rows: tuple[object, ...]) -> bool:
+    """Validate the same wire format without materializing unused IDs."""
+    try:
+        for _ in _iter_historical_reinitialized_ids(rows):
+            pass
+    except (IncompleteVarint, InvalidVarint, ProtobufDecodeError):
+        return False
+    return True
+
+
+def resolve_repeated_positive_int_path(
+    payload: bytes,
+    path: tuple[int, ...],
+    *,
+    limit: int = 8192,
+) -> tuple[int, ...] | None:
+    """Resolve an explicit repeated message field with a singular ID in each row."""
+    root_field, *id_path = path
+    rows = parse_protobuf_fields(payload).get(root_field, ())
+    if not rows or len(rows) > limit:
+        return None
+    values: list[int] = []
+    for row in rows:
+        if not isinstance(row, bytes):
+            return None
+        value = resolve_field_path(row, tuple(id_path), expected_kind="positive_int")
+        if not isinstance(value, int):
+            return None
+        values.append(value)
+    return tuple(dict.fromkeys(values))
 
 
 def resolve_field_path(

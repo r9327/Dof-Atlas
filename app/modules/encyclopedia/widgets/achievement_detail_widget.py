@@ -3,15 +3,19 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Callable
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QProgressBar, QPushButton, QSizePolicy, QVBoxLayout
+from PySide6.QtCore import QSignalBlocker, Qt
+from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QProgressBar, QSizePolicy, QVBoxLayout
 
 from app.modules.encyclopedia.models.achievement import Achievement, AchievementObjective
 from app.modules.encyclopedia.models.entity_ref import EntityRef
+from app.modules.encyclopedia.services.achievement_progress_logic import (
+    achievement_objective_counts_for_progress, achievement_progress_snapshot,
+)
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
 from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntitySection
 from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
 from app.modules.encyclopedia.widgets.achievement_reward_widget import AchievementRewardWidget
+from app.ui.components import AtlasButton, configure_unity_progress_bar
 
 
 _HIDDEN_OBJECTIVE_TYPES = {"critère pl", "critère ea", "critère qq"}
@@ -79,38 +83,31 @@ class AchievementDetailWidget(QFrame):
                 return self.objective_completion_overrides[int(objective_id)]
             return state.is_objective_completed(achievement.id, int(objective_id))
 
-        progress_objectives = tuple(
-            objective
-            for objective in achievement.objectives
-            if self._counts_for_progress(achievement, objective)
+        done, total, completed, percent = achievement_progress_snapshot(
+            achievement, state, self.objective_completion_overrides,
         )
-        done = sum(1 for objective in progress_objectives if objective_completed(objective.id))
-        total = len(progress_objectives)
-        completed = state.is_achievement_completed(achievement.id)
-        percent = 100 if completed else int(round((done / total) * 100)) if total else 0
 
-        check = QCheckBox("Succès terminé")
-        check.setObjectName("AchievementDoneCheck")
-        check.setChecked(completed)
-        check.toggled.connect(self._set_achievement_completed)
-        layout.addWidget(check)
+        self.done_check = QCheckBox("Succès terminé")
+        self.done_check.setObjectName("AchievementDoneCheck")
+        self.done_check.setChecked(completed)
+        self.done_check.toggled.connect(self._set_achievement_completed)
+        layout.addWidget(self.done_check)
 
         self._progress_done = done
         self._progress_total = total
         self.progress_text = QLabel(f"Progression • {done} / {total} objectif(s) • {percent} %")
         self.progress_text.setObjectName("AchievementProgressText")
         layout.addWidget(self.progress_text)
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setObjectName("EncyclopediaProgressBar")
-        self.progress_bar.setTextVisible(False)
-        self.progress_bar.setRange(0, 100)
+        self.progress_bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="EncyclopediaProgressBar",
+        )
         self.progress_bar.setValue(percent)
         layout.addWidget(self.progress_bar)
 
         # Success preparation can traverse multiple Quest details. Never do
         # that during Success preload or when opening a detail: opt in on click.
         if preparation_callback is not None:
-            preparation_button = QPushButton("À préparer")
+            preparation_button = AtlasButton("À préparer")
             preparation_button.setObjectName("AchievementPreparationToggle")
             preparation_details = QLabel()
             preparation_details.setObjectName("AchievementPreparationDetails")
@@ -180,6 +177,7 @@ class AchievementDetailWidget(QFrame):
                     text_override=self.objective_text_overrides.get(objective_id),
                     entity_ref_override=self.objective_entity_overrides.get(objective_id),
                     navigate_callback=self.navigate_callback,
+                    completion_changed_callback=self._refresh_progress_after_edit,
                 )
                 layout.addWidget(widget)
 
@@ -207,12 +205,7 @@ class AchievementDetailWidget(QFrame):
 
     @staticmethod
     def _counts_for_progress(achievement: Achievement, objective: AchievementObjective) -> bool:
-        objective_type = str(objective.objective_type or "").strip().casefold()
-        if objective_type in {"critère pl", "critère ea"}:
-            return False
-        if objective_type == "critère bi" and achievement.category_name.casefold() == "quêtes":
-            return False
-        return True
+        return achievement_objective_counts_for_progress(achievement, objective)
 
     @classmethod
     def _show_objective(cls, achievement: Achievement, objective: AchievementObjective) -> bool:
@@ -229,13 +222,24 @@ class AchievementDetailWidget(QFrame):
             self.achievement.id,
             bool(completed),
         )
-        percent = 100 if completed else int(round((self._progress_done / self._progress_total) * 100)) if self._progress_total else 0
+        self._refresh_progress_after_edit()
+
+    def _refresh_progress_after_edit(self) -> None:
+        # The effective value can remain True when automatic progress also
+        # completed this success. Do not paint the requested checkbox value.
+        state = self.progress_service.state_for(self.character_key)
+        done, total, completed, percent = achievement_progress_snapshot(
+            self.achievement, state, self.objective_completion_overrides,
+        )
+        self._progress_done, self._progress_total = done, total
+        with QSignalBlocker(self.done_check):
+            self.done_check.setChecked(completed)
         self.progress_text.setText(
-            f"Progression • {self._progress_done} / {self._progress_total} objectif(s) • {percent} %"
+            f"Progression • {done} / {total} objectif(s) • {percent} %"
         )
         self.progress_bar.setValue(percent)
         if self.completion_changed_callback is not None:
-            self.completion_changed_callback(bool(completed))
+            self.completion_changed_callback(completed)
 
     def _add_entity_section(self, layout: QVBoxLayout, title: str, refs: Iterable[EntityRef]) -> None:
         rows = tuple(refs)

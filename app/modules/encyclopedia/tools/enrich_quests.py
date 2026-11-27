@@ -21,6 +21,9 @@ from xml.etree import ElementTree
 from PIL import Image
 
 from app.constants import DATA_DIR, ROOT_DIR
+from app.core.map_coordinates import (
+    BRACKETED_POSITION_RE, documentary_coordinate_candidates, normalize_coordinate_pair, quest_launch_instruction,
+)
 from app.quest_catalog import (
     QuestCatalog,
     build_image_index,
@@ -799,7 +802,7 @@ def extract_dpln_page_v2(payload: bytes, url: str, title: str) -> dict[str, Any]
             ExtractedBlock(
                 dpln_block_type(raw_text, tag, flags),
                 content=raw_text,
-                position=first_coord(raw_text),
+                position=current.position,
                 data={
                     "npc": current.npc,
                     "interaction": current.interaction,
@@ -948,10 +951,14 @@ def launch_position_from_text(text: str) -> dict[str, Any]:
     key = normalize_text(text)
     if not launch_position_line(text) and not ("quete_se_lance" in key or "qu_te_se_lance" in key):
         return {}
-    position = first_coord(text)
-    if not position:
-        return {}
-    return {"position": position, "source_text": clean_text(text)}
+    # A source can explicitly list alternative starts, including dimension maps
+    # marked with "!". Keep the wording but never claim the first is unique.
+    coordinates = documentary_coordinate_candidates(text)
+    if len(coordinates) == 1 and None not in coordinates:
+        return {"position": f"[{next(iter(coordinates))}]", "source_text": clean_text(text)}
+    if coordinates:
+        return {"source_text": clean_text(text)}
+    return {}
 
 
 def solution_text_starts(text: str) -> bool:
@@ -1020,8 +1027,9 @@ def looks_like_action(text: str) -> bool:
 
 
 def first_coord(text: str) -> str:
-    match = re.search(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]", text or "")
-    return f"[{int(match.group(1))},{int(match.group(2))}]" if match else ""
+    match = BRACKETED_POSITION_RE.search(text or "")
+    position = normalize_coordinate_pair(*match.groups()) if match else None
+    return f"[{position}]" if position is not None else ""
 
 
 def first_attr(text: str, attr: str) -> str:
@@ -1138,6 +1146,23 @@ def merge_required_items(
 
 def enrichment_row_is_current(row: Any) -> bool:
     return isinstance(row, dict) and safe_int(row.get("extraction_version")) == EXTRACTION_SCHEMA_VERSION
+
+
+def preserve_reviewed_launch(previous_row: Any, new_row: dict[str, Any]) -> None:
+    """Keep reviewed starts across reimports of the same native quest."""
+    if not quest_launch_instruction(previous_row):
+        return
+    if (previous_row.get("quest_id") != new_row.get("quest_id")
+            or source_title_key(previous_row.get("name", "")) != source_title_key(new_row["name"])):
+        return
+    launch = previous_row["launch_position"]
+    new_row["launch_position"] = dict(launch)
+    meta = new_row.get("source_meta")
+    if isinstance(meta, dict) and "startCoords" in meta:
+        if position := launch.get("position"):
+            meta["startCoords"] = position
+        else:
+            del meta["startCoords"]
 
 
 def load_item_lookup(data_dir: Path = None) -> dict[str, dict[str, Any]]:
@@ -1393,6 +1418,7 @@ def enrich(args: argparse.Namespace) -> dict[str, Any]:
         if row_mapping["status"] == "ambiguous":
             stats["ambiguous"] += 1
             enriched_quests[qid] = base_enriched_quest(quest, row_mapping, status="ambiguous")
+            preserve_reviewed_launch(previous_row, enriched_quests[qid])
             continue
 
         key = source_title_key(quest.name)
@@ -1580,6 +1606,7 @@ def enrich(args: argparse.Namespace) -> dict[str, Any]:
                 "unresolved": status in {"missing", "source_insufficient", "ambiguous", "needs_review"},
             },
         }
+        preserve_reviewed_launch(previous_row, enriched_quests[qid])
 
         if processed % 100 == 0:
             write_outputs(enriched_quests, mapping, manifest, stats, source_errors)

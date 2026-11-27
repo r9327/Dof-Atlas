@@ -166,6 +166,8 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         runtime = self._travel_runtime(clients, statuses)
         with (
             patch("app.macros.travel.is_unity_window", return_value=True),
+            patch("app.macros.travel.is_dofus_unity_process", return_value=True),
+            patch("app.macros.travel.foreground_window", return_value=202),
             patch("app.macros.travel.activate_window", return_value=True),
             patch("app.macros.travel.send_chat_command", return_value=True) as send,
         ):
@@ -189,6 +191,8 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         runtime = self._travel_runtime(clients, statuses)
         with (
             patch("app.macros.travel.is_unity_window", return_value=True),
+            patch("app.macros.travel.is_dofus_unity_process", return_value=True),
+            patch("app.macros.travel.foreground_window", return_value=202),
             patch("app.macros.travel.activate_window", return_value=True) as activate,
             patch("app.macros.travel.send_chat_command", return_value=True) as send,
         ):
@@ -201,7 +205,8 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         )
         self.assertEqual(activate.call_count, 1)
         self.assertEqual(activate.call_args.args[0], 202)
-        self.assertIn("1 participant", statuses[-1])
+        self.assertIn("1/1 commande(s) émise(s)", statuses[-1])
+        self.assertIn("réception DOFUS non vérifiée", statuses[-1])
 
     def test_guide_combo_stops_if_zaap_submission_fails(self) -> None:
         statuses: list[str] = []
@@ -209,6 +214,8 @@ class RuntimeRegressionContractTests(unittest.TestCase):
         runtime = self._travel_runtime(clients, statuses)
         with (
             patch("app.macros.travel.is_unity_window", return_value=True),
+            patch("app.macros.travel.is_dofus_unity_process", return_value=True),
+            patch("app.macros.travel.foreground_window", return_value=101),
             patch("app.macros.travel.activate_window", return_value=True),
             patch("app.macros.travel.send_chat_command", return_value=False) as send,
         ):
@@ -217,7 +224,7 @@ class RuntimeRegressionContractTests(unittest.TestCase):
             )
         self.assertEqual(send.call_count, 1)
         self.assertEqual(send.call_args.args[0], "/zaap 1,2")
-        self.assertIn("0 participant", statuses[-1])
+        self.assertIn("0/1 commande(s) émise(s)", statuses[-1])
 
     def test_guide_movement_never_broadcasts_an_empty_participant_selection(self) -> None:
         statuses: list[str] = []
@@ -245,6 +252,8 @@ class RuntimeRegressionContractTests(unittest.TestCase):
 
         with (
             patch("app.macros.travel.is_unity_window", return_value=True),
+            patch("app.macros.travel.is_dofus_unity_process", return_value=True),
+            patch("app.macros.travel.foreground_window", return_value=101),
             patch("app.macros.travel.activate_window", return_value=True),
             patch("app.macros.travel.send_chat_command", side_effect=send_first) as send,
         ):

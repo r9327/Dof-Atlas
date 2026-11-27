@@ -113,6 +113,20 @@ class StartupTraceTests(unittest.TestCase):
                 "process_tree_rss_bytes", json.loads(target.read_text()),
             )
 
+    def test_tree_snapshot_retries_once_without_accepting_partial_data(self) -> None:
+        with patch.object(startup_trace.os, "name", "nt"), patch.object(
+            startup_trace, "_windows_process_tree_rss_snapshot",
+            side_effect=[None, (20_000, 2)],
+        ) as snapshot:
+            self.assertEqual(startup_trace._windows_process_tree_rss(), (20_000, 2))
+            self.assertEqual(snapshot.call_count, 2)
+
+        with patch.object(startup_trace.os, "name", "nt"), patch.object(
+            startup_trace, "_windows_process_tree_rss_snapshot", return_value=None,
+        ) as snapshot:
+            self.assertIsNone(startup_trace._windows_process_tree_rss())
+            self.assertEqual(snapshot.call_count, 2)
+
     @unittest.skipUnless(os.name == "nt", "Win32 Toolhelp snapshot only on Windows")
     def test_windows_native_tree_includes_live_child_process(self) -> None:
         import subprocess

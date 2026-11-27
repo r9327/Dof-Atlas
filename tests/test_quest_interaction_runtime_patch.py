@@ -89,25 +89,22 @@ class QuestInteractionRuntimePatchTests(unittest.TestCase):
             page.deleteLater()
             self.app.processEvents()
 
-    def test_next_quest_navigation_resets_shared_sheet_scrolls(self):
+    def test_next_quest_navigation_resets_shared_sheet_scroll(self):
         with tempfile.TemporaryDirectory() as temporary:
             page = self.build_page(Path(temporary))
             page.select_quest(101)
             self.app.processEvents()
 
-            for scroll in (page.quest_detail_view.center_scroll, page.quest_detail_view.right_scroll):
-                bar = scroll.verticalScrollBar()
-                bar.setRange(0, 100)
-                bar.setValue(73)
+            bar = page.quest_detail_view.center_scroll.verticalScrollBar()
+            bar.setRange(0, 100)
+            bar.setValue(73)
 
             self.assertTrue(page.open_related_quest(102))
             self.app.processEvents()
 
             self.assertEqual(page.selected_quest_id, 102)
             self.assertEqual(page.quest_detail_view.current_quest_id, 102)
-            for scroll in (page.quest_detail_view.center_scroll, page.quest_detail_view.right_scroll):
-                bar = scroll.verticalScrollBar()
-                self.assertEqual(bar.value(), bar.minimum())
+            self.assertEqual(bar.value(), bar.minimum())
 
             page.deleteLater()
             self.app.processEvents()

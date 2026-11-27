@@ -74,6 +74,25 @@ non distribuée via Git ou l'EXE, et doit encore être jugé visuellement
 sur le poste cible. Les tests Python, y compris le rectangle de bord
 sur ciel synthétique, sont au vert (5 tests).
 
+## Installation locale du seul fond étoilé depuis l'archive du dépôt
+
+Le fond peut être installé indépendamment des 46 sprites et 10 polices.
+Depuis un checkout local contenant l'archive source, avec Python et Pillow :
+
+```powershell
+py -3.13 -m tools.assets.clean_unity_wallpaper --archive --corner-toolbar --personal
+```
+
+La commande relit uniquement `selection_perso_original.png`, vérifie le SHA
+canonique et utilise le nettoyeur existant. Elle écrit le fond nettoyé sous
+`%LOCALAPPDATA%\DofusAtlas\themes\dofus_unity\background_selection_clean.png`.
+Relancer Atlas pour charger le fond. Aucun marqueur de thème complet n'est
+créé et aucun sprite ni police n'est exigé. Le fichier reste local, même après
+une mise à jour. Ne pas ajouter cette image ou les captures qui la contiennent
+aux artefacts publics de la CI ou à la release tant que les droits ne sont pas
+confirmés. Une capture Doctor avec `background_source=unity-blue-gradient`
+ne certifie pas le fond étoilé original.
+
 ## Nettoyage local du fond Unity (sans modifier l'original)
 
 Le réparateur `tools/assets/clean_unity_wallpaper.py` (Pillow déjà épinglé

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
-from app.network.application_coordinator import NetworkApplicationCoordinator
+from app.network.application_coordinator import NetworkApplicationCoordinator, NetworkApplicationStatus
 from app.network.calibration_controller import ProtocolCalibrationControllerStatus
 from app.network.controller import NetworkControllerStatus
 from app.ui.network_bridge import refresh_visible_encyclopedia_widgets
@@ -114,12 +115,16 @@ class _Tabs:
 
 
 class _EncyclopediaFake:
-    def __init__(self, character_key: str, child: object) -> None:
+    def __init__(self, character_key: str, child: object, *, visible: bool = True) -> None:
         self.current_character_key = character_key
         self.tabs = _Tabs(child)
+        self.visible = visible
 
     def objectName(self) -> str:
         return "EncyclopediaPage"
+
+    def isVisible(self) -> bool:
+        return self.visible
 
 
 class _OtherWidget:
@@ -127,7 +132,770 @@ class _OtherWidget:
         return "OtherPage"
 
 
+class NetworkEventReaderBoundaryTests(unittest.TestCase):
+    def test_reader_forwards_progress_verified_identity_and_real_disconnection(self) -> None:
+        from unittest.mock import Mock
+        from app.network.progress_bridge import EventApplicationResult
+        from app.network.runtime import NetworkEventRuntime
+
+        source = Mock()
+        bridge = Mock()
+        runtime = NetworkEventRuntime(source, bridge)
+        events = iter(("rejected", "journal", "identity", "closed"))
+
+        def read_event(_timeout):
+            try:
+                return next(events)
+            except StopIteration:
+                runtime._stop_event.set()
+                return None
+
+        outputs = {
+            "rejected": EventApplicationResult(
+                False, True, "quest_completed", "character:1",
+            ),
+            "journal": EventApplicationResult(
+                True, True, "quest_journal_reconciled", "character:1",
+            ),
+            "identity": EventApplicationResult(
+                True, False, "character_identified_with_quest_journal",
+                "character:1",
+            ),
+            "closed": EventApplicationResult(
+                True, True, "session_closed", "character:1",
+            ),
+        }
+        source.read_event.side_effect = read_event
+        bridge.handle.side_effect = outputs.__getitem__
+
+        runtime._run()
+
+        self.assertEqual(
+            runtime.drain_results(),
+            [outputs["journal"], outputs["identity"], outputs["closed"]],
+        )
+        source.stop.assert_called_once_with()
+        bridge.reset_sessions.assert_called_once_with()
+
+    def test_reader_drops_result_when_stopped_inside_event_application(self) -> None:
+        from unittest.mock import Mock
+        from app.network.progress_bridge import EventApplicationResult
+        from app.network.runtime import NetworkEventRuntime
+
+        source = Mock()
+        bridge = Mock()
+        runtime = NetworkEventRuntime(source, bridge)
+        source.read_event.return_value = object()
+
+        def stop_during_handle(_event):
+            runtime._stop_event.set()
+            return EventApplicationResult(True, True, "quest_completed", "character:1")
+
+        bridge.handle.side_effect = stop_during_handle
+        runtime._run()
+
+        self.assertEqual(runtime.drain_results(), [])
+        source.read_event.assert_called_once()
+        source.stop.assert_called_once_with()
+        bridge.reset_sessions.assert_called_once_with()
+
+
+class NetworkDeferredJournalIdentityTests(unittest.TestCase):
+    def test_deferred_journal_identity_reports_only_real_progress_mutations(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        from app.network.events import CharacterIdentifiedEvent, QuestJournalSnapshotEvent
+        from app.network.progress_bridge import (
+            EventApplicationResult, NetworkProgressBridge,
+        )
+
+        for journal_changed in (False, True):
+            with self.subTest(journal_changed=journal_changed):
+                resolver = Mock()
+                resolver.resolve_for_session.return_value = SimpleNamespace(
+                    character_key="character:17", label="Witsis",
+                )
+                bridge = NetworkProgressBridge(
+                    quest_catalog=Mock(),
+                    quest_progress_service=Mock(),
+                    achievement_progress_service=Mock(),
+                    achievement_provider=Mock(),
+                    character_resolver=resolver,
+                )
+                pending = QuestJournalSnapshotEvent(
+                    session_id="session:17", event_id="idr:1",
+                    reliable=True, finished_quest_ids=(),
+                )
+                bridge._pending_quest_journals["session:17"] = pending
+                with patch.object(
+                    bridge, "_apply_quest_journal_snapshot",
+                    return_value=EventApplicationResult(
+                        True, journal_changed, "quest_journal_reconciled",
+                        "character:17",
+                    ),
+                ) as apply:
+                    result = bridge.handle(CharacterIdentifiedEvent(
+                        session_id="session:17", event_id="kvi-kva:1",
+                        reliable=True, character_name="Witsis",
+                        character_id=17,
+                    ))
+                    apply.assert_called_once_with("session:17", pending)
+
+                self.assertTrue(result.accepted)
+                self.assertEqual(result.reason, "character_identified_with_quest_journal")
+                self.assertEqual(result.character_key, "character:17")
+                self.assertEqual(result.changed, journal_changed)
+
+                # The coordinator must still forward the activation for an
+                # unchanged journal, but the Qt side will not repaint progress.
+                coordinator = NetworkApplicationCoordinator(lambda: ())
+                with patch.object(coordinator.runtime, "drain_results", return_value=[result]):
+                    coordinator._drain_runtime_results()
+                self.assertEqual(coordinator.drain_results(), [result])
+
+
 class NetworkApplicationCoordinatorTests(unittest.TestCase):
+    def test_cleanup_failure_blocks_queued_and_new_capture_requests(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        for reason in ("runtime_stop_failed", "runtime_start_cleanup_failed"):
+            with self.subTest(reason=reason):
+                coordinator._last_status = NetworkApplicationStatus(False, False, reason)
+                with (
+                    patch.object(coordinator, "start_worker") as worker,
+                    patch.object(coordinator, "_prepare_capture") as prepare,
+                    patch.object(coordinator, "_start_compact_runtime") as compact,
+                    patch.object(coordinator, "_start_calibration") as calibrate,
+                    patch.object(coordinator, "_start_runtime") as runtime,
+                ):
+                    self.assertFalse(coordinator.request_prepare_capture())
+                    self.assertFalse(coordinator.request_start_compact_runtime())
+                    self.assertFalse(coordinator.request_configure_compact_context())
+                    self.assertFalse(coordinator.request_start_calibration())
+                    self.assertFalse(coordinator.request_start_verified_runtime())
+                    worker.assert_not_called()
+                    self.assertTrue(coordinator._commands.empty())
+                    for command in ("prepare_capture", "start_compact_runtime",
+                                    "configure_compact_context", "start_calibration", "start_runtime"):
+                        coordinator._handle_command(command)
+                    coordinator._last_runtime = NetworkControllerStatus(
+                        False, "build_fingerprint_unavailable",
+                    )
+                    coordinator._retry_when_client_appears()
+                    for callback in (prepare, compact, calibrate, runtime):
+                        callback.assert_not_called()
+                    self.assertEqual(coordinator.latest_status().reason, reason)
+
+    def test_live_build_change_restarts_automatically_after_confirmed_stop(self) -> None:
+        for calibrating in (False, True):
+            with self.subTest(calibrating=calibrating):
+                coordinator = NetworkApplicationCoordinator(lambda: ())
+                coordinator._context_ready = True
+                coordinator._calibration_pending = calibrating
+                coordinator._last_runtime = NetworkControllerStatus(
+                    not calibrating, "running", build_sha256="a" * 64,
+                )
+                coordinator._last_calibration = ProtocolCalibrationControllerStatus(
+                    calibrating, "awaiting_character_identity", build_sha256="a" * 64,
+                )
+                coordinator.runtime = Mock(is_running=not calibrating)
+                coordinator.calibration = Mock(is_running=calibrating)
+                expected_reader = coordinator.calibration if calibrating else coordinator.runtime
+                coordinator.runtime.active_build_sha256.return_value = "a" * 64
+                with patch.object(coordinator, "_start_runtime") as start:
+                    coordinator._retry_when_client_appears()
+                    expected_reader.stop.assert_not_called()
+                    start.assert_not_called()
+                    coordinator._next_runtime_retry_at = 0
+                    coordinator.runtime.active_build_sha256.return_value = "b" * 64
+                    expected_reader.stop.return_value = True
+                    coordinator._retry_when_client_appears()
+                    expected_reader.stop.assert_called_once_with()
+                    start.assert_called_once_with()
+
+    def test_build_change_does_not_restart_after_an_unconfirmed_stop(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._last_runtime = NetworkControllerStatus(True, "running", build_sha256="a" * 64)
+        coordinator.runtime = Mock(is_running=True)
+        coordinator.runtime.active_build_sha256.return_value = "b" * 64
+        coordinator.runtime.stop.return_value = False
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            coordinator._next_runtime_retry_at = 0
+            coordinator._retry_when_client_appears()
+        coordinator.runtime.stop.assert_called_once_with()
+        start.assert_not_called()
+        self.assertEqual(coordinator.latest_status().reason, "runtime_stop_failed")
+
+    def test_waiting_calibration_restarts_when_exact_mapping_is_added(self) -> None:
+        build = "a" * 64
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._calibration_pending = True
+        coordinator._last_runtime = NetworkControllerStatus(False, "mapping_no_exact_match", build)
+        coordinator._last_calibration = ProtocolCalibrationControllerStatus(
+            True, "awaiting_character_identity", build,
+        )
+        coordinator.runtime = Mock(is_running=False)
+        coordinator.runtime.active_build_sha256.return_value = build
+        coordinator.runtime.has_new_exact_mapping.side_effect = (False, True)
+        coordinator.calibration = Mock(is_running=True)
+        coordinator.calibration.stop.return_value = True
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            start.assert_not_called()
+            coordinator._next_runtime_retry_at = 0
+            coordinator._retry_when_client_appears()
+        coordinator.calibration.stop.assert_called_once_with()
+        start.assert_called_once_with()
+        self.assertEqual(coordinator.latest_status().reason, "mapping_ready_restarting")
+
+    def test_worker_start_failure_is_reported_without_queuing_capture(self) -> None:
+        from app.core.network_presentation import capture_retry_allowed, network_summary
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with patch("threading.Thread.start", side_effect=RuntimeError("thread unavailable")):
+            self.assertFalse(coordinator.request_prepare_capture())
+
+        status = coordinator.latest_status()
+        self.assertEqual(status.reason, "coordinator_start_failed")
+        self.assertEqual(coordinator.drain_statuses(), [status])
+        self.assertEqual(network_summary(status), ("Attention requise", "error"))
+        self.assertTrue(capture_retry_allowed(status.reason))
+        self.assertFalse(coordinator.is_worker_running)
+        self.assertTrue(coordinator._commands.empty())
+
+    def test_retry_uses_current_waiting_status_even_after_calibration_loses_windows(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._last_runtime = NetworkControllerStatus(False, "mapping_no_exact_match")
+        coordinator._publish_status(NetworkApplicationStatus(False, False, "no_window_handles"))
+
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            coordinator._retry_when_client_appears()
+            start.assert_called_once_with()
+
+    def test_explicit_retry_publishes_a_boundary_even_when_failure_is_unchanged(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        cancelled = NetworkApplicationStatus(False, False, "capture_elevation_cancelled")
+        coordinator._publish_status(cancelled)
+        coordinator.drain_statuses()
+
+        with patch.object(coordinator, "_start_runtime",
+                          side_effect=lambda: coordinator._publish_status(cancelled)):
+            coordinator._handle_command("start_runtime")
+
+        self.assertEqual([status.reason for status in coordinator.drain_statuses()], [
+            "network_retry_starting", "capture_elevation_cancelled",
+        ])
+
+    def test_windows_are_observed_after_cancelled_elevation_without_retrying_capture(self) -> None:
+        windows = Mock(return_value=(44,))
+        coordinator = NetworkApplicationCoordinator(windows)
+        coordinator._context_ready = True
+        cancelled = NetworkApplicationStatus(False, False, "capture_elevation_cancelled")
+        coordinator._publish_status(cancelled)
+
+        with patch.object(coordinator, "_start_runtime") as start:
+            coordinator._retry_when_client_appears()
+            coordinator._retry_when_client_appears()
+            start.assert_not_called()
+
+        windows.assert_called_once_with()
+        self.assertEqual(coordinator.latest_status(), cancelled)
+
+    def test_context_ready_respects_cancelled_elevation_but_explicit_retry_starts(self) -> None:
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with patch.object(coordinator, "start_worker", return_value=True):
+            coordinator.configure_context(quest_catalog=QuestCatalog([]), achievement_provider=object())
+            automatic_command = coordinator._commands.get_nowait()
+            coordinator._publish_status(NetworkApplicationStatus(False, False, "capture_elevation_cancelled"))
+            coordinator._last_runtime = NetworkControllerStatus(False, "build_fingerprint_unavailable")
+            with patch.object(coordinator, "_start_runtime") as start:
+                coordinator._handle_command(automatic_command)
+                coordinator._retry_when_client_appears()
+                start.assert_not_called()
+                self.assertTrue(coordinator.request_start_compact_runtime())
+                coordinator._handle_command(coordinator._commands.get_nowait())
+                start.assert_called_once_with()
+
+    def test_cold_compact_replacement_keeps_elevation_cancelled(self) -> None:
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator, "start_worker", return_value=True),
+            patch("app.quest_catalog_details.load_network_catalog", return_value=QuestCatalog([])) as load,
+            patch("app.modules.encyclopedia.providers.AchievementProvider"),
+            patch("app.modules.encyclopedia.providers.GuideProvider"),
+            patch.object(coordinator, "configure_context") as configure,
+        ):
+            self.assertTrue(coordinator.request_configure_compact_context())
+            cancelled = NetworkApplicationStatus(False, False, "capture_elevation_cancelled")
+            coordinator._publish_status(cancelled)
+            coordinator._handle_command(coordinator._commands.get_nowait())
+            self.assertEqual(coordinator.latest_status(), cancelled)
+            load.assert_not_called()
+            configure.assert_not_called()
+            self.assertFalse(coordinator.worker_compact_context_ready)
+
+            self.assertTrue(coordinator.request_start_compact_runtime())
+            coordinator._handle_command(coordinator._commands.get_nowait())
+            load.assert_called_once_with()
+            configure.assert_called_once()
+
+    def test_cold_network_activation_only_queues_worker_command(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with patch.object(coordinator, "start_worker", return_value=True):
+            self.assertTrue(coordinator.request_start_compact_runtime())
+        self.assertEqual(coordinator._commands.get_nowait(), "start_compact_runtime")
+        self.assertFalse(coordinator._context_ready)
+
+    def test_cold_network_context_is_loaded_only_on_coordinator_worker(self) -> None:
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        catalog = QuestCatalog([])
+        with (
+            patch("app.quest_catalog_details.load_network_catalog", return_value=catalog) as loader,
+            patch("app.modules.encyclopedia.providers.AchievementProvider", return_value=Mock()) as achievements,
+            patch("app.modules.encyclopedia.providers.GuideProvider", return_value=Mock()) as guides,
+            patch.object(coordinator, "configure_context") as configure,
+        ):
+            coordinator._handle_command("start_compact_runtime")
+            loader.assert_called_once_with()
+            achievements.assert_called_once_with()
+            guides.assert_called_once_with()
+            configure.assert_called_once()
+            self.assertIs(configure.call_args.kwargs["quest_catalog"], catalog)
+
+    def test_compact_replacement_queues_and_reuses_worker_without_capture_restart(self) -> None:
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._context = (QuestCatalog([]), object(), object())
+        catalog = QuestCatalog([])
+        with patch.object(coordinator, "start_worker", return_value=True):
+            self.assertTrue(coordinator.request_configure_compact_context())
+        self.assertEqual(coordinator._commands.get_nowait(), "configure_compact_context")
+        with (
+            patch("app.quest_catalog_details.load_network_catalog", return_value=catalog) as loader,
+            patch("app.modules.encyclopedia.providers.AchievementProvider", return_value=Mock()),
+            patch("app.modules.encyclopedia.providers.GuideProvider", return_value=Mock()),
+            patch.object(coordinator, "configure_context") as configure,
+            patch.object(coordinator, "_start_runtime") as start,
+        ):
+            coordinator._handle_command("configure_compact_context")
+            loader.assert_called_once_with()
+            self.assertIs(configure.call_args.kwargs["quest_catalog"], catalog)
+            start.assert_not_called()
+            self.assertTrue(coordinator.worker_compact_context_ready)
+            coordinator._handle_command("configure_compact_context")
+            loader.assert_called_once_with()
+            configure.assert_called_once()
+
+    def test_compact_replacement_preserves_new_context_arriving_during_disk_read(self) -> None:
+        from app.quest_catalog import QuestCatalog
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        coordinator._context = (QuestCatalog([]), object(), object())
+        newer = (QuestCatalog([]), object(), object())
+
+        def load():
+            coordinator._context = newer
+            return QuestCatalog([])
+
+        with (
+            patch("app.quest_catalog_details.load_network_catalog", side_effect=load),
+            patch("app.modules.encyclopedia.providers.AchievementProvider"),
+            patch("app.modules.encyclopedia.providers.GuideProvider"),
+            patch.object(coordinator, "configure_context") as configure,
+        ):
+            coordinator._handle_command("configure_compact_context")
+        configure.assert_not_called()
+        self.assertIs(coordinator._context, newer)
+        self.assertFalse(coordinator.worker_compact_context_ready)
+
+    def test_compact_bootstrap_honors_shutdown_and_existing_context(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with patch("app.quest_catalog_details.load_network_catalog") as loader:
+            coordinator._handle_command("start_compact_runtime")
+            loader.assert_not_called()
+        coordinator._stop_event.clear()
+        coordinator._context_ready = True
+        with (
+            patch.object(coordinator, "_start_runtime") as start,
+            patch("app.quest_catalog_details.load_network_catalog") as loader,
+        ):
+            coordinator._handle_command("start_compact_runtime")
+            start.assert_called_once_with()
+            loader.assert_not_called()
+
+    def test_stop_during_queue_get_never_executes_pending_capture_command(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+
+        def stop_before_return(*, timeout):
+            coordinator._stop_event.set()
+            return "prepare_capture"
+
+        with (
+            patch.object(coordinator._commands, "get", side_effect=stop_before_return),
+            patch.object(coordinator, "_handle_command") as handle,
+            patch.object(coordinator, "_publish_current"),
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            coordinator._run()
+            handle.assert_not_called()
+
+    def test_explicit_shutdown_prevents_privileged_restart_and_commands(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        with (
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            self.assertTrue(coordinator.stop(join_timeout=0))
+
+        with (
+            patch("app.network.application_coordinator.threading.Thread") as worker,
+            patch.object(coordinator._capture_source, "start") as capture,
+        ):
+            self.assertFalse(coordinator.start_worker())
+            self.assertFalse(coordinator.request_prepare_capture())
+            self.assertFalse(coordinator.request_start_calibration())
+            self.assertFalse(coordinator.request_start_verified_runtime())
+            worker.assert_not_called()
+            capture.assert_not_called()
+
+        self.assertTrue(coordinator._shutdown_requested)
+        self.assertTrue(coordinator._stop_event.is_set())
+        self.assertTrue(coordinator._commands.empty())
+
+    def test_shutdown_during_start_worker_does_not_queue_privileged_command(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            def shutdown_during_start() -> bool:
+                coordinator.stop(join_timeout=0)
+                return True
+
+            with patch.object(
+                coordinator, "start_worker", side_effect=shutdown_during_start,
+            ):
+                self.assertFalse(coordinator.request_prepare_capture())
+
+        self.assertTrue(coordinator._commands.empty())
+        self.assertTrue(coordinator._shutdown_requested)
+
+    def test_late_catalog_configuration_cannot_rearm_closed_coordinator(self) -> None:
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            self.assertTrue(coordinator.stop(join_timeout=0))
+
+        with (
+            patch.object(coordinator.calibration, "configure_context") as calibration,
+            patch.object(coordinator.runtime, "configure_context") as runtime,
+            patch.object(coordinator, "start_worker") as worker,
+        ):
+            coordinator.configure_context(
+                quest_catalog=QuestCatalog([]),
+                achievement_provider=object(),
+            )
+            calibration.assert_not_called()
+            runtime.assert_not_called()
+            worker.assert_not_called()
+        self.assertFalse(coordinator._context_ready)
+        self.assertTrue(coordinator._shutdown_requested)
+
+    def test_worker_restarts_after_interrupted_worker_without_explicit_stop(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()  # Worker died, not user-requested stop.
+        with patch(
+            "app.network.application_coordinator.threading.Thread",
+        ) as thread:
+            self.assertTrue(coordinator.start_worker())
+            thread.return_value.start.assert_called_once_with()
+        self.assertFalse(coordinator._stop_event.is_set())
+        self.assertFalse(coordinator._shutdown_requested)
+
+    def test_restarted_worker_discards_old_privileged_commands(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._commands.put("prepare_capture")
+        coordinator._commands.put("start_runtime")
+        coordinator._results.put(object())
+        coordinator._statuses.put(coordinator.latest_status())
+        self.assertTrue(coordinator.has_pending_ui_events())
+        with patch(
+            "app.network.application_coordinator.threading.Thread"
+        ) as create_thread:
+            self.assertTrue(coordinator.start_worker())
+            create_thread.return_value.start.assert_called_once_with()
+            self.assertTrue(coordinator._commands.empty())
+            self.assertEqual(coordinator.drain_results(), [])
+            self.assertEqual(coordinator.drain_statuses(), [])
+            self.assertFalse(coordinator.has_pending_ui_events())
+            self.assertFalse(coordinator._stop_event.is_set())
+
+    def test_running_worker_preserves_undelivered_ui_events(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._thread = Mock()
+        coordinator._thread.is_alive.return_value = True
+        stale = object()
+        status = coordinator.latest_status()
+        coordinator._results.put(stale)
+        coordinator._statuses.put(status)
+
+        self.assertTrue(coordinator.start_worker())
+        self.assertEqual(coordinator.drain_results(), [stale])
+        self.assertEqual(coordinator.drain_statuses(), [status])
+
+    def test_shutdown_prevents_all_privileged_start_paths(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with (
+            patch.object(coordinator._capture_source, "start") as capture,
+            patch.object(coordinator.calibration, "start") as calibration,
+            patch.object(coordinator.runtime, "start_if_ready") as runtime,
+        ):
+            coordinator._handle_command("prepare_capture")
+            coordinator._handle_command("start_calibration")
+            coordinator._handle_command("start_runtime")
+            # The direct helpers also gate calls that raced after dispatch.
+            coordinator._prepare_capture()
+            coordinator._start_calibration()
+            coordinator._start_runtime()
+            capture.assert_not_called()
+            calibration.assert_not_called()
+            runtime.assert_not_called()
+
+    def test_stop_during_capture_preparation_drops_late_ready_status(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator._capture_source, "start") as start,
+            patch.object(coordinator._capture_source, "stop",
+                         side_effect=coordinator._stop_event.set) as stop,
+            patch.object(coordinator, "_publish_current") as publish,
+        ):
+            coordinator._prepare_capture()
+            start.assert_called_once_with()
+            stop.assert_called_once_with()
+            publish.assert_not_called()
+
+    def test_stop_during_calibration_start_cannot_rearm_pending(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.calibration = _AutoCalibrationFake()
+        coordinator.runtime = _RuntimeFake()
+
+        def stop_as_start_returns():
+            coordinator._stop_event.set()
+            return coordinator.calibration.poll_status
+
+        with (
+            patch.object(coordinator.calibration, "start",
+                         side_effect=stop_as_start_returns) as start,
+            patch.object(coordinator, "_publish_current") as publish,
+            patch.object(coordinator, "_start_runtime") as runtime,
+        ):
+            coordinator._start_calibration()
+            start.assert_called_once_with()
+            publish.assert_not_called()
+            runtime.assert_not_called()
+        self.assertFalse(coordinator._calibration_pending)
+
+    def test_stop_between_calibration_status_read_and_flag_write(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.calibration = _AutoCalibrationFake()
+        coordinator.runtime = _RuntimeFake()
+
+        class _StopOnReason:
+            @property
+            def reason(self):
+                coordinator._stop_event.set()
+                return "awaiting_character_identity"
+
+        with patch.object(coordinator.calibration, "start",
+                          return_value=_StopOnReason()) as started:
+            coordinator._start_calibration()
+            started.assert_called_once_with()
+
+        # The first post-start guard ran before the property above caused
+        # shutdown; the second one under the state lock must still win.
+        self.assertTrue(coordinator._stop_event.is_set())
+        self.assertFalse(coordinator._calibration_pending)
+        self.assertEqual(coordinator.drain_statuses(), [])
+
+    def test_stop_during_runtime_start_drops_late_status_and_calibration(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.runtime = _ReasonRuntimeFake("mapping_no_exact_match")
+        coordinator.calibration = _AutoCalibrationFake()
+
+        def stop_as_start_returns():
+            coordinator._stop_event.set()
+            return NetworkControllerStatus(False, "mapping_no_exact_match")
+
+        with (
+            patch.object(coordinator.runtime, "start_if_ready",
+                         side_effect=stop_as_start_returns) as start,
+            patch.object(coordinator, "_publish_current") as publish,
+            patch.object(coordinator, "_start_calibration") as calibration,
+        ):
+            coordinator._start_runtime()
+            start.assert_called_once_with()
+            publish.assert_not_called()
+            calibration.assert_not_called()
+
+    def test_stop_during_journal_evidence_drops_terminal_calibration(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.calibration = _CalibrationFake(
+            ProtocolCalibrationControllerStatus(
+                running=False,
+                reason="mapping_installed_not_started",
+                build_sha256=BUILD,
+            )
+        )
+        coordinator._calibration_pending = True
+        with (
+            patch.object(coordinator, "_apply_calibration_journal_evidence",
+                         side_effect=coordinator._stop_event.set) as journal,
+            patch.object(coordinator, "_publish_current") as publish,
+            patch.object(coordinator, "_apply_calibration_evidence") as evidence,
+            patch.object(coordinator, "_start_runtime") as runtime,
+        ):
+            coordinator._poll_calibration()
+            journal.assert_called_once_with()
+            publish.assert_not_called()
+            evidence.assert_not_called()
+            runtime.assert_not_called()
+
+    def test_stop_blocks_stale_current_and_explicit_status_publication(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        initial = coordinator.latest_status()
+        coordinator._stop_event.set()
+
+        with patch("app.network.application_coordinator.record_validation") as recorded:
+            coordinator._publish_current("running")
+            coordinator._publish_status(NetworkApplicationStatus(True, False, "running"))
+            recorded.assert_not_called()
+
+        self.assertIs(coordinator.latest_status(), initial)
+        self.assertEqual(coordinator.drain_statuses(), [])
+
+    def test_stop_while_validation_is_recorded_drops_late_status_event(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch("app.network.application_coordinator.record_validation",
+                  side_effect=lambda *_args, **_kwargs: coordinator._stop_event.set()),
+            patch.object(coordinator.logger, "info") as logged,
+        ):
+            coordinator._publish_status(NetworkApplicationStatus(True, False, "running"))
+            logged.assert_not_called()
+        self.assertEqual(coordinator.drain_statuses(), [])
+
+    def test_terminal_stop_replaces_active_status_and_drops_old_notifications(self) -> None:
+        for succeeds in (True, False):
+            with self.subTest(succeeds=succeeds):
+                coordinator = NetworkApplicationCoordinator(lambda: ())
+                active = NetworkApplicationStatus(True, False, "running")
+                coordinator._last_status = active
+                coordinator._statuses.put(active)
+                coordinator._commands.put("prepare_capture")
+                coordinator._results.put(object())
+                coordinator._context = (object(), object(), object())
+                coordinator._context_ready = True
+                coordinator._worker_compact_context_ready = True
+                with (
+                    patch.object(coordinator.calibration, "stop", return_value=True),
+                    patch.object(coordinator.runtime, "stop", return_value=True),
+                    patch.object(coordinator, "_close_capture_source", return_value=succeeds),
+                ):
+                    self.assertIs(coordinator.stop(join_timeout=0), succeeds)
+                status = coordinator.latest_status()
+                self.assertEqual(status.reason, "stopped" if succeeds else "stop_failed")
+                self.assertFalse(status.running)
+                self.assertFalse(status.calibrating)
+                self.assertFalse(coordinator.has_pending_ui_events())
+                self.assertTrue(coordinator._commands.empty())
+                self.assertIsNone(coordinator._context)
+                self.assertFalse(coordinator._context_ready)
+                self.assertFalse(coordinator.request_prepare_capture())
+
+    def test_stop_closes_other_components_when_calibration_stop_raises(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator.calibration, "stop",
+                         side_effect=OSError("calibration stopped badly")),
+            patch.object(coordinator.runtime, "stop", return_value=True) as runtime,
+            patch.object(coordinator, "_close_capture_source",
+                         return_value=True) as capture,
+            patch.object(coordinator.logger, "exception"),
+        ):
+            self.assertFalse(coordinator.stop(join_timeout=0))
+            runtime.assert_called_once_with()
+            capture.assert_called_once_with()
+        self.assertTrue(coordinator._stop_event.is_set())
+
+    def test_worker_crash_cleanup_failure_is_terminal_for_capture_retries(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        for cleanup_ok in (True, False):
+            with self.subTest(cleanup_ok=cleanup_ok):
+                coordinator._last_status = NetworkApplicationStatus(True, False, "running")
+                with (
+                    patch.object(coordinator._commands, "get", side_effect=RuntimeError("worker fault")),
+                    patch.object(coordinator.calibration, "stop", return_value=True),
+                    patch.object(coordinator.runtime, "stop", return_value=True),
+                    patch.object(coordinator, "_close_capture_source", return_value=cleanup_ok),
+                    patch.object(coordinator.logger, "exception"),
+                ):
+                    coordinator._run()
+                status = coordinator.latest_status()
+                self.assertFalse(status.running)
+                self.assertFalse(status.calibrating)
+                self.assertEqual(status.reason, "coordinator_error" if cleanup_ok else "coordinator_cleanup_failed")
+                if not cleanup_ok:
+                    self.assertFalse(coordinator.start_worker())
+                    self.assertFalse(coordinator.request_prepare_capture())
+
+    def test_worker_finally_closes_capture_even_after_runtime_stop_error(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with (
+            patch.object(coordinator, "_publish_current"),
+            patch.object(coordinator.calibration, "stop",
+                         return_value=True) as calibration,
+            patch.object(coordinator.runtime, "stop",
+                         side_effect=OSError("runtime stop failed")) as runtime,
+            patch.object(coordinator, "_close_capture_source",
+                         return_value=True) as capture,
+            patch.object(coordinator.logger, "exception"),
+        ):
+            coordinator._run()
+            calibration.assert_called_once_with()
+            runtime.assert_called_once_with()
+            capture.assert_called_once_with()
+
     def test_calibration_and_runtime_share_one_privileged_capture_helper(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         self.assertIs(
@@ -243,6 +1011,109 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
 
         self.assertEqual(coordinator.drain_results(), [])
 
+    def test_stop_during_calibration_poll_drops_late_identity_results(self) -> None:
+        status = ProtocolCalibrationControllerStatus(
+            running=False, reason="mapping_installed_not_started",
+            build_sha256=BUILD,
+        )
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._calibration_pending = True
+        before = coordinator._last_calibration
+
+        def late_poll():
+            coordinator._stop_event.set()
+            return status
+
+        with (
+            patch.object(coordinator.calibration, "poll", side_effect=late_poll),
+            patch.object(coordinator.calibration, "drain_identity_results") as drain,
+            patch.object(coordinator, "_apply_calibration_journal_evidence") as journal,
+            patch.object(coordinator, "_start_runtime") as start_runtime,
+        ):
+            coordinator._poll_calibration()
+            drain.assert_not_called()
+            journal.assert_not_called()
+            start_runtime.assert_not_called()
+        self.assertIs(coordinator._last_calibration, before)
+        self.assertEqual(coordinator.drain_results(), [])
+
+    def test_runtime_routes_progress_without_reactivating_unchanged_character(self) -> None:
+        from types import SimpleNamespace
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        def event(reason, *, changed=False, accepted=True, key="character:1"):
+            return SimpleNamespace(
+                reason=reason, changed=changed,
+                accepted=accepted, character_key=key,
+            )
+
+        # Identity routing reports changed=True in the business bridge,
+        # but that does not mean any quest progress was persisted.
+        identified = event("character_identified", changed=True)
+        applied_journal = event("quest_journal_applied", changed=True)
+        updated_objective = event("quest_objective_completed", changed=True)
+        reconciled = event("character_identified_with_quest_journal", changed=True)
+        close = event("session_closed", changed=True)
+        rows = (
+            event("character_unchanged"),
+            event("quest_journal_no_change"),
+            event("session_closed", changed=False),
+            event("session_closed", changed=True, accepted=False),
+            close,
+            identified,
+            applied_journal,
+            updated_objective,
+            reconciled,
+            event("character_identified", accepted=False),
+            # A rejected decoder/application outcome must never be forwarded
+            # as progress even when a buggy adapter sets changed=True.
+            event("quest_completed", changed=True, accepted=False),
+        )
+        with patch.object(coordinator.runtime, "drain_results", return_value=rows):
+            coordinator._drain_runtime_results()
+
+        self.assertEqual(
+            coordinator.drain_results(),
+            [close, identified, applied_journal, updated_objective, reconciled],
+        )
+
+    def test_stop_during_runtime_result_drain_drops_late_results(self) -> None:
+        from types import SimpleNamespace
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        first = SimpleNamespace(
+            reason="quest_completed", changed=True,
+            accepted=True, character_key="slot:1",
+        )
+        late = SimpleNamespace(
+            reason="quest_completed", changed=True,
+            accepted=True, character_key="slot:1",
+        )
+
+        def arriving_results(_limit):
+            yield first
+            coordinator._stop_event.set()
+            yield late
+
+        with patch.object(coordinator.runtime, "drain_results",
+                          side_effect=arriving_results):
+            coordinator._drain_runtime_results()
+        self.assertEqual(coordinator.drain_results(), [first])
+        self.assertTrue(coordinator._stop_event.is_set())
+
+    def test_shutdown_blocks_calibration_evidence_bridge_creation(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with patch.object(
+            coordinator, "_bridge_for_calibration",
+            side_effect=AssertionError("stale evidence must not touch progress"),
+        ) as bridge:
+            coordinator._apply_calibration_journal_evidence()
+            coordinator._apply_one_calibration_journal_evidence(object())
+            coordinator._apply_calibration_evidence()
+            bridge.assert_not_called()
+        self.assertEqual(coordinator.drain_results(), [])
+
     def test_terminal_calibration_is_polled_after_reader_already_stopped(self) -> None:
         terminal = ProtocolCalibrationControllerStatus(
             running=False,
@@ -312,6 +1183,41 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             "slot:1",
         )
         self.assertEqual(refreshed, 0)
+
+    def test_hidden_encyclopedia_defers_refresh_until_visible(self) -> None:
+        hidden_child = _VisibleChild()
+        shown_child = _VisibleChild()
+        hidden = _EncyclopediaFake("character:1", hidden_child, visible=False)
+        shown = _EncyclopediaFake("character:1", shown_child, visible=True)
+
+        self.assertEqual(
+            refresh_visible_encyclopedia_widgets(
+                (hidden, shown), "character:1",
+            ),
+            1,
+        )
+        self.assertEqual(hidden_child.refresh_count, 0)
+        self.assertEqual(shown_child.refresh_count, 1)
+        hidden.visible = True
+        self.assertEqual(
+            refresh_visible_encyclopedia_widgets((hidden,), "character:1"),
+            1,
+        )
+        self.assertEqual(hidden_child.refresh_count, 1)
+
+    def test_deleted_encyclopedia_during_visibility_check_is_skipped(self) -> None:
+        class _DeletedEncyclopedia(_EncyclopediaFake):
+            def isVisible(self) -> bool:
+                raise RuntimeError("Internal C++ object already deleted")
+
+        child = _VisibleChild()
+        self.assertEqual(
+            refresh_visible_encyclopedia_widgets(
+                (_DeletedEncyclopedia("character:1", child),), "character:1",
+            ),
+            0,
+        )
+        self.assertEqual(child.refresh_count, 0)
 
 
 if __name__ == "__main__":

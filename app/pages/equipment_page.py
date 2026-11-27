@@ -8,7 +8,11 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from app.constants import HUZOUNET_URL
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPageTitle
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+EQUIPMENT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["equipment"]
 
 
 # Legacy shell tests may inject a lightweight fake through the historical module
@@ -45,14 +49,16 @@ class EquipmentPage(QWidget):
         setattr(self, "web_loaded", False)
         setattr(self, "web_unavailable", False)
         self._web_start_scheduled = False
+        self._web_start_timer = QTimer(self)
+        self._web_start_timer.setSingleShot(True)
+        self._web_start_timer.timeout.connect(self._start_scheduled_web)
         self._legacy_view = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 16, 18, 18)
-        root.setSpacing(12)
+        root.setContentsMargins(*EQUIPMENT_GEOMETRY["page_margins"])
+        root.setSpacing(EQUIPMENT_GEOMETRY["page_spacing"])
 
-        title = QLabel("Équipement")
-        title.setObjectName("PageTitle")
+        title = AtlasPageTitle("Équipement")
         root.addWidget(title)
 
         self.section_label = QLabel()
@@ -122,7 +128,21 @@ class EquipmentPage(QWidget):
         ):
             return
         self._web_start_scheduled = True
-        QTimer.singleShot(WEBENGINE_START_DELAY_MS, self._start_scheduled_web)
+        self._web_start_timer.start(WEBENGINE_START_DELAY_MS)
+
+    def hideEvent(self, event) -> None:
+        self._web_start_timer.stop()
+        self._web_start_scheduled = False
+        super().hideEvent(event)
+
+    def release_runtime(self) -> None:
+        self._web_start_timer.stop()
+        self._web_start_scheduled = False
+        view = self._legacy_view
+        self._legacy_view = None
+        if isinstance(view, QWidget):
+            view.close()
+            view.deleteLater()
 
     def _start_scheduled_web(self) -> None:
         self._web_start_scheduled = False
@@ -137,6 +157,7 @@ class EquipmentPage(QWidget):
     def ensure_web_loaded(self) -> None:
         """Compatibility-only fake loader; production never imports WebEngine."""
 
+        self._web_start_timer.stop()
         self._web_start_scheduled = False
         if bool(getattr(self, "web_loaded", False)) or bool(
             getattr(self, "web_unavailable", False)

@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from app.core.numbers import positive_int as _positive_int
 from app.network.protobuf_fields import ProtobufDecodeError, parse_protobuf_fields
 from app.network.transport import CapturedProtocolMessage
 
@@ -224,15 +225,6 @@ def _walk_payload(
             root=False,
         )
 
-
-def _positive_int(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 __all__ = ["ProtocolFieldCandidate", "ProtocolTargetDiscoveryCollector"]

@@ -4,6 +4,7 @@ import math
 import unittest
 
 from app.pages.organizer.radial_selection import (
+    _exact_native_id,
     radial_roster_key,
     constrained_popup_center,
     confirmed_radial_target,
@@ -15,6 +16,18 @@ from app.pages.organizer.radial_selection import (
 
 
 class OrganizerRadialSelectionTests(unittest.TestCase):
+    def test_radial_and_organizer_agree_on_exact_native_ids(self) -> None:
+        from app.pages.organizer.common import session_hwnd
+
+        for value in (0, "0", 5, " 5 ", "٥", True, 5.0,
+                      -1, "bad", "9" * 5000, 2**64):
+            with self.subTest(value=repr(value)[:35]):
+                self.assertEqual(
+                    _exact_native_id(value, 2**64 - 1),
+                    session_hwnd({"hwnd": value}) or None,
+                )
+        self.assertEqual(_exact_native_id("0", 200, allow_zero=True), 0)
+
     def test_slice_count_matches_explicit_inclusions(self) -> None:
         sessions = [{"nom": f"Perso {i}", "hwnd": i} for i in range(1, 9)]
         for count in (2, 3, 4, 6, 8):

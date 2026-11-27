@@ -17,9 +17,36 @@ def explain_selection(root: Path, plan: dict[str, Any]) -> dict[str, Any]:
     if not tests_dir.is_dir():
         return {"status": "BLOCKED", "reason": "NO_TEST_DIRECTORY", "tests": []}
     files = sorted(tests_dir.glob("test_*.py"))
-    if len(files) > MAX_TESTS or any(not file.is_file() or file.is_symlink() for file in files):
+    if any(not file.is_file() or file.is_symlink() for file in files):
         return {"status": "BLOCKED", "reason": "UNSAFE_OR_OVERSIZE_TEST_INVENTORY", "tests": []}
     selected = set(plan.get("test_modules") or [])
+    if len(files) > MAX_TESTS:
+        # The detail limit bounds advisory selection, not the independent FULL gate.
+        # Only an already escalated, valid plan may omit per-test explanations.
+        validation = plan.get("validation") or {}
+        if (plan.get("status") == plan.get("profile") == "FULL_REQUIRED"
+                and not selected
+                and validation.get("certified") is False
+                and validation.get("full_suite_waived") is False
+                and validation.get("phase_certified") is False
+                and not set(plan.get("reasons") or []) & {
+                    "INVALID_DIFF_PATHS", "INVALID_EXACT_SHA", "MISSING_WORKTREE_PATH",
+                    "INDEPENDENT_POLICY_BLOCKED",
+                }):
+            return {
+                "kind": "doctor_test_selection_audit",
+                "status": "ADVISORY_NO_FULL_WAIVER",
+                "profile": "FULL_REQUIRED",
+                "reason": "FULL_REQUIRED_INVENTORY_DETAIL_LIMIT",
+                "inventory_count": len(files),
+                "selected_count": 0,
+                "deferred_count": len(files),
+                "detail_omitted": True,
+                "tests": [],
+                "all_exclusions_proven_safe": False,
+                "full_suite_waived": False,
+            }
+        return {"status": "BLOCKED", "reason": "UNSAFE_OR_OVERSIZE_TEST_INVENTORY", "tests": []}
     available = {"tests." + f.stem for f in files}
     if selected - available:
         return {"status": "BLOCKED", "reason": "SELECTED_TEST_NOT_IN_INVENTORY", "tests": []}

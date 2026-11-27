@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from typing import Any
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
@@ -8,6 +9,8 @@ from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from app.cartography.scan_status_service import get_status_color, normalize_status
+from app.core.numbers import optional_int
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_PALETTE, unity_painted_ui_color
 
 
 class MapCanvasWidget(QWidget):
@@ -19,7 +22,7 @@ class MapCanvasWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("MapCanvas")
-        self.setMinimumSize(420, 320)
+        self.setMinimumSize(*UNITY_MODULE_GEOMETRY_PX["world_map"]["canvas_min_size"])
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.StrongFocus)
@@ -28,6 +31,9 @@ class MapCanvasWidget(QWidget):
         self.view_key = ""
         self.maps: list[dict[str, Any]] = []
         self.links: list[dict[str, Any]] = []
+        self._map_rects: dict[int, QRectF | None] = {}
+        self._coord_rects: dict[tuple[int, int], QRectF] = {}
+        self._link_points: dict[int, QPointF | None] = {}
         self.pixmap = QPixmap()
         self.asset_path = ""
         self.is_placeholder = True
@@ -57,6 +63,15 @@ class MapCanvasWidget(QWidget):
         self.pixmap = pixmap
         self.maps = maps
         self.links = links
+        self._clear_geometry()
+        for row in maps:
+            rect = self._decode_map_rect(row)
+            self._map_rects[id(row)] = rect
+            coord = self._row_coord(row, "x", "y")
+            if coord is not None and rect is not None:
+                self._coord_rects.setdefault(coord, rect)
+        for link in links:
+            self._link_points[id(link)] = self._decode_link_point(link)
         self.asset_path = asset_path
         self.is_placeholder = is_placeholder
         self._selected_coord = None
@@ -65,6 +80,21 @@ class MapCanvasWidget(QWidget):
         self.update()
         if self.view_key:
             self.viewChanged.emit(self.view_key)
+
+    def _clear_geometry(self) -> None:
+        self._map_rects.clear()
+        self._coord_rects.clear()
+        self._link_points.clear()
+
+    def suspend_rendering(self) -> None:
+        """Drop reconstructible native pixels and hit-test geometry together."""
+        self.pixmap = QPixmap()
+        self._clear_geometry()
+        self._left_press_pos = None
+        self._panning = False
+        self.unsetCursor()
+        self._fit_pending = True
+        self.update()
 
     def set_map_placeholder(self, text: str = "") -> None:
         self.placeholder_text = text or ""
@@ -82,13 +112,10 @@ class MapCanvasWidget(QWidget):
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#070D16"))
+        painter.fillRect(self.rect(), QColor(unity_painted_ui_color("world_scan.placeholder")))
 
-        if self.view is None:
-            painter.end()
-            return
-
-        if self.pixmap.isNull():
+        if self.view is None or self.pixmap.isNull():
+            self._draw_placeholder_text(painter)
             painter.end()
             return
 
@@ -99,30 +126,24 @@ class MapCanvasWidget(QWidget):
             painter.save()
             painter.translate(self.offset)
             painter.scale(self.zoom, self.zoom)
-            painter.setPen(QPen(QColor("#182536"), 1 / max(self.zoom, 0.01)))
+            painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_GRID"]), 1 / max(self.zoom, 0.01)))
             for x in range(0, self.pixmap.width(), 100):
                 painter.drawLine(x, 0, x, self.pixmap.height())
             for y in range(0, self.pixmap.height(), 100):
                 painter.drawLine(0, y, self.pixmap.width(), y)
-            painter.setPen(QPen(QColor("#223044"), 2 / max(self.zoom, 0.01)))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawRect(QRectF(0, 0, self.pixmap.width(), self.pixmap.height()))
-            self._draw_overlays(painter)
-            self._draw_links(painter)
-            painter.restore()
-            self._draw_placeholder_text(painter)
-
         else:
             painter.save()
             painter.translate(self.offset)
             painter.scale(self.zoom, self.zoom)
             painter.drawPixmap(0, 0, self.pixmap)
-            painter.setPen(QPen(QColor("#223044"), 2 / max(self.zoom, 0.01)))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawRect(QRectF(0, 0, self.pixmap.width(), self.pixmap.height()))
-            self._draw_overlays(painter)
-            self._draw_links(painter)
-            painter.restore()
+        painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_OUTLINE"]), 2 / max(self.zoom, 0.01)))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRect(QRectF(0, 0, self.pixmap.width(), self.pixmap.height()))
+        self._draw_overlays(painter)
+        self._draw_links(painter)
+        painter.restore()
+        if self.is_placeholder:
+            self._draw_placeholder_text(painter)
         painter.end()
 
     def _draw_placeholder_text(self, painter: QPainter) -> None:
@@ -136,10 +157,12 @@ class MapCanvasWidget(QWidget):
         height = 28 + line_height * len(lines)
         rect = QRectF((self.width() - width) / 2, max(margin, (self.height() - height) / 2), width, height)
         painter.save()
-        painter.setPen(QPen(QColor("#2E4058"), 1))
-        painter.setBrush(QColor(9, 17, 28, 230))
+        painter.setPen(QPen(QColor(UNITY_PALETTE["BORDER"]), 1))
+        glass = QColor(UNITY_PALETTE["PANEL_2"])
+        glass.setAlpha(230)
+        painter.setBrush(glass)
         painter.drawRoundedRect(rect, 8, 8)
-        painter.setPen(QColor("#E7EEF8"))
+        painter.setPen(QColor(UNITY_PALETTE["TEXT"]))
         painter.drawText(rect.adjusted(16, 12, -16, -12), Qt.AlignLeft | Qt.AlignVCenter, self.placeholder_text)
         painter.restore()
 
@@ -239,7 +262,19 @@ class MapCanvasWidget(QWidget):
             return QPointF(0, 0)
         return QPointF((point.x() - self.offset.x()) / self.zoom, (point.y() - self.offset.y()) / self.zoom)
 
+    @staticmethod
+    def _row_coord(row: dict[str, Any], x_key: str, y_key: str) -> tuple[int, int] | None:
+        x, y = optional_int(row.get(x_key)), optional_int(row.get(y_key))
+        return (x, y) if x is not None and y is not None else None
+
     def rect_for_map(self, map_row: dict[str, Any]) -> QRectF | None:
+        key = id(map_row)
+        if key in self._map_rects:
+            return self._map_rects[key]
+        return self._decode_map_rect(map_row)
+
+    @staticmethod
+    def _decode_map_rect(map_row: dict[str, Any]) -> QRectF | None:
         payload = map_row.get("rect_json") or map_row.get("rect")
         if isinstance(payload, str):
             try:
@@ -249,19 +284,17 @@ class MapCanvasWidget(QWidget):
         if not isinstance(payload, dict):
             return None
         try:
-            return QRectF(
-                float(payload["x"]),
-                float(payload["y"]),
-                float(payload["w"]),
-                float(payload["h"]),
-            )
-        except (KeyError, TypeError, ValueError):
+            values = tuple(float(payload[key]) for key in ("x", "y", "w", "h"))
+        except (KeyError, TypeError, ValueError, OverflowError):
             return None
+        if not all(math.isfinite(value) for value in values) or values[2] <= 0 or values[3] <= 0:
+            return None
+        return QRectF(*values)
 
     def map_at(self, point: QPointF) -> dict[str, Any] | None:
         for map_row in reversed(self.maps):
             rect = self.rect_for_map(map_row)
-            if rect is not None and rect.contains(point):
+            if rect is not None and self._row_coord(map_row, "x", "y") is not None and rect.contains(point):
                 return map_row
         return None
 
@@ -276,21 +309,21 @@ class MapCanvasWidget(QWidget):
         return None
 
     def link_point(self, link: dict[str, Any]) -> QPointF | None:
+        key = id(link)
+        if key in self._link_points:
+            return self._link_points[key]
+        return self._decode_link_point(link)
+
+    def _decode_link_point(self, link: dict[str, Any]) -> QPointF | None:
         if link.get("marker_x") not in (None, "") and link.get("marker_y") not in (None, ""):
             try:
-                return QPointF(float(link["marker_x"]), float(link["marker_y"]))
-            except (TypeError, ValueError):
+                x, y = float(link["marker_x"]), float(link["marker_y"])
+                return QPointF(x, y) if math.isfinite(x) and math.isfinite(y) else None
+            except (TypeError, ValueError, OverflowError):
                 return None
-        from_x = link.get("from_x")
-        from_y = link.get("from_y")
-        if from_x in (None, "") or from_y in (None, ""):
-            return None
-        for map_row in self.maps:
-            if int(map_row.get("x") or 0) == int(from_x) and int(map_row.get("y") or 0) == int(from_y):
-                rect = self.rect_for_map(map_row)
-                if rect is not None:
-                    return rect.center()
-        return None
+        coord = self._row_coord(link, "from_x", "from_y")
+        rect = self._coord_rects.get(coord) if coord is not None else None
+        return rect.center() if rect is not None else None
 
     def _draw_overlays(self, painter: QPainter) -> None:
         for map_row in self.maps:
@@ -298,12 +331,15 @@ class MapCanvasWidget(QWidget):
             if rect is None:
                 continue
             status = normalize_status(str(map_row.get("status") or "unknown"))
-            selected = self._selected_coord == (int(map_row["x"]), int(map_row["y"]))
+            coord = self._row_coord(map_row, "x", "y")
+            if coord is None:
+                continue
+            selected = self._selected_coord == coord
             painter.setBrush(get_status_color(status, 118 if not selected else 170))
             painter.setPen(QPen(get_status_color(status, 230), 2.0 / max(self.zoom, 0.01)))
             painter.drawRoundedRect(rect, 3, 3)
             if selected:
-                painter.setPen(QPen(QColor("#F8C84E"), 3.0 / max(self.zoom, 0.01)))
+                painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_SELECTION"]), 3.0 / max(self.zoom, 0.01)))
                 painter.setBrush(Qt.NoBrush)
                 painter.drawRoundedRect(rect.adjusted(-2, -2, 2, 2), 4, 4)
 
@@ -322,8 +358,8 @@ class MapCanvasWidget(QWidget):
                     QPointF(marker.x() - radius, marker.y()),
                 ]
             )
-            painter.setBrush(QColor("#F8C84E") if selected else QColor("#A98222"))
-            painter.setPen(QPen(QColor("#FFE082"), 2.0 / max(self.zoom, 0.01)))
+            painter.setBrush(QColor(UNITY_PALETTE["MAP_SELECTION"]) if selected else QColor(UNITY_PALETTE["MAP_LINK"]))
+            painter.setPen(QPen(QColor(UNITY_PALETTE["MAP_LINK_BORDER"]), 2.0 / max(self.zoom, 0.01)))
             painter.drawPolygon(polygon)
 
             label = str(link.get("label") or "").strip()
@@ -332,5 +368,5 @@ class MapCanvasWidget(QWidget):
                 font.setPointSizeF(max(8.0, 10.0 / max(self.zoom, 0.4)))
                 font.setBold(True)
                 painter.setFont(font)
-                painter.setPen(QColor("#F2F6FF"))
+                painter.setPen(QColor(UNITY_PALETTE["MAP_LABEL"]))
                 painter.drawText(QPointF(marker.x() + 18, marker.y() - 10), label)

@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 import inspect
+import os
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from app.modules.encyclopedia.services.guide_ultime_generated_service import GuideUltimeGeneratedService
 from app.modules.encyclopedia.views.guide_ultime_universal_view import (
@@ -9,14 +17,240 @@ from app.modules.encyclopedia.views.guide_ultime_universal_view import (
     GuideUltimeUniversalView,
 )
 from app.ui.styles.guide import guide_universal_stylesheet
+from app.core.map_coordinates import BRACKETED_POSITION_RE
+from app.modules.encyclopedia.views.guide_ultime_universal_view import TRAVEL_COORD_RE
 
 
 class GuideUltimeRouteSheetUITests(unittest.TestCase):
+    def test_guide_travel_label_uses_canonical_source_coordinate_regex(self):
+        self.assertIs(TRAVEL_COORD_RE, BRACKETED_POSITION_RE)
+        self.assertEqual(
+            TRAVEL_COORD_RE.search("Aller en [ -12, 003 ]").groups(),
+            ("-12", "003"),
+        )
+
+    def test_start_and_objective_share_one_indexed_action_label(self):
+        QApplication.instance() or QApplication([])
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        try:
+            first = GuideUltimeRouteCard._append_action_label(layout, "Prends la quête", True)
+            second = GuideUltimeRouteCard._append_action_label(layout, "Parle au PNJ", False)
+            self.assertEqual(first.objectName(), second.objectName())
+            self.assertEqual(first.objectName(), "GuideRouteAction")
+            self.assertEqual(first.property("state"), "done")
+            self.assertEqual(second.property("state"), "todo")
+            self.assertEqual(first.text(), "✓ Prends la quête")
+            self.assertEqual(second.text(), "Parle au PNJ")
+            self.assertTrue(first.wordWrap())
+            self.assertEqual(layout.itemAt(0).widget(), first)
+            self.assertEqual(layout.itemAt(1).widget(), second)
+        finally:
+            host.deleteLater()
+
+    def test_spaced_coordinate_is_copyable_without_inventing_a_zaap(self):
+        app = QApplication.instance() or QApplication([])
+
+        class Filter(QObject):
+            travel_callback = None
+
+            @staticmethod
+            def _safe_int(value):
+                return int(value)
+
+        listener = Filter()
+        label = QLabel("Position [ 003, -06 ]")
+        try:
+            # Exercise the real QLabel decorator, without hydrating routes.
+            GuideUltimeUniversalView._make_positions_copyable(listener, label)
+            self.assertTrue(label.property("travelCopyEnabled"))
+            self.assertEqual(label.property("travelCommand"), "/travel 3,-6")
+            self.assertIn("copier", label.toolTip().lower())
+        finally:
+            label.deleteLater()
+            listener.deleteLater()
+            app.processEvents()
+
+    def test_reused_label_loses_stale_travel_action_on_invalid_coordinate(self):
+        app = QApplication.instance() or QApplication([])
+        class Filter(QObject):
+            travel_callback = None
+        listener = Filter()
+        label = QLabel("Position [3,-6]")
+        try:
+            GuideUltimeUniversalView._make_positions_copyable(listener, label)
+            self.assertTrue(label.property("travelCopyEnabled"))
+            for invalid in ("[2147483648,1]", "sans position", "[" + "9" * 5000 + ",1]"):
+                label.setText(invalid)
+                GuideUltimeUniversalView._make_positions_copyable(listener, label)
+                self.assertFalse(bool(label.property("travelCopyEnabled")))
+                self.assertFalse(label.property("travelCommand"))
+        finally:
+            label.deleteLater()
+            listener.deleteLater()
+            app.processEvents()
+
+    def test_missing_coordinate_never_dispatches_travel_to_game(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_travel_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        command = "/travel -2147483648,3"
+        self.assertFalse(GuideUltimeUniversalView._launch_travel_command(view, command))
+        self.assertEqual(calls, [])
+        self.assertEqual(app.clipboard().text(), command)
+        self.assertTrue(
+            GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+        )
+        self.assertEqual(calls, [("/travel 3,-6", ("character:1",))])
+
+    def test_travel_dispatch_error_is_logged_and_copied(self):
+        app = QApplication.instance() or QApplication([])
+
+        def failed_send(command, keys):
+            raise RuntimeError("capture lost")
+
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_travel_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=failed_send,
+        )
+        with patch(
+            "app.modules.encyclopedia.views.guide_ultime_universal_view._LOGGER.exception"
+        ) as logger:
+            self.assertFalse(
+                GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+            )
+            self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+            logger.assert_called_once()
+
+    def test_explicitly_refused_travel_is_copied_not_reported_sent(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_travel_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: (
+                calls.append((command, keys)) or False
+            ),
+        )
+        self.assertFalse(
+            GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+        )
+        self.assertEqual(calls, [("/travel 3,-6", ("character:1",))])
+        self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+
+    def test_identity_lookup_exception_fails_closed_with_clipboard(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+
+        def missing_registry():
+            raise OSError("verified participant registry unreadable")
+
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_travel_characters=missing_registry,
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        with patch(
+            "app.modules.encyclopedia.views.guide_ultime_universal_view._LOGGER.exception"
+        ) as logger:
+            self.assertFalse(
+                GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+            )
+            logger.assert_called_once()
+        self.assertEqual(calls, [])
+        self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+
+    def test_unreasonably_long_coordinate_is_not_dispatched(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_travel_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        for command in (
+            "/travel 2147483648,2",
+            "/travel -2147483649,2",
+            "/travel " + "9" * 5000 + ",2",
+        ):
+            with self.subTest(command_length=len(command)):
+                self.assertFalse(
+                    GuideUltimeUniversalView._launch_travel_command(view, command)
+                )
+                self.assertEqual(calls, [])
+                self.assertEqual(app.clipboard().text(), command)
+
+    def test_travel_uses_live_roster_not_saved_window_snapshot(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        row = SimpleNamespace(key="character:1", connected=True)
+        roster = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_characters=lambda: (row,),
+                available_travel_characters=lambda: tuple(roster),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        self.assertFalse(GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6"))
+        self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+        roster.extend((row, SimpleNamespace(key="character:1", connected=False)))
+        with patch("app.modules.encyclopedia.views.guide_ultime_universal_view._LOGGER.exception"):
+            self.assertFalse(GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6"))
+        self.assertEqual(calls, [])
+        roster.pop()
+        self.assertTrue(GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6"))
+        self.assertEqual(calls, [("/travel 3,-6", ("character:1",))])
+
+    def test_route_sheet_reuses_generated_shared_progress_header(self):
+        build = inspect.getsource(GuideUltimeUniversalView._build_ui)
+        self.assertIn("self._build_route_progress_header(", build)
+        self.assertNotIn("configure_unity_progress_bar(", build)
+
     def test_single_route_sheet_is_rendered(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)
         self.assertIn("GuideUltimeRouteCard", source)
         self.assertIn("self.rendered_card_count = 1", source)
         self.assertNotIn("_visible_indices", source)
+
+    def test_route_sheet_uses_shared_scroll_setup(self):
+        source = inspect.getsource(GuideUltimeUniversalView._build_ui)
+        self.assertIn("configure_unity_scroll_area(QScrollArea(), borderless=True)", source)
+        self.assertIn('self.scroll.setObjectName("GuideRouteScroll")', source)
+        self.assertNotIn("self.scroll.setStyleSheet(", source)
+
+    def test_navigation_reuses_shared_x_x_counter(self):
+        build = inspect.getsource(GuideUltimeUniversalView._build_ui)
+        render = inspect.getsource(GuideUltimeUniversalView._render_window)
+        self.assertIn("self.page_navigator = AtlasPageNavigator()", build)
+        self.assertIn("self.page_navigator.pageRequested.connect(", build)
+        self.assertIn("self.page_navigator.set_page(index + 1,", render)
+        self.assertNotIn('AtlasButton("← Précédent")', build)
+        self.assertNotIn('AtlasButton("Suivant →")', build)
 
     def test_no_step_number_or_card_counter_in_route_sheet(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)
@@ -67,11 +301,10 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
 
     def test_breadcrumb_uses_same_components_as_quests(self):
         source = inspect.getsource(GuideUltimeUniversalView._build_ui)
-        self.assertIn('self.breadcrumb.setObjectName("GuideBreadcrumb")', source)
-        self.assertIn('home = AtlasButton("Guides")', source)
-        self.assertIn('home.setObjectName("GuideBreadcrumbButton")', source)
-        self.assertIn('separator.setObjectName("GuideBreadcrumbSeparator")', source)
-        self.assertIn('current.setObjectName("GuideBreadcrumbCurrent")', source)
+        self.assertIn("self.breadcrumb = AtlasBreadcrumb()", source)
+        self.assertIn('home = AtlasButton("Guides", variant="guide_breadcrumb")', source)
+        self.assertIn("self.breadcrumb.add_separator()", source)
+        self.assertIn('self.breadcrumb.add_current("Guide Ultime")', source)
 
     def test_order_choice_is_not_permanent_and_only_appears_on_first_order_card(self):
         build_source = inspect.getsource(GuideUltimeUniversalView._build_ui)

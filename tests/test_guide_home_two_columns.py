@@ -12,10 +12,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtTest import QSignalSpy
-from PySide6.QtWidgets import QApplication, QBoxLayout, QListView
+from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLabel
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+from app.modules.encyclopedia.views.guides_view import GuideHomeCard
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_GROUP_ROLE,
     GUIDE_ID_ROLE,
@@ -66,6 +67,40 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
             for i in range(model.rowCount())
             if model.index(i, 0).data(GUIDE_GROUP_ROLE)
         ]
+
+    def test_adventure_and_alignment_cards_share_one_title_role(self) -> None:
+        for variant in ("standard", "alignment"):
+            card = GuideHomeCard(
+                _guide("guide_title_test", "aventure", "Titre commun"),
+                variant=variant,
+            )
+            try:
+                with self.subTest(variant=variant):
+                    labels = card.findChildren(QLabel, "GuideHomeCardTitle")
+                    self.assertEqual(len(labels), 1)
+                    self.assertEqual(labels[0].text(), "Titre commun")
+                    self.assertTrue(labels[0].wordWrap())
+                    self.assertTrue(labels[0].testAttribute(Qt.WA_TransparentForMouseEvents))
+                    self.assertEqual(labels[0].styleSheet(), "")
+            finally:
+                card.deleteLater()
+
+    def test_adventure_and_alignment_cards_share_one_progress_label(self) -> None:
+        for variant in ("standard", "alignment"):
+            card = GuideHomeCard(
+                _guide("guide_progress_test", "aventure", "Guide test"),
+                variant=variant, progress=(2, 5, "En cours"),
+            )
+            try:
+                with self.subTest(variant=variant):
+                    labels = card.findChildren(QLabel, "GuideHomeProgress")
+                    self.assertEqual(len(labels), 1)
+                    self.assertEqual(labels[0].property("state"), "partial")
+                    self.assertEqual(labels[0].alignment(), Qt.AlignCenter)
+                    self.assertTrue(labels[0].testAttribute(Qt.WA_TransparentForMouseEvents))
+                    self.assertEqual(labels[0].styleSheet(), "")
+            finally:
+                card.deleteLater()
 
     def test_model_keeps_left_guide_order_and_dofus_in_right_column(self) -> None:
         provider = _CatalogProvider()
@@ -130,6 +165,24 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                 # Replaced metadata needs a fresh icon decision.
                 model.set_home_column([replace(guide, title="Turquoise +")], "right")
                 self.assertIsNotNone(model.data(model.index(0, 0), Qt.DecorationRole))
+                self.assertEqual(decode.call_count, 2)
+
+    def test_same_metadata_rechecks_cached_artwork_only_at_refresh(self) -> None:
+        model = GuideListModel()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "turquoise.png"
+            path.write_bytes(b"old")
+            guide = replace(_guide("dofus_turquoise", "dofus", "Turquoise"), image_path=str(path))
+            model.set_home_column([guide], "right")
+            with patch("app.modules.encyclopedia.widgets.guide_card.ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled",
+                       return_value=QPixmap(16, 16)) as decode:
+                index = model.index(0, 0)
+                model.data(index, Qt.DecorationRole)
+                path.write_bytes(b"new source")
+                model.data(index, Qt.DecorationRole)
+                self.assertEqual(decode.call_count, 1)
+                model.set_home_column([guide], "right")
+                model.data(index, Qt.DecorationRole)
                 self.assertEqual(decode.call_count, 2)
 
     def test_grid_balances_five_dofus_instead_of_leaving_one_orphan(self) -> None:
@@ -217,6 +270,29 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                 self.assertLessEqual(cell_width, viewport_width)
                 self.assertLessEqual(cell_width, 320)
 
+    def test_catalogue_columns_resize_from_indexed_guide_values(self) -> None:
+        from app.modules.encyclopedia.widgets.guide_card import GuideHomeColumns
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+        columns = GuideHomeColumns(QListView(), QListView())
+        try:
+            self.assertEqual(columns.layout().spacing(), geometry["library_columns_spacing"])
+            threshold = geometry["library_columns_horizontal_min_width"]
+            columns.set_available_width(threshold - 1)
+            self.assertEqual(columns.layout().direction(), QBoxLayout.TopToBottom)
+            self.assertEqual(
+                columns._left.maximumHeight(), geometry["library_left_stacked_max_height"]
+            )
+            columns.set_available_width(threshold)
+            self.assertEqual(columns.layout().direction(), QBoxLayout.LeftToRight)
+            self.assertEqual(
+                columns._left.maximumWidth(), geometry["library_left_max_width"]
+            )
+        finally:
+            columns.close()
+            columns.deleteLater()
+
     def test_lazy_home_search_navigation_and_responsive_grid(self) -> None:
         provider = _CatalogProvider()
         with tempfile.TemporaryDirectory() as directory:
@@ -258,8 +334,8 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
-                    # Alignements have real nested entries in the left menu;
-                    # changing the menu does NOT overwrite the right Dofus grid.
+                    # Selecting a category updates the right grid while
+                    # keeping featured optimized routes in the left column.
                     alignments = view._category_nodes["alignements"]
                     self.assertEqual(
                         sum(bool(alignments.child(i).data(0, Qt.UserRole + 1))
@@ -267,21 +343,29 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         2,
                     )
                     view.library_categories.setCurrentItem(alignments)
+                    self.assertEqual(view.library_results_title.text(), "ALIGNEMENTS")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["dofus_turquoise", "dofus_cawotte"],
+                        ["alignement_bonta", "alignement_brakmar"],
                     )
                     view.library_categories.setCurrentItem(alignments.child(0))
                     self.assertEqual(requested[-1], "alignement_bonta")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["dofus_turquoise", "dofus_cawotte"],
+                        ["alignement_bonta", "alignement_brakmar"],
                     )
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
-                    self.assertEqual(self._ids(view.home_dofus_model), [])
-                    self.assertFalse(view.home_dofus_list.isVisible())
+                    self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
                     view.set_search_text("")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["alignement_bonta", "alignement_brakmar"],
+                    )
+                    view.library_categories.setCurrentItem(
+                        view._category_nodes["dofus"]
+                    )
+                    self.assertEqual(view.library_results_title.text(), "DOFUS")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
                         ["dofus_turquoise", "dofus_cawotte"],

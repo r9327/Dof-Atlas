@@ -15,10 +15,10 @@ from PySide6.QtWidgets import QApplication, QLabel, QWidget
 
 import app.modules.encyclopedia.views.guides_view as guides_module
 from app.modules.encyclopedia.models import DofusItem, Guide
-from app.modules.encyclopedia.views.guide_home_image_cache import (
-    clear_guide_home_image_cache,
-    get_cached_scaled_pixmap,
+from app.modules.encyclopedia.services.guide_source_media import (
+    resolved_source_images, source_image_values,
 )
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.modules.encyclopedia.views.guides_view import GuideHomeCard, SolutionImageLabel
 
 
@@ -45,10 +45,10 @@ class _FakeFuture:
 class GuideHomeAsyncImageTests(unittest.TestCase):
     def setUp(self) -> None:
         self.app = QApplication.instance() or QApplication([])
-        clear_guide_home_image_cache()
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
 
     def tearDown(self) -> None:
-        clear_guide_home_image_cache()
+        ENCYCLOPEDIA_IMAGE_SERVICE.clear()
 
     @staticmethod
     def _png(path: Path) -> None:
@@ -68,6 +68,38 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
             type_name="Test",
             image_path=str(path),
         )
+
+    def test_shared_guide_media_reader_preserves_order_and_resolved_uniqueness(self) -> None:
+        authored = {
+            "image_paths": [" first.png ", "second.png", "first.png"],
+            "images": [{"path": " second.png "}, {"local_image_path": "third.png"}],
+            "kind": "image", "path": "first.png",
+        }
+        self.assertEqual(
+            source_image_values(authored),
+            ("first.png", "second.png", "third.png"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first.png"
+            second = root / "second.png"
+            first.write_bytes(b"first")
+            second.write_bytes(b"second")
+            paths = {
+                "first.png": str(first),
+                "alias.png": str(first),
+                "second.png": str(second),
+                "missing.png": str(root / "not-present.png"),
+            }
+            with patch("app.quest_catalog.resolve_local_asset_path",
+                       side_effect=lambda value, *, roots: paths.get(value)):
+                self.assertEqual(
+                    resolved_source_images(
+                        {"images": list(paths)},
+                        roots=(root,),
+                    ),
+                    (str(first), str(second)),
+                )
 
     def test_card_owns_its_async_loader_canonically(self) -> None:
         self.assertTrue(GuideHomeCard._atlas_async_image_loader)
@@ -106,6 +138,36 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
             self.assertIsNone(solution_args[0])
             self.assertIsInstance(solution_args[1], QImage)
             self.assertFalse(solution_args[1].isNull())
+
+    def test_replaced_async_image_is_not_published_under_new_revision(self) -> None:
+        from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "guide.png"
+            self._png(path)
+            original_stamp = mtime_ctime_size_stamp_or_zero(path)
+            old_image = QImage(str(path))
+            guide = Guide(id="revision", title="Revision", category="dofus", image_path=str(path))
+            executor = _FakeExecutor()
+            with patch.object(guides_module, "SOLUTION_IMAGE_EXECUTOR", executor):
+                card = GuideHomeCard(guide, variant="dofus", progress=(0, 1, "todo"))
+                try:
+                    card.show()
+                    self.app.processEvents()
+                    replacement = QImage(60, 40, QImage.Format_ARGB32)
+                    replacement.fill(0xFFFF0000)
+                    self.assertTrue(replacement.save(str(path), "PNG"))
+                    card._finish_async_image(old_image, QSize(30, 30), str(path), original_stamp)
+                    self.assertTrue(ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(path, QSize(30, 30)).isNull())
+                    self.assertEqual(len(executor.jobs), 2)
+                    callback, args = executor.jobs[-1]
+                    callback(*args)
+                    self.app.processEvents()
+                    cached = ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(path, QSize(30, 30))
+                    self.assertFalse(cached.isNull())
+                    self.assertEqual(cached.toImage().pixelColor(0, 0).red(), 255)
+                finally:
+                    card.deleteLater()
+                    self.app.processEvents()
 
     def test_hidden_images_do_not_queue_decode_work(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -158,7 +220,7 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
 
                     self.assertIsNotNone(first_label.pixmap())
                     self.assertFalse(first_label.pixmap().isNull())
-                    cached = get_cached_scaled_pixmap(path, QSize(30, 30))
+                    cached = ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(path, QSize(30, 30))
                     self.assertFalse(cached.isNull())
 
                     second = GuideHomeCard(guide, variant="dofus", progress=(0, 1, "todo"))
@@ -205,8 +267,8 @@ class GuideHomeAsyncImageTests(unittest.TestCase):
                     self.assertIsNotNone(label)
                     self.assertIsNotNone(label.pixmap())
                     self.assertFalse(label.pixmap().isNull())
-                    self.assertTrue(get_cached_scaled_pixmap(corrupt, QSize(30, 30)).isNull())
-                    self.assertFalse(get_cached_scaled_pixmap(valid, QSize(30, 30)).isNull())
+                    self.assertTrue(ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(corrupt, QSize(30, 30)).isNull())
+                    self.assertFalse(ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(valid, QSize(30, 30)).isNull())
                 finally:
                     card.deleteLater()
                     self.app.processEvents()

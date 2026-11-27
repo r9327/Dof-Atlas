@@ -100,15 +100,15 @@ class ProtobufAnyStreamDecoder:
             while type_end < type_limit and int(self._buffer[type_end]) in _TYPE_BYTES:
                 type_end += 1
 
-            if type_end == prefix_at + len(prefix):
-                consumed = prefix_at + 1
-                continue
             if type_end >= len(self._buffer):
                 # Type URL may be split across TCP segments. Retain enough
                 # prefix bytes to preserve the Any field-1 tag + uint64 varint
                 # length (at most 11 bytes total) for the next read.
                 consumed = max(0, prefix_at - (_MAX_VARINT_BYTES + 1))
                 break
+            if type_end == prefix_at + len(prefix):
+                consumed = prefix_at + 1
+                continue
             if type_end - prefix_at >= self.max_type_bytes:
                 consumed = prefix_at + 1
                 continue

@@ -231,6 +231,34 @@ class OrganizerSendInputTests(unittest.TestCase):
         logger.warning.assert_called_once()
         press.assert_not_called()
 
+    def test_zaap_types_command_without_touching_a_rich_clipboard(self) -> None:
+        clipboard = Mock()
+        clipboard.EnumClipboardFormats.side_effect = [13, 0xC001]
+        command = "/zaap 5,-18"
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "press_key") as press,
+            patch.object(input_tools, "press_hotkey") as chord,
+            patch.object(input_tools, "_send_keyboard") as send,
+        ):
+            self.assertTrue(input_tools.send_chat_command(
+                command, Mock(), allow_direct_text=True, submit_twice=True,
+            ))
+        clipboard.EmptyClipboard.assert_not_called()
+        clipboard.SetClipboardText.assert_not_called()
+        chord.assert_called_once_with("CTRL", "A")
+        self.assertEqual(press.call_args_list, [
+            call("SPACE"), call("DELETE"), call("ENTER"), call("ENTER"),
+        ])
+        self.assertEqual(send.call_args_list, [
+            call(0, up=up, unicode_unit=ord(character))
+            for character in command for up in (False, True)
+        ])
+
     def test_chat_accepts_plain_clipboard_with_standard_text_formats(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardSequenceNumber.return_value = 100

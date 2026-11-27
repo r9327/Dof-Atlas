@@ -19,6 +19,23 @@ from app.quest_catalog import (
 
 
 class QuestCatalogSafeCacheTests(unittest.TestCase):
+    def test_map_label_rejects_unresolved_fallback_coordinates(self) -> None:
+        from app.quest_catalog import SENTINEL_COORD, map_label
+
+        self.assertEqual(map_label(7, None, {7: {"posX": 0, "posY": "-4"}}), "[0,-4]")
+        self.assertEqual(map_label(7, {"x": 2, "y": 3}, {
+            7: {"posX": SENTINEL_COORD, "posY": 9},
+        }), "[2,3]")
+        for x, y in (
+            (SENTINEL_COORD, 4),
+            (4, SENTINEL_COORD),
+            (None, 4),
+            ("unknown", 4),
+            (4, None),
+        ):
+            with self.subTest(x=x, y=y):
+                self.assertEqual(map_label(7, None, {7: {"posX": x, "posY": y}}), "")
+
     def test_cache_round_trip_preserves_nested_catalog_without_pickle(self) -> None:
         reward = QuestReward("Kama test", 12, "img.png", item_id=9, kind="item")
         objective = QuestObjective(7, "Parler au PNJ", 1, map_label="[1,2]", zone="Astrub")
@@ -66,6 +83,12 @@ class QuestCatalogSafeCacheTests(unittest.TestCase):
             self.assertEqual(loaded.quests[0].name, "Quête test")
             self.assertEqual(loaded.quests[0].steps[0].objectives[0].zone, "Astrub")
             self.assertEqual(loaded.achievement_series[0].quest_ids, (42,))
+
+    def test_cache_signature_tracks_shared_coordinate_rules(self) -> None:
+        signature = dict((label, path) for label, path, *_stamp
+                         in quest_catalog.quest_catalog_cache_signature())
+        self.assertEqual(Path(signature["coordinate_rules"]),
+                         Path(quest_catalog.__file__).with_name("core") / "map_coordinates.py")
 
     def test_module_does_not_import_or_deserialize_pickle(self) -> None:
         source = inspect.getsource(quest_catalog)

@@ -10,10 +10,13 @@ from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any
 
-MAX_FILES = 150
+# Bounded repository-scale AST scan. A large PR must not silently lose
+# cross-file matches because it exceeds the former small-review budget.
+MAX_FILES = 512
 MAX_SOURCE_BYTES = 512 * 1024
-MAX_FUNCTIONS = 4000
+MAX_FUNCTIONS = 16000
 MAX_FINDINGS = 80
+MAX_DUPLICATE_FINDINGS = 512
 
 
 def _shape(node: Any) -> Any:
@@ -155,14 +158,16 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
     ]
     near.sort(key=lambda x: (-len(x["occurrences"]), x["occurrences"][0]["path"]))
     truncated = (len(selected) > MAX_FILES or function_cap_reached or bool(errors)
-                 or len(duplicates) > MAX_FINDINGS or len(near) > MAX_FINDINGS
+                 or len(duplicates) > MAX_DUPLICATE_FINDINGS
+                 or len(near) > MAX_DUPLICATE_FINDINGS
                  or len(missing_imports) > MAX_FINDINGS
                  or len(silent) > MAX_FINDINGS or len(lineage) > MAX_FINDINGS)
     return {
         "status": "REVIEW" if truncated or missing_imports else "PASS",
         "paths_inspected": inspected, "requested_count": len(requested),
-        "parse_errors": errors[:MAX_FINDINGS], "duplicate_bodies": duplicates[:MAX_FINDINGS],
-        "near_duplicate_candidates": near[:MAX_FINDINGS],
+        "parse_errors": errors[:MAX_FINDINGS],
+        "duplicate_bodies": duplicates[:MAX_DUPLICATE_FINDINGS],
+        "near_duplicate_candidates": near[:MAX_DUPLICATE_FINDINGS],
         "missing_internal_import_candidates": missing_imports[:MAX_FINDINGS],
         "silent_exceptions": silent[:MAX_FINDINGS],
         "data_lineage_candidates": lineage[:MAX_FINDINGS],
@@ -173,7 +178,8 @@ def scan_sources(root: Path, paths: list[str]) -> dict[str, Any]:
                    "literal_json_references": len(lineage)},
         "truncated": truncated,
         "budgets": {"max_files": MAX_FILES, "max_source_bytes": MAX_SOURCE_BYTES,
-                    "max_function_bodies": MAX_FUNCTIONS, "function_limit_reached": function_cap_reached},
+                    "max_function_bodies": MAX_FUNCTIONS, "function_limit_reached": function_cap_reached,
+                    "max_duplicate_findings": MAX_DUPLICATE_FINDINGS},
         "limits": "Bounded AST only; missing local imports and near duplicates are source-review leads, never automatic deletions.",
     }
 

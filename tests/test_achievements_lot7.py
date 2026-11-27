@@ -480,7 +480,7 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_achievement_click_toggles_integrated_right_detail_column(self):
+    def test_achievement_click_keeps_integrated_right_detail_column_open(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             view = AchievementsView(
@@ -509,16 +509,13 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
             view.on_achievement_clicked(item)
             self.wait_for_detail_state(view, True)
             self.assertTrue(view._detail_open)
-            self.assertTrue(view.findChildren(AchievementDetailWidget))
+            detail_widgets = view.findChildren(AchievementDetailWidget)
+            self.assertTrue(detail_widgets)
 
             view.on_achievement_clicked(item)
-            self.wait_for_detail_state(view, False)
-            self.assertFalse(view._detail_open)
-            self.assertFalse(view.findChildren(AchievementDetailWidget))
-
-            view.on_achievement_clicked(item)
-            self.wait_for_detail_state(view, True)
             self.assertTrue(view._detail_open)
+            self.assertIsNone(view._detail_requested)
+            self.assertEqual(view.findChildren(AchievementDetailWidget), detail_widgets)
             self.assertEqual(view.splitter.count(), 3)
             view.deleteLater()
             self.app.processEvents()

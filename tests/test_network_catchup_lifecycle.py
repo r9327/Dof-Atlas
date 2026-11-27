@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import threading
 import unittest
 from unittest.mock import Mock, patch
 
@@ -107,11 +106,7 @@ class NetworkCatchupLifecycleTests(unittest.TestCase):
         self.assertEqual(candidate.stop_calls, 0)
 
     def test_coordinator_keeps_live_only_runtime_without_reentering_calibration(self) -> None:
-        coordinator = NetworkApplicationCoordinator.__new__(NetworkApplicationCoordinator)
-        coordinator._operation_lock = threading.RLock()
-        coordinator._lock = threading.RLock()
-        coordinator._calibration_pending = False
-        coordinator._next_runtime_retry_at = 0.0
+        coordinator = NetworkApplicationCoordinator(lambda: ())
         coordinator.runtime = _FakeRuntimeController(
             NetworkControllerStatus(
                 running=True,

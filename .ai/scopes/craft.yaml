@@ -3,6 +3,7 @@ scope: craft
 kind: feature
 working_set:
   - app/pages/craft_page.py
+  - tests/test_craft_fixes.py
 shared_dependencies:
   - dofus_data
   - shared_ui

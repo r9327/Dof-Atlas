@@ -49,6 +49,8 @@ from app.pages.organizer.common import (
     SESSION_SLOT_COUNT,
     WINDOW_EVENT_DEBOUNCE_MS,
     client_slot_hotkey_key,
+    class_key_from_client_index,
+    class_icon_candidates as _shared_class_icon_candidates,
     dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
@@ -65,51 +67,17 @@ from app.pages.organizer.radial_selection import radial_roster_key, visible_char
 
 
 def dofus_class_key_for_character_name(value: Any) -> str | None:
-    """Resolve a character class through the compatibility index path."""
-
-    character_key = normalize_key(value)
-    if not character_key:
+    """Compatibility entry point; keep its overridable index path."""
+    if not normalize_key(value):
         return None
-    payload = read_json(CLIENT_INDEX_JSON, {"clients": []})
-    clients = payload.get("clients", []) if isinstance(payload, dict) else []
-    if not isinstance(clients, list):
-        return None
-
-    matches: set[str] = set()
-    for client in clients:
-        if not isinstance(client, dict):
-            continue
-        if normalize_key(client.get("character_name")) != character_key:
-            continue
-        explicit_class = normalize_key(client.get("class_key"))
-        if explicit_class in DOFUS_CLASS_DEFINITIONS:
-            matches.add(explicit_class)
-            continue
-        inferred_class = dofus_class_key_from_window_name(client.get("name"))
-        if inferred_class:
-            matches.add(inferred_class)
-    return next(iter(matches)) if len(matches) == 1 else None
+    return class_key_from_client_index(value, read_json(CLIENT_INDEX_JSON, {"clients": []}))
 
 
 def class_icon_candidates(class_key: str) -> list[Path]:
-    """Build class icon candidates from the public compatibility directories."""
-
-    definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
-    if not definition:
-        return []
-    class_id = definition["id"]
-    stems: list[str] = []
-    for value in (class_key, definition["label"], *definition["aliases"]):
-        key = normalize_key(value)
-        if key and key not in stems:
-            stems.append(key)
-    stems.extend([f"symbol_{class_id}", f"logo_transparent_{class_id}", f"class_{class_key}"])
-    return [
-        directory / f"{stem}{extension}"
-        for directory in CLASS_ICON_DIRS
-        for stem in stems
-        for extension in CLASS_ICON_EXTENSIONS
-    ]
+    """Compatibility entry point; keep its overridable asset directories."""
+    return _shared_class_icon_candidates(
+        class_key, directories=CLASS_ICON_DIRS, extensions=CLASS_ICON_EXTENSIONS,
+    )
 
 
 def class_icon_path_for_window_name(value: Any) -> Path | None:
@@ -452,10 +420,14 @@ class OrganizerPage(
             # Centre: open the existing Atlas window, never another instance.
             window = self.window()
             if window is not None:
-                window.showNormal()
-                window.raise_()
-                window.activateWindow()
-                self.status_callback("DOFUS ATLAS au premier plan.")
+                restore = getattr(type(window), "restore_from_tray", None)
+                if callable(restore):
+                    restore(window)
+                else:
+                    window.showNormal()
+                    window.raise_()
+                    window.activateWindow()
+                self.status_callback("Fenêtre Dofus Atlas restaurée.")
             return
         if not any(session_hwnd(row) == handle and session_is_detected(row)
                    for row in getattr(self, "sessions", [])):

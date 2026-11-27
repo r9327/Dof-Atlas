@@ -522,10 +522,11 @@ class PySideShellTests(unittest.TestCase):
             page.select_quest(203)
             required_items = quest_required_items(quest)
             self.assertEqual([item["name"] for item in required_items], ["Idole locale"])
-            self.assertIsNone(page.right_panel.findChild(QSpinBox))
+            sheet = page.quest_detail_view
+            self.assertIsNone(sheet.findChild(QSpinBox))
 
-            image = page.right_panel.findChild(QToolButton, "GuideItemIcon")
-            name_button = page.right_panel.findChild(QPushButton, "GuideItemNameButton")
+            image = sheet.findChild(QToolButton, "GuideItemIcon")
+            name_button = sheet.findChild(QPushButton, "GuideItemNameButton")
             self.assertIsNotNone(image)
             self.assertIsNotNone(name_button)
             name_button.click()
@@ -539,8 +540,8 @@ class PySideShellTests(unittest.TestCase):
             self.assertTrue(saved_progress["characters"]["character:1"]["quest_items"]["203"]["28446"])
             self.assertEqual(image.property("state"), "done")
 
-            labels = [label.text() for label in page.right_panel.findChildren(QLabel)]
-            button_texts = [button.text() for button in page.right_panel.findChildren(QPushButton)]
+            labels = [label.text() for label in sheet.findChildren(QLabel)]
+            button_texts = [button.text() for button in sheet.findChildren(QPushButton)]
             self.assertIn("Idole locale", button_texts)
             self.assertIn("x3", labels)
             self.assertNotIn("En inventaire", labels)
@@ -639,11 +640,12 @@ class PySideShellTests(unittest.TestCase):
                         "Equipement",
                         "Almanax",
                         "Settings",
+                        "Dev UI",
                     },
                 )
                 self.assertEqual(
                     set(window.page_factories),
-                    {"Organizer", "Scan Monde", "Craft", "Quetes", "Equipement"},
+                    {"Organizer", "Scan Monde", "Craft", "Quetes", "Equipement", "Dev UI", "Almanax"},
                 )
                 self.assertNotEqual(
                     type(window.page_widgets["Organizer"]).__name__,
@@ -833,6 +835,26 @@ class PySideShellTests(unittest.TestCase):
 
             self.assertEqual(calls, ["loaded"])
             self.assertIs(window.page_widgets["Quetes"], loaded_page)
+        finally:
+            window.quit_requested = True
+            window.close()
+            app.processEvents()
+
+    def test_placeholder_navigation_cancels_previous_pending_factory(self):
+        app = QApplication.instance() or QApplication([])
+        window = AtlasWindow()
+        window.preload_started = True
+        calls = []
+        try:
+            window.page_factories["Craft"] = lambda: (calls.append("loaded") or QLabel("Craft"))
+            window.show_page("Craft")
+            self.assertEqual(window.pending_page_name, "Craft")
+            window.show_placeholder("Ocre", "En travaux", "Outils")
+            self.assertEqual(window.pending_page_name, "")
+            app.processEvents()
+            self.assertEqual(calls, [])
+            self.assertEqual(window.active_page_name(), "Placeholder::Ocre")
+            self.assertIn("Craft", window.page_factories)
         finally:
             window.quit_requested = True
             window.close()
@@ -1743,7 +1765,7 @@ class PySideShellTests(unittest.TestCase):
                 window.deleteLater()
                 app.processEvents()
 
-    def test_shell_follows_only_connected_character_without_organizer_favorite(self):
+    def test_shell_preserves_manual_character_on_network_login_without_favorite(self):
         app = QApplication.instance() or QApplication([])
         import main as main_module
 
@@ -1777,16 +1799,27 @@ class PySideShellTests(unittest.TestCase):
                 )
                 window.on_network_character_activated("character:9")
 
+                # Login is not foreground focus, even if Alice is now offline.
+                self.assertEqual(window.current_character_key, "character:1")
+                bob_index = next(
+                    index for index in range(window.character_combo.count())
+                    if window.character_combo.itemData(index).key == "character:9"
+                )
+                window.character_combo.setCurrentIndex(bob_index)
                 self.assertEqual(window.current_character_key, "character:9")
                 self.assertEqual(window.character_combo.currentText(), "Bob")
                 self.assertEqual(window.home_page.character_name.text(), "Bob")
-                self.assertEqual(window.character_combo.itemText(0), "Bob")
+                self.assertEqual(
+                    [window.character_combo.itemText(index)
+                     for index in range(window.character_combo.count())],
+                    ["Alice", "Bob"],
+                )
                 stored = json.loads(profile_path.read_text(encoding="utf-8"))
                 self.assertEqual(stored["__personnage_selectionne_ui__"], "character:9")
                 window.deleteLater()
                 app.processEvents()
 
-    def test_shell_follows_organizer_favorite_character_after_network_identity(self):
+    def test_shell_favorite_does_not_infer_foreground_on_network_login(self):
         app = QApplication.instance() or QApplication([])
         import main as main_module
 
@@ -1826,6 +1859,13 @@ class PySideShellTests(unittest.TestCase):
 
                 window.on_network_character_activated("character:9")
 
+                # Organizer primary flag is not a verified foreground event.
+                self.assertEqual(window.current_character_key, "character:1")
+                bob_index = next(
+                    index for index in range(window.character_combo.count())
+                    if window.character_combo.itemData(index).key == "character:9"
+                )
+                window.character_combo.setCurrentIndex(bob_index)
                 self.assertEqual(window.current_character_key, "character:9")
                 self.assertEqual(window.character_combo.currentText(), "Bob")
                 self.assertEqual(window.home_page.character_name.text(), "Bob")

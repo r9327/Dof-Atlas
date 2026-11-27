@@ -93,6 +93,10 @@ class DecodedNetworkEventSource:
                     event_id="transport:session_closed",
                     reliable=True,
                 )
+            # The transport source has already observed outbound traffic for
+            # diagnostics. It must not reach decoders with volatile state.
+            if item.direction != "server_to_client":
+                continue
             try:
                 decoded = self.decoder.decode(item)
             except Exception:
@@ -103,12 +107,6 @@ class DecodedNetworkEventSource:
                 )
                 continue
             if decoded is None:
-                continue
-            # Client -> server capture exists only for bounded diagnostics and
-            # request/response correlation.  Even if a future decoder forgets
-            # its own direction check, an outbound packet must never enter the
-            # normalizer (and therefore can never reach progression bridges).
-            if item.direction != "server_to_client":
                 continue
             event = self.normalizer.normalize(decoded)
             if event is not None:

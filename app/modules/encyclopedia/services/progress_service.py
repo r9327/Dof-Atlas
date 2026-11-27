@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from app.constants import DATA_DIR
+from app.core.numbers import optional_int, valid_list_int_ids
+from app.core.progress_coordinator import mutable_progress_mapping
 from local_dofus_data.utils import now_iso, save_json_atomic
 from app.modules.encyclopedia.models.progress_state import ProgressState
+from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,36 +42,7 @@ class AchievementProgressService:
         if cached is not None:
             return cached
 
-        character = self._character(key)
-        completed = {
-            int(value)
-            for value in character.get("completed_achievements", [])
-            if self._safe_int(value) is not None
-        }
-        completed.update(
-            int(value)
-            for value in character.get("auto_completed_achievements", [])
-            if self._safe_int(value) is not None
-        )
-        objectives: dict[int, set[int]] = {}
-        for field in ("completed_objectives", "auto_completed_objectives"):
-            objective_rows = character.get(field, {})
-            if not isinstance(objective_rows, dict):
-                continue
-            for achievement_id, values in objective_rows.items():
-                aid = self._safe_int(achievement_id)
-                if aid is None:
-                    continue
-                rows = values if isinstance(values, list) else []
-                objectives.setdefault(aid, set()).update(
-                    int(value)
-                    for value in rows
-                    if self._safe_int(value) is not None
-                )
-        result = (
-            frozenset(completed),
-            {aid: frozenset(values) for aid, values in objectives.items()},
-        )
+        result = derive_completion_state(self._character(key))
         self._completion_cache[key] = result
         return result
 
@@ -87,11 +61,7 @@ class AchievementProgressService:
         if not str(character_key or "").strip():
             return
         character = self._character(character_key)
-        values = {
-            int(value)
-            for value in character.get("completed_achievements", [])
-            if self._safe_int(value) is not None
-        }
+        values = set(valid_list_int_ids(character.get("completed_achievements", [])))
         if completed:
             values.add(int(achievement_id))
         else:
@@ -113,16 +83,9 @@ class AchievementProgressService:
         if not str(character_key or "").strip():
             return
         character = self._character(character_key)
-        objectives = character.setdefault("completed_objectives", {})
-        if not isinstance(objectives, dict):
-            objectives = {}
-            character["completed_objectives"] = objectives
+        objectives = mutable_progress_mapping(character, "completed_objectives")
         key = str(int(achievement_id))
-        values = {
-            int(value)
-            for value in objectives.get(key, [])
-            if self._safe_int(value) is not None
-        }
+        values = set(valid_list_int_ids(objectives.get(key, [])))
         if completed:
             values.add(int(objective_id))
         else:
@@ -179,19 +142,10 @@ class AchievementProgressService:
             return ()
         normalized: list[tuple[int, tuple[int, ...]]] = []
         for raw_achievement_id, values in rows.items():
-            try:
-                achievement_id = int(raw_achievement_id)
-            except (TypeError, ValueError):
+            achievement_id = optional_int(raw_achievement_id)
+            if achievement_id is None or not isinstance(values, list):
                 continue
-            if not isinstance(values, list):
-                continue
-            objective_ids: set[int] = set()
-            for raw_objective_id in values:
-                try:
-                    objective_ids.add(int(raw_objective_id))
-                except (TypeError, ValueError):
-                    continue
-            normalized.append((achievement_id, tuple(sorted(objective_ids))))
+            normalized.append((achievement_id, tuple(sorted(valid_list_int_ids(values)))))
         return tuple(sorted(normalized))
 
     @staticmethod
@@ -222,11 +176,9 @@ class AchievementProgressService:
             return False
         completed_quests = frozenset(quest_progress_service.completed_quest_ids(key))
         character = self._character(key)
-        manual_achievements = {
-            int(value)
-            for value in character.get("completed_achievements", [])
-            if self._safe_int(value) is not None
-        }
+        manual_achievements = set(
+            valid_list_int_ids(character.get("completed_achievements", []))
+        )
         sync_signature: tuple[object, ...] = (
             id(achievement_provider),
             id(guide_provider),
@@ -323,11 +275,7 @@ class AchievementProgressService:
                 aid = self._safe_int(raw_aid)
                 if aid is None or not isinstance(values, list):
                     continue
-                manual_objectives[aid] = {
-                    int(value)
-                    for value in values
-                    if self._safe_int(value) is not None
-                }
+                manual_objectives[aid] = set(valid_list_int_ids(values))
 
         auto_objectives: dict[int, set[int]] = {}
         memo: dict[int, bool] = {}
@@ -354,20 +302,14 @@ class AchievementProgressService:
 
         def ref_parts(ref: Any) -> tuple[str, int | None]:
             if isinstance(ref, (tuple, list)) and len(ref) == 2:
-                try:
-                    return str(ref[0] or ""), int(ref[1])
-                except (TypeError, ValueError):
-                    return str(ref[0] or ""), None
-            try:
-                return str(getattr(ref, "entity_type", "") or ""), int(getattr(ref, "entity_id"))
-            except (TypeError, ValueError):
-                return str(getattr(ref, "entity_type", "") or ""), None
+                return str(ref[0] or ""), optional_int(ref[1])
+            return str(getattr(ref, "entity_type", "") or ""), optional_int(getattr(ref, "entity_id", None))
 
         def ref_group_done(refs: Iterable[Any], entity_type: str, criterion: str) -> bool | None:
             matching = [
-                ref_parts(ref)[1]
-                for ref in refs
-                if ref_parts(ref)[0] == entity_type and ref_parts(ref)[1] is not None
+                entity_id
+                for kind, entity_id in map(ref_parts, refs)
+                if kind == entity_type and entity_id is not None
             ]
             if not matching:
                 return None
@@ -493,9 +435,7 @@ class AchievementProgressService:
             if values
         }
         previous_achievements = sorted(
-            int(value)
-            for value in character.get("auto_completed_achievements", [])
-            if self._safe_int(value) is not None
+            valid_list_int_ids(character.get("auto_completed_achievements", []))
         )
         previous_objectives = character.get("auto_completed_objectives", {})
         next_achievements = sorted(auto_achievements)
@@ -606,7 +546,4 @@ class AchievementProgressService:
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        return optional_int(value)

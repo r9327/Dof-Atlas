@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.network.contracts import (
+    _is_sha256, active_build_matches,
+    forward_decoder_reset, forward_decoder_session_closed,
+    protocol_event_id, required_mapping_identity,
+)
 
-import hashlib
 import threading
 from dataclasses import dataclass
 from typing import Callable
@@ -73,14 +76,9 @@ class CorrelatedCharacterIdentityDecoder:
         mapping_fingerprint: str,
         active_fingerprint_provider: Callable[[], str | None],
     ) -> None:
-        version = str(mapping_version or "").strip()
-        fingerprint = str(mapping_fingerprint or "").strip().casefold()
-        if not version:
-            raise ValueError("mapping_version cannot be empty")
-        if not _is_sha256(fingerprint):
-            raise ValueError("mapping_fingerprint must be a SHA-256 digest")
-        if active_fingerprint_provider is None:
-            raise ValueError("active_fingerprint_provider is required")
+        version, fingerprint = required_mapping_identity(
+            mapping_version, mapping_fingerprint, active_fingerprint_provider,
+        )
         self.delegate = delegate
         self.rule = rule
         self.mapping_version = version
@@ -124,19 +122,14 @@ class CorrelatedCharacterIdentityDecoder:
         if not character_name:
             return None
 
-        digest = hashlib.sha256()
-        digest.update(self.mapping_version.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(self.mapping_fingerprint.encode("ascii"))
-        digest.update(b"\0character_identified\0")
-        digest.update(type_url.encode("utf-8", errors="strict"))
-        digest.update(b"\0")
-        digest.update(message.payload)
         return DecodedClientMessage(
             session_id=message.session_id,
             event_type="character_identified",
             fields={"character_name": character_name, "character_id": character_id},
-            event_id=f"proto:{digest.hexdigest()[:32]}",
+            event_id=protocol_event_id(
+                self.mapping_version, self.mapping_fingerprint, type_url, message.payload,
+                namespace="character_identified",
+            ),
             verified=True,
         )
 
@@ -146,16 +139,12 @@ class CorrelatedCharacterIdentityDecoder:
             return
         with self._lock:
             self._rosters.pop(session, None)
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session)
+        forward_decoder_session_closed(self.delegate, session)
 
     def reset(self) -> None:
         with self._lock:
             self._rosters.clear()
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.delegate)
 
     def _observe_roster(self, message: CapturedProtocolMessage) -> None:
         session = str(message.session_id or "")
@@ -229,11 +218,9 @@ class CorrelatedCharacterIdentityDecoder:
         return str(value or "").strip()
 
     def _build_matches(self) -> bool:
-        try:
-            active = str(self.active_fingerprint_provider() or "").strip().casefold()
-        except Exception:
-            return False
-        return active == self.mapping_fingerprint
+        return active_build_matches(
+            self.active_fingerprint_provider, self.mapping_fingerprint,
+        )
 
 
 

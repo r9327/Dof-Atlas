@@ -9,7 +9,8 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QFrame
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.services.guide_ultime_generated_service import GuideUltimeGeneratedService
@@ -145,7 +146,7 @@ class GuideUltimeV5UITests(unittest.TestCase):
     def test_02_guides_wrapper_routes_legacy_id_to_manual_guide(self):
         source = (Path(__file__).parents[1] / "app/modules/encyclopedia/views/guides_view.py").read_text(encoding="utf-8")
         self.assertIn("GuideUltimeManualRuntimeService", source)
-        self.assertIn("GuideUltimeManualView", source)
+        self.assertIn("SharedGuideManualView", source)
         self.assertIn('GUIDE_ULTIME_LEGACY_ID = "guide_complet"', source)
         self.assertNotIn("guides_view_legacy", source)
 
@@ -239,6 +240,83 @@ class GuideUltimeV5UITests(unittest.TestCase):
         self.a.set_achievement_completed("character:1", 501, True)
         self.make_services()
         self.assertGreaterEqual(self.v5.first_incomplete_index("character:1"), 1)
+
+    def test_generated_card_cleanup_retains_parent_until_deferred_deletion(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout
+        from types import SimpleNamespace
+
+        host = QWidget()
+        cards = QVBoxLayout(host)
+        card = QWidget()
+        cards.addWidget(card)
+        try:
+            GuideUltimeGeneratedView._clear_cards(SimpleNamespace(cards_layout=cards))
+            self.assertEqual(cards.count(), 0)
+            self.assertIs(card.parent(), host)
+        finally:
+            host.deleteLater()
+
+    def test_generated_window_reuses_card_completion_evaluation(self):
+        from unittest.mock import patch
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            with patch.object(self.v5, "card_state", wraps=self.v5.card_state) as state:
+                view._render_window()
+                evaluated = [call.args[2] for call in state.call_args_list]
+                self.assertEqual(len(evaluated), len(set(evaluated)))
+                self.assertGreater(view.rendered_card_count, 0)
+        finally:
+            view.deleteLater()
+
+    def test_order_projection_preserves_authored_rank_order_and_first_match(self):
+        from app.modules.encyclopedia.services.guide_ultime_generated_service import route_order_names, route_order_quest_ids
+        route = {"conditional_branches": {"order_cards": [
+            None, {"options": [None, {"order": "Œil Attentif", "quest_id": 1},
+                               {"order": "Œil Attentif", "quest_id": 999}]},
+            {"options": [{"order": "ŒIL ATTENTIF", "quest_id": 2},
+                         {"order": "Cœur Vaillant", "quest_id": 3}]},
+        ]}}
+        self.assertEqual(tuple(route_order_names(route).values()), ("Œil Attentif", "Cœur Vaillant"))
+        self.assertEqual(route_order_quest_ids(route, "ŒIL ATTENTIF"), (1, 2))
+        self.assertEqual(route_order_quest_ids(route, ""), ())
+        self.assertEqual(route_order_names({}), {})
+
+    def test_generated_order_refresh_keeps_outer_signal_block(self):
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            view.order_combo.blockSignals(True)
+            view._sync_order_combo()
+            self.assertTrue(view.order_combo.signalsBlocked())
+            view.order_combo.blockSignals(False)
+            view._sync_order_combo()
+            self.assertFalse(view.order_combo.signalsBlocked())
+        finally:
+            view.deleteLater()
+
+    def test_generated_progress_header_uses_real_common_overview(self):
+        from app.ui.components import AtlasGuideReadingHeader
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            self.assertIsInstance(view.reading_header, AtlasGuideReadingHeader)
+            self.assertIs(view.route_bar, view.reading_header.global_progress_bar)
+            self.assertIs(view.route_progress_label, view.reading_header.global_progress_label)
+            self.assertEqual(view.reading_header.objectName(), "GuideHeader")
+            self.assertTrue(view.reading_header.guide_icon_label.isHidden())
+            self.assertIsNotNone(view.order_combo.parentWidget())
+            self.assertFalse(hasattr(view.reading_header, "preparation_button"))
+        finally:
+            view.deleteLater()
+
+    def test_generated_guide_uses_shared_scroll_without_changing_navigation(self):
+        view = GuideUltimeGeneratedView(self.v5, character_key="character:1")
+        try:
+            self.assertTrue(view.scroll.widgetResizable())
+            self.assertEqual(view.scroll.frameShape(), QFrame.NoFrame)
+            self.assertEqual(view.scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+            self.assertEqual(view.scroll.objectName(), "GuideUltimeScroll")
+        finally:
+            view.close()
+            view.deleteLater()
 
     # 15. virtualisation : jamais une instance QWidget par carte GPS
     def test_15_view_instantiates_only_small_window(self):

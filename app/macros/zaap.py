@@ -1,34 +1,16 @@
 from __future__ import annotations
 
-import re
 from time import perf_counter
 from typing import TYPE_CHECKING
 
-from app.macros.input_tools import send_chat_command
+from app.core.map_coordinates import parse_zaap_command
+from app.macros.input_tools import UnsupportedClipboardFormatsError, send_chat_command
 from app.macros.mirror_plan import is_dofus_unity_process, mirror_latency_percentiles_ms
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
 if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
-
-
-_ZAAP_COMMAND_RE = re.compile(r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)$", re.IGNORECASE)
-
-
-def parse_zaap_command(value: str) -> tuple[int, int] | None:
-    match = _ZAAP_COMMAND_RE.fullmatch(str(value or "").strip())
-    if match is None:
-        return None
-    try:
-        coords = int(match.group(1)), int(match.group(2))
-    except ValueError:
-        # Python can refuse huge integer strings; clipboard commands are
-        # untrusted text and must never crash the UI event handler.
-        return None
-    if any(not -(2**31) < value < 2**31 for value in coords):
-        return None
-    return coords
 
 
 def zaap_command(x: int, y: int) -> str:
@@ -132,6 +114,7 @@ class ZaapMacro:
             command,
         )
         sent = 0
+        clipboard_blocked = False
         focus_lost = False
 
         def foreground_confirmed(hwnd: int) -> bool:
@@ -266,22 +249,26 @@ class ZaapMacro:
                 try:
                     accepted = send_chat_command(
                         command,
-                    self.runtime.logger,
-                    submit_twice=True,
-                    chat_open_ms=timings.auto_group_chat_open_ms,
-                    key_step_ms=timings.auto_group_key_step_ms,
-                    paste_settle_ms=timings.auto_group_paste_settle_ms,
-                    # Abort a command at its next cancellable keyboard
-                    # boundary when the user switches to another window.
-                    # The existing sender checks this before each chat step.
-                    should_stop=lambda hwnd=target_hwnd, client=client: (
-                        self.runtime.macro_lock.should_stop()
-                        or self.runtime.settings is not settings_at_start
-                        or not frozen_roster_intact()
-                        or dispatch_context_changed()
-                        or not foreground_confirmed(hwnd)
-                    ),
+                        self.runtime.logger,
+                        submit_twice=True,
+                        allow_direct_text=True,
+                        chat_open_ms=timings.auto_group_chat_open_ms,
+                        key_step_ms=timings.auto_group_key_step_ms,
+                        paste_settle_ms=timings.auto_group_paste_settle_ms,
+                        # Abort a command at its next cancellable keyboard
+                        # boundary when the user switches to another window.
+                        # The existing sender checks this before each chat step.
+                        should_stop=lambda hwnd=target_hwnd, client=client: (
+                            self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start
+                            or not frozen_roster_intact()
+                            or dispatch_context_changed()
+                            or not foreground_confirmed(hwnd)
+                        ),
                     )
+                except UnsupportedClipboardFormatsError:
+                    clipboard_blocked = True
+                    break
                 except Exception:
                     # Clipboard/keyboard failures leave delivery uncertain:
                     # keep prior emissions but never start a later target.
@@ -405,10 +392,16 @@ class ZaapMacro:
                 sent,
                 len(clients),
             )
-            self.runtime._emit_status(
-                f"Auto zaap {state} : {sent}/{len(clients)} commandes émises "
-                "(réception DOFUS non vérifiée)."
-            )
+            if clipboard_blocked:
+                self.runtime._emit_status(
+                    f"Auto zaap bloqué par le presse-papiers : {sent}/{len(clients)} commandes émises. "
+                    "Copie du texte brut, puis réessaie."
+                )
+            else:
+                self.runtime._emit_status(
+                    f"Auto zaap {state} : {sent}/{len(clients)} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
             self.runtime.logger.info(
                 "Auto zaap mesures: activation=%s/%s p50_p95_p99_ms=%s "
                 "chat=%s/%s p50_p95_p99_ms=%s total_ms=%.2f "

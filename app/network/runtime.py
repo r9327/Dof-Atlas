@@ -7,10 +7,10 @@ from queue import Empty, Queue
 from app.core.logger import get_runtime_logger
 from app.network.capture_ipc import CaptureIpcDisconnected
 from app.network.progress_bridge import EventApplicationResult, NetworkProgressBridge
-from app.network.source import NetworkEventSource
+from app.network.source import CaptureReaderLifecycle, NetworkEventSource, cleanup_capture_reader
 
 
-class NetworkEventRuntime:
+class NetworkEventRuntime(CaptureReaderLifecycle):
     """Read normalized network events outside the Qt UI thread."""
 
     def __init__(
@@ -21,27 +21,16 @@ class NetworkEventRuntime:
         logger: Logger | None = None,
         read_timeout: float = 0.25,
     ) -> None:
-        self.source = source
+        super().__init__(source, logger or get_runtime_logger(), read_timeout, "runtime_cleanup_failed")
         self.bridge = bridge
-        self.logger = logger or get_runtime_logger()
-        self.read_timeout = max(0.05, float(read_timeout))
-        self._stop_event = threading.Event()
-        self._thread: threading.Thread | None = None
         self._results: Queue[EventApplicationResult] = Queue()
-        self.start_failure_reason = ""
-        self._lifecycle_lock = threading.RLock()
-
-    @property
-    def is_running(self) -> bool:
-        thread = self._thread
-        return bool(thread is not None and thread.is_alive())
 
     def start(self) -> bool:
         with self._lifecycle_lock:
-            if self.is_running:
-                return True
-            if self._thread is not None and self._thread.is_alive():
+            if self._stopping or not self._cleanup_ok:
                 return False
+            if self.is_running:
+                return not self._stop_event.is_set()
             self._stop_event.clear()
             self.start_failure_reason = ""
             try:
@@ -54,10 +43,8 @@ class NetworkEventRuntime:
                     or getattr(raw_source, "start_failure_reason", "")
                     or "runtime_start_failed"
                 )
-                try:
-                    self.source.stop()
-                except Exception:
-                    self.logger.exception("Network source cleanup after start failure failed.")
+                self._stop_event.set()
+                self._cleanup_reader()
                 self.logger.exception("Network source start failed.")
                 return False
             thread = threading.Thread(
@@ -71,57 +58,17 @@ class NetworkEventRuntime:
             except Exception:
                 self._thread = None
                 self._stop_event.set()
-                try:
-                    self.source.stop()
-                except Exception:
-                    self.logger.exception("Network source cleanup after thread start failure failed.")
-                self.bridge.reset_sessions()
+                self._cleanup_reader()
                 self.start_failure_reason = "runtime_thread_start_failed"
                 self.logger.exception("Network event reader thread start failed.")
                 return False
             return True
 
-    def stop(self, join_timeout: float = 2.0) -> bool:
-        with self._lifecycle_lock:
-            self._stop_event.set()
-            thread = self._thread
-
-        # Do not pause the shared elevated source while the reader may still be
-        # inside read_event(). Otherwise the reader and the control handshake
-        # can race on the same IPC receive stream and the reader may consume the
-        # ``paused`` ACK. read_event is timeout-bounded, so the normal path lets
-        # the reader leave first; its finally block then pauses the source from
-        # the only thread still receiving from it.
-        if thread is not None and thread is not threading.current_thread():
-            thread.join(max(0.0, float(join_timeout)))
-
-        stopped = thread is None or not thread.is_alive()
-        if not stopped:
-            # Defensive fallback for a source that violates the bounded read
-            # contract: force source shutdown to unblock it, then give the
-            # reader one short final opportunity to terminate.
-            try:
-                self.source.stop()
-            except Exception:
-                self.logger.exception("Network source forced stop failed.")
-            if thread is not threading.current_thread():
-                thread.join(max(0.05, min(self.read_timeout * 2.0, 0.5)))
-            stopped = not thread.is_alive()
-        elif thread is None:
-            # There is no reader finally block to own cleanup in this state.
-            try:
-                self.source.stop()
-            except Exception:
-                self.logger.exception("Network source stop failed without reader.")
-
-        with self._lifecycle_lock:
-            if stopped and self._thread is thread:
-                self._thread = None
-            if stopped:
-                self.bridge.reset_sessions()
-        if not stopped:
-            self.logger.error("Network event reader did not stop within timeout.")
-        return stopped
+    def _cleanup_reader(self) -> bool:
+        self._cleanup_ok = cleanup_capture_reader(
+            self.source, self.bridge.reset_sessions, self.logger, label="Network",
+        )
+        return self._cleanup_ok
 
     def get_result_nowait(self) -> EventApplicationResult | None:
         try:
@@ -170,17 +117,31 @@ class NetworkEventRuntime:
                         break
                     self.logger.exception("Network event application failed; reader remains active.")
                     continue
-                if result.changed or (
-                    result.accepted and result.character_key
-                    and result.reason.startswith("character_")
-                ):
+                # stop() can arrive while the bridge is applying an event.
+                # Never leak its result across the outgoing reader boundary.
+                if self._stop_event.is_set():
+                    break
+                reason = str(result.reason or "")
+                activates_character = reason in {
+                    "character_identified",
+                    "character_identified_with_quest_journal",
+                }
+                # Session closure is not quest progress, but the shell
+                # must learn that a connected-client snapshot changed.
+                # Retain it as a distinct event all the way to the Qt bridge;
+                # never reinterpret it as an activation or progress mutation.
+                connection_changed = reason == "session_closed" and bool(result.changed)
+                progress_changed = bool(
+                    result.changed and reason not in {
+                        "character_identified", "session_closed",
+                    }
+                )
+                if (result.accepted and result.character_key
+                        and (progress_changed or activates_character or connection_changed)):
                     self._results.put(result)
         finally:
-            try:
-                self.source.stop()
-            except Exception:
-                self.logger.exception("Network source final stop failed.")
-            self.bridge.reset_sessions()
+            if not self._cleanup_reader():
+                self.start_failure_reason = self._shutdown_failure_reason
 
 
 __all__ = ["NetworkEventRuntime"]

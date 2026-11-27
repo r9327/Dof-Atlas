@@ -453,12 +453,32 @@ class GuidePhase3Tests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_unimported_guide_catalogue_keeps_pending_container(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            page = self.make_page(Path(tmp))
+            page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
+            view = page.ensure_guides_view()
+            self.assertTrue(view.select_guide(TURQUOISE_GUIDE_ID))
+            self.app.processEvents()
+
+            self.assertEqual(page.current_tab_label(), GUIDES_TAB)
+            self.assertIs(page.guides_view, view)
+            self.assertEqual(view.current_guide_id, TURQUOISE_GUIDE_ID)
+            self.assertIsNotNone(view._pending_guide_container)
+            self.assertFalse(view.findChildren(QuestLine))
+            self.assertTrue(any("En attente du parcours Ganymède" in label.text()
+                                for label in view.findChildren(QLabel)))
+            page.deleteLater()
+            self.app.processEvents()
+
     def test_guide_to_quest_stays_in_guide_and_uses_shared_quest_view(self):
         with tempfile.TemporaryDirectory() as tmp:
             page = self.make_page(Path(tmp))
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
-            assert page.guides_view is not None
-            page.guides_view.select_guide(TURQUOISE_GUIDE_ID)
+            # The legacy rich reader remains a reusable navigation contract,
+            # but unimported catalogue entries intentionally open placeholders.
+            view = page.ensure_full_guides_view()
+            self.assertTrue(view.select_guide(TURQUOISE_GUIDE_ID))
             self.app.processEvents()
 
             line = next(
@@ -535,9 +555,9 @@ class GuidePhase3Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             page = self.make_page(Path(tmp))
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
-            assert page.guides_view is not None
-            page.guides_view.select_guide(TURQUOISE_GUIDE_ID)
-            page.guides_view.show_quest_detail(1654)
+            view = page.ensure_full_guides_view()
+            self.assertTrue(view.select_guide(TURQUOISE_GUIDE_ID))
+            self.assertTrue(view.show_quest_detail(1654))
             self.app.processEvents()
 
             prerequisite = next(
@@ -753,7 +773,7 @@ class GuidePhase3Tests(unittest.TestCase):
             self.assertEqual(view.detail_header_meta.text(), "Niveau 160 à 200")
             self.assertTrue(any(button.text() == "Guides" for button in view.breadcrumb.findChildren(AtlasButton)))
             self.assertNotIn("Dofus", breadcrumb_labels)
-            self.assertEqual(breadcrumb_labels.count(">"), 1)
+            self.assertEqual(breadcrumb_labels.count("›"), 1)
             view.deleteLater()
             self.app.processEvents()
 
@@ -910,10 +930,13 @@ class GuidePhase3Tests(unittest.TestCase):
     def test_quest_to_associated_guide_opens_guide(self):
         with tempfile.TemporaryDirectory() as tmp:
             page = self.make_page(Path(tmp))
+            page.show()
+            self.app.processEvents()
             assert page.quest_page is not None
             page.quest_page.select_quest(1653)
             self.app.processEvents()
 
+            self.assertEqual(page.quest_page.quest_detail_view.current_quest_id, 1653)
             self.assertIn("Guides associés", page.quest_page.detail.toHtml())
             page.quest_page.on_detail_link_clicked(QUrl(f"atlas-guide:{TURQUOISE_GUIDE_ID}"))
             self.app.processEvents()
@@ -1039,7 +1062,7 @@ class GuidePhase3Tests(unittest.TestCase):
             self.app.processEvents()
 
             labels = [normalize_text(label.text()) for label in view.findChildren(QLabel)]
-            minimum_levels = [text for text in labels if text.startswith("niveau_minimum_")]
+            minimum_levels = [text for text in labels if text.startswith("niveau_recommande_")]
             self.assertEqual(len(minimum_levels), 1)
             self.assertEqual(view.quest_detail_view.current_quest_id, 1653)
             self.assertFalse(view.quest_detail_view.done_button.isHidden())

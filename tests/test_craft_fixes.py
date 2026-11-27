@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from app.pages.craft_page import CraftPage, CraftResourceDialog, craft_image_item
+from app.pages.craft_page import CraftPage, CraftResourceDialog, craft_image_item, quantity_spinbox
 from local_dofus_data.normalizer import craft_category_for_item
 
 
@@ -26,6 +26,117 @@ class CraftFixesTests(unittest.TestCase):
         page = CraftPage(Mock(), defer_runtime=True)
         self.addCleanup(page.deleteLater)
         return page
+
+    def test_craft_cleanup_recurses_without_prematurely_detaching_children(self):
+        from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
+
+        page = self.make_page()
+        host = QWidget()
+        outer = QVBoxLayout(host)
+        inner = QHBoxLayout()
+        label = QLabel("old craft")
+        inner.addWidget(label)
+        outer.addLayout(inner)
+        try:
+            page.clear_layout(outer)
+            self.assertEqual(outer.count(), 0)
+            self.assertEqual(inner.count(), 0)
+            self.assertIs(label.parent(), host)
+        finally:
+            host.deleteLater()
+
+    def test_craft_quantity_width_reuses_shared_unity_rule(self):
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        small = quantity_spinbox(1, maximum=9)
+        large = quantity_spinbox(1, maximum=999999)
+        try:
+            self.assertLess(small.width(), large.width())
+            self.assertGreaterEqual(
+                large.width(),
+                large.fontMetrics().horizontalAdvance("999999")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"],
+            )
+            self.assertEqual(small.styleSheet(), "")
+            self.assertEqual(large.styleSheet(), "")
+        finally:
+            small.deleteLater()
+            large.deleteLater()
+
+    def test_craft_dialogs_use_single_shared_ui_shell(self):
+        from app.pages.craft_page import ItemSetDialog, LevelingDialog, RouteDialog
+        from app.ui.components import AtlasDialog, AtlasDialogHeader
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+
+        dialogs = (
+            CraftResourceDialog({}, []),
+            ItemSetDialog(None, lambda *_args: None),
+            LevelingDialog(
+                "Alchimiste",
+                {"source": "atlas-local", "kind": "harvest", "entries": []},
+                lambda _name: None, lambda _craft: None,
+            ),
+            RouteDialog("Alchimiste", {"name": "Ressource sans route"}),
+        )
+        try:
+            for dialog in dialogs:
+                with self.subTest(dialog=type(dialog).__name__):
+                    self.assertIsInstance(dialog, AtlasDialog)
+                    self.assertEqual(dialog.objectName(), "AtlasDialog")
+                    self.assertIs(dialog.layout(), dialog.content_layout)
+                    self.assertEqual(dialog.layout_density, "compact")
+                    x = UNITY_LAYOUT_SIZES_PX["dialog_compact_padding_x"]
+                    y = UNITY_LAYOUT_SIZES_PX["dialog_compact_padding_y"]
+                    self.assertEqual(
+                        dialog.content_layout.getContentsMargins(), (x, y, x, y)
+                    )
+                    self.assertEqual(dialog.styleSheet(), "")
+                    self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
+                    self.assertGreaterEqual(dialog.minimumWidth(), 400)
+                    if isinstance(dialog, (CraftResourceDialog, LevelingDialog)):
+                        from app.ui.components import AtlasButton
+                        close = [
+                            button for button in dialog.findChildren(AtlasButton)
+                            if button.text() == "Fermer"
+                        ]
+                        self.assertEqual(len(close), 1)
+                        # Footer width follows the label/theme, not a Craft
+                        # hardcoded 110/120 pixel fixed size.
+                        self.assertGreater(close[0].maximumWidth(), 120)
+        finally:
+            for dialog in dialogs:
+                dialog.close()
+                dialog.deleteLater()
+
+    def test_three_craft_catalog_dialogs_share_the_scrolled_slot(self):
+        from PySide6.QtWidgets import QScrollArea
+        from app.pages.craft_page import ItemSetDialog, LevelingDialog
+
+        dialogs = (
+            CraftResourceDialog({}, []),
+            ItemSetDialog({"name_fr": "Panoplie test", "items": []}, lambda *_: None),
+            LevelingDialog("Alchimiste", {"entries": []}, lambda _: None, lambda _: None),
+        )
+        try:
+            for dialog in dialogs:
+                with self.subTest(dialog=type(dialog).__name__):
+                    areas = dialog.findChildren(QScrollArea)
+                    self.assertEqual(len(areas), 1)
+                    self.assertTrue(areas[0].widgetResizable())
+                    self.assertIsNotNone(areas[0].widget().layout())
+        finally:
+            for dialog in dialogs:
+                dialog.close()
+                dialog.deleteLater()
+
+    def test_craft_title_is_the_indexed_unity_component(self):
+        from app.ui.components import AtlasPageTitle
+
+        page = self.make_page()
+        title = page.findChild(AtlasPageTitle, "PageTitle")
+        self.assertIsNotNone(title)
+        self.assertEqual(title.text(), "Craft")
+        self.assertEqual(title.styleSheet(), "")
 
     def test_click_any_job_opens_leveling_automatically(self):
         page = self.make_page()
@@ -41,16 +152,69 @@ class CraftFixesTests(unittest.TestCase):
             page.show()
             page.refresh_jobs()
             QApplication.processEvents()
-            for job in ("Mineur", "Forgeron"):
+            for expected_calls, job in enumerate(("Mineur", "Forgeron"), start=1):
                 with self.subTest(job=job):
                     buttons = [page.job_buttons_layout.itemAt(index).widget()
                                for index in range(page.job_buttons_layout.count())]
                     button = next(button for button in buttons if button.text() == job)
                     QTest.mouseClick(button, Qt.LeftButton)
-                    QTest.qWait(35)
+                    self.assertEqual(page.selected_job, job)
+                    for _ in range(25):
+                        if open_dialog.call_count >= expected_calls:
+                            break
+                        QTest.qWait(20)
                     open_dialog.assert_called_with(job)
             self.assertEqual(open_dialog.call_count, 2)
             page.close()
+
+    def test_result_context_menu_is_released_even_on_cancel(self):
+        from PySide6.QtCore import QPoint
+        from PySide6.QtWidgets import QListWidgetItem
+
+        page = self.make_page()
+        entry = QListWidgetItem("Objet")
+        entry.setData(Qt.UserRole, {"id": 1, "name": "Objet", "_craft_category": "equipment"})
+        menu = Mock()
+        menu.addAction.side_effect = [Mock(), Mock()]
+        menu.exec.return_value = None
+        with (
+            patch.object(page.results, "itemAt", return_value=entry),
+            patch.object(page.results, "setCurrentItem"),
+            patch("app.pages.craft_page.QMenu", return_value=menu),
+            patch.object(page, "add_item") as add,
+            patch.object(page, "open_item_set") as open_set,
+        ):
+            page.open_result_menu(QPoint(0, 0))
+        menu.deleteLater.assert_called_once_with()
+        add.assert_not_called()
+        open_set.assert_not_called()
+
+    def test_job_selection_reuses_existing_buttons(self):
+        page = self.make_page()
+        page.jobs = [{"name": "Mineur"}, {"name": "Forgeron"}]
+        with patch.object(page, "find_job_resource", return_value={"name": "Fer"}):
+            page.refresh_jobs()
+            buttons = tuple(page.job_buttons_layout.itemAt(i).widget()
+                            for i in range(page.job_buttons_layout.count()))
+            page.set_job("Forgeron")
+            self.assertEqual(tuple(page.job_buttons_layout.itemAt(i).widget()
+                                   for i in range(page.job_buttons_layout.count())), buttons)
+            self.assertEqual(buttons[1].objectName(), "ActiveButton")
+
+    def test_release_cancels_leveling_and_preserves_borrowed_preload(self):
+        page = self.make_page()
+        borrowed = {"guides": {"Forgeron": {"entries": [{"craft": {"name": "Épée"}}]}}}
+        page.preload = {"guides": borrowed}
+        page.load_leveling_guides()
+        with patch.object(page, "open_leveling_dialog") as open_dialog:
+            page.set_job("Forgeron")
+            self.assertTrue(page.leveling_timer.isActive())
+            page.release_runtime()
+            self.assertFalse(page.leveling_timer.isActive())
+            QTest.qWait(40)
+            open_dialog.assert_not_called()
+        self.assertIn("Forgeron", borrowed["guides"])
+        self.assertEqual(page.guides, {})
 
     def test_empty_preload_uses_real_local_leveling_catalogue(self):
         page = self.make_page()
@@ -123,6 +287,136 @@ class CraftFixesTests(unittest.TestCase):
         generate.assert_not_called()
         self.assertIs(dialog.call_args.args[1], official)
 
+    def test_rejected_craft_selection_edit_rolls_back_in_memory(self):
+        page = self.make_page()
+        with patch.object(page, "save_selection"):
+            page.add_item({"ankama_id": 42, "name": "Potion"}, 2)
+        with patch.object(page, "save_selection", side_effect=OSError("disk full")):
+            page.set_selection_quantity(42, 3)
+            self.assertEqual(page.selection[42]["quantity"], 2)
+            page.remove_selection_item(42)
+            self.assertEqual(page.selection[42]["quantity"], 2)
+            page.clear_selection()
+            self.assertEqual(page.selection[42]["quantity"], 2)
+            page.add_item({"ankama_id": 43, "name": "Fer"}, 1)
+            self.assertNotIn(43, page.selection)
+        self.assertIn("non enregistrée", page.status_callback.call_args.args[0])
+
+    def test_craft_edit_preserves_external_quest_selection(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from app.pages._quests_page_impl import save_owned_item_quantity
+        page = self.make_page()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            with patch("app.pages.craft_page.CRAFT_SELECTION_FILE", path):
+                page.add_item({"ankama_id": 42, "name": "Potion"}, 2)
+                save_owned_item_quantity({"item_id": 43, "name": "Fer"}, 7, path)
+                page.set_selection_quantity(42, 3)
+                saved = json.loads(path.read_text(encoding="utf-8"))
+                self.assertEqual({row["item_id"]: row["quantity"] for row in saved["items"]},
+                                 {42: 3, 43: 7})
+                page.remove_selection_item(42)
+                self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["items"][0]["item_id"], 43)
+
+    def test_reopening_craft_replaces_stale_selection_and_reuses_existing_metadata(self):
+        import json
+        page = self.make_page()
+        page.preload = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            path.write_text(json.dumps({"items": [{"item_id": 42, "quantity": 2}, {"item_id": 43, "quantity": 3}]}))
+            with patch("app.pages.craft_page.CRAFT_SELECTION_FILE", path), \
+                 patch("app.pages.craft_page.local_data_cache.get_item",
+                       side_effect=lambda ident: {"ankama_id": ident, "name": str(ident)}) as lookup:
+                page.load_selection()
+                self.assertEqual(lookup.call_count, 2)
+                page._runtime_ready = True
+                path.write_text(json.dumps({"items": [{"item_id": 43, "quantity": 17}]}))
+                page.show()
+                self.app.processEvents()
+                self.assertEqual(set(page.selection), {43})
+                self.assertEqual(page.selection[43]["quantity"], 17)
+                self.assertEqual(lookup.call_count, 2)
+                page.hide()
+
+    def test_craft_reactivation_preserves_selection_on_corrupt_file(self):
+        import json
+        from app.core.json_store import InvalidPersistentJsonError
+        page = self.make_page()
+        page.preload = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "selection.json"
+            path.write_text(json.dumps({"items": [{"item_id": 42, "quantity": 2}]}))
+            with patch("app.pages.craft_page.CRAFT_SELECTION_FILE", path), \
+                 patch("app.pages.craft_page.local_data_cache.get_item", return_value={"ankama_id": 42, "name": "Potion"}):
+                page.load_selection()
+                old_stamp = page._selection_source_stamp
+                path.write_text("{bad")
+                with self.assertRaises(InvalidPersistentJsonError):
+                    page.load_selection()
+                self.assertEqual(page.selection[42]["quantity"], 2)
+                self.assertEqual(page._selection_source_stamp, old_stamp)
+                path.write_text(json.dumps({"items": []}))
+                page.load_selection()
+                self.assertEqual(page.selection, {})
+
+    def test_selection_refresh_preserves_disabled_updates(self):
+        page = self.make_page()
+        page.selection_list.setUpdatesEnabled(False)
+        page.refresh_selection()
+        self.assertFalse(page.selection_list.updatesEnabled())
+        page.selection_list.setUpdatesEnabled(True)
+
+    def test_stale_preload_reuses_item_metadata_but_reads_latest_quantities(self):
+        page = self.make_page()
+        page.preload = {
+            "selection": {"42": {"item": {"ankama_id": 42, "name": "Potion"}, "quantity": 1}},
+            "selection_source_stamp": [1, 2, 3],
+        }
+        with patch("app.pages.craft_page.mtime_ctime_size_stamp", return_value=(4, 5, 6)), \
+             patch("app.pages.craft_page.read_json", return_value={"items": [{"item_id": 42, "quantity": 6}]}), \
+             patch("app.pages.craft_page.local_data_cache.get_item") as lookup:
+            page.load_selection()
+        lookup.assert_not_called()
+        self.assertEqual(page.selection[42]["quantity"], 6)
+
+    def test_bulk_selection_quantity_is_not_clipped_by_the_editor(self):
+        from PySide6.QtWidgets import QSpinBox
+        page = self.make_page()
+        with patch.object(page, "save_selection"):
+            page.add_item({"ankama_id": 42, "name": "Potion"}, 1500)
+            row = page.selection_list.itemWidget(page.selection_list.item(0))
+            counter = row.findChild(QSpinBox)
+            self.assertEqual(counter.value(), 1500)
+            counter.setValue(1499)
+            self.assertEqual(page.selection[42]["quantity"], 1499)
+            page.change_selection_quantity(42, 1)
+            self.assertEqual(page.selection[42]["quantity"], 1500)
+            row = page.selection_list.itemWidget(page.selection_list.item(0))
+            counter = row.findChild(QSpinBox)
+            counter.setValue(998)
+            counter.setValue(1200)
+            self.assertEqual(page.selection[42]["quantity"], 1200)
+
+    def test_craft_and_quest_read_duplicate_quantities_consistently(self):
+        page = self.make_page()
+        page.preload = {}
+        payload = {"items": [
+            {"item_id": 42, "quantity": 2},
+            {"ankama_id": 42, "quantity": 3},
+            {"item_id": 43, "quantity": "invalid"},
+        ]}
+        from app.core.craft_selection import selection_quantities
+        with patch("app.pages.craft_page.read_json", return_value=payload), \
+             patch("app.pages.craft_page.local_data_cache.get_item",
+                   return_value={"ankama_id": 42, "name": "Potion"}) as fetch:
+            page.load_selection()
+        fetch.assert_called_once_with(42)
+        self.assertEqual({key: row["quantity"] for key, row in page.selection.items()},
+                         selection_quantities(payload))
+
     def test_selection_order_and_scroll_survive_append(self):
         page = self.make_page()
         page.resize(1100, 670)
@@ -153,6 +447,73 @@ class CraftFixesTests(unittest.TestCase):
             QTest.keyClick(dialog, Qt.Key_Escape)
             self.assertFalse(dialog.isVisible())
             self.assertEqual(question.call_count, 2)
+
+    def test_shared_image_decoder_does_not_cache_pixels_under_a_changed_source(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtCore import QSize
+        from PySide6.QtGui import QPixmap
+        from app.modules.encyclopedia.services.image_service import ImageService
+        service = ImageService()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "image.png"
+            path.write_bytes(b"old")
+            pixmap = QPixmap(16, 16)
+            pixmap.fill()
+            def decode(*args):
+                path.write_bytes(b"new source")
+                return pixmap
+            with patch.object(service, "_decode_scaled", side_effect=decode):
+                service.load_scaled(path, QSize(16, 16))
+            self.assertEqual(service.info()["items"], 0)
+            with patch.object(service, "_decode_scaled", return_value=pixmap) as decode:
+                first = service.load_scaled(path, QSize(16, 16))
+                first.fill()
+                second = service.load_scaled(path, QSize(16, 16))
+                decode.assert_called_once()
+                self.assertNotEqual(first.cacheKey(), second.cacheKey())
+
+    def test_replaced_image_purges_old_revision_even_above_cache_budget(self):
+        from PySide6.QtCore import QSize
+        from PySide6.QtGui import QPixmap
+        from app.modules.encyclopedia.services.image_service import ImageService
+        service = ImageService(max_bytes=1024)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "image.png"
+            path.write_bytes(b"old")
+            service.store_scaled(path, QSize(8, 8), QPixmap(8, 8))
+            self.assertEqual(service.info()["items"], 1)
+            path.write_bytes(b"new source")
+            service.store_scaled(path, QSize(32, 32), QPixmap(32, 32))
+            self.assertEqual(service.info()["items"], 0)
+            self.assertEqual(service.info()["bytes"], 0)
+
+    def test_craft_icon_cache_invalidates_replaced_file_and_reuses_recent_icons(self):
+        import tempfile
+        from pathlib import Path
+        from PySide6.QtGui import QPixmap
+        from app.storage import IconCache
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = [Path(tmp) / f"{n}.png" for n in range(3)]
+            for path in paths:
+                path.write_bytes(b"source")
+            cache = IconCache(16, max_items=2)
+            pixmap = QPixmap(16, 16)
+            pixmap.fill()
+            with patch("app.storage.local_image_path", side_effect=lambda item: paths[item["id"]]), \
+                 patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled", return_value=pixmap) as load:
+                cache.icon_for_item({"id": 0})
+                cache.icon_for_item({"id": 1})
+                cache.icon_for_item({"id": 0})
+                cache.icon_for_item({"id": 2})
+                self.assertNotIn(str(paths[1]), cache.cache)
+                self.assertEqual(load.call_count, 3)
+                paths[0].write_bytes(b"new source")
+                cache.icon_for_item({"id": 0})
+                self.assertEqual(load.call_count, 4)
+                cache.clear()
+                self.assertEqual(cache._stamps, {})
 
     def test_flat_legacy_craft_icon_resolves_nested_weapon_asset(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -201,13 +562,39 @@ class CraftFixesTests(unittest.TestCase):
         ):
             page.show_resources()
             previous = page.resource_dialog
+            # This window must remain non-modal despite the shared dialog shell.
+            self.assertFalse(previous.isModal())
             page.show_resources()
             current = page.resource_dialog
+            self.assertFalse(current.isModal())
             self.assertIsNot(previous, current)
             previous.finished.emit(0)
             self.assertIs(page.resource_dialog, current)
             current.accept()
             question.assert_not_called()
+
+    def test_image_fallback_treats_filename_as_literal_and_requires_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = root / "data" / "images" / "items" / "divers"
+            folder.mkdir(parents=True)
+            (folder / "7.png").write_bytes(b"fixture")
+            (folder / "directory.png").mkdir()
+            for name in ("[7].png", "directory.png"):
+                item = {"type": "Objet mystère", "image_path": f"data/images/items/{name}"}
+                self.assertIs(craft_image_item(item, root=root), item)
+            exact = folder / "[7].png"
+            exact.write_bytes(b"fixture")
+            item = {"type": "Objet mystère", "image_path": "data/images/items/[7].png"}
+            self.assertEqual(Path(craft_image_item(item, root=root)["image_path"]), exact)
+            duplicate = root / "data" / "images" / "items" / "armes" / exact.name
+            duplicate.parent.mkdir()
+            duplicate.write_bytes(b"duplicate")
+            self.assertIs(craft_image_item(item, root=root), item)
+            duplicate.unlink()
+            self.assertEqual(Path(craft_image_item(item, root=root)["image_path"]), exact)
+            exact.unlink()
+            self.assertIs(craft_image_item(item, root=root), item)
 
     def test_image_fallback_does_not_guess_between_duplicate_sprites(self):
         with tempfile.TemporaryDirectory() as tmp:

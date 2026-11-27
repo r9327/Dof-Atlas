@@ -11,6 +11,16 @@ from app.network.current_protocol_profile import (
 
 
 class CurrentProtocolProfileTests(unittest.TestCase):
+    def test_current_type_alias_uses_canonical_network_validation(self) -> None:
+        from app.network.contracts import is_current_ankama_alias
+        from app.network.current_protocol_profile import _is_current_type_url
+
+        for value in ("type.ankama.com/idr", "type.ankama.com/kva",
+                      "type.ankama.com/ABc", "ankama.com/idr",
+                      "type.ankama.com/idr-extra", ""):
+            with self.subTest(value=value):
+                self.assertEqual(_is_current_type_url(value), is_current_ankama_alias(value))
+
     def test_profile_matches_reviewed_current_wire_contract(self) -> None:
         self.assertEqual(DOFUS_361010_PROFILE.game_version, "3.6.10.10")
         self.assertEqual(

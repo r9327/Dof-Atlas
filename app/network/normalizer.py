@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from app.core.numbers import coerce_positive_int
 from app.network.events import (
     AchievementCompletedEvent,
     AchievementObjectiveCompletedEvent,
+    AchievementSnapshotEvent,
     BusinessNetworkEvent,
     CharacterIdentifiedEvent,
     FinishedQuestsSnapshotEvent,
@@ -137,6 +139,16 @@ class ProtocolEventNormalizer:
                 achievement_id=achievement_id,
                 objective_id=objective_id,
             )
+        if event_type == "achievement_snapshot":
+            completed = self._positive_int_tuple(fields.get("completed_achievement_ids"))
+            if not completed:
+                return None
+            return AchievementSnapshotEvent(
+                session_id=session_id,
+                event_id=event_id,
+                reliable=True,
+                completed_achievement_ids=completed,
+            )
         if event_type == "achievement_completed":
             achievement_id = self._positive_int(fields.get("achievement_id"))
             if achievement_id is None:
@@ -151,11 +163,7 @@ class ProtocolEventNormalizer:
 
     @staticmethod
     def _positive_int(value: Any) -> int | None:
-        try:
-            parsed = int(value)
-        except (TypeError, ValueError, OverflowError):
-            return None
-        return parsed if parsed > 0 else None
+        return coerce_positive_int(value)
 
     @classmethod
     def _optional_positive_int(cls, value: Any) -> int | None:

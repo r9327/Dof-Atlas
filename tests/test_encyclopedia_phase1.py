@@ -166,10 +166,13 @@ class EncyclopediaPhase1Tests(unittest.TestCase):
     def test_quest_tab_loads_and_searches_current_catalog(self):
         with tempfile.TemporaryDirectory() as tmp:
             app, page, _statuses, _progress_path = self.make_page(Path(tmp))
+            page.show()
+            app.processEvents()
             quest_page = page.quest_page
             self.assertIsNotNone(quest_page)
 
             assert quest_page is not None
+            quest_page.on_mode_changed("TOUTES")
             self.assertEqual(len(quest_page.catalog.quests), 2)
             self.assertEqual(quest_page.quest_list.count(), 0)
             self.assertEqual(quest_page.detail.toHtml(), "")
@@ -179,9 +182,9 @@ class EncyclopediaPhase1Tests(unittest.TestCase):
 
             self.assertEqual(quest_page.quest_list.count(), 1)
             self.assertIn("Bouftou royal", quest_page.quest_list.item(0).text())
-            self.assertIn("Niveau 10", quest_page.quest_list.item(0).text())
             quest_page.quest_list.setCurrentItem(quest_page.quest_list.item(0))
             app.processEvents()
+            self.assertEqual(quest_page.quest_detail_view.meta_label.text(), "Niveau recommandé : 10")
             self.assertIn("Laine royale", quest_page.detail.toHtml())
             self.assertEqual(quest_page.search.text(), "")
             self.assertFalse(quest_page.quest_list.isVisible())
@@ -193,10 +196,13 @@ class EncyclopediaPhase1Tests(unittest.TestCase):
     def test_character_selection_and_progress_save_are_preserved(self):
         with tempfile.TemporaryDirectory() as tmp:
             app, page, _statuses, progress_path = self.make_page(Path(tmp))
+            page.show()
+            app.processEvents()
             quest_page = page.quest_page
             self.assertIsNotNone(quest_page)
 
             assert quest_page is not None
+            quest_page.on_mode_changed("TOUTES")
             self.assertEqual(quest_page.current_character_key, "character:1")
             quest_page.search.setText("bouft")
             quest_page._flush_search_refresh()

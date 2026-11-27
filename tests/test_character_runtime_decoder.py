@@ -70,6 +70,28 @@ class _Delegate:
 
 
 class CharacterRuntimeProtocolMessageDecoderTests(unittest.TestCase):
+    def test_session_cleanup_detaches_runtime_state_even_when_delegate_fails(self):
+        class FailingDelegate(_Delegate):
+            def session_closed(self, session_id):
+                raise RuntimeError("delegate close failed")
+
+            def reset(self):
+                raise RuntimeError("delegate reset failed")
+
+        state = CharacterRuntimeStateStore()
+        decoder = CharacterRuntimeProtocolMessageDecoder(FailingDelegate(None), state=state)
+        for session, key in (("s1", 15), ("s2", 16)):
+            state.identify(
+                session_id=session, character_key=f"character:{key}", character_id=key, name="A",
+            )
+
+        with self.assertRaisesRegex(RuntimeError, "delegate close failed"):
+            decoder.session_closed("s1")
+        self.assertEqual(state.connected_character_keys(), frozenset({"character:16"}))
+        with self.assertRaisesRegex(RuntimeError, "delegate reset failed"):
+            decoder.reset()
+        self.assertFalse(state.connected_character_keys())
+
     def test_only_verified_identity_from_same_transport_session_is_projected(self):
         state = CharacterRuntimeStateStore()
         raw = CapturedProtocolMessage(

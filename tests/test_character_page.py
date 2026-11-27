@@ -89,6 +89,38 @@ class CharacterPageTests(unittest.TestCase):
             for row in range(page.character_order_list.count())
         ]
 
+    def test_selecting_existing_character_does_not_rebuild_roster(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = self.build_files(Path(temporary))
+            page = self.build_page(paths)
+            try:
+                with patch.object(page, "_rebuild_character_selector",
+                                  wraps=page._rebuild_character_selector) as combo, \
+                     patch.object(page, "_rebuild_character_order_list",
+                                  wraps=page._rebuild_character_order_list) as order:
+                    page.refresh_from_sources("character:84")
+                    combo.assert_not_called()
+                    order.assert_not_called()
+                self.assertEqual(page.character_selector.currentData(), "character:84")
+                self.assertEqual(page.character_name.text(), "Beta")
+            finally:
+                page.deleteLater()
+
+    def test_legacy_stats_scroll_uses_shared_ui_policy(self):
+        from PySide6.QtWidgets import QFrame
+
+        with tempfile.TemporaryDirectory() as temporary:
+            page = self.build_page(self.build_files(Path(temporary)))
+            try:
+                scroll = page.stats_scroll
+                self.assertTrue(scroll.widgetResizable())
+                self.assertEqual(scroll.frameShape(), QFrame.NoFrame)
+                self.assertEqual(scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+                self.assertEqual(scroll.verticalScrollBarPolicy(), Qt.ScrollBarAsNeeded)
+            finally:
+                page.close()
+                page.deleteLater()
+
     def test_known_characters_are_kept_without_fake_stats_or_offline_status(self):
         with tempfile.TemporaryDirectory() as temporary:
             page = self.build_page(self.build_files(Path(temporary)))
@@ -144,7 +176,7 @@ class CharacterPageTests(unittest.TestCase):
 
             page.refresh_from_sources("character:42")
             self.assertEqual(page.character_level.text(), "Niveau 199")
-            self.assertEqual(page.achievement_points.text(), "12345 points de succès")
+            self.assertEqual(page.achievement_points.text(), "12 345 points de succès")
             self.assertIn("12345 succès", page.character_selector.currentText())
             self.assertIn("12345 succès", page.character_order_list.item(0).text())
 
@@ -183,13 +215,30 @@ class CharacterPageTests(unittest.TestCase):
             page._refresh_runtime_projection()
 
             self.assertEqual(page.character_level.text(), "Niveau 200")
-            self.assertEqual(page.achievement_points.text(), "24680 points de succès")
+            self.assertEqual(page.achievement_points.text(), "24 680 points de succès")
             self.assertIn("24680 succès", page.character_selector.currentText())
             self.assertIs(page.character_order_list.item(0), alpha_item)
             self.assertIs(page.character_order_list.item(1), beta_item)
 
             page.deleteLater()
             self.app.processEvents()
+
+    def test_character_selector_rebuild_preserves_outer_signal_block(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            page = self.build_page(self.build_files(Path(temporary)))
+            try:
+                selector = page.character_selector
+                selector.blockSignals(True)
+                page._rebuild_character_selector()
+                self.assertTrue(selector.signalsBlocked())
+                page._refresh_character_selector_runtime_labels()
+                self.assertTrue(selector.signalsBlocked())
+                selector.blockSignals(False)
+                page._rebuild_character_selector()
+                self.assertFalse(selector.signalsBlocked())
+            finally:
+                page.close()
+                page.deleteLater()
 
     def test_character_selector_requests_central_selection_without_local_persistence(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -290,6 +339,33 @@ class CharacterPageTests(unittest.TestCase):
             self.assertTrue(page.equipment_panel.isAncestorOf(page.portrait))
             page.deleteLater()
             self.app.processEvents()
+
+    def test_portrait_uses_shared_scaled_decoder_and_invalidates_changed_source(self):
+        from PySide6.QtGui import QImage
+        from unittest.mock import patch
+        from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            skin = root / "skin.png"
+            image = QImage(300, 400, QImage.Format_ARGB32)
+            image.fill(0xFF336699)
+            self.assertTrue(image.save(str(skin), "PNG"))
+            page = self.build_page(self.build_files(root))
+            try:
+                with patch.object(ENCYCLOPEDIA_IMAGE_SERVICE, "load_scaled",
+                                  wraps=ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled) as load:
+                    page._set_portrait(str(skin))
+                    page._set_portrait(str(skin))
+                    load.assert_called_once()
+                    self.assertFalse(page.portrait.pixmap().isNull())
+                    replacement = QImage(600, 400, QImage.Format_ARGB32)
+                    replacement.fill(0xFFAA0000)
+                    self.assertTrue(replacement.save(str(skin), "PNG"))
+                    page._set_portrait(str(skin))
+                    self.assertEqual(load.call_count, 2)
+                    self.assertEqual(page.portrait.pixmap().toImage().pixelColor(0, 0).red(), 170)
+            finally:
+                page.deleteLater()
 
     def test_real_skin_has_priority_and_class_icon_is_the_fallback(self):
         with tempfile.TemporaryDirectory() as temporary:

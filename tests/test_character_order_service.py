@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from app.constants import KEY_SESSION_ORDER
 from app.services.character_order_service import CharacterOrderService
+from app.services.character_order_logic import sort_character_rows
 import app.services.profile_settings_service as profile_settings_module
 
 
@@ -18,6 +19,45 @@ class Row:
 
 
 class CharacterOrderServiceTests(unittest.TestCase):
+    def test_transient_resilient_read_failure_is_not_cached(self):
+        from app.services.character_order_logic import load_character_order, clear_character_order_cache
+        with tempfile.TemporaryDirectory() as tmp:
+            profile = Path(tmp) / "profile.json"
+            profile.write_text(json.dumps({KEY_SESSION_ORDER: ["Alpha"]}))
+            clear_character_order_cache()
+            try:
+                with patch("app.core.json_store.read_json_resilient", side_effect=[None, {KEY_SESSION_ORDER: ["Alpha"]}]) as read:
+                    self.assertEqual(load_character_order(profile), ())
+                    self.assertEqual(load_character_order(profile), ("alpha",))
+                    self.assertEqual(load_character_order(profile), ("alpha",))
+                    self.assertEqual(read.call_count, 2)
+            finally:
+                clear_character_order_cache()
+
+    def test_order_projection_cache_reuses_stable_reads_and_keeps_strict_errors(self):
+        from app.services.character_order_logic import load_character_order, clear_character_order_cache
+        from app.core.json_store import InvalidPersistentJsonError
+        with tempfile.TemporaryDirectory() as tmp:
+            profile = Path(tmp) / "profile.json"
+            profile.write_text(json.dumps({KEY_SESSION_ORDER: ["Beta", "Alpha"]}))
+            clear_character_order_cache()
+            try:
+                service = CharacterOrderService(profile)
+                with patch.object(profile_settings_module.ProfileSettingsService, "load",
+                                  autospec=True, side_effect=profile_settings_module.ProfileSettingsService.load) as load:
+                    self.assertEqual(service.load_order(), ("beta", "alpha"))
+                    self.assertEqual(service.load_order(), ("beta", "alpha"))
+                    load.assert_called_once()
+                    service.save_labels(["Alpha", "Beta"])
+                    self.assertEqual(service.load_order(), ("alpha", "beta"))
+                    self.assertEqual(load.call_count, 2)
+                profile.write_text("{bad")
+                self.assertEqual(load_character_order(profile), ())
+                with self.assertRaises(InvalidPersistentJsonError):
+                    service.load_order()
+            finally:
+                clear_character_order_cache()
+
     def test_save_preserves_other_profile_values_and_new_instance_keeps_order(self):
         with tempfile.TemporaryDirectory() as temporary:
             profile = Path(temporary) / "profiles.json"
@@ -69,6 +109,45 @@ class CharacterOrderServiceTests(unittest.TestCase):
             self.assertEqual(
                 [row.label for row in ordered],
                 ["Beta", "Alpha", "Gamma", "Delta"],
+            )
+
+    def test_shared_sort_normalizes_each_row_only_once_and_keeps_input_stable(self):
+        rows = [Row("Unknown"), Row("Alpha"), Row("Other"), Row("alpha")]
+        counts = []
+
+        def label(row):
+            counts.append(row.label)
+            return row.label
+
+        result = sort_character_rows(rows, ["ALPHA"], label_getter=label)
+        self.assertEqual(counts, [row.label for row in rows])
+        self.assertEqual(
+            [row.label for row in result],
+            ["Alpha", "alpha", "Unknown", "Other"],
+        )
+        self.assertIs(result[0], rows[1])
+        self.assertIs(result[1], rows[3])
+
+    def test_sorter_matches_canonical_logic_for_accents_and_unknown_characters(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            profile = Path(temporary) / "profiles.json"
+            profile.write_text(
+                json.dumps({KEY_SESSION_ORDER: ["Éliotrope", "Panda"]}),
+                encoding="utf-8",
+            )
+            rows = [
+                Row("Zobal"), Row("Panda"), Row("Eliotrope"),
+                Row("Enu"), Row("Panda"), Row("Hupper"),
+            ]
+            service = CharacterOrderService(profile)
+            expected = sort_character_rows(
+                rows, service.load_order(), label_getter=lambda row: row.label,
+            )
+            result = service.sort_rows(rows, label_getter=lambda row: row.label)
+            self.assertEqual(result, expected)
+            self.assertEqual(
+                [row.label for row in result],
+                ["Eliotrope", "Panda", "Panda", "Zobal", "Enu", "Hupper"],
             )
 
     def test_duplicate_empty_and_mixed_case_labels_are_normalized(self):

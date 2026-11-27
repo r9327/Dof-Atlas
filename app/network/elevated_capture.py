@@ -203,6 +203,11 @@ class ElevatedWindowsProtocolSource:
                 self._last_handles = handles
                 self._started = True
                 return
+            if self._process is not None:
+                # The previous helper's termination is unconfirmed. Keep its
+                # process handle and never launch a second privileged reader.
+                self.start_failure_reason = "capture_helper_cleanup_failed"
+                raise NetworkCaptureStartError(self.start_failure_reason)
             self.start_failure_reason = ""
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
@@ -242,7 +247,9 @@ class ElevatedWindowsProtocolSource:
             if connection is not None:
                 connection.close()
             if process is not None:
-                self._finish_process(process)
+                with self._state_lock:
+                    self._process = process
+                    self._finish_owned_process()
             if isinstance(exc, NetworkCaptureStartError):
                 raise
             raise NetworkCaptureStartError(reason) from exc
@@ -275,19 +282,19 @@ class ElevatedWindowsProtocolSource:
                                 action="discard_on_pause_handoff",
                                 buffered_count=discarded_count,
                             )
-                    except (CaptureIpcError, NetworkCaptureStartError):
+                    except (CaptureIpcError, NetworkCaptureStartError) as exc:
                         self.close()
+                        self.start_failure_reason = "capture_helper_pause_failed"
+                        raise NetworkCaptureStartError(self.start_failure_reason) from exc
                 return
         self.close()
 
     def close(self) -> None:
         with self._state_lock:
             connection = self._connection
-            process = self._process
             server = self._server
             buffered_count = len(self._pending_frames)
             self._connection = None
-            self._process = None
             self._server = None
             self._last_handles = ()
             self._pending_frames.clear()
@@ -301,15 +308,29 @@ class ElevatedWindowsProtocolSource:
                 action="discard_on_close",
                 buffered_count=buffered_count,
             )
-        if connection is not None:
-            with suppress(CaptureIpcError):
-                connection.send({"kind": "stop"})
-            connection.close()
-        if server is not None:
-            with suppress(OSError):
-                server.close()
-        if process is not None:
+        try:
+            if connection is not None:
+                with suppress(CaptureIpcError):
+                    connection.send({"kind": "stop"})
+                connection.close()
+        finally:
+            if server is not None:
+                with suppress(OSError):
+                    server.close()
+            with self._state_lock:
+                self._finish_owned_process()
+
+    def _finish_owned_process(self) -> None:
+        """Retain ownership until Windows positively confirms process exit."""
+        process = self._process
+        if process is None:
+            return
+        try:
             self._finish_process(process)
+        except Exception as exc:
+            self.start_failure_reason = "capture_helper_cleanup_failed"
+            raise NetworkCaptureStartError(self.start_failure_reason) from exc
+        self._process = None
 
     def read_item(self, timeout: float) -> ProtocolTransportItem | None:
         with self._state_lock:
@@ -318,22 +339,27 @@ class ElevatedWindowsProtocolSource:
             if not started or connection is None:
                 return None
             frame = self._pending_frames.pop(0) if self._pending_frames else None
-        self._publish_handles(connection)
         deadline = monotonic() + max(0.0, float(timeout))
-        while True:
-            if frame is None:
-                try:
+        try:
+            self._publish_handles(connection)
+            while True:
+                if frame is None:
                     frame = connection.receive(max(0.0, deadline - monotonic()))
-                except CaptureIpcDisconnected:
-                    self.close()
-                    raise CaptureIpcDisconnected("capture_helper_disconnected")
-            if frame is None:
-                return None
-            if str(frame.get("kind") or "") == "diagnostic":
-                self._log_capture_diagnostic(frame)
-                frame = None
-                continue
-            return self._transport_item_from_frame(frame)
+                if frame is None:
+                    return None
+                if str(frame.get("kind") or "") == "diagnostic":
+                    self._log_capture_diagnostic(frame)
+                    frame = None
+                    continue
+                return self._transport_item_from_frame(frame)
+        except CaptureIpcDisconnected:
+            try:
+                self.close()
+            except NetworkCaptureStartError as exc:
+                # Stop the reader even if process cleanup itself failed. The
+                # reader's final stop will retry the retained process handle.
+                raise CaptureIpcDisconnected("capture_helper_disconnected") from exc
+            raise CaptureIpcDisconnected("capture_helper_disconnected")
 
     @staticmethod
     def _transport_item_from_frame(frame: dict[str, Any]) -> ProtocolTransportItem:
@@ -505,12 +531,13 @@ class ElevatedWindowsProtocolSource:
 
     @staticmethod
     def _finish_process(process: ElevatedHelperProcess) -> None:
-        try:
-            if not process.wait(2.0):
-                process.terminate()
-                process.wait(1.0)
-        finally:
-            process.close()
+        if not process.wait(2.0):
+            process.terminate()
+            if not process.wait(1.0):
+                raise NetworkCaptureStartError("capture_helper_cleanup_failed")
+        # Releasing the handle before confirmed exit makes a later close()
+        # indistinguishable from success and prevents a real retry.
+        process.close()
 
 
 __all__ = [

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
+from app.core.numbers import optional_int as _safe_int, ordered_int_ids
+from app.core.text import normalize_words as _norm
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import AchievementProgressService
@@ -19,19 +20,6 @@ GUIDE_ULTIME_ROUTE_AUDIT_FILE = ROOT / "artifacts" / "guide_ultime_gps_route_aud
 GUIDE_ULTIME_PROGRESS_ID = "guide_ultime_v5"
 
 
-def _safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _norm(value: Any) -> str:
-    import unicodedata
-
-    text = unicodedata.normalize("NFKD", str(value or ""))
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    return re.sub(r"[^a-zA-Z0-9]+", " ", text.casefold()).strip()
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -39,6 +27,43 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"JSON objet attendu: {path}")
     return payload
+
+
+def route_order_cards(route: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    """The authored order cards are shared by the generated and runtime readers."""
+    branches = route.get("conditional_branches")
+    if not isinstance(branches, dict):
+        return ()
+    return tuple(card for card in branches.get("order_cards", []) or () if isinstance(card, dict))
+
+
+def route_order_options(card: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    return tuple(row for row in card.get("options", []) or () if isinstance(row, dict))
+
+
+def route_order_names(route: dict[str, Any]) -> dict[str, str]:
+    """Normalize each authored name once, retaining source order and spelling."""
+    names: dict[str, str] = {}
+    for card in route_order_cards(route):
+        for row in route_order_options(card):
+            name = str(row.get("order") or "").strip()
+            if name:
+                names.setdefault(_norm(name), name)
+    return names
+
+
+def route_order_quest_ids(route: dict[str, Any], selected: str) -> tuple[int, ...]:
+    if not selected:
+        return ()
+    normalized = _norm(selected)
+    ids = []
+    for card in route_order_cards(route):
+        option = next((row for row in route_order_options(card)
+                       if _norm(row.get("order")) == normalized), None)
+        qid = _safe_int(option.get("quest_id")) if option is not None else None
+        if qid is not None:
+            ids.append(qid)
+    return tuple(ids)
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,32 +206,26 @@ class GuideUltimeGeneratedService:
     ) -> None:
         self.set_manual_checked(character_key, self.page_key(card, fallback_index), checked)
 
-    def card_quest_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
-        ids: list[int] = []
-        for section in ("a_prendre", "a_faire_ici"):
+    @staticmethod
+    def _section_ids(card: dict[str, Any], sections: tuple[str, ...], field: str):
+        for section in sections:
             for row in card.get(section, []) or []:
-                if not isinstance(row, dict):
-                    continue
-                qid = _safe_int(row.get("quest_id"))
-                if qid is not None and qid not in ids:
-                    ids.append(qid)
+                if isinstance(row, dict):
+                    yield row.get(field)
+
+    def card_quest_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
+        from itertools import chain
+
         progress = card.get("progresse_aussi") if isinstance(card.get("progresse_aussi"), dict) else {}
-        for raw in progress.get("quest_ids", []) or []:
-            qid = _safe_int(raw)
-            if qid is not None and qid not in ids:
-                ids.append(qid)
-        return tuple(ids)
+        return ordered_int_ids(chain(
+            self._section_ids(card, ("a_prendre", "a_faire_ici"), "quest_id"),
+            progress.get("quest_ids", []) or [],
+        ))
 
     def card_success_ids(self, card: dict[str, Any]) -> tuple[int, ...]:
-        ids: list[int] = []
-        for section in ("succes_monstres_a_faire", "succes_donjon_a_faire"):
-            for row in card.get(section, []) or []:
-                if not isinstance(row, dict):
-                    continue
-                aid = _safe_int(row.get("achievement_id"))
-                if aid is not None and aid not in ids:
-                    ids.append(aid)
-        return tuple(ids)
+        return ordered_int_ids(self._section_ids(
+            card, ("succes_monstres_a_faire", "succes_donjon_a_faire"), "achievement_id",
+        ))
 
     def action_completed(self, character_key: str, row: dict[str, Any]) -> bool:
         qid = _safe_int(row.get("quest_id"))
@@ -342,18 +361,7 @@ class GuideUltimeGeneratedService:
         return matches[0] if len(matches) == 1 else None
 
     def bonta_order_names(self) -> tuple[str, ...]:
-        names: list[str] = []
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            for row in card.get("options", []) or []:
-                if not isinstance(row, dict):
-                    continue
-                name = str(row.get("order") or "").strip()
-                if name and _norm(name) not in {_norm(value) for value in names}:
-                    names.append(name)
-        return tuple(names[:3])
+        return tuple(route_order_names(self.route).values())[:3]
 
     def selected_order_name(self, character_key: str) -> str:
         choice = self.achievement_progress.alignment_order_choice(character_key)
@@ -369,51 +377,24 @@ class GuideUltimeGeneratedService:
         self.achievement_progress.set_alignment_order_choice(character_key, "bonta", matched)
 
     def selected_order_quest_ids(self, character_key: str) -> tuple[int, ...]:
-        selected = self.selected_order_name(character_key)
-        if not selected:
-            return ()
-        branches = self.route.get("conditional_branches") if isinstance(self.route.get("conditional_branches"), dict) else {}
-        ids: list[int] = []
-        for card in branches.get("order_cards", []) or []:
-            if not isinstance(card, dict):
-                continue
-            option = next(
-                (row for row in card.get("options", []) or [] if isinstance(row, dict) and _norm(row.get("order")) == _norm(selected)),
-                None,
-            )
-            qid = _safe_int(option.get("quest_id")) if option else None
-            if qid is not None:
-                ids.append(qid)
-        return tuple(ids)
+        return route_order_quest_ids(self.route, self.selected_order_name(character_key))
 
     def _collect_common_quest_ids(self) -> tuple[int, ...]:
-        result: list[int] = []
-        for card in self.cards:
-            for qid in self.card_quest_ids(card):
-                if qid not in result:
-                    result.append(qid)
-        return tuple(result)
+        return tuple(dict.fromkeys(qid for card in self.cards for qid in self.card_quest_ids(card)))
 
     def _collect_full_success_ids(self) -> tuple[int, ...]:
+        from itertools import chain
+
         full = self.route.get("full_success_cards") if isinstance(self.route.get("full_success_cards"), dict) else {}
-        result: list[int] = []
-        for row in full.get("monster_success_cards", []) or []:
-            if isinstance(row, dict):
-                aid = _safe_int(row.get("achievement_id"))
-                if aid is not None and aid not in result:
-                    result.append(aid)
-        for row in full.get("dungeon_success_cards", []) or []:
-            if not isinstance(row, dict):
-                continue
-            for achievement in row.get("achievements", []) or []:
-                if not isinstance(achievement, dict):
-                    continue
-                aid = _safe_int(achievement.get("achievement_id"))
-                if aid is not None and aid not in result:
-                    result.append(aid)
-        for row in full.get("dungeon_meta_success_cards", []) or []:
-            if isinstance(row, dict):
-                aid = _safe_int(row.get("achievement_id"))
-                if aid is not None and aid not in result:
-                    result.append(aid)
-        return tuple(result)
+        dungeon_ids = (
+            achievement.get("achievement_id")
+            for row in full.get("dungeon_success_cards", []) or []
+            if isinstance(row, dict)
+            for achievement in row.get("achievements", []) or []
+            if isinstance(achievement, dict)
+        )
+        return ordered_int_ids(chain(
+            self._section_ids(full, ("monster_success_cards",), "achievement_id"),
+            dungeon_ids,
+            self._section_ids(full, ("dungeon_meta_success_cards",), "achievement_id"),
+        ))

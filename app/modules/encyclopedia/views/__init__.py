@@ -5,22 +5,6 @@ from typing import Any
 
 
 _REAL_ENCYCLOPEDIA_PAGE: type | None = None
-_GUIDE_VIEW_LOADED = False
-
-
-def _ensure_guide_view_loaded() -> None:
-    global _GUIDE_VIEW_LOADED
-    if _GUIDE_VIEW_LOADED:
-        return
-
-    guides_module = importlib.import_module("app.modules.encyclopedia.views.guides_view")
-    from app.modules.encyclopedia.views.guide_image_runtime_policy import (
-        install_guide_image_runtime_policy,
-    )
-
-    install_guide_image_runtime_policy(guides_module)
-    _ = guides_module.GuideHomeCard
-    _GUIDE_VIEW_LOADED = True
 
 
 def _load_encyclopedia_page_class() -> type:
@@ -62,7 +46,6 @@ class EncyclopediaPage(metaclass=_LazyEncyclopediaPageMeta):
 
 def __getattr__(name: str):
     if name == "GuidesView":
-        _ensure_guide_view_loaded()
         guides_module = importlib.import_module("app.modules.encyclopedia.views.guides_view")
         return guides_module.GuidesView
     raise AttributeError(name)

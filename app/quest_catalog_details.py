@@ -19,6 +19,7 @@ from threading import RLock, current_thread
 from time import perf_counter
 
 from app import quest_catalog as qc
+from app.core.cache_write_lock import exclusive_cache_write_lock
 from app.quest_source_index import QuestSources
 
 _DETAIL_FIELDS = frozenset({"steps", "source_solution_steps", "solution_blocks", "source_info", "rewards"})
@@ -299,11 +300,8 @@ class QuestDetails:
                 for offset in range(0, len(ids), 32):
                     catalog = qc.QuestCatalog._load_source(self.data_dir, quest_ids=set(ids[offset:offset + 32]),
                         sources=self._sources, include_enrichment=False)
-                    documents.update({quest.id: qc.normalize_text(" ".join([
-                        quest.search_text, " ".join(step.name for step in quest.steps),
-                        " ".join(objective.text for step in quest.steps for objective in step.objectives),
-                        " ".join(reward.name for reward in quest.rewards),
-                    ])) for quest in catalog.quests})
+                    from app.modules.encyclopedia.services.quest_search_text import quest_document_text
+                    documents.update({quest.id: quest_document_text(quest) for quest in catalog.quests})
                     del catalog
             finally:
                 self._sources.close()
@@ -350,6 +348,31 @@ def ensure_lazy_catalog_cache(
     """Materialize the reconstructible Quest SQLite store without retaining rows."""
 
     signature, path = _cache_identity(data_dir, cache_root)
+    # Warm readers do not take a SQLite writer lock. A cold generation is
+    # built by exactly one process/thread using the existing shared lock.
+    with exclusive_cache_write_lock(path):
+        if path.is_file():
+            ready_count = _ready_catalog_count(path)
+            if ready_count is not None:
+                return ready_count
+        return _build_lazy_catalog_cache(data_dir, signature, path)
+
+
+def _ready_catalog_count(path: Path) -> int | None:
+    with _connect(path) as connection:
+        table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='metadata'"
+        ).fetchone()
+        if table is None:
+            return None
+        ready = connection.execute("SELECT value FROM metadata WHERE key='ready'").fetchone()
+        if ready is None:
+            return None
+        row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
+        return max(0, int(row[0] if row else 0))
+
+
+def _build_lazy_catalog_cache(data_dir: Path, signature: tuple, path: Path) -> int:
     if not path.is_file():
         # The release already contains this immutable summary-only database.
         # Restore only for the exact canonical data generation, without ever
@@ -474,6 +497,28 @@ def ensure_detail_source_offsets(
     return prepared
 
 
+def load_quest_ids(
+    data_dir: Path = qc.RAW_QUEST_DATA_DIR,
+    *,
+    cache_root: Path = _CACHE_ROOT,
+) -> tuple[int, ...]:
+    """Read every canonical Quest ID without instantiating Quest records.
+
+    Names cannot serve as an ID inventory: multiple Quests may have the
+    same normalized title, so the compact name lookup can drop valid rows.
+    """
+
+    ensure_lazy_catalog_cache(data_dir, cache_root=cache_root)
+    _signature_value, path = _cache_identity(data_dir, cache_root)
+    with _connect(path) as connection:
+        return tuple(
+            int(quest_id)
+            for (quest_id,) in connection.execute(
+                "SELECT id FROM quests ORDER BY id"
+            )
+        )
+
+
 def load_quest_name_index(
     data_dir: Path = qc.RAW_QUEST_DATA_DIR,
     *,
@@ -587,7 +632,7 @@ def load_lazy_catalog(data_dir: Path, *, cache_root: Path = _CACHE_ROOT) -> qc.Q
 
     def load_search_documents():
         current = catalogue_ref()
-        return details.search_documents(current.by_id) if current is not None else []
+        return details.search_documents(current.by_id) if current is not None else {}
 
     catalog.load_search_documents = load_search_documents
     # Rich search is populated only by an explicit search; graph/list prewarm

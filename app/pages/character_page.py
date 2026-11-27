@@ -1,33 +1,31 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
-    QFrame,
     QGridLayout,
-    QHBoxLayout,
     QLabel,
     QListWidget,
-    QScrollArea,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
+from app.core.numbers import format_grouped_int
 from app.pages._character_page_impl import (
-    CHARACTER_STAT_ROWS,
     EQUIPMENT_SLOTS,
     CharacterPage as _CharacterPage,
 )
+from app.ui.components import AtlasComboBox
+from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+
+CHARACTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character"]
 
 
-_EQUIPMENT_SLOT_SIZE = 64
-_EQUIPMENT_ICON_SIZE = 54
+_EQUIPMENT_SLOT_SIZE = CHARACTER_GEOMETRY["equipment_slot_box"]
+_EQUIPMENT_ICON_SIZE = CHARACTER_GEOMETRY["equipment_icon"]
 
 
 class CharacterPage(_CharacterPage):
@@ -46,8 +44,8 @@ class CharacterPage(_CharacterPage):
                 widget = item.widget() if item is not None else None
                 if widget is not None:
                     widget.hide()
-            root.setContentsMargins(10, 8, 10, 10)
-            root.setSpacing(6)
+            root.setContentsMargins(*CHARACTER_GEOMETRY["page_margins"])
+            root.setSpacing(UNITY_SPACING_PX["sm"])
 
         if columns is not None:
             # The old identity card must not consume a column anymore. Its
@@ -60,30 +58,35 @@ class CharacterPage(_CharacterPage):
             columns.removeWidget(self.equipment_panel)
             columns.insertWidget(0, self.equipment_panel, 70)
             columns.insertWidget(1, self.stats_panel, 30)
-            columns.setSpacing(8)
+            columns.setSpacing(UNITY_SPACING_PX["md"])
             columns.setStretch(0, 70)
             columns.setStretch(1, 30)
 
         equipment_layout = self.equipment_panel.layout()
         if equipment_layout is not None:
-            equipment_layout.setContentsMargins(8, 6, 8, 8)
-            equipment_layout.setSpacing(4)
+            equipment_layout.setContentsMargins(*CHARACTER_GEOMETRY["equipment_panel_margins"])
+            equipment_layout.setSpacing(UNITY_SPACING_PX["xs"])
 
         stats_layout = self.stats_panel.layout()
         if stats_layout is not None:
-            stats_layout.setContentsMargins(10, 8, 10, 10)
-            stats_layout.setSpacing(6)
+            stats_layout.setContentsMargins(*CHARACTER_GEOMETRY["stats_panel_margins"])
+            stats_layout.setSpacing(UNITY_SPACING_PX["sm"])
 
-        self.equipment_panel.setMinimumWidth(650)
-        self.stats_panel.setMinimumWidth(250)
-        self.stats_panel.setMaximumWidth(340)
+        # A 900px shell must fit both cards plus its 20px horizontal
+        # margins and the 8px gutter. The equipment grid already needs
+        # far less than its old 650px minimum; do not force window growth
+        # just because the Personnage page was opened.
+        self.equipment_panel.setMinimumWidth(CHARACTER_GEOMETRY["equipment_min_width"])
+        self.stats_panel.setMinimumWidth(CHARACTER_GEOMETRY["stats_min_width"])
+        self.stats_panel.setMaximumWidth(CHARACTER_GEOMETRY["stats_max_width"])
 
     @staticmethod
     def _apply_success_style(label: QLabel, *, compact: bool = False) -> None:
         """Apply score typography while leaving colors to the shared theme."""
 
         font = label.font()
-        font.setPixelSize(18 if compact else 23)
+        role = "character_score_compact" if compact else "character_score_regular"
+        font.setPixelSize(UNITY_CONTENT_TYPOGRAPHY_PX[role])
         font.setBold(True)
         label.setFont(font)
 
@@ -96,12 +99,13 @@ class CharacterPage(_CharacterPage):
         self._apply_success_style(self.achievement_points, compact=True)
         layout.addWidget(self.achievement_points)
 
-        self.character_selector = QComboBox()
+        self.character_selector = AtlasComboBox()
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
-        self.character_selector.setIconSize(QSize(38, 38))
-        self.character_selector.setMinimumWidth(260)
-        self.character_selector.setMaximumWidth(360)
-        self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        selector_icon = CHARACTER_GEOMETRY["selector_icon"]
+        self.character_selector.setIconSize(QSize(selector_icon, selector_icon))
+        # Let the shared Unity combo fit the longest character label, while
+        # retaining this panel's design cap on narrow equipment layouts.
+        self.character_selector.setMaximumWidth(CHARACTER_GEOMETRY["selector_max_width"])
         self.character_selector.setToolTip("Sélectionner un personnage")
         self.character_selector.currentIndexChanged.connect(
             self._on_character_selector_changed
@@ -161,43 +165,10 @@ class CharacterPage(_CharacterPage):
         self.stats_empty_label.setWordWrap(True)
         layout.addWidget(self.stats_empty_label, 1)
 
-        self.stats_scroll = QScrollArea()
-        self.stats_scroll.setWidgetResizable(True)
-        self.stats_scroll.setFrameShape(QFrame.NoFrame)
-        self.stats_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.stats_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-
-        content = QWidget()
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(7)
-        self.stat_rows: dict[str, QWidget] = {}
-        self.stat_value_labels: dict[str, QLabel] = {}
-
-        for stat_key, label_text in CHARACTER_STAT_ROWS:
-            row = QWidget()
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(8)
-
-            label = QLabel(label_text)
-            label.setObjectName("MutedLabel")
-            row_layout.addWidget(label, 1)
-
-            value = QLabel("")
+        super()._build_stats_panel(layout)
+        for value in self.stat_value_labels.values():
             value.setObjectName("CharacterStatValue")
-            value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            row_layout.addWidget(value)
-
-            row.hide()
-            content_layout.addWidget(row)
-            self.stat_rows[stat_key] = row
-            self.stat_value_labels[stat_key] = value
-
-        content_layout.addStretch(1)
-        self.stats_scroll.setWidget(content)
         self.stats_scroll.hide()
-        layout.addWidget(self.stats_scroll, 1)
 
     def _build_equipment_panel(self, layout: QVBoxLayout) -> None:
         equipment_widget = QWidget()
@@ -242,8 +213,8 @@ class CharacterPage(_CharacterPage):
         self.portrait.setObjectName("HomeCharacterPortrait")
         self.portrait.setAlignment(Qt.AlignCenter)
         self.portrait.setWordWrap(True)
-        self.portrait.setMinimumSize(230, 300)
-        self.portrait.setMaximumSize(300, 360)
+        self.portrait.setMinimumSize(*CHARACTER_GEOMETRY["portrait_min_size"])
+        self.portrait.setMaximumSize(*CHARACTER_GEOMETRY["portrait_max_size"])
         self.portrait.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         skin_layout.addWidget(self.portrait, 1, Qt.AlignCenter)
 
@@ -266,104 +237,37 @@ class CharacterPage(_CharacterPage):
     def _character_selector_text(self, character) -> str:
         return str(character.label or "Personnage")
 
-    def _rebuild_character_selector(self) -> None:
-        self.character_selector.blockSignals(True)
-        try:
-            self.character_selector.clear()
-            self.character_selector.setEnabled(bool(self.characters))
-            for character in self.characters:
-                icon_path = self._icon_path(character.label)
-                icon = QIcon(icon_path) if icon_path else QIcon()
-                self.character_selector.addItem(
-                    icon,
-                    self._character_selector_text(character),
-                    character.key,
-                )
-            self._sync_character_selector_selection()
-        finally:
-            self.character_selector.blockSignals(False)
-
-    def _refresh_character_selector_runtime_labels(self) -> None:
-        by_key = {character.key: character for character in self.characters}
-        self.character_selector.blockSignals(True)
-        try:
-            for index in range(self.character_selector.count()):
-                key = str(self.character_selector.itemData(index) or "")
-                character = by_key.get(key)
-                if character is not None:
-                    self.character_selector.setItemText(index, character.label)
-        finally:
-            self.character_selector.blockSignals(False)
+    def _selector_icon_path(self, label: str) -> str:
+        return self._icon_path(label)
 
     @staticmethod
     def _success_text(points) -> str:
         if points is None:
             return "—"
         try:
-            return f"{int(points):,}".replace(",", " ")
+            return format_grouped_int(points)
         except (TypeError, ValueError, OverflowError):
             return str(points)
 
-    def _render_identity(self, character) -> None:
-        snapshot = self.runtime_state_store.snapshot(self.active_character_key)
-        points = snapshot.achievement_points if snapshot is not None else None
-        level = snapshot.level if snapshot is not None else None
-        points_text = self._success_text(points)
+    def _achievement_text(self, points: int | None) -> str:
+        return self._success_text(points)
 
-        self.achievement_points.setText(points_text)
-        self.character_level.setText(f"Niveau {level}" if level is not None else "")
-        self._render_stats(snapshot)
+    def _stat_text(self, value: int) -> str:
+        return str(value)
 
-        if character is None:
-            self.character_name.setText("Aucun personnage sélectionné")
-            self._set_portrait("")
-            return
-
-        self.character_name.setText(character.label)
-        self._set_portrait(self._visual_path(character.label))
-
-    def _render_stats(self, snapshot) -> None:
-        values = dict(snapshot.stats) if snapshot is not None else {}
-        visible = 0
-        for stat_key, _label_text in CHARACTER_STAT_ROWS:
-            row = self.stat_rows[stat_key]
-            value_label = self.stat_value_labels[stat_key]
-            if stat_key not in values:
-                value_label.setText("")
-                row.hide()
-                continue
-            value_label.setText(str(values[stat_key]))
-            row.show()
-            visible += 1
-
+    def _render_stats(self, snapshot) -> int:
+        visible = super()._render_stats(snapshot)
         self.stats_empty_label.setVisible(visible == 0)
         self.stats_scroll.setVisible(visible > 0)
+        return visible
 
     def _visual_path(self, label: str) -> str:
         # The equipment centre is reserved for the real character skin. A class
         # icon belongs in the selector and must not masquerade as the skin.
         return self._skin_path(label)
 
-    def _set_portrait(self, icon_path: str) -> None:
-        path = Path(icon_path) if icon_path else None
-        if path is None or not path.exists():
-            self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("Skin du personnage\n(à venir)")
-            return
-        pixmap = QPixmap(str(path))
-        if pixmap.isNull():
-            self.portrait.setPixmap(QPixmap())
-            self.portrait.setText("Skin du personnage\n(à venir)")
-            return
-        self.portrait.setText("")
-        self.portrait.setPixmap(
-            pixmap.scaled(
-                self.portrait.maximumWidth() - 12,
-                self.portrait.maximumHeight() - 12,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
-            )
-        )
+    def _portrait_placeholder(self) -> str:
+        return "Skin du personnage\n(à venir)"
 
 
 __all__ = ["CharacterPage"]

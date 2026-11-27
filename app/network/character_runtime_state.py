@@ -47,6 +47,11 @@ class CharacterRuntimeStateStore:
         with self._lock:
             return self._generation
 
+    def connected_character_keys(self) -> frozenset[str]:
+        """Current transport-backed identities, without copying profile facts."""
+        with self._lock:
+            return frozenset(self._session_characters.values())
+
     def snapshot(self, character_key: str) -> CharacterRuntimeSnapshot | None:
         key = str(character_key or "").strip()
         if not key:

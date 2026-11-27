@@ -74,6 +74,24 @@ class NetworkRuntimeStopLifecycleTests(unittest.TestCase):
         self.assertGreaterEqual(source.stop_calls, 1)
         self.assertFalse(runtime.is_running)
 
+    def test_reader_exit_does_not_certify_failed_source_cleanup(self) -> None:
+        from unittest.mock import patch
+
+        source = _BlockingEventSource()
+        bridge = _RecordingBridge()
+        runtime = NetworkEventRuntime(source, bridge, read_timeout=0.05)
+        with patch.object(source, "stop", side_effect=OSError("pause failed")):
+            self.assertTrue(runtime.start())
+            self.assertTrue(source.read_started.wait(1.0))
+            self.assertFalse(runtime.stop(join_timeout=1.0))
+            self.assertFalse(runtime.is_running)
+            self.assertEqual(runtime.start_failure_reason, "runtime_cleanup_failed")
+            self.assertFalse(runtime.start())
+            self.assertEqual(bridge.reset_calls, 1)
+        self.assertTrue(runtime.stop())
+        self.assertTrue(runtime.start())
+        self.assertTrue(runtime.stop())
+
     def test_event_already_in_flight_is_dropped_after_stop_request(self) -> None:
         final_event = object()
         source = _BlockingEventSource(final_event)

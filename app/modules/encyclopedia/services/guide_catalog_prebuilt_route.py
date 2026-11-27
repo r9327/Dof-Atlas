@@ -6,16 +6,18 @@ Custom providers and source/development launches keep their existing path.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import sys
 from pathlib import Path
 from typing import Any
 
+from app.core.file_hash import sha256_file as _sha256
+from app.core.file_stamp import source_file_sizes
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
 from app.quest_catalog import QUEST_CATALOG_SOURCE_FILES
 from app.modules.encyclopedia.providers.guide_provider import GUIDES_DIR
+from app.modules.encyclopedia.services.guide_release_signature import guide_steps_sha256 as _steps_digest
 from app.modules.encyclopedia.services.guide_catalog_route_store import (
     indexed_path, restore_indexed_route, write_indexed_route,
 )
@@ -29,23 +31,9 @@ LEGACY_STORE_NAME = "dofus_sylvestre.route.json.gz"
 MAX_STORE_BYTES = 128 * 1024 * 1024
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _source_sizes(data_dir: Path) -> dict[str, int]:
     """Cheap installed-source check: no 300 MB source hash at Guide open."""
-    sizes = {}
-    for _label, relative in QUEST_CATALOG_SOURCE_FILES:
-        file = data_dir / relative
-        try:
-            sizes[str(relative).replace("\\", "/")] = file.stat().st_size
-        except OSError:
-            sizes[str(relative).replace("\\", "/")] = -1
+    sizes = source_file_sizes(data_dir, QUEST_CATALOG_SOURCE_FILES)
     # The release route incorporates authored walkthrough text too. Check
     # its presence/size just like raw Quest sources; an updated bundle must
     # not silently reuse Sylvestre cards built from obsolete enrichment.
@@ -55,21 +43,6 @@ def _source_sizes(data_dir: Path) -> dict[str, int]:
     except OSError:
         sizes["encyclopedia/quests/quests_enriched.json"] = -1
     return sizes
-
-
-def _steps_digest(guide: Any) -> str:
-    steps = [
-        (
-            str(getattr(step, "id", "") or ""),
-            str(getattr(step, "step_type", "") or ""),
-            str(getattr(step, "entity_id", "") or ""),
-            int(getattr(step, "order", 0) or 0),
-        )
-        for step in getattr(guide, "required_steps", ()) or ()
-    ]
-    return hashlib.sha256(
-        json.dumps(steps, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
 
 
 def _bundle_dir() -> Path | None:

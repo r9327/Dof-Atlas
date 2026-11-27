@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.core.numbers import positive_int as _positive_int
 from app.network.contracts import _is_sha256
 
 import json
@@ -363,14 +364,6 @@ def _character_id_from_key(value: object) -> int | None:
     return character_id if character_id > 0 else None
 
 
-def _positive_int(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 

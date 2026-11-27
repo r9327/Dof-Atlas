@@ -171,6 +171,20 @@ class CharacterDataServiceTests(unittest.TestCase):
             persisted_profile = json.loads(profile.read_text(encoding="utf-8"))
             self.assertEqual(persisted_profile[KEY_SESSION_ORDER], ["alpha", "beta"])
 
+    def test_legacy_slot_id_conversion_preserves_valid_and_invalid_values(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "bindings.json"
+            path.write_text(json.dumps({"characters": {}, "slots": {
+                "1": {"character_id": "42", "name": "Alpha"},
+                "2": {"character_id": "invalid", "name": "Bad"},
+                "3": {"character_id": None, "name": "Missing"},
+                "4": {"character_id": 84, "name": "Beta"},
+            }}), encoding="utf-8")
+            service = CharacterDataService(binding_path=path)
+            self.assertEqual(service._binding_name(42), "Alpha")
+            self.assertEqual(service._binding_name(84), "Beta")
+            self.assertEqual(service._binding_name(91), "")
+
     def test_delete_rejects_non_verified_character_keys(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

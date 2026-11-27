@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.network.contracts import _is_sha256, active_build_matches
 
 from dataclasses import dataclass, replace
 from logging import Logger
@@ -169,23 +169,6 @@ def build_windows_network_runtime(
                 catchup_ready=catchup_ready,
             )
 
-    # Success points are static catalogue data, not a second progress source.
-    # Build this small index in normal runtime too because a verified Npcap
-    # AchievementsEvent contains IDs, while the score itself is the sum of the
-    # canonical point values already owned by AchievementProvider.
-    try:
-        achievement_points_by_id = {
-            int(achievement.id): max(0, int(achievement.points))
-            for achievement in achievement_provider.load_all()
-            if int(achievement.id) > 0
-        }
-    except Exception:
-        # Failure to build the optional profile index must never disable the
-        # already-verified identity/quest runtime. It only means points stay
-        # unavailable until the catalogue can be loaded successfully.
-        log.exception("Achievement point index unavailable for character network profile.")
-        achievement_points_by_id = {}
-
     effective_character_resolver = character_resolver or CharacterSlotResolver()
     known_session_recovery = VerifiedKnownSessionRecovery(
         effective_character_resolver,
@@ -193,6 +176,9 @@ def build_windows_network_runtime(
     )
 
     try:
+        def active_profile_matches() -> bool:
+            return is_current_profile and active_build_matches(fingerprint_provider, build_sha256)
+
         decoder = manifest.build_decoder(
             active_build_sha256_provider=fingerprint_provider,
         )
@@ -200,12 +186,13 @@ def build_windows_network_runtime(
         decoder = DiagnosticProtocolMessageDecoder(decoder, logger=log)
         decoder = CharacterRuntimeProtocolMessageDecoder(
             decoder,
-            achievement_points_by_id=achievement_points_by_id,
+            active_profile_matches=active_profile_matches,
             logger=log,
         )
         decoder = KnownSessionProtocolMessageDecoder(
             decoder,
             known_session_recovery,
+            active_profile_matches=active_profile_matches,
             logger=log,
         )
         raw_source = (
@@ -217,6 +204,8 @@ def build_windows_network_runtime(
             raw_source,
             logger=log,
             phase="runtime",
+            build_sha256=build_sha256,
+            active_build_provider=fingerprint_provider,
         )
         source = DecodedNetworkEventSource(diagnostic_source, decoder, logger=log)
         bridge = InstrumentedNetworkProgressBridge(

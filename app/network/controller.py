@@ -7,11 +7,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 from app.core.logger import get_runtime_logger
+from app.core.network_presentation import capture_retry_allowed
 from app.network.build_fingerprint import ActiveProtocolBuildFingerprintProvider
 from app.quest_catalog import QuestCatalog
 
 if TYPE_CHECKING:
     from app.network.bootstrap import NetworkBootstrapResult
+    from app.network.mapping_manifest import ProtocolMappingManifest
     from app.network.progress_bridge import EventApplicationResult
     from app.network.runtime import NetworkEventRuntime
     from app.network.transport import ProtocolMessageSource
@@ -58,6 +60,7 @@ class NetworkRuntimeController:
         self._context: NetworkRuntimeContext | None = None
         self._runtime: NetworkEventRuntime | None = None
         self._last_bootstrap: NetworkBootstrapResult | None = None
+        self._recovery_mapping: tuple[str, ProtocolMappingManifest] | None = None
         self._last_reason = "waiting_context"
 
     @property
@@ -71,12 +74,35 @@ class NetworkRuntimeController:
         with self._lock:
             return self._last_bootstrap
 
+    def active_build_sha256(self) -> str | None:
+        return self._fingerprint_provider()
+
+    def has_new_exact_mapping(self, build_sha256: str) -> bool:
+        """Detect an exact mapping added while passive calibration is running."""
+        from app.network.contracts import DEFAULT_PROTOCOL_MAPPING_DIR, missing_runtime_capabilities
+        from app.network.mapping_registry import ProtocolMappingRegistry
+
+        roots = self.mapping_roots if self.mapping_roots is not None else (DEFAULT_PROTOCOL_MAPPING_DIR,)
+        selection = ProtocolMappingRegistry(roots).select(build_sha256)
+        manifest = selection.manifest
+        candidate = None
+        if selection.usable and manifest is not None and not missing_runtime_capabilities(
+            manifest.provided_event_types
+        ):
+            candidate = (build_sha256, manifest)
+        with self._lock:
+            if candidate == self._recovery_mapping:
+                return False
+            self._recovery_mapping = candidate
+        # Bootstrap independently checks the build and the complete runtime contract.
+        return candidate is not None
+
     def status(self) -> NetworkControllerStatus:
         with self._lock:
             runtime = self._runtime
             reason = self._last_reason
-            if runtime is not None and not runtime.is_running:
-                reason = runtime.start_failure_reason or "runtime_stopped"
+            if runtime is not None and not runtime.is_running and capture_retry_allowed(reason):
+                reason = getattr(runtime, "start_failure_reason", "") or "runtime_stopped"
         return self._status(reason)
 
     def configure_context(
@@ -103,8 +129,9 @@ class NetworkRuntimeController:
         with self._lock:
             runtime = self._runtime
             context = self._context
+            last_reason = self._last_reason
         if runtime is not None and runtime.is_running:
-            return self._status("running")
+            return self._status("running" if capture_retry_allowed(last_reason) else last_reason)
         if context is None:
             with self._lock:
                 self._last_reason = "waiting_context"

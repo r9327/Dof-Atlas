@@ -8,8 +8,11 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QProgressBar, QVBoxLayout, QWidget
 
 from app.background_work import install_preload_priority_bridge
-from app.ui.components import atlas_application_icon
-from app.ui.theme import PALETTE, TYPOGRAPHY
+from app.ui.components import atlas_application_icon, configure_unity_progress_bar
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+PRELOAD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["preload_popup"]
 
 
 PRELOAD_TASK_ORDER = ("quests", "encyclopedia", "craft")
@@ -40,18 +43,19 @@ class PreloadProgressPopup(QDialog):
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setWindowModality(Qt.ApplicationModal)
         self.setModal(True)
-        self.setFixedWidth(470)
+        self.setFixedWidth(PRELOAD_GEOMETRY["dialog_width"])
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 24, 32, 28)
-        layout.setSpacing(14)
+        layout.setContentsMargins(*PRELOAD_GEOMETRY["page_margins"])
+        layout.setSpacing(PRELOAD_GEOMETRY["page_spacing"])
 
         icon = atlas_application_icon()
         if not icon.isNull():
             self.logo_label = QLabel(self)
             self.logo_label.setObjectName("PreloadPopupLogo")
             self.logo_label.setAlignment(Qt.AlignCenter)
-            self.logo_label.setPixmap(icon.pixmap(QSize(64, 64)))
+            size = PRELOAD_GEOMETRY["logo_box"]
+            self.logo_label.setPixmap(icon.pixmap(QSize(size, size)))
             layout.addWidget(self.logo_label)
 
         title = QLabel("Dofus Atlas")
@@ -65,36 +69,13 @@ class PreloadProgressPopup(QDialog):
         self.current_label.setWordWrap(True)
         layout.addWidget(self.current_label)
 
-        self.progress = QProgressBar()
-        self.progress.setObjectName("PreloadPopupProgress")
-        self.progress.setRange(0, len(PRELOAD_TASK_ORDER))
-        self.progress.setValue(0)
-        self.progress.setTextVisible(True)
-        self.progress.setFormat("%p %")
-        layout.addWidget(self.progress)
-
-        self.setStyleSheet(
-            "#PreloadProgressPopup {"
-            f" background: {PALETTE['BG']}; border: 1px solid {PALETTE['BORDER']};"
-            " border-radius: 12px;"
-            "}"
-            "#PreloadPopupTitle {"
-            f" color: {PALETTE['TEXT']}; font-size: 22px; font-weight: 700;"
-            f" font-family: {TYPOGRAPHY['FONT_FAMILY']};"
-            "}"
-            "#PreloadPopupCurrent {"
-            f" color: {PALETTE['TEXT_MUTED']}; font-size: 12px;"
-            ' font-family: "Lexend", "Segoe UI";'
-            "}"
-            "#PreloadPopupProgress {"
-            f" background: {PALETTE['PANEL_2']}; color: {PALETTE['TEXT']};"
-            f" border: 1px solid {PALETTE['BORDER']}; border-radius: 6px;"
-            " min-height: 17px; text-align: center;"
-            "}"
-            "#PreloadPopupProgress::chunk {"
-            f" background: {PALETTE['GREEN']}; border-radius: 5px;"
-            "}"
+        self.progress = configure_unity_progress_bar(
+            QProgressBar(), object_name="PreloadPopupProgress",
+            maximum=len(PRELOAD_TASK_ORDER), text_visible=True,
+            display_format="%p %",
         )
+        self.progress.setValue(0)
+        layout.addWidget(self.progress)
 
         # The standalone launcher remains the only visible progress window.
         # The same Qt state machine still drives Home's reveal in silent mode.
@@ -102,7 +83,9 @@ class PreloadProgressPopup(QDialog):
         self._has_started = False
         self._finished = False
         self._handed_off = False
-        self._hide_generation = 0
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        self._hide_timer.timeout.connect(self._hide_when_finished)
 
     def begin(self, states: Mapping[str, str] | None = None) -> None:
         """Show preload before any application pages are made visible."""
@@ -160,15 +143,13 @@ class PreloadProgressPopup(QDialog):
             )
 
         self._finished = completed == len(PRELOAD_TASK_ORDER)
-        self._hide_generation += 1
-        generation = self._hide_generation
         if self._finished:
-            QTimer.singleShot(
-                0 if self._silent_handoff else (500 if failed == 0 else 1800),
-                lambda: self._hide_if_current(generation),
-            )
-        elif not self._silent_handoff and not self.isVisible():
-            self._show_centered()
+            if not self._hide_timer.isActive():
+                self._hide_timer.start(0 if self._silent_handoff else (500 if failed == 0 else 1800))
+        else:
+            self._hide_timer.stop()
+            if not self._silent_handoff and not self.isVisible():
+                self._show_centered()
 
     def handoff(self) -> None:
         """Release the modal gate once the Quest preload reaches terminal state."""
@@ -178,7 +159,7 @@ class PreloadProgressPopup(QDialog):
         # The dialog's lifecycle is finished even if background cache tasks
         # remain active; permit close/reject and prevent a hidden modal gate.
         self._finished = True
-        self._hide_generation += 1
+        self._hide_timer.stop()
         self.hide()
         self.readyForMainWindow.emit()
 
@@ -205,10 +186,9 @@ class PreloadProgressPopup(QDialog):
             return
         event.ignore()
 
-    def _hide_if_current(self, generation: int) -> None:
-        if generation != self._hide_generation or not self._finished:
-            return
-        self.handoff()
+    def _hide_when_finished(self) -> None:
+        if self._finished and not self._handed_off:
+            self.handoff()
 
 
 __all__ = [

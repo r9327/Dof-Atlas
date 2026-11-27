@@ -78,13 +78,43 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "sylvestre" not in source
 
 
-    def test_both_sources_construct_the_exact_same_shared_view(self) -> None:
+    def test_guide_succes_and_catalogue_routes_share_the_same_renderer(self) -> None:
         source = ROUTER.read_text(encoding="utf-8")
         assert 'CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})' in source
-        assert source.count("view = SharedGuideManualView(") == 2
-        assert "GuideUltimeManualRuntimeService(" in source
+        guides = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
+        assert "view = SharedGuideManualView(" in guides
+        assert "self._build_manual_route_reader(service)" in guides
+        assert "self._build_manual_route_reader(service)" in source
+        assert "def ensure_guide_ultime_view(" not in source
+        assert "SharedGuideManualView(" not in source
+        assert "GuideUltimeManualRuntimeService(" in guides
         assert "GuideCatalogManualRuntimeService(" in source
 
+
+    def test_all_authorized_ganymede_entrypoints_use_indexed_guide_header(self) -> None:
+        """Both trusted continuous cutovers and imported manual guides share
+        the indexed Guide header controls; metadata-only rows stay disabled."""
+        continuous_router = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
+        continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(encoding="utf-8")
+        shared = SHARED.read_text(encoding="utf-8")
+        assert "SharedGuideManualView(" in continuous_router
+        assert "ContinuousGuideRoutePanel(" in continuous_router
+        assert 'replacement_status") == "TRUSTED_SOURCE_STEPS"' in continuous_router
+        controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        for renderer in (continuous, shared):
+            assert "AtlasGuideReadingHeader(" in renderer
+            assert ".global_progress_bar" in renderer
+            assert ".preparation_button" in renderer
+            assert ".participants_button" in renderer
+            # The role names belong to the real shared component, not copies.
+            for role in ("GuideCompactHeader", "GuideGlobalProgress",
+                         "GuideParticipantsButton", "GuideCompactPreparationProgress"):
+                assert role in controls, role
+                assert f'setObjectName("{role}")' not in renderer
+            assert "global_details_button.hide()" not in renderer
+        assert 'object_name="GuideMetricDropdown"' in controls
+        assert "AtlasGuideDisclosure(" in controls
+        assert "AtlasGuideSheetHeader(" in shared
 
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
         for path in UI_STYLES.rglob("*.py") if UI_STYLES.exists() else ():

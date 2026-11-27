@@ -166,6 +166,46 @@ class AdaptiveCertificationTests(unittest.TestCase):
                                  base_sha=BASE, head_sha=HEAD, deleted_paths=["tools/old.py"])
         self.assertEqual(result["profile"], "FULL_REQUIRED")
 
+    def test_large_valid_diff_requires_full_without_invalid_path_reason(self):
+        paths = [f"tools/reviewed_{i}.py" for i in range(382)]
+        with mock.patch.object(engine.ci_scope_gate, "classify_diff") as scoped:
+            result = engine.plan(self.root, paths, base_sha=BASE, head_sha=HEAD)
+        scoped.assert_not_called()
+        self.assertEqual(result["status"], "FULL_REQUIRED")
+        self.assertEqual(result["risk"], "CRITICAL")
+        self.assertIn("DIFF_SCOPE_EXCEEDS_ADAPTIVE_BUDGET", result["reasons"])
+        self.assertNotIn("INVALID_DIFF_PATHS", result["reasons"])
+        self.assertEqual(result["test_modules"], [])
+        self.assertFalse(result["validation"]["full_suite_waived"])
+        self.assertFalse(result["validation"]["phase_certified"])
+        invalid = self.build(paths + ["../escape.py"])
+        self.assertIn("INVALID_DIFF_PATHS", invalid["reasons"])
+
+    def test_large_inventory_only_omits_detail_for_valid_full_plan(self):
+        from tools.atlas_doctor_lib import certification_explain as explain
+        full = self.build([f"tools/reviewed_{i}.py" for i in range(101)])
+        with mock.patch.object(explain, "MAX_TESTS", 2):
+            result = explain.explain_selection(self.root, full)
+            self.assertEqual(result["status"], "ADVISORY_NO_FULL_WAIVER")
+            self.assertEqual(result["inventory_count"], 8)
+            self.assertEqual(result["deferred_count"], 8)
+            self.assertEqual(result["selected_count"], 0)
+            self.assertTrue(result["detail_omitted"])
+            self.assertEqual(result["tests"], [])
+            self.assertFalse(result["full_suite_waived"])
+            self.assertFalse(result["all_exclusions_proven_safe"])
+            for invalid in (
+                {**full, "status": "READY_TO_RUN_SCOPED", "profile": "FAST"},
+                {**full, "test_modules": ["tests.test_ci_dev_tests"]},
+                {**full, "reasons": ["INVALID_DIFF_PATHS"]},
+                {**full, "validation": {**full["validation"], "full_suite_waived": True}},
+            ):
+                with self.subTest(invalid=invalid["status"], reasons=invalid["reasons"]):
+                    self.assertEqual(explain.explain_selection(self.root, invalid)["status"], "BLOCKED")
+            unsafe = self.root / "tests" / "test_unsafe.py"
+            unsafe.mkdir()
+            self.assertEqual(explain.explain_selection(self.root, full)["status"], "BLOCKED")
+
     def test_untrusted_sha_escalates(self):
         result = engine.plan(self.root, ["tools/ci_dev_tests.py"],
                              base_sha="bad", head_sha=HEAD)

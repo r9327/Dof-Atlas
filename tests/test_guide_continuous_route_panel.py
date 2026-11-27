@@ -10,7 +10,9 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QFrame, QProgressBar
+from app.ui.components import AtlasGuideDisclosure, AtlasGuideParticipantButton, AtlasGuideReadingHeader
 
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -39,42 +41,262 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
-    def test_actual_summary_and_navigation_keep_popup_open(self):
-        self.assertEqual(
-            self.panel.navigation.position().viewed_step_id,
-            "ganymede_2205_step_0001",
-        )
-        self.assertEqual(self.panel.title_label.text(), "Fiche 1")
-        self.assertFalse(self.panel.summary.isVisible())
-        self.panel.summary_toggle.click()
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
-        self.panel.next_button.click()
-        self.assertEqual(
-            self.panel.navigation.position().viewed_step_id,
-            "ganymede_2205_step_0002",
-        )
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
-        self.panel.actual_button.click()
-        self.assertEqual(
-            self.panel.navigation.position().viewed_step_id,
-            "ganymede_2205_step_0001",
-        )
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
-        self.panel.summary_toggle.click()
-        self.assertFalse(self.panel.summary.isVisible())
-        self.panel.next_button.click()
-        self.assertFalse(self.panel.summary.isVisible())
-        self.panel.summary_toggle.click()
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
+    def test_shared_progress_bars_keep_distinct_guide_ranges(self):
+        primary = self.panel.global_progress_bar
+        preparation = self.panel.preparation_bar
+        self.assertEqual(primary.objectName(), "GuideGlobalProgress")
+        self.assertEqual((primary.minimum(), primary.maximum()), (0, 100))
+        self.assertEqual(preparation.objectName(), "GuideCompactPreparationProgress")
+        self.assertEqual((preparation.minimum(), preparation.maximum()), (0, 1))
+        self.assertEqual(preparation.value(), 0)
+        self.assertFalse(primary.isTextVisible())
+        self.assertFalse(preparation.isTextVisible())
 
-    def test_character_and_summary_controls_belong_to_the_active_card_header(self):
+    def test_continuous_travel_falls_back_to_clipboard_on_explicit_refusal(self):
+        from unittest.mock import Mock
+
+        messages = []
+        launch = Mock(return_value=False)
+        view = SimpleNamespace(
+            launch_travel_callback=launch,
+            status_callback=messages.append,
+        )
+        keys = ("character:1",)
+        command = "/travel 5,-18"
+        GuidesView._dispatch_continuous_route_travel(view, command, keys)
+        launch.assert_called_once_with(command, keys)
+        self.assertEqual(QApplication.clipboard().text(), command)
+        self.assertIn("copiée", messages[-1])
+
+    def test_continuous_travel_without_launcher_copies_verified_command(self):
+        messages = []
+        view = SimpleNamespace(
+            launch_travel_callback=None,
+            status_callback=messages.append,
+        )
+        QApplication.clipboard().setText("ancien contenu")
+        GuidesView._dispatch_continuous_route_travel(
+            view, "/travel 5,-18", ("character:1",),
+        )
+        self.assertEqual(QApplication.clipboard().text(), "/travel 5,-18")
+        self.assertIn("indisponible", messages[-1])
+        self.assertIn("copiée", messages[-1])
+
+    def test_continuous_travel_preserves_legacy_none_acceptance(self):
+        from unittest.mock import Mock
+
+        QApplication.clipboard().setText("ancienne commande")
+        messages = []
+        view = SimpleNamespace(
+            launch_travel_callback=Mock(return_value=None),
+            status_callback=messages.append,
+        )
+        GuidesView._dispatch_continuous_route_travel(
+            view, "/travel 5,-18", ("character:1",),
+        )
+        self.assertEqual(QApplication.clipboard().text(), "ancienne commande")
+        self.assertEqual(messages, [])
+
+    def test_continuous_travel_exception_copies_instruction(self):
+        from unittest.mock import Mock, patch
+
+        def failed_launch(_command, _keys):
+            raise RuntimeError("macro rejected")
+
+        messages = []
+        view = SimpleNamespace(
+            launch_travel_callback=failed_launch,
+            status_callback=messages.append,
+        )
+        with patch("app.modules.encyclopedia.views.guides_view.logging.getLogger"):
+            GuidesView._dispatch_continuous_route_travel(
+                view, "/zaap 1,2 ; /travel 5,-18", ("character:1",),
+            )
+        self.assertEqual(
+            QApplication.clipboard().text(), "/zaap 1,2 ; /travel 5,-18",
+        )
+        self.assertIn("copiée", messages[-1])
+
+    def test_preparation_scroll_reuses_global_policy_and_retains_height_cap(self):
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        scroll = self.panel.preparation_scroll
+        self.assertTrue(scroll.widgetResizable())
+        self.assertEqual(scroll.horizontalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+        self.assertEqual(scroll.objectName(), "GuideContinuousPreparationScroll")
+        self.assertEqual(
+            scroll.maximumHeight(), UNITY_MODULE_GEOMETRY_PX["guide_route"]["detail_max_height"],
+        )
+
+    def test_route_header_geometry_uses_dev_ui_tokens_at_four_sizes(self):
+        from app.ui.unity_palette import (
+            UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
+            UNITY_WINDOW_PRESETS_PX,
+        )
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_route"]
+        controls = UNITY_CONTROL_SIZES_PX
+        self.assertEqual(self.panel.preparation_scroll.maximumHeight(),
+                         geometry["detail_max_height"])
+        self.assertEqual(self.panel.global_progress_bar.height(), controls["progress_primary"])
+        self.assertEqual(self.panel.preparation_bar.height(), controls["progress_secondary"])
+        self.assertFalse(hasattr(self.panel, "summary"))
+        self.assertFalse(hasattr(self.panel, "summary_toggle"))
+        self.assertFalse(hasattr(self.panel, "route_progress"))
+        for preset, dimensions in UNITY_WINDOW_PRESETS_PX.items():
+            with self.subTest(preset=preset):
+                self.panel.resize(*dimensions)
+                self.app.processEvents()
+                self.assertEqual(self.panel.preparation_toggle.width(),
+                                 controls["progress_toggle_width"])
+                self.assertEqual(self.panel.preparation_toggle.height(),
+                                 controls["progress_toggle_height"])
+                self.assertEqual(self.panel.participants_button.width(),
+                                 controls["guide_character_button"])
+
+
+    def test_global_progress_tracks_both_lower_bars_across_all_four_presets(self):
+        from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
+        from unittest.mock import patch
+        reference = SimpleNamespace(label="Objet", optional_or_conditional=False,
+                                    obtainable_on_route=False, needed_at_step=1)
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            return_value=(reference,),
+        ):
+            self.panel.refresh()
+        self.panel.show()
+        self.panel.compact_header.global_details_button.click()
+        try:
+            for preset, dimensions in UNITY_WINDOW_PRESETS_PX.items():
+                with self.subTest(preset=preset):
+                    self.panel.resize(*dimensions)
+                    self.app.processEvents()
+                    def edges(widget):
+                        left = widget.mapTo(self.panel, widget.rect().topLeft()).x()
+                        return left, left + widget.width()
+                    global_span = edges(self.panel.global_progress_bar)
+                    prep_span = edges(self.panel.preparation_bar)
+                    self.assertLessEqual(global_span[0], prep_span[0])
+                    self.assertGreaterEqual(global_span[1], prep_span[1])
+                    self.assertGreater(global_span[1] - global_span[0], 0)
+                    self.assertGreater(prep_span[1] - prep_span[0], 0)
+                    summary_span = edges(self.panel.compact_header.summary_bar)
+                    self.assertEqual(prep_span[0], global_span[0])
+                    self.assertEqual(summary_span[1], global_span[1])
+                    self.assertLess(prep_span[1], summary_span[0])
+        finally:
+            self.panel.hide()
+
+
+    def test_disclosure_controls_keep_shared_unity_direction_and_panel_state(self):
+        preparation = self.panel.preparation_toggle
+        self.assertIsInstance(preparation, AtlasGuideDisclosure)
+        self.assertEqual(preparation.objectName(), "GuideMetricDropdown")
+        self.assertFalse(preparation.isChecked())
+        self.assertFalse(hasattr(self.panel, "summary_toggle"))
+        # This fixture has no certified preparation references.
+        self.assertFalse(preparation.isEnabled())
+        self.assertFalse(self.panel._preparation_open)
+        self.assertEqual(preparation.accessibleName(), "Afficher Préparation")
+
+
+    def test_global_disclosure_owns_both_drawers_and_hides_empty_preparation(self):
+        from unittest.mock import patch
+        header = self.panel.compact_header
+        self.panel.show()
+        self.addCleanup(self.panel.hide)
+        self.app.processEvents()
+        self.assertTrue(header.global_details_button.isVisible())
+        self.assertFalse(header.global_details_panel.isVisible())
+        self.assertTrue(header.global_progress_bar.isVisible())
+        header.global_details_button.click()
+        self.assertTrue(header.global_details_panel.isVisible())
+        self.assertTrue(header.summary_column.isVisible())
+        self.assertTrue(header.preparation_column.isHidden())
+        reference = SimpleNamespace(label="Objet", optional_or_conditional=False,
+                                    obtainable_on_route=False, needed_at_step=1)
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            return_value=(reference,),
+        ):
+            self.panel.refresh()
+            self.assertTrue(header.preparation_column.isVisible())
+            self.panel.preparation_toggle.click()
+            header.summary_button.click()
+            self.assertTrue(self.panel.preparation_scroll.isVisible())
+            self.assertTrue(header.summary_panel.isVisible())
+            header.global_details_button.click()
+            self.assertFalse(self.panel.preparation_scroll.isVisible())
+            self.assertFalse(header.summary_panel.isVisible())
+            header.global_details_button.click()
+            self.assertTrue(self.panel.preparation_scroll.isVisible())
+            self.assertTrue(header.summary_panel.isVisible())
+        self.panel.refresh()
+        self.assertTrue(header.preparation_column.isHidden())
+        self.assertFalse(self.panel.preparation_toggle.isChecked())
+        self.assertTrue(header.summary_button.isChecked())
+
+    def test_preparation_references_are_plain_lines_without_added_bullets(self):
+        from unittest.mock import patch
+
+        reference = SimpleNamespace(
+            label="Potion de rappel",
+            optional_or_conditional=False,
+            obtainable_on_route=False,
+            needed_at_step=1,
+        )
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            return_value=(reference,),
+        ):
+            self.panel.refresh()
+        self.assertIn("Potion de rappel", self.panel.preparation_label.text())
+        self.assertNotIn("\n• ", self.panel.preparation_label.text())
+
+    def test_actual_and_navigation_work_without_obsolete_summary(self):
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0001")
+        self.assertEqual(self.panel.title_label.text(), "Fiche 1")
+        self.assertFalse(hasattr(self.panel, "summary"))
+        self.panel.compact_header.global_details_button.click()
+        self.panel.compact_header.summary_button.click()
+        self.assertEqual(self.panel.compact_header.summary_panel.item(0).text(),
+                         f"1. {self.panel.title_label.text()}")
+        self.assertIn("non certifiés", self.panel.preparation_toggle.toolTip())
+        self.panel.compact_header.summary_panel.setCurrentRow(1)
+        self.assertEqual(self.panel.compact_header.summary_panel.item(1).text(),
+                         f"2. {self.panel.title_label.text()}")
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0002")
+        self.assertTrue(self.panel.compact_header.summary_button.isChecked())
+        self.panel.actual_button.click()
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0001")
+        self.panel.previous_button.click()
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0001")
+        self.assertFalse(self.panel.preparation_toggle.isChecked())
+
+
+    def test_all_trusted_continuous_routes_use_aligned_unity_shared_header(self):
         card = self.panel.title_label.parentWidget()
         self.assertEqual(card.objectName(), "GuideContinuousCard")
-        for control in (
-            self.panel.position_label, self.panel.participants_button,
-            self.panel.summary_toggle,
-        ):
-            self.assertIs(control.parentWidget(), card)
+        header = self.panel.compact_header
+        self.assertIsInstance(header, AtlasGuideReadingHeader)
+        self.assertEqual(header.objectName(), "GuideCompactHeader")
+        self.assertIs(self.panel.position_label.parentWidget(), header)
+        self.assertIs(self.panel.participants_button.parentWidget(), header)
+        self.assertIs(self.panel.preparation_toggle.parentWidget(), header.preparation_column)
+        self.assertEqual(self.panel.global_progress_bar.objectName(), "GuideGlobalProgress")
+        self.assertEqual(self.panel.preparation_bar.objectName(), "GuideCompactPreparationProgress")
+        self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
+        self.assertIs(self.panel.global_progress_bar, header.global_progress_bar)
+        self.assertIsInstance(self.panel.participants_button, AtlasGuideParticipantButton)
+        self.assertIsNone(header.findChild(QProgressBar, "GuideContinuousRouteProgress"))
+        self.assertFalse(hasattr(self.panel, "summary"))
+        self.assertIs(header.preparation_drawer.itemAt(0).widget(), self.panel.preparation_scroll)
+        self.assertIs(self.panel.preparation_bar.parentWidget(), header.preparation_column)
+        self.assertEqual((self.panel.preparation_bar.value(), self.panel.preparation_bar.maximum()), (0, 1))
         self.assertEqual(self.panel.position_label.text(), "FICHE 1")
         self.assertFalse(self.panel._characters_menu.isVisible())
         self.addCleanup(self.panel.hide)
@@ -82,18 +304,26 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         for width in (900, 1200):
             with self.subTest(width=width):
                 self.panel.resize(width, 600)
-                self.panel.summary.setVisible(True)
                 self.app.processEvents()
-                self.assertFalse(self.panel.participants_button.geometry().intersects(
-                    self.panel.summary_toggle.geometry(),
-                ))
-                self.assertLess(
-                    self.panel.participants_button.geometry().bottom(),
-                    self.panel.title_label.geometry().top(),
-                )
-                self.assertTrue(card.rect().contains(self.panel.summary_toggle.geometry()))
+                self.assertIs(self.panel.participants_button.parentWidget(), header)
+                self.assertGreater(self.panel.global_progress_bar.width(), 0)
+
+
+    def test_validation_checked_style_uses_only_unity_green_text_and_outline(self):
+        from app.ui.theme import PALETTE, atlas_stylesheet
+
+        style = atlas_stylesheet()
+        checked_selector = "QToolButton#GuideContinuousValidate:checked {"
+        self.assertIn(checked_selector, style)
+        checked_rules = style.split(checked_selector, 1)[1].split("}", 1)[0]
+        self.assertIn(f"color: {PALETTE['GREEN']}", checked_rules)
+        self.assertIn(f"border-color: {PALETTE['GREEN_BORDER']}", checked_rules)
+        self.assertNotIn("background:", checked_rules)
 
     def test_validation_is_real_and_per_character_only(self):
+        self.assertEqual(self.panel.validate_button.text(), "Valider")
+        self.assertTrue(self.panel.validate_button.isCheckable())
+        self.assertFalse(self.panel.validate_button.isChecked())
         self.panel.validate_button.click()
         step = "ganymede_2205_step_0001"
         self.assertTrue(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
@@ -105,7 +335,11 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                          "ganymede_2205_step_0002")
         self.panel.set_characters(["character:1"])
         self.panel.show_step(step)
+        self.assertEqual(self.panel.validate_button.text(), "Valider")
+        self.assertTrue(self.panel.validate_button.isChecked())
         self.panel.validate_button.click()
+        self.assertEqual(self.panel.validate_button.text(), "Valider")
+        self.assertFalse(self.panel.validate_button.isChecked())
         self.assertFalse(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id, step)
@@ -138,6 +372,22 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(extra.navigation.selected_character_keys, ("character:2",))
         self.assertEqual(self.store.manual_steps("character:1", "dofus_cawotte"), set())
 
+    def test_participant_projection_preserves_outer_signal_block(self):
+        characters = [SimpleNamespace(key="character:1", label="Alpha", connected=True, class_key="feca")]
+        panel = ContinuousGuideRoutePanel(
+            _source_route(), self.store, ("character:1",), available_characters=characters,
+        )
+        self.addCleanup(panel.deleteLater)
+        action = panel._character_actions["character:1"]
+        button = panel.character_icon_buttons["character:1"]
+        action.blockSignals(True)
+        button.blockSignals(True)
+        panel.refresh()
+        self.assertTrue(action.signalsBlocked())
+        self.assertTrue(button.signalsBlocked())
+        self.assertTrue(action.isChecked())
+        self.assertTrue(button.isChecked())
+
     def test_class_portraits_are_clickable_and_follow_stable_character_keys(self):
         characters = [
             SimpleNamespace(key="character:1", label="Alpha", connected=True, class_key="feca"),
@@ -149,6 +399,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(extra.deleteLater)
         self.assertEqual(len(extra.character_icon_buttons), 2)
+        from app.ui.components import AtlasGuideParticipantPortrait
+        self.assertTrue(all(isinstance(button, AtlasGuideParticipantPortrait)
+                            for button in extra.character_icon_buttons.values()))
         self.assertTrue(extra.character_icon_buttons["character:1"].isChecked())
         self.assertEqual(extra.character_icon_buttons["character:2"].toolTip(), "Beta")
         received = []
@@ -184,7 +437,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual((one.progress_checked, one.progress_total), (1, 3))
         self.assertEqual((two.progress_checked, two.progress_total), (1, 3))
         self.assertIsNone(extra.navigation.position().actual_step_id)
-        self.assertEqual(extra.route_progress.value(), 0)
+        self.assertEqual(extra.global_progress_bar.value(), 0)
 
     def test_picker_selection_survives_reopening_through_organizer_store(self):
         from app.services.guide_participant_service import GuideParticipantService
@@ -265,7 +518,11 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.addCleanup(panel.deleteLater)
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (2)")
         self.assertFalse(panel.preparation_scroll.isVisible())
+        panel.compact_header.global_details_button.click()
         panel.preparation_toggle.click()
+        self.assertTrue(panel.preparation_toggle.isChecked())
+        self.assertTrue(panel._preparation_open)
+        self.assertEqual(panel.preparation_toggle.accessibleName(), "Masquer Préparation")
         self.assertIn("Cawottes facultatives", panel.preparation_label.text())
         self.assertIn("étape 3", panel.preparation_label.text())
         self.assertIn("aucun achat présumé", panel.preparation_label.text())
@@ -277,18 +534,17 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.next_step()
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
 
-    def test_route_progress_reports_only_manual_selected_checks(self):
-        self.assertEqual(self.panel.route_progress.value(), 0)
-        self.assertIn("0/6", self.panel.route_progress.format())
+    def test_global_progress_reports_only_manual_selected_checks(self):
+        self.assertEqual(self.panel.global_progress_bar.value(), 0)
         self.panel.validate_button.click()
-        self.assertEqual(self.panel.route_progress.value(), 33)
-        self.assertIn("2/6", self.panel.route_progress.format())
+        self.assertEqual(self.panel.global_progress_bar.value(), 33)
+        self.assertIn("1/3", self.panel.progress_label.text())
         self.panel.set_characters(("character:1",))
-        self.assertEqual(self.panel.route_progress.value(), 33)
-        self.assertIn("1/3", self.panel.route_progress.format())
+        self.assertEqual(self.panel.global_progress_bar.value(), 33)
         self.panel.set_characters(())
-        self.assertEqual(self.panel.route_progress.value(), 0)
-        self.assertIn("aucun personnage", self.panel.route_progress.format())
+        self.assertEqual(self.panel.global_progress_bar.value(), 0)
+        self.assertEqual(self.panel.global_progress_value.text(), "—")
+
 
     def test_travel_remains_disabled_for_unverified_source_coordinates(self):
         from copy import deepcopy
@@ -303,6 +559,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         events = []
         panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
         self.assertFalse(panel.travel_button.isEnabled())
+        self.assertIn("Aucun trajet vérifié", panel.travel_button.toolTip())
         panel.request_current_travel()
         self.assertEqual(events, [])
 
@@ -353,7 +610,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.refresh()
         self.assertFalse(panel.travel_button.isEnabled())
         plan["source_step_id"] = step_id
-        panel.refresh()
+        panel.set_verified_travel_plans({step_id: plan})
         self.assertTrue(panel.travel_button.isEnabled())
         panel.set_verified_travel_plans({})
         self.assertFalse(panel.travel_button.isEnabled())
@@ -385,12 +642,83 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertTrue(panel.travel_button.isEnabled())
         panel.travel_button.click()
         self.assertEqual(events, [("/travel 5,-18", ("character:2",))])
+        # A disconnected but still selected character retains progress,
+        # not permission to receive another verified travel command.
+        panel.available_characters[1].connected = False
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(len(events), 1)
         panel.set_characters(("character:1",))
         self.assertFalse(panel.travel_button.isEnabled())
         panel.request_current_travel()
         self.assertEqual(len(events), 1)
 
-    def test_zaap_plan_requires_complete_verified_coordinates_and_exact_members(self):
+    def test_travel_rechecks_current_verified_connection_on_every_dispatch(self):
+        route = _source_route()
+        step_id = "ganymede_2205_step_0001"
+        state = {"connected": True}
+        checked = []
+
+        def current_characters():
+            checked.append(state["connected"])
+            row = SimpleNamespace(key="character:1", connected=state["connected"])
+            return (row, SimpleNamespace(key="character:1", connected=False)) if state.get("duplicate") else (row,)
+
+        plan = {
+            "mode": "direct",
+            "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "evidence": "atlas:verified-coordinate",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": step_id,
+            "source_payload_sha256": certified_payload_sha256(route),
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+            available_characters_provider=current_characters,
+            verified_travel_plans={step_id: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda command, keys: emitted.append((command, keys)))
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(emitted, [("/travel 5,-18", ("character:1",))])
+
+        # The original UI snapshot is still "connected", but the canonical
+        # identity provider now says otherwise. Neither the next click nor
+        # the refreshed button may use the old evidence.
+        state["connected"] = False
+        panel.refresh_connection_state()
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertEqual(len(emitted), 1)
+        panel.request_current_travel()
+        self.assertEqual(len(emitted), 1)
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertIn("hors ligne", panel.travel_button.toolTip())
+        self.assertEqual(panel.travel_button.accessibleDescription(),
+                         panel.travel_button.toolTip())
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        state["connected"] = True
+        panel.refresh()
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(len(emitted), 2)
+        self.assertIn(False, checked)
+        self.assertTrue(checked[-1])
+        state["duplicate"] = True
+        panel.request_current_travel()
+        self.assertEqual(len(emitted), 2)
+        self.assertFalse(panel.travel_button.isEnabled())
+        self.assertIn("ambiguë", panel.travel_button.toolTip())
+        state["duplicate"] = False
+        panel.refresh_connection_state()
+        self.assertTrue(panel.travel_button.isEnabled())
+
+    def test_zaap_plan_falls_back_to_direct_travel_with_exact_online_members(self):
         from copy import deepcopy
 
         route = deepcopy(_source_route())
@@ -405,27 +733,51 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "source_step_id": "ganymede_2205_step_0001",
         }
         plan["source_payload_sha256"] = certified_payload_sha256(route)
+        participants = [
+            SimpleNamespace(key="character:1", connected=True),
+            SimpleNamespace(key="character:2", connected=False),
+        ]
         panel = ContinuousGuideRoutePanel(
             route, self.store, ("character:1", "character:2"),
-            available_characters=[
-                SimpleNamespace(key="character:1", connected=True),
-                SimpleNamespace(key="character:2", connected=False),
-            ],
+            available_characters=participants,
             verified_travel_plans={"ganymede_2205_step_0001": plan},
         )
         self.addCleanup(panel.deleteLater)
         events = []
         panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
-        self.assertTrue(panel.travel_button.isEnabled())
-        panel.travel_button.click()
-        self.assertEqual(events, [
-            ("/zaap -32,-56 ; /travel 5,-18", ("character:1", "character:2")),
-        ])
-        plan["destination"]["x"] = -(2**31)
-        panel.refresh()
         self.assertFalse(panel.travel_button.isEnabled())
         panel.request_current_travel()
-        self.assertEqual(len(events), 1)
+        self.assertEqual(events, [])
+        # Verified connections establish the team identity. Live Zaap
+        # availability and a teleport acknowledgement are separate facts.
+        participants[1].connected = True
+        panel.refresh()
+        self.assertTrue(panel.travel_button.isEnabled())
+        self.assertIn("Zaap non confirmé en jeu", panel.travel_button.toolTip())
+        panel.travel_button.click()
+        self.assertEqual(events, [
+            ("/travel 5,-18", ("character:1", "character:2")),
+        ])
+        # A mutation of the caller-owned payload is not a new authorization.
+        plan["destination"]["x"] = 99
+        panel.request_current_travel()
+        self.assertEqual(events, [events[0], events[0]])
+        events.pop()
+        for bad_coordinate in (-(2**31), -(2**31) - 1, 2**31):
+            with self.subTest(destination=bad_coordinate):
+                plan["destination"]["x"] = bad_coordinate
+                panel.set_verified_travel_plans({"ganymede_2205_step_0001": plan})
+                self.assertFalse(panel.travel_button.isEnabled())
+                panel.request_current_travel()
+                self.assertEqual(len(events), 1)
+        plan["destination"]["x"] = 5
+        for bad_coordinate in (-(2**31), -(2**31) - 1, 2**31):
+            with self.subTest(zaap=bad_coordinate):
+                plan["zaap"]["y"] = bad_coordinate
+                panel.set_verified_travel_plans({"ganymede_2205_step_0001": plan})
+                self.assertFalse(panel.travel_button.isEnabled())
+                panel.request_current_travel()
+                self.assertEqual(len(events), 1)
 
     def test_travel_refuses_unregistered_keys_even_with_matching_plan(self):
         from copy import deepcopy

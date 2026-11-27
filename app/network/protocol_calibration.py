@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.core.numbers import positive_int as _positive_int
+from app.network.contracts import (
+    _is_sha256, active_build_matches,
+    forward_decoder_reset, forward_decoder_session_closed,
+)
 
 from dataclasses import dataclass, field
 from collections import deque
@@ -285,9 +289,7 @@ class CurrentProtocolCalibration:
         if session:
             self._sessions.pop(session, None)
             self._pending_journals.pop(session, None)
-        hook = getattr(self.decoder, "session_closed", None)
-        if callable(hook):
-            hook(session)
+        forward_decoder_session_closed(self.decoder, session)
 
     def reset(self) -> None:
         self._identity_events.clear()
@@ -295,9 +297,7 @@ class CurrentProtocolCalibration:
         self._pending_journals.clear()
         self._invalidated_reason = ""
         self._activity_sequence = 0
-        hook = getattr(self.decoder, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.decoder)
 
     def status(self) -> ProtocolCalibrationStatus:
         if self._invalidated_reason:
@@ -412,29 +412,17 @@ class CurrentProtocolCalibration:
         )
 
     def _build_matches(self) -> bool:
-        try:
-            active = str(self.active_build_sha256_provider() or "").strip().casefold()
-        except Exception:
-            return False
-        return active == self.build_sha256
+        return active_build_matches(
+            self.active_build_sha256_provider, self.build_sha256,
+        )
 
     def _invalidate(self, reason: str) -> None:
         self._sessions.clear()
         self._pending_journals.clear()
         self._invalidated_reason = str(reason or "calibration_invalidated")
-        hook = getattr(self.decoder, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.decoder)
 
 
-def _positive_int(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 

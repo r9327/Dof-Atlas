@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from logging import Logger
 from typing import Callable
 
@@ -14,6 +14,7 @@ from app.input.input_state import ATLAS_SYNTHETIC_KEYBOARD_EXTRA_INFO
 
 KEYEVENTF_EXTENDEDKEY = 0x0001
 KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_UNICODE = 0x0004
 MAPVK_VK_TO_VSC = 0
 EXTENDED_VKS = {
     0x21,  # PageUp
@@ -67,18 +68,20 @@ def _vk(key_name: str) -> int:
     return int(NAMED_KEYS.get(key, 0))
 
 
-def _send_keyboard(vk_code: int, *, up: bool) -> None:
-    if os.name != "nt" or not vk_code:
+def _send_keyboard(vk_code: int, *, up: bool, unicode_unit: int = 0) -> None:
+    if os.name != "nt" or not (vk_code or unicode_unit):
         return
     from app.windows.clicks import INPUT, INPUT_UNION, KEYBDINPUT
 
     _configure_keyboard_api()
     vk = int(vk_code)
     user32 = ctypes.windll.user32
-    scan = int(user32.MapVirtualKeyW(vk, MAPVK_VK_TO_VSC))
-    flags = (KEYEVENTF_KEYUP if up else 0) | (
-        KEYEVENTF_EXTENDEDKEY if vk in EXTENDED_VKS else 0
-    )
+    scan = unicode_unit or int(user32.MapVirtualKeyW(vk, MAPVK_VK_TO_VSC))
+    flags = KEYEVENTF_KEYUP if up else 0
+    if unicode_unit:
+        flags |= KEYEVENTF_UNICODE
+    elif vk in EXTENDED_VKS:
+        flags |= KEYEVENTF_EXTENDEDKEY
     event = INPUT(
         type=1,  # INPUT_KEYBOARD
         union=INPUT_UNION(ki=KEYBDINPUT(
@@ -223,6 +226,10 @@ def release_common_inputs() -> bool:
     return all_released
 
 
+class UnsupportedClipboardFormatsError(OSError):
+    """The clipboard was preserved because it contains unsupported formats."""
+
+
 @contextmanager
 def clipboard_text(text: str, logger: Logger):
     if os.name != "nt":
@@ -341,7 +348,9 @@ def clipboard_text(text: str, logger: Logger):
             if unsupported_formats:
                 # Unsupported formats cannot be recovered by retrying.
                 logger.warning("Clipboard conservé: %s", exc)
-                raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
+                raise UnsupportedClipboardFormatsError(
+                    "Clipboard multi-format non restaure: commande annulee"
+                ) from exc
             if recovery_failed:
                 # Never retry over an already damaged clipboard snapshot:
                 # it would be misread as empty and the backup would be lost.
@@ -405,11 +414,12 @@ def replace_chat_text_with_clipboard(
     key_step_ms: int = 0,
     paste_settle_ms: int = 0,
     should_stop: Callable[[], bool] | None = None,
+    *,
+    direct_text: str = "",
 ) -> bool:
     """Submit chat keystrokes; report the first failed native stage.
 
     A successful SendInput is not proof that Unity opened chat or accepted text.
-    No new polling/injection mechanism or unsafe fallback is introduced here.
     """
     if should_stop is not None and should_stop():
         return False
@@ -442,9 +452,17 @@ def replace_chat_text_with_clipboard(
             return False
         if should_stop is not None and should_stop():
             return False
-        stage = "CTRL+V"
-        press_hotkey("CTRL", "V")
-        stage = "attente après CTRL+V"
+        if direct_text:
+            stage = "saisie directe"
+            for character in direct_text:
+                if should_stop is not None and should_stop():
+                    return False
+                _send_keyboard(0, up=False, unicode_unit=ord(character))
+                _send_keyboard(0, up=True, unicode_unit=ord(character))
+        else:
+            stage = "CTRL+V"
+            press_hotkey("CTRL", "V")
+        stage = "attente après insertion"
         if _sleep_ms(paste_settle_ms, should_stop):
             return False
         return True
@@ -461,13 +479,23 @@ def send_chat_command(
     key_step_ms: int = 0,
     paste_settle_ms: int = 0,
     should_stop: Callable[[], bool] | None = None,
+    *,
+    allow_direct_text: bool = False,
 ) -> bool:
     # Stop is authoritative before touching the system clipboard at all.
     # The later checks remain necessary for a Stop during the paste sequence.
     if should_stop is not None and should_stop():
         logger.info("Commande chat stoppee avant preparation du clipboard.")
         return False
-    with clipboard_text(text, logger) as clipboard_revision:
+    with ExitStack() as stack:
+        direct_text = ""
+        try:
+            clipboard_revision = stack.enter_context(clipboard_text(text, logger))
+        except UnsupportedClipboardFormatsError:
+            if not allow_direct_text or not text or not all(" " <= char <= "~" for char in text):
+                raise
+            clipboard_revision = None
+            direct_text = text
         # A physical Ctrl+C during chat preparation would replace Atlas'
         # temporary command. Do not paste/submit that unrelated text.
         # Existing callers and injected test contexts without a native
@@ -499,6 +527,7 @@ def send_chat_command(
             key_step_ms=key_step_ms,
             paste_settle_ms=paste_settle_ms,
             should_stop=interrupted,
+            direct_text=direct_text,
         ):
             logger.info("Commande chat stoppee avant validation.")
             return False

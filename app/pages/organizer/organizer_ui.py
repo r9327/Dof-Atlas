@@ -7,7 +7,6 @@ from PySide6.QtCore import QEasingCurve, QPoint, QPointF, QPropertyAnimation, QR
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QFrame,
-    QGraphicsDropShadowEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -37,11 +36,13 @@ from app.constants import (
     KEY_SWITCH_MOVEMENT,
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.theme import render_theme_template
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, clear_unity_widget_layout, refresh_unity_widget_style, set_unity_widget_object_name, set_unity_widget_property, configure_unity_scroll_area
+from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
+from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
-    OrganizerGlassButton, OrganizerGlassCard, unity_glass_gradient,
+    OrganizerGlassButton, OrganizerGlassCard,
 )
 from .common import (
     BUTTON_HEIGHT,
@@ -52,6 +53,7 @@ from .common import (
     KEY_BADGE_HEIGHT,
     SESSION_SLOT_COUNT,
     class_icon_candidates,
+    dofus_class_key_for_character_name,
     dofus_class_key_from_window_name,
     empty_session_slot,
     session_hwnd,
@@ -61,9 +63,18 @@ from .common import (
 )
 
 
-@lru_cache(maxsize=48)
+ORGANIZER_GEOMETRY = UNITY_ORGANIZER_METRICS_PX
+
+
 def _organizer_class_pixmap(path: str) -> QPixmap:
-    """Remove only edge-connected near-black icon backgrounds, once per file."""
+    """Refresh the cleaned portrait whenever its source file changes."""
+    from pathlib import Path
+    source = Path(path)
+    return QPixmap(_organizer_class_pixmap_cached(str(source.resolve()), mtime_ctime_size_stamp(source)))
+
+
+@lru_cache(maxsize=48)
+def _organizer_class_pixmap_cached(path: str, stamp: tuple[int, int, int] | None) -> QPixmap:
     pixmap = QPixmap(path)
     if pixmap.isNull():
         return pixmap
@@ -73,13 +84,14 @@ def _organizer_class_pixmap(path: str) -> QPixmap:
     )
 
 
+@lru_cache(maxsize=1)
 def _organizer_grip_icon() -> QIcon:
     pixmap = QPixmap(20, 24)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
     painter.setPen(Qt.NoPen)
-    painter.setBrush(QColor("#B5C6DA"))
+    painter.setBrush(QColor(unity_painted_ui_color("organizer.grip")))
     for row in (5, 12, 19):
         for col in (6, 14):
             painter.drawEllipse(QPointF(col, row), 1.5, 1.5)
@@ -87,6 +99,7 @@ def _organizer_grip_icon() -> QIcon:
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=2)
 def _organizer_favorite_icon(selected: bool) -> QIcon:
     pixmap = QPixmap(24, 24)
     pixmap.fill(Qt.transparent)
@@ -99,38 +112,40 @@ def _organizer_favorite_icon(selected: bool) -> QIcon:
     ]
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#E7B850" if selected else "#AABACD"), 1.5))
-    painter.setBrush(QColor("#E7B850") if selected else Qt.NoBrush)
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.favorite" if selected else "organizer.favorite_idle")), 1.5))
+    painter.setBrush(QColor(unity_painted_ui_color("organizer.favorite")) if selected else Qt.NoBrush)
     painter.drawPolygon(QPolygonF(vertices))
     painter.end()
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=1)
 def _organizer_warning_icon() -> QIcon:
     """Draw the warning mark rather than relying on missing Unicode glyphs."""
     pixmap = QPixmap(26, 26)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#FFF0B2"), 1.4))
-    painter.setBrush(QColor("#E7AB32"))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.warning_outline")), 1.4))
+    painter.setBrush(QColor(unity_painted_ui_color("organizer.warning_fill")))
     painter.drawPolygon(QPolygonF([
         QPointF(13, 3), QPointF(24, 22), QPointF(2, 22),
     ]))
-    painter.setPen(QPen(QColor("#39240C"), 2.3, Qt.SolidLine, Qt.RoundCap))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.warning_detail")), 2.3, Qt.SolidLine, Qt.RoundCap))
     painter.drawLine(QPointF(13, 9), QPointF(13, 15))
     painter.drawPoint(QPointF(13, 19))
     painter.end()
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=1)
 def _organizer_refresh_icon() -> QIcon:
     """Antialiased refresh arrow visible with all fonts and DPI settings."""
     pixmap = QPixmap(28, 28)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#D7E6F1"), 2.3, Qt.SolidLine, Qt.RoundCap))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.refresh")), 2.3, Qt.SolidLine, Qt.RoundCap))
     painter.drawArc(QRectF(5.0, 5.0, 18.0, 18.0), 45 * 16, 290 * 16)
     painter.drawLine(QPointF(20.5, 4.8), QPointF(23.0, 11.2))
     painter.drawLine(QPointF(23.0, 11.2), QPointF(16.2, 10.3))
@@ -138,20 +153,21 @@ def _organizer_refresh_icon() -> QIcon:
     return QIcon(pixmap)
 
 
+@lru_cache(maxsize=24)
 def _organizer_action_icon(kind: str) -> QIcon:
     """Compact antialiased icons; no platform-font glyph dependencies."""
     pixmap = QPixmap(32, 32)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#E3EEF9"), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.action")), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
     if kind == "radial":
         # Monochrome pie, aligned with the other white action pictograms.
         painter.setBrush(Qt.NoBrush)
         for index in range(8):
-            painter.setPen(QPen(QColor("#E3EEF9"), 1.7, Qt.SolidLine, Qt.RoundCap))
+            painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.action")), 1.7, Qt.SolidLine, Qt.RoundCap))
             painter.drawPie(QRectF(4, 4, 24, 24), index * 45 * 16, 45 * 16)
-        painter.setBrush(QColor("#E3EEF9"))
+        painter.setBrush(QColor(unity_painted_ui_color("organizer.action")))
         painter.setPen(Qt.NoPen)
         painter.drawEllipse(QRectF(13, 13, 6, 6))
     elif kind == "macro":
@@ -192,7 +208,7 @@ def _organizer_action_icon(kind: str) -> QIcon:
             painter.drawLine(end, a)
             painter.drawLine(end, b)
     elif kind == "click":
-        painter.setBrush(QColor("#B9D3ED"))
+        painter.setBrush(QColor(unity_painted_ui_color("organizer.action_fill")))
         painter.drawPolygon(QPolygonF([
             QPointF(6, 4), QPointF(8, 25), QPointF(13, 19),
             QPointF(19, 27), QPointF(23, 24),
@@ -215,12 +231,8 @@ def _organizer_action_icon(kind: str) -> QIcon:
 
 
 def _organizer_card_shadow(panel: QFrame) -> None:
-    """Subtle Unity-style separation, never a black-filled backing rectangle."""
-    shadow = QGraphicsDropShadowEffect(panel)
-    shadow.setBlurRadius(18)
-    shadow.setOffset(0, 3)
-    shadow.setColor(QColor(5, 16, 34, 75))
-    panel.setGraphicsEffect(shadow)
+    """One shared Unity shadow on static cards, not a private Organizer effect."""
+    apply_unity_panel_shadow(panel)
 
 
 class OrganizerZaapWidget(ZaapWidget):
@@ -243,14 +255,14 @@ class CharacterSlotName(QWidget):
         self.full_name = full_name
         self.setObjectName("OrganizerTransparentHost")
         self.setMinimumWidth(0)
-        self.setFixedHeight(24)
+        self.setFixedHeight(ORGANIZER_GEOMETRY["slot_name_height"])
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         line = QHBoxLayout(self)
         line.setContentsMargins(0, 0, 0, 0)
         line.setSpacing(4)
         self.name_label = QLabel(full_name)
         self.name_label.setObjectName("CompactLabel" if detected else "MutedLabel")
-        self.name_label.setFixedHeight(24)
+        self.name_label.setFixedHeight(ORGANIZER_GEOMETRY["slot_name_height"])
         self.name_label.setMinimumWidth(0)
         self.name_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.name_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -263,7 +275,10 @@ class CharacterSlotName(QWidget):
             indicator = QLabel()
             indicator.setObjectName("PrimarySlotIndicator")
             indicator.setPixmap(_organizer_favorite_icon(True).pixmap(QSize(16, 16)))
-            indicator.setFixedSize(16, 24)
+            indicator.setFixedSize(
+                ORGANIZER_GEOMETRY["slot_indicator_width"],
+                ORGANIZER_GEOMETRY["slot_name_height"],
+            )
             indicator.setAlignment(Qt.AlignCenter)
             indicator.setFocusPolicy(Qt.NoFocus)
             indicator.setAttribute(Qt.WA_TransparentForMouseEvents, True)
@@ -297,8 +312,8 @@ class CharacterSlotsPanel(OrganizerGlassCard):
         slot_count: int = SESSION_SLOT_COUNT,
         row_height: int = CHARACTER_SLOT_HEIGHT,
         columns: int = 2,
-        horizontal_spacing: int = 8,
-        vertical_spacing: int = 6,
+        horizontal_spacing: int = ORGANIZER_GEOMETRY["slot_horizontal_spacing"],
+        vertical_spacing: int = ORGANIZER_GEOMETRY["slot_vertical_spacing"],
         card_padding: int = CARD_PADDING,
         card_spacing: int = CARD_SPACING,
         parent: QWidget | None = None,
@@ -334,7 +349,6 @@ class CharacterSlotsPanel(OrganizerGlassCard):
 
         self.content = QWidget()
         self.content.setObjectName("OrganizerTransparentHost")
-        self.content.setStyleSheet("QWidget#OrganizerTransparentHost { background: transparent; border: none; }")
         self.content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.grid = QGridLayout(self.content)
         self.grid.setContentsMargins(0, 0, 0, 0)
@@ -387,11 +401,27 @@ class CharacterSlotsPanel(OrganizerGlassCard):
         self.grid.addWidget(widget, row, column)
 
     def clear_slots(self) -> None:
-        while self.grid.count():
-            item = self.grid.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.grid, detach_widgets=False)
+
+
+def _position_organizer_highlight(
+    track: QFrame, target_widget: QWidget, highlight: QFrame,
+    animation: QPropertyAnimation, *, animate: bool,
+) -> None:
+    """Keep the Speed and Macro/Mirror sliders on the same geometry code."""
+    track.layout().activate()
+    target = target_widget.geometry()
+    if target.width() <= 0:
+        return
+    highlight.setFixedSize(target.size())
+    if animate and track.isVisible() and highlight.isVisible():
+        animation.setStartValue(highlight.pos())
+        animation.setEndValue(target.topLeft())
+        animation.start()
+    else:
+        highlight.move(target.topLeft())
+    highlight.lower()
+    highlight.show()
 
 
 class OrganizerSpeedSelector(QFrame):
@@ -431,32 +461,23 @@ class OrganizerSpeedSelector(QFrame):
         previous = self._selected
         self._selected = self.PRESETS.index(preset) if preset in self.PRESETS else None
         for index, button in enumerate(self._choices):
-            button.setObjectName(
+            set_unity_widget_object_name(
+                button,
                 "OrganizerSpeedChoiceSelected" if self._selected == index
-                else "OrganizerSpeedChoice"
+                else "OrganizerSpeedChoice",
             )
-            button.style().unpolish(button)
-            button.style().polish(button)
-        self._position_highlight(animated=previous is not None and previous != self._selected)
+        if previous != self._selected or (self._selected is not None and self.highlight.isHidden()):
+            self._position_highlight(animated=previous is not None and previous != self._selected)
 
     def _position_highlight(self, *, animated: bool = False) -> None:
         self._motion.stop()
         if self._selected is None:
             self.highlight.hide()
             return
-        self.layout().activate()
-        target = self._choices[self._selected].geometry()
-        if target.width() <= 0:
-            return
-        self.highlight.setFixedSize(target.size())
-        if animated and self.isVisible() and self.highlight.isVisible():
-            self._motion.setStartValue(self.highlight.pos())
-            self._motion.setEndValue(target.topLeft())
-            self._motion.start()
-        else:
-            self.highlight.move(target.topLeft())
-        self.highlight.lower()
-        self.highlight.show()
+        _position_organizer_highlight(
+            self, self._choices[self._selected], self.highlight, self._motion,
+            animate=animated,
+        )
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -475,8 +496,8 @@ class OrganizerModeSwitch(QFrame):
     def __init__(self, macro: QPushButton, mirror_cell: QWidget) -> None:
         super().__init__()
         self.setObjectName("OrganizerModeSwitch")
-        # Match the 194 + 8 + 194 grid exactly, including both column starts.
-        self.setFixedSize(396, BUTTON_HEIGHT)
+        # Match the same control widths and gutter as the Macro grid.
+        self.setFixedSize(ORGANIZER_GEOMETRY["mode_switch_width"], BUTTON_HEIGHT)
         self._choices = (macro, mirror_cell)
         self._selected = -1
         self.highlight = QFrame(self)
@@ -484,9 +505,9 @@ class OrganizerModeSwitch(QFrame):
         self.highlight.setObjectName("OrganizerModeHighlight")
         layout = QHBoxLayout(self)
         # The borderless track and zero margins prevent a 1-2px offset
-        # against the two 194px Macro/Quick-action columns.
+        # against the two Macro/Quick-action columns.
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(ORGANIZER_GEOMETRY["panel_gutter"])
         layout.addWidget(macro)
         layout.addWidget(mirror_cell)
         self.highlight.lower()
@@ -496,33 +517,25 @@ class OrganizerModeSwitch(QFrame):
 
     def set_selected(self, mirror: bool, *, armed: bool = False) -> None:
         new = 1 if mirror else 0
-        changed = self._selected >= 0 and self._selected != new
+        previous = self._selected
+        changed = previous >= 0 and previous != new
         self._selected = new
-        self.highlight.setObjectName(
+        set_unity_widget_object_name(
+            self.highlight,
             "OrganizerModeHighlightArmed" if mirror and armed
-            else "OrganizerModeHighlight"
+            else "OrganizerModeHighlight",
         )
-        self.highlight.style().unpolish(self.highlight)
-        self.highlight.style().polish(self.highlight)
-        self._sync_highlight(animate=changed)
+        if previous != new or self.highlight.isHidden():
+            self._sync_highlight(animate=changed)
 
     def _sync_highlight(self, *, animate: bool = False) -> None:
         self._animation.stop()
         if self._selected < 0:
             return
-        self.layout().activate()
-        target = self._choices[self._selected].geometry()
-        if target.width() <= 0:
-            return
-        self.highlight.setFixedSize(target.size())
-        if animate and self.isVisible() and self.highlight.isVisible():
-            self._animation.setStartValue(self.highlight.pos())
-            self._animation.setEndValue(target.topLeft())
-            self._animation.start()
-        else:
-            self.highlight.move(target.topLeft())
-        self.highlight.lower()
-        self.highlight.show()
+        _position_organizer_highlight(
+            self, self._choices[self._selected], self.highlight, self._animation,
+            animate=animate,
+        )
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -545,12 +558,10 @@ class OrganizerUiMixin:
         self.zaap.setObjectName("OrganizerZaapContent")
 
         # Organizer scrolls its own content; Atlas navigation stays fixed.
-        self.organizer_scroll = QScrollArea(self)
+        self.organizer_scroll = configure_unity_scroll_area(
+            QScrollArea(self), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.organizer_scroll.setObjectName("OrganizerContentScroll")
-        self.organizer_scroll.setFrameShape(QFrame.NoFrame)
-        self.organizer_scroll.setWidgetResizable(True)
-        self.organizer_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.organizer_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(self.organizer_scroll)
@@ -558,248 +569,17 @@ class OrganizerUiMixin:
         content = QWidget()
         content.setObjectName("OrganizerScrollContent")
         self.organizer_scroll.setWidget(content)
-        # Unity's shared yellow/green button border sprites have deep
-        # baked-in shadows. Organizer uses flat themed button surfaces only;
-        # do not remove these sprites from the other application modules.
-        # The colors come from Unity's single palette; the material adds
-        # cached background diffusion + edge glints, not a blue repaint.
-        glass_qss = """
-            #organizerPage QFrame#card {
-                /* GlassCard paints a cached diffused backdrop and specular
-                   rim; QSS cannot render a frosted material on its own. */
-                background: transparent;
-                border: none;
-                border-radius: 10px;
-                border-image: none;
-            }
-            #organizerPage QPushButton#primaryButton,
-            #organizerPage QPushButton#secondaryButton,
-            #organizerPage QPushButton#PrimaryActionButton,
-            #organizerPage QPushButton#SecondaryButton,
-            #organizerPage QPushButton#segmentedButton,
-            #organizerPage QPushButton#segmentedButtonActive,
-            #organizerPage QPushButton#dangerButton {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
-                border-image: none;
-                color: @TEXT_SOFT;
-                text-align: center;
-                padding: 0px 5px;
-            }
-            #organizerPage QPushButton#primaryButton,
-            #organizerPage QPushButton#PrimaryActionButton,
-            #organizerPage QPushButton#segmentedButtonActive {
-                background: @GLASS_GREEN;
-                border-color: @GREEN_BORDER;
-                color: @TEXT;
-            }
-            #organizerPage QPushButton#dangerButton {
-                background: @RED_DARK;
-                border-color: @RED;
-                color: @TEXT;
-                font-weight: 700;
-            }
-            #organizerPage QPushButton#primaryButton:hover,
-            #organizerPage QPushButton#secondaryButton:hover,
-            #organizerPage QPushButton#PrimaryActionButton:hover,
-            #organizerPage QPushButton#SecondaryButton:hover,
-            #organizerPage QPushButton#segmentedButton:hover,
-            #organizerPage QPushButton#segmentedButtonActive:hover {
-                background: @GLASS_HOVER;
-                border-color: @BORDER_STRONG;
-                color: @TEXT;
-            }
-            #organizerPage QPushButton#primaryButton:pressed,
-            #organizerPage QPushButton#secondaryButton:pressed,
-            #organizerPage QPushButton#PrimaryActionButton:pressed,
-            #organizerPage QPushButton#SecondaryButton:pressed,
-            #organizerPage QPushButton#segmentedButton:pressed,
-            #organizerPage QPushButton#segmentedButtonActive:pressed {
-                background: @PANEL_ACTIVE;
-                border-color: @GREEN_BORDER;
-            }
-            #organizerPage QPushButton#dangerButton:hover {
-                background: @RED_HOVER;
-                border-color: @RED;
-            }
-            #organizerPage QPushButton#dangerButton:pressed {
-                background: @RED_DARK;
-                border-color: @RED;
-            }
-            #organizerPage QPushButton#primaryButton:disabled,
-            #organizerPage QPushButton#secondaryButton:disabled,
-            #organizerPage QPushButton#PrimaryActionButton:disabled,
-            #organizerPage QPushButton#SecondaryButton:disabled,
-            #organizerPage QPushButton#segmentedButton:disabled,
-            #organizerPage QPushButton#segmentedButtonActive:disabled,
-            #organizerPage QPushButton#dangerButton:disabled {
-                background: @PANEL;
-                border-color: @BORDER_SOFT;
-                color: @TEXT_DISABLED;
-            }
-            /* All seven embedded shortcuts, STOP and character slots are
-               the SAME keyBadge family and 52x22 dimensions. */
-            #organizerPage QPushButton#keyBadge {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER_STRONG;
-                border-radius: 6px;
-                border-image: none;
-                color: @TEXT;
-                font-size: 10px;
-                font-weight: 700;
-                min-width: 0px;
-                /* 20px content + 2px borders = exact 22px Qt badge.
-                   A zero min-height allowed Qt to shrink them to 12px. */
-                min-height: 20px;
-                max-height: 20px;
-                padding: 0px 2px;
-                text-align: center;
-            }
-            #organizerPage QPushButton#keyBadge:hover {
-                background: @GLASS_HOVER;
-                border-color: @GREEN_BORDER;
-            }
-            #organizerPage QPushButton#keyBadge:pressed {
-                background: @GREEN_DARK;
-                border-color: @GREEN;
-            }
-            #organizerPage QPushButton#keyBadge:disabled {
-                background: @PANEL;
-                border-color: @BORDER_SOFT;
-                color: @TEXT_DISABLED;
-            }
-            #organizerPage QPushButton#iconButton,
-            #organizerPage QPushButton#iconButtonDanger {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER;
-                border-radius: 6px;
-                border-image: none;
-                color: @TEXT_SOFT;
-                padding: 0px;
-            }
-            #organizerPage QPushButton#iconButton:hover,
-            #organizerPage QPushButton#iconButtonDanger:hover {
-                background: @GLASS_HOVER;
-                border-color: @BORDER_STRONG;
-            }
-            #organizerPage QPushButton#iconButton:disabled,
-            #organizerPage QPushButton#iconButtonDanger:disabled {
-                background: @PANEL;
-                color: @TEXT_DISABLED;
-                border-color: @BORDER_SOFT;
-            }
-            #organizerPage QWidget#OrganizerTransparentHost {
-                background: transparent;
-                border: none;
-                border-image: none;
-            }
-            #organizerPage QLineEdit#comboField {
-                background: @PANEL_2;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
-                border-image: none;
-                color: @TEXT;
-                padding: 0px 8px;
-            }
-            #organizerPage QLineEdit#comboField:focus {
-                background: @PANEL_HOVER;
-                border-color: @GREEN;
-            }
-            #organizerPage QFrame#OrganizerSpeedSelector,
-            #organizerPage QFrame#OrganizerModeSwitch {
-                background: @PANEL;
-                border: none;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QFrame#OrganizerSpeedHighlight,
-            #organizerPage QFrame#OrganizerModeHighlight {
-                background: @GREEN_DARK;
-                border: 1px solid @GREEN_BORDER;
-                border-radius: 7px;
-                border-image: none;
-            }
-            #organizerPage QFrame#OrganizerModeHighlightArmed {
-                background: @ACTIVE_GRADIENT;
-                border: 1px solid @GREEN;
-                border-radius: 7px;
-                border-image: none;
-            }
-            #organizerPage QPushButton#OrganizerSpeedChoice,
-            #organizerPage QPushButton#OrganizerSpeedChoiceSelected,
-            #organizerPage QPushButton#OrganizerModeChoice {
-                background: transparent;
-                border: none;
-                border-image: none;
-                border-radius: 6px;
-                padding: 0px 2px;
-                color: @TEXT_SOFT;
-                font-size: 11px;
-                font-weight: 600;
-                min-height: 0px;
-            }
-            #organizerPage QPushButton#OrganizerSpeedChoiceSelected {
-                color: @TEXT;
-                font-weight: 700;
-            }
-            #organizerPage QScrollArea#OrganizerContentScroll,
-            #organizerPage QScrollArea#OrganizerZaapScroll,
-            #organizerPage QWidget#OrganizerContentViewport,
-            #organizerPage QWidget#OrganizerZaapViewport,
-            #organizerPage QWidget#OrganizerScrollContent,
-            #organizerPage QWidget#OrganizerZaapContent,
-            #organizerPage QWidget#ZaapFavoritesRow {
-                background: transparent;
-                border: none;
-                border-image: none;
-            }
-            #organizerPage QWidget#favoriteChip {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER_CARD;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QWidget#favoriteChip:hover {
-                background: @GLASS_HOVER;
-                border-color: @BORDER_STRONG;
-            }
-            #organizerPage QFrame#characterSlotEmpty,
-            #organizerPage QFrame#characterSlotMissing {
-                background: @PANEL_2;
-                border: 1px solid @BORDER_SOFT;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QFrame#characterSlot {
-                background: @PANEL_GRADIENT;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QFrame#characterSlotDragging,
-            #organizerPage QFrame#characterSlotDropTarget {
-                background: @PANEL_ACTIVE;
-                border: 1px solid @GREEN_BORDER;
-                border-radius: 8px;
-                border-image: none;
-            }
-        """
-        glass_qss = (
-            glass_qss
-            .replace("@GLASS_BUTTON", unity_glass_gradient())
-            .replace("@GLASS_HOVER", unity_glass_gradient(
-                "PANEL_HOVER", "PANEL_ACTIVE", top_alpha=199, bottom_alpha=206,
-            ))
-            .replace("@GLASS_GREEN", unity_glass_gradient(
-                "GREEN_DARK", "GREEN_DARK", top_alpha=196, bottom_alpha=218,
-            ))
-        )
-        self.setStyleSheet(render_theme_template(glass_qss))
+        # Organizer-specific materials and buttons are now provided by the
+        # app-wide Unity stylesheet; no private page style overrides them.
         root = QVBoxLayout(content)
         # Space for the lower rounded corners and drop shadows at all DPI.
-        root.setContentsMargins(14, 12, 14, 20)
-        root.setSpacing(12)
+        root.setContentsMargins(
+            ORGANIZER_GEOMETRY["root_margin_left"],
+            ORGANIZER_GEOMETRY["root_margin_top"],
+            ORGANIZER_GEOMETRY["root_margin_right"],
+            ORGANIZER_GEOMETRY["root_margin_bottom"],
+        )
+        root.setSpacing(ORGANIZER_GEOMETRY["root_spacing"])
         root.setAlignment(Qt.AlignTop)
 
         header = QHBoxLayout()
@@ -823,8 +603,8 @@ class OrganizerUiMixin:
 
         self.macro_mode_button = OrganizerGlassButton("Macro")
         self.mirror_mode_button = OrganizerGlassButton("Miroir")
-        self.macro_mode_button.setFixedSize(194, BUTTON_HEIGHT)
-        self.mirror_mode_button.setFixedSize(194, BUTTON_HEIGHT)
+        self.macro_mode_button.setFixedSize(ORGANIZER_GEOMETRY["mode_button_width"], BUTTON_HEIGHT)
+        self.mirror_mode_button.setFixedSize(ORGANIZER_GEOMETRY["mode_button_width"], BUTTON_HEIGHT)
         self.macro_mode_button.setToolTip("Revenir aux macros classiques")
         self.mirror_mode_button.setToolTip("Activer ou arrêter Miroir")
         self.quick_actions_title = QLabel("Action rapide")
@@ -842,7 +622,7 @@ class OrganizerUiMixin:
         self.mirror_toggle_hotkey_button = OrganizerGlassButton("")
         self.mirror_toggle_clear = OrganizerGlassButton("x")
         self.switch_fake = OrganizerGlassButton("Auto-groupe")
-        self.radial_select_button = OrganizerGlassButton("Sélection perso")
+        self.radial_select_button = OrganizerGlassButton("Sélection")
         self.radial_select_button.setAccessibleName("Sélection personnage")
         self.click_button = OrganizerGlassButton("")
         self.double_click_button = OrganizerGlassButton("")
@@ -865,16 +645,16 @@ class OrganizerUiMixin:
         self.stop_script_clear = OrganizerGlassButton("x")
         self.click_clear = OrganizerGlassButton("x")
 
-        control_size = QSize(194, BUTTON_HEIGHT)
+        control_size = QSize(ORGANIZER_GEOMETRY["mode_button_width"], BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
         # Extra bottom breathing room keeps Qt rounded borders/shadows visible.
-        controls_panel_height = 146
-        panel_inner_width = control_size.width() * 2 + 8
+        controls_panel_height = ORGANIZER_GEOMETRY["control_panel_height"]
+        panel_inner_width = control_size.width() * 2 + ORGANIZER_GEOMETRY["panel_gutter"]
         panel_width = panel_inner_width + CARD_PADDING * 2
-        stop_hotkey_size = QSize(52, KEY_BADGE_HEIGHT)
+        stop_hotkey_size = QSize(ORGANIZER_GEOMETRY["key_badge_width"], KEY_BADGE_HEIGHT)
         stop_size = QSize(panel_inner_width, BUTTON_HEIGHT)
-        shortcut_size = QSize(52, KEY_BADGE_HEIGHT)
+        shortcut_size = QSize(ORGANIZER_GEOMETRY["key_badge_width"], KEY_BADGE_HEIGHT)
 
         for button in (
             self.switch_character,
@@ -942,9 +722,9 @@ class OrganizerUiMixin:
         self.previous_character_hotkey_button.setAccessibleName("Raccourci personnage précédent")
         self.mirror_toggle_hotkey_button.setAccessibleName("Raccourci activation Miroir")
         self.script_speed_title.setObjectName("MutedLabel")
-        self.script_speed_title.setFixedSize(52, BUTTON_HEIGHT)
+        self.script_speed_title.setFixedSize(ORGANIZER_GEOMETRY["speed_caption_width"], BUTTON_HEIGHT)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.script_speed_legacy.setFixedSize(78, BUTTON_HEIGHT)
+        self.script_speed_legacy.setFixedSize(ORGANIZER_GEOMETRY["speed_legacy_width"], BUTTON_HEIGHT)
         self.script_speed_legacy.setObjectName("segmentedButton")
         self.click_button.setToolTip("Raccourci Switch Clique")
         self.double_click_button.setToolTip("Raccourci Switch clic x2")
@@ -975,7 +755,6 @@ class OrganizerUiMixin:
         ) -> QWidget:
             wrapper = QWidget()
             wrapper.setObjectName("OrganizerTransparentHost")
-            wrapper.setStyleSheet("QWidget#OrganizerTransparentHost { background: transparent; border: none; }")
             wrapper.setFixedSize(size)
             wrapper.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             cell = QGridLayout(wrapper)
@@ -985,12 +764,9 @@ class OrganizerUiMixin:
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
                 # The badge is embedded, but inset from the right border.
-                action.setStyleSheet(
-                    "text-align: center; padding-left: 4px; padding-right: 64px; font-size: 10px;"
-                )
+                set_unity_widget_property(action, "atlasShortcutInset", True)
                 badge_host = QWidget(wrapper)
                 badge_host.setObjectName("OrganizerTransparentHost")
-                badge_host.setStyleSheet("QWidget#OrganizerTransparentHost { background: transparent; border: none; }")
                 badge_host.setFixedSize(shortcut.width() + 8, BUTTON_HEIGHT)
                 badge_layout = QHBoxLayout(badge_host)
                 badge_layout.setContentsMargins(0, 0, 8, 0)
@@ -1001,7 +777,6 @@ class OrganizerUiMixin:
             if clear is not None:
                 clear_host = QWidget(wrapper)
                 clear_host.setObjectName("OrganizerTransparentHost")
-                clear_host.setStyleSheet("QWidget#OrganizerTransparentHost { background: transparent; border: none; }")
                 clear_host.setFixedSize(clear.width() + 6, clear.height() + 2)
                 clear_layout = QHBoxLayout(clear_host)
                 clear_layout.setContentsMargins(0, 2, 6, 0)
@@ -1064,7 +839,7 @@ class OrganizerUiMixin:
         self.mirror_mode_button.setObjectName("OrganizerModeChoice")
         # Keep Macro's button outside a nested grid layout. On the real
         # Windows certification runner that layout compresses its geometry
-        # to 194x24 even though its fixed size is 194x30.
+        # below its fixed height.
         macro_mode_host = QWidget()
         macro_mode_host.setObjectName("OrganizerTransparentHost")
         macro_mode_host.setFixedSize(control_size)
@@ -1130,7 +905,10 @@ class OrganizerUiMixin:
             self.script_speed_normal, self.script_speed_fast,
             self.script_speed_instant,
         )
-        self.speed_selector.setFixedWidth(panel_inner_width - 52 - 4)
+        self.speed_selector.setFixedWidth(
+            panel_inner_width - ORGANIZER_GEOMETRY["speed_caption_width"]
+            - ORGANIZER_GEOMETRY["speed_row_gap"]
+        )
         speed_row_layout.addWidget(self.speed_selector)
         # Preserve an existing Classique profile without silently accelerating
         # it. This legacy-only choice is no longer offered to the user.
@@ -1254,12 +1032,11 @@ class OrganizerUiMixin:
         self.zaap.search_input.setMinimumWidth(90)
         self.zaap.setMinimumWidth(0)
         self.zaap.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-        self.zaap_scroll = QScrollArea(self.zaap_panel)
+        self.zaap_scroll = configure_unity_scroll_area(
+            QScrollArea(self.zaap_panel), borderless=True,
+            vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.zaap_scroll.setObjectName("OrganizerZaapScroll")
-        self.zaap_scroll.setFrameShape(QFrame.NoFrame)
-        self.zaap_scroll.setWidgetResizable(True)
-        self.zaap_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.zaap_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.zaap_scroll.setMinimumWidth(0)
         self.zaap_scroll.viewport().setObjectName("OrganizerZaapViewport")
         self.zaap_scroll.setWidget(self.zaap)
@@ -1279,7 +1056,14 @@ class OrganizerUiMixin:
         root.addStretch(1)
 
     def _reflow_organizer_panels(self, width: int) -> None:
-        columns = 3 if width >= 1300 else 2 if width >= 880 else 1
+        panel_width = max(panel.minimumWidth() for panel in self._organizer_panels)
+        gap = self.controls_panels_grid.horizontalSpacing()
+        available = width - (
+            ORGANIZER_GEOMETRY["root_margin_left"]
+            + ORGANIZER_GEOMETRY["root_margin_right"]
+            + self.organizer_scroll.verticalScrollBar().sizeHint().width()
+        )
+        columns = max(1, min(3, (available + gap) // (panel_width + gap)))
         if self._organizer_panel_columns == columns:
             return
         self._organizer_panel_columns = columns
@@ -1311,19 +1095,15 @@ class OrganizerUiMixin:
         status_dot = getattr(self, "runtime_status_dot", None)
         if status_dot is None or not isValid(status_dot):
             return
-        status_dot.setObjectName("runtimeStatusActive" if connected else "runtimeStatusInactive")
-        self.restyle_button(status_dot)
+        set_unity_widget_object_name(status_dot, "runtimeStatusActive" if connected else "runtimeStatusInactive")
 
     def restyle_button(self, button: QPushButton) -> None:
-        button.style().unpolish(button)
-        button.style().polish(button)
-        button.update()
+        refresh_unity_widget_style(button)
 
     def set_toggle_button(self, button: QPushButton, label: str, enabled: bool) -> None:
         button.setText(label)
         button.setToolTip(f"{label} actif" if enabled else f"{label} inactif")
-        button.setObjectName("primaryButton" if enabled else "secondaryButton")
-        self.restyle_button(button)
+        set_unity_widget_object_name(button, "primaryButton" if enabled else "secondaryButton")
 
     def update_macro_mode_buttons(self) -> None:
         mirror = self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"
@@ -1509,7 +1289,7 @@ class OrganizerUiMixin:
                 slot_layout.setSpacing(7)
                 add_marker = QLabel("+")
                 add_marker.setObjectName("EmptySlotAdd")
-                add_marker.setFixedWidth(18)
+                add_marker.setFixedWidth(ORGANIZER_GEOMETRY["slot_indicator_width"])
                 add_marker.setAlignment(Qt.AlignCenter)
                 slot_layout.addWidget(add_marker)
                 empty_label = QLabel("Slot vide")
@@ -1558,11 +1338,13 @@ class OrganizerUiMixin:
             )
             class_key = str(verified_row.get("class_key") or "").strip().casefold()
             verified_class = class_key in DOFUS_CLASS_DEFINITIONS
+            title_class_key = None
             if not verified_class:
                 # Cosmetic hint only: a visible Unity window can show its
                 # class portrait before network proof exists. Never promote
                 # this title-derived class into a progression identity.
-                class_key = dofus_class_key_from_window_name(name) or ""
+                title_class_key = dofus_class_key_from_window_name(name)
+                class_key = title_class_key or dofus_class_key_for_character_name(name) or ""
             if class_key not in DOFUS_CLASS_DEFINITIONS:
                 class_key = ""
             icon_path = next(
@@ -1576,9 +1358,12 @@ class OrganizerUiMixin:
                 icon.setPixmap(pixmap)
             if class_key:
                 label = DOFUS_CLASS_DEFINITIONS[class_key]["label"]
-                icon.setToolTip(
-                    label if verified_class else f"{label} (titre Unity, non vérifié)"
-                )
+                if verified_class:
+                    icon.setToolTip(label)
+                elif title_class_key:
+                    icon.setToolTip(f"{label} (titre Unity, non vérifié)")
+                else:
+                    icon.setToolTip(f"{label} (classe non vérifiée)")
             icon.setCursor(Qt.OpenHandCursor)
             self.bind_session_drag_events(icon, index, row)
             layout.addWidget(icon)
@@ -1605,7 +1390,6 @@ class OrganizerUiMixin:
             self.bind_session_drag_events(remove, index, row)
             shortcut_wrap = QWidget()
             shortcut_wrap.setObjectName("OrganizerTransparentHost")
-            shortcut_wrap.setStyleSheet("QWidget#OrganizerTransparentHost { background: transparent; border: none; }")
             shortcut_wrap.setFixedSize(58, 24)
             shortcut_wrap.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self.bind_session_drag_events(shortcut_wrap, index, row)

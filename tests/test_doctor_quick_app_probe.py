@@ -24,7 +24,7 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         assert_inventory()
         self.assertEqual([r[0] for r in ROUTES if r[4]], [
             "dungeons", "monsters", "archmonsters", "wanted",
-            "treasure_hunt", "ocre", "almanax", "tutorials", "dofus_noob",
+            "treasure_hunt", "ocre", "tutorials", "dofus_noob",
         ])
 
     def test_home_handoff_is_separate_from_all_preloads_finished(self):
@@ -195,7 +195,7 @@ class ShortWholeAppProbeTests(unittest.TestCase):
         good = {
             "git_head": "a" * 40, "status": "PASS", "cycles": 1,
             "planned_samples": 20, "measured_routes": 20,
-            "functional_pass": 11, "placeholder_pass": 9,
+            "functional_pass": 12, "placeholder_pass": 8,
             "preload_states": {"quests": "READY", "encyclopedia": "READY", "craft": "READY"},
             "routes": samples, "failed_routes": [],
             "peak_process_tree_rss_mib": 150.0,

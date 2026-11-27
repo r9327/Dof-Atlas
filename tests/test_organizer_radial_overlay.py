@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QImage
 from PySide6.QtWidgets import QApplication, QWidget
 from shiboken6 import delete, isValid
 
@@ -22,6 +24,7 @@ from app.pages.organizer.radial_overlay import (
     OrganizerRadialHoldController,
     OrganizerRadialOverlay,
     physical_key_held,
+    _cached_radial_thumbnail, _radial_thumbnail, RADIAL_ICON_SIZE,
 )
 
 
@@ -58,6 +61,21 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_radial_thumbnail_cache_reuses_only_small_pixmaps(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "portrait.png"
+            image = QImage(100, 60, QImage.Format_ARGB32)
+            image.fill(0xFF497FBA)
+            self.assertTrue(image.save(str(path), "PNG"))
+            _cached_radial_thumbnail.cache_clear()
+            first = _radial_thumbnail(str(path))
+            second = _radial_thumbnail(str(path))
+            self.assertIs(first, second)
+            self.assertEqual((first.width(), first.height()),
+                             (RADIAL_ICON_SIZE, RADIAL_ICON_SIZE))
+            self.assertGreaterEqual(_cached_radial_thumbnail.cache_info().hits, 1)
+            _cached_radial_thumbnail.cache_clear()
 
     def test_every_radial_cardinality_uses_real_circular_arcs_not_polygons(self):
         import math

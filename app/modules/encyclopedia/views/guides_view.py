@@ -9,15 +9,12 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
-from functools import lru_cache
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer, Signal, Slot
-from PySide6.QtCore import QPoint
-from PySide6.QtGui import QColor, QIcon, QImage, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
+from PySide6.QtGui import QIcon, QImage, QMouseEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
-    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -35,7 +32,11 @@ from PySide6.QtWidgets import (
 from shiboken6 import isValid
 
 from app.constants import CLIENT_INDEX_JSON, PROFILE_FILE, QUEST_PROGRESS_FILE
+from app.ui.guide_glyphs import atlas_icon
 from app.core.character_identity import is_character_key
+from app.core.file_stamp import mtime_ctime_size_stamp_or_zero
+from app.core.map_coordinates import BRACKETED_POSITION_RE as TRAVEL_COORD_RE
+from app.core.map_coordinates import DOCUMENTARY_POSITION_RE, travel_command_from_link
 from app.modules.encyclopedia.models import Guide, GuideChapter, GuidePart, GuideSeries, GuideStep
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -49,11 +50,8 @@ from app.modules.encyclopedia.services import (
     QuestGraphService,
     QuestProgressService,
 )
-from app.modules.encyclopedia.views.guide_home_image_cache import (
-    get_cached_scaled_pixmap,
-    store_scaled_pixmap,
-)
-from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state
+from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE, read_scaled_image
+from app.modules.encyclopedia.views.guide_progress_presentation import guide_progress_state, guide_progress_style_state
 from app.modules.encyclopedia.widgets.dashboard import CollapsedColumnRail, FixedColumnSplitter
 from app.modules.encyclopedia.widgets.guide_card import (
     GUIDE_ID_ROLE,
@@ -62,20 +60,34 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import (
+    AtlasBreadcrumb, AtlasButton, AtlasPanelToggle, atlas_prerequisite_row, atlas_guide_state_marker,
+    AtlasImagePopup, AtlasGuideReadingHeader, clear_unity_widget_layout, configure_unity_tool_button,
+    configure_unity_progress_bar, configure_unity_scroll_area,
+    present_transient_dialog,
+    set_unity_widget_property,
+)
+from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
+from app.ui.unity_palette import (
+    UNITY_GUIDE_READING_METRICS_PX,
+    UNITY_MODULE_GEOMETRY_PX,
+)
+
+GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+SOLUTION_DECODE_MAX_SIZE = QSize(1180, 860)
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.services.guide_quest_view_model import (
-        DisplayItem,
         DisplayReward,
         DisplaySolutionBlock,
         SolutionObjective,
+        SolutionStep,
     )
     from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
         GuideUltimeManualRuntimeService,
     )
-    from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualView
+    from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 
 
 _GUIDE_QUEST_VM = None
@@ -108,10 +120,6 @@ def clean_requirement_line(*args, **kwargs):
 
 def first_position_from_quest(*args, **kwargs):
     return _vm_call("first_position_from_quest", *args, **kwargs)
-
-
-def format_number(*args, **kwargs):
-    return _vm_call("format_number", *args, **kwargs)
 
 
 def guide_activities(*args, **kwargs):
@@ -153,7 +161,7 @@ def item_row(*args, **kwargs):
 
 
 Navigator = Callable[..., bool]
-TravelLauncher = Callable[[str, tuple[str, ...]], None]
+TravelLauncher = Callable[[str, tuple[str, ...]], bool | None]
 LOGGER = logging.getLogger("dofus_atlas.encyclopedia.images")
 
 GUIDE_ULTIME_LEGACY_ID = "guide_complet"
@@ -165,15 +173,14 @@ CATEGORY_LABELS = {
     "alignements": "ALIGNEMENTS",
     "dofus": "DOFUS",
 }
-TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
-DOFUS_CARD_MIN_WIDTH = 86
-DOFUS_CARD_MAX_WIDTH = 126
-DOFUS_CARD_HEIGHT = 118
-DOFUS_GRID_SPACING = 8
-DOFUS_GRID_MAX_COLUMNS = 5
-HOME_GUIDE_LEFT_MIN_WIDTH = 285
-HOME_GUIDE_LEFT_MAX_WIDTH = 360
-GUIDE_STEPS_OPEN_WIDTH = 190
+DOFUS_CARD_MIN_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_min_width"]
+DOFUS_CARD_MAX_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_max_width"]
+DOFUS_CARD_HEIGHT = GUIDE_CARD_GEOMETRY["dofus_card_height"]
+DOFUS_GRID_SPACING = GUIDE_CARD_GEOMETRY["dofus_grid_gap"]
+DOFUS_GRID_MAX_COLUMNS = GUIDE_CARD_GEOMETRY["dofus_grid_max_columns"]
+HOME_GUIDE_LEFT_MIN_WIDTH = GUIDE_CARD_GEOMETRY["home_left_min_width"]
+HOME_GUIDE_LEFT_MAX_WIDTH = GUIDE_CARD_GEOMETRY["home_left_max_width"]
+GUIDE_STEPS_OPEN_WIDTH = GUIDE_CARD_GEOMETRY["guide_steps_open_width"]
 GUIDE_STEPS_COLLAPSED_WIDTH = 44
 GUIDE_SERIES_INITIAL_STEP_LIMIT = 40
 GUIDE_OVERVIEW_REWARD_LIMIT = 12
@@ -185,7 +192,7 @@ atexit.register(SOLUTION_IMAGE_EXECUTOR.shutdown, wait=False, cancel_futures=Tru
 
 
 class _AsyncImageDelivery(QObject):
-    guideImageDecoded = Signal(object, object, QSize, str)
+    guideImageDecoded = Signal(object, object, QSize, str, object)
     solutionImageDecoded = Signal(object, object)
 
     def __init__(self) -> None:
@@ -193,12 +200,12 @@ class _AsyncImageDelivery(QObject):
         self.guideImageDecoded.connect(self._deliver_guide_image)
         self.solutionImageDecoded.connect(self._deliver_solution_image)
 
-    @Slot(object, object, QSize, str)
-    def _deliver_guide_image(self, target_ref, image: QImage, size: QSize, used_path: str) -> None:
+    @Slot(object, object, QSize, str, object)
+    def _deliver_guide_image(self, target_ref, image: QImage, size: QSize, used_path: str, stamp) -> None:
         target = target_ref()
         if target is None or not isValid(target):
             return
-        target.imageDecoded.emit(image, size, used_path)
+        target.imageDecoded.emit(image, size, used_path, stamp)
 
     @Slot(object, object)
     def _deliver_solution_image(self, target_ref, image: QImage) -> None:
@@ -211,20 +218,6 @@ class _AsyncImageDelivery(QObject):
 _ASYNC_IMAGE_DELIVERY: _AsyncImageDelivery | None = None
 
 
-def _decode_qimage(payload: bytes, kind: str) -> QImage:
-    started = time.perf_counter()
-    image = QImage.fromData(payload)
-    LOGGER.debug(
-        "QImage decode kind=%s bytes=%d width=%d height=%d worker_ms=%.3f",
-        kind,
-        len(payload),
-        image.width(),
-        image.height(),
-        (time.perf_counter() - started) * 1000.0,
-    )
-    return image
-
-
 def _ensure_async_image_delivery() -> _AsyncImageDelivery:
     global _ASYNC_IMAGE_DELIVERY
     if _ASYNC_IMAGE_DELIVERY is None:
@@ -235,28 +228,31 @@ def _ensure_async_image_delivery() -> _AsyncImageDelivery:
 def _decode_guide_image(target_ref, paths: tuple[str, ...], size: QSize) -> None:
     image = QImage()
     used_path = ""
+    stamp = None
     for path in paths:
-        try:
-            payload = Path(path).read_bytes()
-        except OSError:
+        source = Path(path)
+        revision = mtime_ctime_size_stamp_or_zero(source)
+        if not revision[0]:
             continue
-        candidate = _decode_qimage(payload, "guide")
+        candidate = read_scaled_image(source, size)
         if candidate.isNull():
             continue
         image = candidate
         used_path = path
+        stamp = revision
         break
     delivery = _ASYNC_IMAGE_DELIVERY
     if delivery is not None:
-        delivery.guideImageDecoded.emit(target_ref, image, size, used_path)
+        delivery.guideImageDecoded.emit(target_ref, image, size, used_path, stamp)
 
 
 def _decode_solution_image(target_ref, image_path: str) -> None:
-    try:
-        payload = Path(image_path).read_bytes()
-    except OSError:
-        payload = b""
-    image = _decode_qimage(payload, "solution")
+    started = time.perf_counter()
+    image = read_scaled_image(Path(image_path), SOLUTION_DECODE_MAX_SIZE)
+    LOGGER.debug(
+        "scaled image decode kind=solution width=%d height=%d worker_ms=%.3f",
+        image.width(), image.height(), (time.perf_counter() - started) * 1000.0,
+    )
     delivery = _ASYNC_IMAGE_DELIVERY
     if delivery is not None:
         delivery.solutionImageDecoded.emit(target_ref, image)
@@ -280,7 +276,7 @@ class GuideHomeCard(QFrame):
 
     selected = Signal(str)
     _atlas_async_image_loader = True
-    imageDecoded = Signal(object, object, str)
+    imageDecoded = Signal(object, object, str, object)
 
     def __init__(
         self,
@@ -293,6 +289,7 @@ class GuideHomeCard(QFrame):
         self._async_image_size = QSize()
         self._async_image_paths: tuple[str, ...] = ()
         self._async_image_started = False
+        self._async_image_retried = False
         super().__init__(parent)
         _ensure_async_image_delivery()
         self.guide = guide
@@ -337,29 +334,47 @@ class GuideHomeCard(QFrame):
             lambda _obj=None, pending=future: _cancel_pending_future(pending)
         )
 
-    def _build_adventure_card(self) -> None:
-        self.setMinimumWidth(245)
-        self.setMaximumWidth(275)
-        self.setMinimumHeight(172)
-        root = QVBoxLayout(self)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(8)
-
-        image = QLabel()
-        image.setObjectName("GuideAdventureImage")
-        image.setFixedHeight(86)
-        image.setMinimumWidth(210)
-        image.setAlignment(Qt.AlignCenter)
-        image.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        if self._load_image(image, QSize(230, 86)):
-            root.addWidget(image)
-
+    def _append_home_title(self, root: QVBoxLayout) -> QLabel:
+        """Same centered Guide title for adventure and alignment cards."""
         title = QLabel(_catalog_guide_title(self.guide))
         title.setObjectName("GuideHomeCardTitle")
         title.setAlignment(Qt.AlignCenter)
         title.setWordWrap(True)
         title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(title)
+        return title
+
+    def _append_progress_label(self, root: QVBoxLayout) -> QLabel | None:
+        """One GuideHomeProgress role for adventure and alignment cards."""
+        progress = _progress_label(self.progress)
+        if not progress:
+            return None
+        count = QLabel(progress)
+        count.setObjectName("GuideHomeProgress")
+        count.setAlignment(Qt.AlignCenter)
+        count.setProperty("state", _tuple_progress_state(self.progress))
+        count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        root.addWidget(count)
+        return count
+
+    def _build_adventure_card(self) -> None:
+        self.setMinimumWidth(GUIDE_CARD_GEOMETRY["featured_min_width"])
+        self.setMaximumWidth(GUIDE_CARD_GEOMETRY["featured_max_width"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["featured_min_height"])
+        root = QVBoxLayout(self)
+        root.setContentsMargins(12, 12, 12, 12)
+        root.setSpacing(8)
+
+        image = QLabel()
+        image.setObjectName("GuideAdventureImage")
+        image.setFixedHeight(GUIDE_CARD_GEOMETRY["featured_image_height"])
+        image.setMinimumWidth(GUIDE_CARD_GEOMETRY["featured_image_min_width"])
+        image.setAlignment(Qt.AlignCenter)
+        image.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        if self._load_image(image, QSize(230, 86)):
+            root.addWidget(image)
+
+        self._append_home_title(root)
 
         subtitle = QLabel(_catalog_subtitle(self.guide))
         subtitle.setObjectName("GuideHomeCardMeta")
@@ -367,19 +382,12 @@ class GuideHomeCard(QFrame):
         subtitle.setWordWrap(True)
         subtitle.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(subtitle)
-        progress = _progress_label(self.progress)
-        if progress:
-            count = QLabel(progress)
-            count.setObjectName("GuideHomeProgress")
-            count.setAlignment(Qt.AlignCenter)
-            count.setProperty("state", _tuple_progress_state(self.progress))
-            count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-            root.addWidget(count)
+        self._append_progress_label(root)
 
     def _build_alignment_card(self) -> None:
-        self.setMinimumWidth(126)
-        self.setMaximumWidth(150)
-        self.setMinimumHeight(138)
+        self.setMinimumWidth(GUIDE_CARD_GEOMETRY["small_min_width"])
+        self.setMaximumWidth(GUIDE_CARD_GEOMETRY["small_max_width"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["small_min_height"])
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(9)
@@ -394,20 +402,8 @@ class GuideHomeCard(QFrame):
             image.setPixmap(atlas_icon("quest").pixmap(32, 32))
         root.addWidget(image, 0, Qt.AlignCenter)
 
-        title = QLabel(_catalog_guide_title(self.guide))
-        title.setObjectName("GuideHomeCardTitle")
-        title.setAlignment(Qt.AlignCenter)
-        title.setWordWrap(True)
-        title.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        root.addWidget(title)
-        progress = _progress_label(self.progress)
-        if progress:
-            count = QLabel(progress)
-            count.setObjectName("GuideHomeProgress")
-            count.setAlignment(Qt.AlignCenter)
-            count.setProperty("state", _tuple_progress_state(self.progress))
-            count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-            root.addWidget(count)
+        self._append_home_title(root)
+        self._append_progress_label(root)
         root.addStretch(1)
 
     def _build_dofus_card(self, progress: tuple[int, int, str] | None) -> None:
@@ -445,13 +441,12 @@ class GuideHomeCard(QFrame):
         count.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(count)
 
-        bar = QProgressBar()
-        bar.setObjectName("GuideDofusHomeBar")
+        bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="GuideDofusHomeBar",
+            maximum=total if total else 1, height_role="progress_home_compact",
+        )
         bar.setProperty("state", _tuple_progress_state(progress))
-        bar.setRange(0, total if total else 1)
         bar.setValue(min(completed, total) if total else 0)
-        bar.setTextVisible(False)
-        bar.setFixedHeight(5)
         bar.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         root.addWidget(bar)
 
@@ -481,7 +476,7 @@ class GuideHomeCard(QFrame):
         if not existing:
             return False
         first_path = Path(existing[0])
-        cached = get_cached_scaled_pixmap(first_path, size)
+        cached = ENCYCLOPEDIA_IMAGE_SERVICE.get_scaled(first_path, size)
         if not cached.isNull():
             label.setPixmap(cached)
             return True
@@ -490,10 +485,18 @@ class GuideHomeCard(QFrame):
         self._async_image_paths = tuple(existing)
         return True
 
-    def _finish_async_image(self, image: QImage, size: QSize, used_path: str) -> None:
+    def _finish_async_image(self, image: QImage, size: QSize, used_path: str, stamp=None) -> None:
         label = self._async_image_target
         if label is None:
             return
+        if used_path and stamp != mtime_ctime_size_stamp_or_zero(Path(used_path)):
+            if not self._async_image_retried:
+                self._async_image_retried = True
+                self._async_image_started = False
+                if self.isVisible():
+                    self._start_async_image()
+                return
+            image = QImage()
         if image.isNull() or not used_path:
             if self.variant == "alignment":
                 label.setPixmap(atlas_icon("quest").pixmap(32, 32))
@@ -504,8 +507,11 @@ class GuideHomeCard(QFrame):
             return
         pixmap = QPixmap.fromImage(image)
         scaled = pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        scaled = store_scaled_pixmap(Path(used_path), size, scaled)
-        label.setPixmap(scaled)
+        scaled = ENCYCLOPEDIA_IMAGE_SERVICE.store_scaled(
+            Path(used_path), size, scaled, source_stamp=stamp,
+        )
+        if not scaled.isNull():
+            label.setPixmap(scaled)
 
 
 class DofusGuideGrid(QScrollArea):
@@ -517,10 +523,9 @@ class DofusGuideGrid(QScrollArea):
         self.current_columns = 0
         self.current_card_width = 0
         self.setObjectName("GuideDofusGridScroll")
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.NoFrame)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        configure_unity_scroll_area(
+            self, borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.content = QWidget()
@@ -893,22 +898,36 @@ class GuideCollapsedStepsRail(CollapsedColumnRail):
 class SolutionImageLabel(QLabel):
     imageLoaded = Signal(object)
 
-    def __init__(self, image_path: str, caption: str = "", parent: QWidget | None = None) -> None:
+    def __init__(
+        self, image_path: str, caption: str = "", parent: QWidget | None = None,
+        *, max_preview_size: tuple[int, int] | None = None,
+    ) -> None:
         super().__init__(parent)
         _ensure_async_image_delivery()
+        metrics = UNITY_GUIDE_READING_METRICS_PX
+        if max_preview_size is None:
+            max_preview_size = (
+                metrics["quest_image_max_width"],
+                metrics["quest_image_max_height"],
+            )
+        self._preview_max_width = max(1, int(max_preview_size[0]))
+        self._preview_max_height = max(1, int(max_preview_size[1]))
         self.source = QPixmap()
         self._image_path = str(image_path)
         self._rendered_width = 0
         self._update_scheduled = False
         self._image_load_started = False
         self._image_load_future = None
-        self._image_popup: QDialog | None = None
+        self._image_popup: AtlasImagePopup | None = None
         self.setObjectName("QuestSolutionImage")
         self.setAlignment(Qt.AlignCenter)
         self.setMinimumWidth(1)
-        self.setMinimumHeight(120)
+        self.setMinimumHeight(UNITY_GUIDE_READING_METRICS_PX["image_preview_min_loading_height"])
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.setMaximumWidth(540)
+        self.setMaximumWidth(
+            self._preview_max_width
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_outer_width"]
+        )
         self.setCursor(Qt.PointingHandCursor)
         self.setToolTip(caption)
         self.setText("Chargement de l'image…")
@@ -934,7 +953,9 @@ class SolutionImageLabel(QLabel):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if not self._image_load_started and not self._image_load_timer.isActive():
-            self._image_load_timer.start(250)
+            self._image_load_timer.start(
+                UNITY_GUIDE_READING_METRICS_PX["image_load_delay_ms"]
+            )
 
     def start_image_load(self) -> None:
         if self._image_load_started:
@@ -974,17 +995,33 @@ class SolutionImageLabel(QLabel):
         self._update_scheduled = False
         if self.source.isNull():
             return
-        parent_width = self.parentWidget().width() if self.parentWidget() is not None else 520
-        available_width = min(520, max(120, parent_width - 24))
+        parent_width = (
+            self.parentWidget().width()
+            if self.parentWidget() is not None else self._preview_max_width
+        )
+        available_width = min(
+            self._preview_max_width,
+            max(
+                1,
+                parent_width
+                - UNITY_GUIDE_READING_METRICS_PX["image_preview_parent_inset"],
+            ),
+        )
         target = self.source.size()
-        target.scale(available_width, 320, Qt.KeepAspectRatio)
+        target.scale(available_width, self._preview_max_height, Qt.KeepAspectRatio)
         width = max(1, target.width())
         if width == self._rendered_width and self.pixmap() is not None:
             return
         pixmap = self.source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.setPixmap(pixmap)
-        self.setFixedWidth(pixmap.width() + 12)
-        self.setFixedHeight(pixmap.height() + 6)
+        self.setFixedWidth(
+            pixmap.width()
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_frame_width"]
+        )
+        self.setFixedHeight(
+            pixmap.height()
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_frame_height"]
+        )
         self._rendered_width = width
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
@@ -995,31 +1032,8 @@ class SolutionImageLabel(QLabel):
                 event.accept()
                 return
 
-            dialog = QDialog(self, Qt.Popup)
-            dialog.setObjectName("AtlasDialog")
-            dialog.setWindowTitle(self.toolTip() or "Image de solution")
-            root = QVBoxLayout(dialog)
-            root.setContentsMargins(8, 8, 8, 8)
-            root.setSpacing(0)
-
-            image = QLabel()
-            image.setAlignment(Qt.AlignCenter)
-            screen = self.screen()
-            available = screen.availableGeometry().size() if screen is not None else QSize(1280, 800)
-            max_width = max(320, min(1180, int(available.width() * 0.82)))
-            max_height = max(240, min(860, int(available.height() * 0.82)))
-            target = self.source.size()
-            target.scale(max_width - 24, max_height - 24, Qt.KeepAspectRatio)
-            image.setPixmap(self.source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            root.addWidget(image)
-            dialog.resize(target.width() + 16, target.height() + 16)
-
-            center = self.mapToGlobal(self.rect().center())
-            dialog.move(center.x() - dialog.width() // 2, center.y() - dialog.height() // 2)
-            dialog.finished.connect(lambda _result: setattr(self, "_image_popup", None))
-            self._image_popup = dialog
-            dialog.show()
-            dialog.raise_()
+            dialog = AtlasImagePopup(self.source, self, title=self.toolTip())
+            present_transient_dialog(self, "_image_popup", dialog)
             event.accept()
             return
         super().mouseReleaseEvent(event)
@@ -1052,11 +1066,7 @@ class CollapsibleInfoSection(QFrame):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(6)
-        marker = QLabel("✓" if state == "done" else "●" if state == "partial" else "○")
-        marker.setObjectName("GuideTreeState")
-        marker.setProperty("state", state)
-        marker.setFixedWidth(18)
-        marker.setAlignment(Qt.AlignCenter)
+        marker = atlas_guide_state_marker(state if state in {"done", "partial"} else "todo")
         header_layout.addWidget(marker)
         title_label = QLabel(title)
         title_label.setObjectName("GuideInfoSectionTitle")
@@ -1131,6 +1141,7 @@ class GuidesView(QWidget):
     CATALOG = "CATALOG"
     GUIDE_OVERVIEW = "GUIDE_OVERVIEW"
     QUEST_DETAIL = "QUEST_DETAIL"
+    _compact_guide_ultime_runtime = False
 
     def __init__(
         self,
@@ -1159,7 +1170,7 @@ class GuidesView(QWidget):
         self._catalog_external_owner = False
 
         self.guide_ultime_service: GuideUltimeManualRuntimeService | None = None
-        self.guide_ultime_view: GuideUltimeManualView | None = None
+        self.guide_ultime_view: SharedGuideManualView | None = None
         self._external_progress_signature: tuple[object, ...] | None = None
         self._home_render_signature: tuple[object, ...] | None = None
         self._home_progress_cache_signature: tuple[object, ...] | None = None
@@ -1382,38 +1393,16 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(6)
 
-        self.detail_header = QFrame()
-        self.detail_header.setObjectName("GuideHeader")
-        header_layout = QHBoxLayout(self.detail_header)
-        header_layout.setContentsMargins(8, 8, 10, 8)
-        header_layout.setSpacing(10)
-
-        self.detail_header_image = QLabel()
-        self.detail_header_image.setObjectName("GuideHeaderImage")
-        self.detail_header_image.setFixedSize(44, 44)
-        self.detail_header_image.setAlignment(Qt.AlignCenter)
-        header_layout.addWidget(self.detail_header_image)
-
-        header_text = QVBoxLayout()
-        header_text.setContentsMargins(0, 0, 0, 0)
-        header_text.setSpacing(2)
-        self.detail_header_title = QLabel()
-        self.detail_header_title.setObjectName("GuideHeaderTitle")
-        self.detail_header_title.setWordWrap(False)
-        header_text.addWidget(self.detail_header_title)
-        self.detail_header_meta = QLabel()
-        self.detail_header_meta.setObjectName("GuideHeaderMeta")
-        self.detail_header_meta.setWordWrap(False)
-        header_text.addWidget(self.detail_header_meta)
-        header_layout.addLayout(header_text, 1)
-        self.detail_header_progress = QLabel()
-        self.detail_header_progress.setObjectName("GuideHeaderProgress")
-        self.detail_header_progress.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        header_layout.addWidget(self.detail_header_progress, 0, Qt.AlignRight | Qt.AlignVCenter)
-        self.detail_header_done_button = QToolButton()
-        self.detail_header_done_button.setObjectName("GuideHeaderDoneButton")
-        self.detail_header_done_button.setCursor(Qt.PointingHandCursor)
-        self.detail_header_done_button.setFocusPolicy(Qt.NoFocus)
+        self.detail_header = AtlasGuideReadingHeader("", overview=True)
+        header_layout = self.detail_header.title_row
+        self.detail_header_image = self.detail_header.guide_icon_label
+        self.detail_header_title = self.detail_header.guide_title_label
+        self.detail_header_meta = self.detail_header.meta_label
+        self.detail_header_progress = self.detail_header.global_progress_label
+        self.detail_header_done_button = configure_unity_tool_button(
+            QToolButton(), object_name="GuideHeaderDoneButton",
+            pointing=True, focus_policy=Qt.NoFocus,
+        )
         self.detail_header_done_button.clicked.connect(self.toggle_current_quest_completed)
         header_layout.addWidget(self.detail_header_done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
         # The classical detail's right column can be collapsed without
@@ -1421,21 +1410,13 @@ class GuidesView(QWidget):
         self._right_panel_collapsed = False
         self._right_panel_saved_width = 230
         self._right_panel_scroll_position = 0
-        self.right_panel_toggle = QToolButton()
-        self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
-        self.right_panel_toggle.setText("›")
-        self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
-        self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
+        self.right_panel_toggle = AtlasPanelToggle()
         self.right_panel_toggle.clicked.connect(self._toggle_right_panel)
         header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
-        root.addWidget(self.detail_header)
-
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
+        self.breadcrumb = AtlasBreadcrumb()
+        self.breadcrumb_layout = self.breadcrumb.row
         root.addWidget(self.breadcrumb)
+        root.addWidget(self.detail_header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
         self.splitter.setObjectName("GuideDetailSplitter")
@@ -1501,11 +1482,9 @@ class GuidesView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(6)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll = configure_unity_scroll_area(
+            QScrollArea(), borderless=True, vertical_policy=Qt.ScrollBarAsNeeded,
+        )
         scroll.setObjectName(f"{object_name}Scroll")
 
         content = QWidget()
@@ -1741,13 +1720,13 @@ class GuidesView(QWidget):
         self._right_panel_rendered_guide_id = (
             "" if guide.raw.get("replacement_status") == "TRUSTED_SOURCE_STEPS" else guide.id
         )
-        self.detail_header.setVisible(True)
-        self._render_header(guide)
         self._render_breadcrumb(guide)
         if guide.raw.get("replacement_status") == "TRUSTED_SOURCE_STEPS":
             self._render_continuous_source_guide(guide)
             self.stack.setCurrentWidget(self.detail_page)
             return
+        self.detail_header.setVisible(True)
+        self._render_header(guide)
         self._continuous_route_panel = None
         if self._guide_uses_steps_column(guide):
             self._populate_guide_left(guide)
@@ -1796,14 +1775,52 @@ class GuidesView(QWidget):
             self.guide_progress_service,
             keys,
             available_characters=characters,
+            available_characters_provider=self.guide_participant_service.available_travel_characters,
+            guide_title=guide.title, image_path=guide.image_path,
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
-        if self.launch_travel_callback is not None:
-            panel.travelRequested.connect(self.launch_travel_callback)
+        # Keep verified route actions usable as copy-only instructions when
+        # an Atlas runtime launcher is unavailable. The panel itself still
+        # requires an exact verified plan and live participant identities.
+        panel.travelRequested.connect(self._dispatch_continuous_route_travel)
         self.center_layout.addWidget(panel)
         self._continuous_route_panel = panel
+        # The source reader now owns the real shared title and progress header.
+        # Keep the breadcrumb, not a second copy of the guide title above it.
+        self.detail_header.hide()
         self.detail_header_progress.setVisible(False)
         self.detail_header_done_button.setVisible(False)
+
+    def _dispatch_continuous_route_travel(
+        self, command: str, character_keys: tuple[str, ...],
+    ) -> None:
+        # Qt signal slots discard return values. Route Guide travel through
+        # the same refusal contract as the manual/universal Guide buttons.
+        callback = self.launch_travel_callback
+        if not callable(callback):
+            QApplication.clipboard().setText(command)
+            self.status_callback(
+                "Déplacement indisponible : commande copiée dans le presse-papiers.",
+            )
+            return
+        try:
+            accepted = callback(command, character_keys)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Envoi du voyage du Guide continu impossible",
+            )
+            accepted = False
+        if accepted is False:
+            QApplication.clipboard().setText(command)
+            self.status_callback(
+                "Déplacement refusé : commande copiée dans le presse-papiers.",
+            )
+
+    def refresh_connection_state(self) -> None:
+        """Refresh only the visible reader's connection-dependent controls."""
+        panel = self._continuous_route_panel
+        if panel is not None and isValid(panel) and panel.isVisible():
+            panel.refresh_connection_state()
 
     def apply_continuous_travel_projection(
         self, projection: Mapping[str, object],
@@ -2013,10 +2030,7 @@ class GuidesView(QWidget):
                 else "todo"
             )
 
-            line.setProperty(
-                "state",
-                state,
-            )
+            set_unity_widget_property(line, "state", state)
 
             title = line.findChild(
                 QLabel,
@@ -2024,13 +2038,7 @@ class GuidesView(QWidget):
             )
 
             if title is not None:
-                title.setProperty(
-                    "state",
-                    state,
-                )
-                title.style().unpolish(title)
-                title.style().polish(title)
-                title.update()
+                set_unity_widget_property(title, "state", state)
 
             marker = line.findChild(
                 QToolButton,
@@ -2044,24 +2052,7 @@ class GuidesView(QWidget):
                     else "\u25cb"
                 )
 
-                marker.setProperty(
-                    "state",
-                    state,
-                )
-
-                marker.style().unpolish(
-                    marker
-                )
-
-                marker.style().polish(
-                    marker
-                )
-
-                marker.update()
-
-            line.style().unpolish(line)
-            line.style().polish(line)
-            line.update()
+                set_unity_widget_property(marker, "state", state)
 
     def _series_progress_title(
         self,
@@ -2215,76 +2206,6 @@ class GuidesView(QWidget):
 
 
 
-    def _refresh_guide_columns_after_progress(
-        self,
-        guide: Guide,
-        center_pos: int,
-        left_pos: int,
-        right_pos: int,
-    ) -> None:
-        self._populate_guide_left(guide)
-        self._populate_series_quests(guide)
-        self._populate_guide_info(guide)
-
-        def restore_scrolls() -> None:
-            center_bar = (
-                self.center_scroll
-                .verticalScrollBar()
-            )
-
-            left_bar = (
-                self.left_scroll
-                .verticalScrollBar()
-            )
-
-            right_bar = (
-                self.right_scroll
-                .verticalScrollBar()
-            )
-
-            center_bar.setValue(
-                min(
-                    center_pos,
-                    center_bar.maximum(),
-                )
-            )
-
-            left_bar.setValue(
-                min(
-                    left_pos,
-                    left_bar.maximum(),
-                )
-            )
-
-            right_bar.setValue(
-                min(
-                    right_pos,
-                    right_bar.maximum(),
-                )
-            )
-
-        # First pass after widget replacement.
-        _single_shot(
-            self,
-            0,
-            restore_scrolls,
-        )
-
-        # Second pass after Qt recalculates
-        # the final scroll ranges.
-        _single_shot(
-            self,
-            50,
-            restore_scrolls,
-        )
-
-    def _refresh_current_view(self, preserve_scroll: bool = False) -> None:
-        self.refresh_home()
-        if self.current_guide_id and self.current_quest_id is not None:
-            self.show_quest_detail(self.current_quest_id, preserve_scroll=preserve_scroll)
-        elif self.current_guide_id:
-            self.show_guide_overview(self.current_guide_id, preserve_scroll=preserve_scroll)
-
     def _guide_progress_tuple_uncached(self, guide: Guide) -> tuple[int, int, str]:
         self._ensure_progress_runtime()
         compact_quest_ids = getattr(self.provider, "progress_quest_ids_for", None)
@@ -2347,13 +2268,7 @@ class GuidesView(QWidget):
         hidden = self._right_panel_collapsed
         self.right_panel.setMinimumWidth(0 if hidden else 220)
         self.right_panel.setVisible(not hidden)
-        self.right_panel_toggle.setText("‹" if hidden else "›")
-        caption = (
-            "Réafficher la colonne d'informations"
-            if hidden else "Masquer la colonne d'informations"
-        )
-        self.right_panel_toggle.setToolTip(caption)
-        self.right_panel_toggle.setAccessibleName(caption)
+        self.right_panel_toggle.set_collapsed(hidden)
         sizes = self.splitter.sizes()
         if len(sizes) == 3:
             self._set_classic_splitter_sizes(sizes[0], self.center_panel.minimumWidth())
@@ -2436,29 +2351,27 @@ class GuidesView(QWidget):
             )
             else _display_guide_level_text(guide)
         )
-        self.detail_header_title.setText(title)
+        self.detail_header.set_guide_title(title)
         self.detail_header_meta.setText(level)
         self.detail_header_meta.setVisible(bool(level))
         progress = self.progress_calculator.guide_progress(
             guide,
             self.current_character_key,
         )
-        self.detail_header_progress.setText(
-            f"{progress.completed}/{progress.total}"
+        self.detail_header.set_overview_progress(
+            progress.completed, progress.total, visible=quest is None,
         )
         self.detail_header_progress.setToolTip("Quêtes terminées / quêtes du guide")
-        self.detail_header_progress.setVisible(quest is None)
         self.detail_header_done_button.setVisible(quest is not None)
         if quest is not None:
             done = self.quest_progress_service.is_quest_completed(self.current_character_key, int(quest.id)) or self.progress_calculator.quest_progress(quest, self.current_character_key).is_complete
             self.detail_header_done_button.setText("✓ Quête terminée" if done else "○ Marquer terminée")
-            self.detail_header_done_button.setProperty("state", "done" if done else "todo")
-            self.detail_header_done_button.style().unpolish(self.detail_header_done_button)
-            self.detail_header_done_button.style().polish(self.detail_header_done_button)
+            set_unity_widget_property(self.detail_header_done_button, "state", "done" if done else "todo")
         pixmap = None if quest is not None else _guide_pixmap(guide)
         if pixmap is not None and not pixmap.isNull():
             self.detail_header_image.setText("")
-            self.detail_header_image.setPixmap(pixmap.scaled(38, 38, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            extent = UNITY_MODULE_GEOMETRY_PX["guide_reading_header"]["overview_cover_artwork"]
+            self.detail_header_image.setPixmap(pixmap.scaled(extent, extent, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.detail_header_image.setVisible(True)
         else:
             self.detail_header_image.clear()
@@ -2531,14 +2444,6 @@ class GuidesView(QWidget):
         series = sorted(chapter.series, key=lambda item: (item.order, normalize_text(item.title)))
         return series[0] if series else None
 
-    def _progress_for_steps(self, guide: Guide, steps: Iterable[GuideStep]) -> tuple[int, int]:
-        progress = self.progress_calculator.quest_steps_progress(
-            guide,
-            steps,
-            self.current_character_key,
-        )
-        return progress.completed, progress.total
-
     def _progress_count_for_steps(self, guide: Guide, steps: Iterable[GuideStep]) -> ProgressCount:
         return self.progress_calculator.quest_steps_progress(
             guide,
@@ -2573,32 +2478,19 @@ class GuidesView(QWidget):
 
     def _render_breadcrumb(self, guide: Guide, quest_name: str = "") -> None:
         clear_layout(self.breadcrumb_layout)
-        guide_home = AtlasButton("Guides")
-        guide_home.setObjectName("GuideBreadcrumbButton")
+        guide_home = AtlasButton("Guides", variant="guide_breadcrumb")
         guide_home.clicked.connect(self.show_home)
         self.breadcrumb_layout.addWidget(guide_home)
-        self._add_breadcrumb_separator()
+        self.breadcrumb.add_separator()
 
         if quest_name:
-            guide_button = AtlasButton(guide.title)
-            guide_button.setObjectName("GuideBreadcrumbButton")
+            guide_button = AtlasButton(guide.title, variant="guide_breadcrumb")
             guide_button.clicked.connect(lambda _checked=False, gid=guide.id: self.show_guide_overview(gid, preserve_scroll=True))
             self.breadcrumb_layout.addWidget(guide_button)
-            self._add_breadcrumb_separator()
-            current = QLabel(quest_name)
-            current.setObjectName("GuideBreadcrumbCurrent")
-            current.setWordWrap(False)
-            self.breadcrumb_layout.addWidget(current, 1)
+            self.breadcrumb.add_separator()
+            self.breadcrumb.add_current(quest_name)
         else:
-            current = QLabel(guide.title)
-            current.setObjectName("GuideBreadcrumbCurrentStrong")
-            current.setWordWrap(False)
-            self.breadcrumb_layout.addWidget(current, 1)
-
-    def _add_breadcrumb_separator(self) -> None:
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
+            self.breadcrumb.add_current(guide.title, emphasized=True)
 
 
     def _quest_ids_for_steps(
@@ -3177,12 +3069,6 @@ class GuidesView(QWidget):
 
         self.right_layout.addStretch(1)
 
-    def _guide_prerequisite_widgets(self, guide: Guide) -> list[QWidget]:
-        return [
-            self._guide_prerequisite_row(text, quest_id, success_id)
-            for text, quest_id, success_id in self._guide_prerequisite_entries(guide)
-        ]
-
     def _guide_prerequisite_entries(
         self, guide: Guide,
     ) -> list[tuple[str, int | None, int | None]]:
@@ -3281,48 +3167,18 @@ class GuidesView(QWidget):
         return rows
 
     def _quest_id_from_requirement_line(self, line: str) -> int | None:
-        key = normalize_text(clean_text(line))
-        prefix = next(
-            (value for value in ("quete_terminee_", "quete_active_")
-             if key.startswith(value)), "",
-        )
-        if not prefix or self.quest_catalog is None:
-            return None
-        target = key[len(prefix):]
-        catalog = self.quest_catalog
-        quests = catalog.quests
-        # Prerequisites in the right panel may resolve dozens of names. The
-        # previous implementation scanned every Quest (up to ~2k) per line,
-        # while Qt was rendering Guide widgets. Build once per catalog; the
-        # rich Guide view and this index are both disposed on catalogue Home.
-        stamp = (id(catalog), id(quests), len(quests))
-        if getattr(self, "_quest_name_id_index_stamp", None) != stamp:
-            lookup: dict[str, int] = {}
-            for quest in quests:
-                lookup.setdefault(normalize_text(quest.name), int(quest.id))
-            self._quest_name_id_index = lookup
-            self._quest_name_id_index_stamp = stamp
-        return self._quest_name_id_index.get(target)
+        return _vm_call("resolve_quest_requirement", line, self.quest_catalog, owner=self)
 
     def _guide_prerequisite_row(
         self, text: str, quest_id: int | None, success_id: int | None = None,
     ) -> QWidget:
         if quest_id is None and success_id is None:
             return prerequisite_row(text, None)
-        row = QFrame()
-        row.setObjectName("GuidePrerequisiteRow")
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(7)
-        marker = QLabel("")
-        marker.setObjectName("GuideTreeState")
-        marker.setProperty("state", "neutral")
-        marker.setFixedWidth(18)
-        marker.setAlignment(Qt.AlignCenter)
-        layout.addWidget(marker, 0, Qt.AlignTop)
-        button = AtlasButton(clean_text(text))
+        button = AtlasButton(
+            clean_text(text),
+            variant="guide_achievement_link" if success_id is not None else "guide_quest_link",
+        )
         if success_id is not None:
-            button.setObjectName("GuideInlineAchievementButton")
             button.setToolTip("Ouvrir ce succès")
             button.clicked.connect(
                 lambda _checked=False, sid=int(success_id):
@@ -3331,14 +3187,12 @@ class GuidesView(QWidget):
                 )
             )
         else:
-            button.setObjectName("GuideInlineQuestButton")
             button.setToolTip("Ouvrir cette quête")
             button.clicked.connect(
                 lambda _checked=False, qid=int(quest_id):
                 self.open_prerequisite_from_guide(qid)
             )
-        layout.addWidget(button, 1)
-        return row
+        return atlas_prerequisite_row(button)
 
     def toggle_chapter(self, chapter_id: str) -> None:
         guide = self.current_guide()
@@ -3359,16 +3213,6 @@ class GuidesView(QWidget):
             if step.step_type == "quest" and step.entity_id == int(quest_id):
                 return step
         return None
-
-    def _first_guide_position(self, guide: Guide) -> str:
-        for quest_id in guide.quest_ids:
-            quest = self.quest_catalog.by_id.get(int(quest_id))
-            if quest is None:
-                continue
-            position = first_position_from_quest(quest)
-            if position:
-                return position
-        return ""
 
     def _ensure_chapters_initialized(self, guide: Guide) -> None:
         if guide.id in self.expanded_chapters:
@@ -3411,11 +3255,7 @@ class GuidesView(QWidget):
 
     @staticmethod
     def _progress_file_stamp(path: Path) -> tuple[int, int, int]:
-        try:
-            stat = Path(path).stat()
-        except OSError:
-            return (0, 0, 0)
-        return (int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size))
+        return mtime_ctime_size_stamp_or_zero(path)
 
     def _current_external_progress_signature(self) -> tuple[object, ...]:
         return (
@@ -3473,47 +3313,12 @@ class GuidesView(QWidget):
         self._home_progress_cache[guide_id] = progress
         return progress
 
-    def ensure_guide_ultime_view(self) -> GuideUltimeManualView | None:
-        if self.guide_ultime_view is not None:
-            return self.guide_ultime_view
-
-        from app.modules.encyclopedia.services.guide_auto_validation_contract import (
-            build_route_auto_validation_contract,
-        )
-        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
-            GuideUltimeManualRuntimeService,
-        )
-        from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-            GuideUltimeManualView,
+    def _build_manual_route_reader(self, service) -> SharedGuideManualView:
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualView,
         )
 
-        service = self.guide_ultime_service
-        if service is None:
-            service = GuideUltimeManualRuntimeService(
-                self.quest_progress_service,
-                self.achievement_progress_service,
-                self.guide_progress_service,
-                quest_provider=self.quest_provider,
-                autoload=False,
-            )
-            # The canonical manual route is authoritative. Generated V5 artifacts
-            # are loaded only if manual composition actually failed, avoiding two
-            # complete route reads on every successful first opening.
-            if not service.available:
-                service.load()
-            # Reuse the exact provider already owned by Guides/Succès. Creating
-            # another provider here adds work and risks two catalogue snapshots.
-            service.achievement_provider = self.achievement_provider
-            service.auto_validation_contract = build_route_auto_validation_contract(
-                service.cards,
-                achievement_provider=self.achievement_provider,
-            )
-            self.guide_ultime_service = service
-
-        if not service.available:
-            return None
-
-        view = GuideUltimeManualView(
+        view = SharedGuideManualView(
             service,
             character_key=self.current_character_key,
             quest_provider=self.quest_provider,
@@ -3521,14 +3326,54 @@ class GuidesView(QWidget):
             travel_callback=self.launch_travel_callback,
             participant_service=self.guide_participant_service,
         )
-        # Expose the already-existing Encyclopedia navigator to the GPS view. The
-        # view never knows how tabs are built; it only asks Atlas to open an entity.
         view.navigate_entity = self.link_service.navigate_to_entity
+        return view
+
+    def ensure_guide_ultime_view(self) -> SharedGuideManualView | None:
+        if self.guide_ultime_view is not None:
+            return self.guide_ultime_view
+
+        service = self.guide_ultime_service
+        if service is None:
+            from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+                GuideUltimeManualRuntimeService,
+            )
+
+            compact = self._compact_guide_ultime_runtime
+            service = GuideUltimeManualRuntimeService(
+                self.quest_progress_service,
+                self.achievement_progress_service,
+                self.guide_progress_service,
+                quest_provider=self.quest_provider,
+                autoload=False,
+                cache_manual_bundle=not compact,
+                compact_runtime=compact,
+            )
+            if not service.available:
+                service.load()
+            service.achievement_provider = self.achievement_provider
+            # Compact readers resolve validation per sheet to keep the initial
+            # opening from allocating a second copy of the whole route.
+            service.auto_validation_contract = None
+            if not compact:
+                from app.modules.encyclopedia.services.guide_auto_validation_contract import (
+                    build_route_auto_validation_contract,
+                )
+
+                service.auto_validation_contract = build_route_auto_validation_contract(
+                    service.cards,
+                    achievement_provider=self.achievement_provider,
+                )
+            self.guide_ultime_service = service
+
+        if not service.available:
+            return None
+
+        view = self._build_manual_route_reader(service)
         view.questProgressChanged.connect(self._on_guide_ultime_quest_progress_changed)
         self.stack.addWidget(view)
         self.guide_ultime_view = view
-        # The home catalogue is hidden while Guide Ultime opens. Only its manual
-        # route counter needs patching; rebuilding every card/image is wasted work.
+        # Only the route counter changes while the catalogue is hidden.
         self._refresh_guide_ultime_home_labels()
         return view
 
@@ -3838,11 +3683,6 @@ def _catalog_subtitle(guide: Guide) -> str:
     return _display_guide_level_text(guide)
 
 
-def _category_breadcrumb_label(guide: Guide) -> str:
-    labels = {"aventure": "Aventure", "alignements": "Alignements", "dofus": "Dofus"}
-    return labels.get(guide.category, guide.category.title())
-
-
 def _display_guide_level_text(guide: Guide) -> str:
     minimum = _positive_int(getattr(guide, "recommended_level_min", None))
     maximum = _positive_int(getattr(guide, "recommended_level_max", None))
@@ -3910,43 +3750,11 @@ def _progress_label(progress: tuple[int, int, str] | None) -> str:
 
 def _tuple_progress_state(progress: tuple[int, int, str] | None) -> str:
     completed, total, _state = progress or (0, 0, "")
-    if total and completed >= total:
-        return "done"
-    if completed:
-        return "partial"
-    return "todo"
-
-
-def _is_complete(completed: int, total: int) -> bool:
-    return bool(total and completed >= total)
-
-
-def _progress_marker(progress: ProgressCount) -> str:
-    if progress.is_complete:
-        return "✓"
-    if progress.completed:
-        return "●"
-    return "○"
+    return guide_progress_style_state(completed, total)
 
 
 def _progress_state(progress: ProgressCount) -> str:
-    if progress.is_complete:
-        return "done"
-    if progress.completed:
-        return "partial"
-    return "todo"
-
-
-def _unique_texts(lines: Iterable[str]) -> tuple[str, ...]:
-    result: list[str] = []
-    seen: set[str] = set()
-    for line in lines:
-        text = clean_text(line)
-        key = normalize_text(text)
-        if text and key not in seen:
-            seen.add(key)
-            result.append(text)
-    return tuple(result)
+    return guide_progress_style_state(progress.completed, progress.total)
 
 
 def _guide_pixmap(guide: Guide) -> QPixmap | None:
@@ -3957,22 +3765,6 @@ def _guide_pixmap(guide: Guide) -> QPixmap | None:
             str(getattr(getattr(guide, "reward_item", None), "image_path", "") or ""),
         ]
     )
-
-
-def _quest_pixmap(quest) -> QPixmap | None:
-    if quest is None:
-        return None
-    paths: list[str] = []
-    for step in getattr(quest, "steps", []):
-        for objective in getattr(step, "objectives", []):
-            path = str(getattr(objective, "image_path", "") or "")
-            if path:
-                paths.append(path)
-    for reward in getattr(quest, "rewards", []):
-        path = str(getattr(reward, "image_path", "") or "")
-        if path:
-            paths.append(path)
-    return _pixmap_from_paths(paths)
 
 
 def _pixmap_from_paths(paths: Iterable[str]) -> QPixmap | None:
@@ -4021,12 +3813,11 @@ def progress_summary(completed: int, total: int) -> QWidget:
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(8)
 
-    bar = QProgressBar()
-    bar.setObjectName("GuideTinyProgress")
-    bar.setTextVisible(False)
-    bar.setRange(0, max(1, total))
+    bar = configure_unity_progress_bar(
+        QProgressBar(), object_name="GuideTinyProgress", maximum=max(1, total),
+        height_role="progress_secondary",
+    )
     bar.setValue(min(completed, total) if total else 0)
-    bar.setFixedHeight(7)
     layout.addWidget(bar, 1)
 
     label = QLabel(f"{completed} / {total}" if total else "0 / 0")
@@ -4047,19 +3838,7 @@ def solution_header(progress: ProgressCount | None = None) -> QWidget:
 
 
 def prerequisite_row(text: str, done: bool | None) -> QWidget:
-    row = QFrame()
-    row.setObjectName("GuidePrerequisiteRow")
-    layout = QHBoxLayout(row)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(7)
-    marker = QLabel("✓" if done is True else "○" if done is False else "")
-    marker.setObjectName("GuideTreeState")
-    marker.setProperty("state", "done" if done is True else "todo" if done is False else "neutral")
-    marker.setFixedWidth(18)
-    marker.setAlignment(Qt.AlignCenter)
-    layout.addWidget(marker, 0, Qt.AlignTop)
-    layout.addWidget(text_label(text, "GuideInfoLine"), 1)
-    return row
+    return atlas_prerequisite_row(text_label(text, "GuideInfoLine"), done)
 
 
 def activity_chip_grid(labels: Iterable[str]) -> QWidget:
@@ -4086,15 +3865,7 @@ def activity_chip_grid(labels: Iterable[str]) -> QWidget:
 
 
 def clear_layout(layout) -> None:
-    while layout.count():
-        item = layout.takeAt(0)
-        widget = item.widget()
-        child_layout = item.layout()
-        if widget is not None:
-            widget.setParent(None)
-            widget.deleteLater()
-        elif child_layout is not None:
-            clear_layout(child_layout)
+    clear_unity_widget_layout(layout, recursive=True)
 
 
 def panel_title(text: str, object_name: str = "PanelTitle") -> QLabel:
@@ -4111,10 +3882,11 @@ def section_title(text: str) -> QLabel:
 
 def text_label(text: str, object_name: str = "GuideInfoLine") -> QLabel:
     raw = str(text or "")
-    label = QLabel(linkify_travel_text(raw) if TRAVEL_COORD_RE.search(raw) else raw)
+    has_position = DOCUMENTARY_POSITION_RE.search(raw) is not None
+    label = QLabel(linkify_travel_text(raw) if has_position else raw)
     label.setObjectName(object_name)
     label.setWordWrap(True)
-    if TRAVEL_COORD_RE.search(raw):
+    if has_position:
         label.setTextFormat(Qt.RichText)
         label.setTextInteractionFlags(Qt.TextBrowserInteraction)
         label.setOpenExternalLinks(False)
@@ -4128,17 +3900,23 @@ def linkify_travel_text(text: str) -> str:
     escaped = escape(str(text or ""))
 
     def replace(match: re.Match[str]) -> str:
-        x = int(match.group(1))
-        y = int(match.group(2))
-        return f'<a href="atlas-travel:{x},{y}">[{x},{y}]</a>'
+        if match.group(3):
+            return f"<b>{match.group(0)}</b>"
+        command = _vm_call("travel_command", match.group(0))
+        if not command:
+            return match.group(0)
+        coordinates = command.removeprefix("/travel ")
+        return entity_link_markup(
+            f"[{coordinates}]", "position", f"atlas-travel:{coordinates}", PALETTE,
+        )
 
-    return TRAVEL_COORD_RE.sub(replace, escaped)
+    return DOCUMENTARY_POSITION_RE.sub(replace, escaped)
 
 
 def copy_travel_link(href: str) -> None:
-    match = re.search(r"(-?\d+)\s*,\s*(-?\d+)", str(href or ""))
-    if match:
-        QApplication.clipboard().setText(f"/travel {int(match.group(1))},{int(match.group(2))}")
+    command = travel_command_from_link(href)
+    if command:
+        QApplication.clipboard().setText(command)
 
 
 def is_walkthrough_image_path(image_path: str) -> bool:
@@ -4155,18 +3933,36 @@ def solution_block_widget(block: DisplaySolutionBlock) -> QWidget:
         layout.setSpacing(4)
         layout.addWidget(SolutionImageLabel(block.image_path, block.caption), 0, Qt.AlignHCenter)
         return container
+    if block.block_type == "image":
+        # A path referenced by the source is not proof that the actual
+        # image ships with this build. Never silently render a blank row.
+        label = "Image locale indisponible"
+        if block.caption:
+            label += f" : {block.caption}"
+        return text_label(label, "MutedLabel")
     if block.block_type == "heading":
         return text_label(block.content.rstrip(":"), "QuestSolutionStepTitle")
     object_name = "QuestSolutionCombat" if block.block_type == "combat" else "QuestSolutionDescription"
     return text_label(block.content, object_name)
 
 
-def quest_solution_document_widgets(quest, *, omit_first_image_path: str = "") -> list[QWidget]:
+def quest_solution_document_widgets(
+    quest, *, omit_first_image_path: str = "",
+    source_blocks: tuple[DisplaySolutionBlock, ...] | None = None,
+    fallback_steps: tuple[SolutionStep, ...] | None = None,
+) -> list[QWidget]:
     """Render a walkthrough as a small number of selectable document blocks."""
 
-    blocks = list(quest_solution_blocks(quest))
-    if not blocks:
-        for step in quest_solution_steps(quest):
+    # QuestDetailView already needs this snapshot to decide whether the
+    # documentary fallback disclaimer is required. Reuse it instead of
+    # applying the source filter twice during every detail repaint.
+    blocks = list(source_blocks if source_blocks is not None else quest_solution_blocks(quest))
+    if not _vm_call("quest_blocks_have_instructions", blocks):
+        steps = (
+            fallback_steps if fallback_steps is not None
+            else _vm_call("quest_fallback_instruction_steps", quest)
+        )
+        for step in steps:
             if step.title:
                 blocks.append(DisplaySolutionBlock("heading", step.title))
             if step.description:
@@ -4214,16 +4010,32 @@ def solution_text_document(blocks: tuple[DisplaySolutionBlock, ...]) -> QLabel:
     parts: list[str] = []
     for block in blocks:
         content = clean_text(block.content)
+        if block.position and block.block_type not in {
+            "image", "heading", "title", "subtitle", "section_heading",
+        }:
+            command = _vm_call("travel_command", block.position)
+            if command and not any(
+                _vm_call("travel_command", match.group(0)) == command
+                for match in TRAVEL_COORD_RE.finditer(content)
+            ):
+                # Explicit source position is documentary metadata, not an
+                # inferred quest start. Reuse the global link style and only
+                # append it when the same map is not already present in text.
+                position = f"[{command.removeprefix('/travel ')}]"
+                content = (
+                    f"{content} — Position source : {position}"
+                    if content else f"Position source : {position}"
+                )
         if not content:
             continue
         linked = linkify_travel_text(content)
         if block.block_type == "heading":
             parts.append(
-                f'<p style="font-size:13px;font-weight:700;color:#eee7fb;margin:10px 0 4px 0;">'
+                f'<p style="font-size:@FONT_CONTENT_H3;font-weight:700;color:@TEXT_SOFT;margin:10px 0 4px 0;">'
                 f'{linked.rstrip(":")}</p>'
             )
         elif block.block_type == "combat":
-            parts.append(f'<p style="color:#e7bf63;margin:6px 0;"><b>Combat :</b> {linked}</p>')
+            parts.append(f'<p style="color:@YELLOW;margin:6px 0;"><b>Combat :</b> {linked}</p>')
         else:
             parts.append(f'<p style="margin:3px 0;line-height:1.35;">{linked}</p>')
     label = QLabel(render_theme_template("".join(parts)))
@@ -4305,17 +4117,21 @@ def icon_row(kind: str, text: str) -> QWidget:
 
 
 def travel_position_row(position: str) -> QWidget:
-    button = AtlasButton(str(position or ""))
-    button.setObjectName("GuideInlineQuestButton")
+    button = AtlasButton(str(position or ""), variant="guide_quest_link")
+    # Standalone position buttons follow the same bold-coordinate contract as
+    # inline Quest/Guide text, without duplicating a UI style or widget class.
+    font = button.font()
+    font.setBold(True)
+    button.setFont(font)
     button.setToolTip("Copier la commande /travel")
     button.clicked.connect(lambda _checked=False, value=str(position or ""): copy_travel_position(value))
     return button
 
 
 def copy_travel_position(position: str) -> None:
-    match = TRAVEL_COORD_RE.search(str(position or ""))
-    if match:
-        QApplication.clipboard().setText(f"/travel {int(match.group(1))},{int(match.group(2))}")
+    command = _vm_call("travel_command", position)
+    if command:
+        QApplication.clipboard().setText(command)
 
 
 def icon_label(icon: QIcon, object_name: str = "GuideInfoIcon", size: int = 22, icon_size: int = 18) -> QLabel:
@@ -4372,65 +4188,6 @@ def solution_objective_row(objective: SolutionObjective) -> QWidget:
     layout.addWidget(image, 0, Qt.AlignTop)
     layout.addWidget(text_label(clean_text(objective.text), "QuestSolutionDescription"), 1)
     return row
-
-
-@lru_cache(maxsize=16)
-def atlas_icon(kind: str) -> QIcon:
-    # Bounded cache for the fixed Unity fallback icons. Reward rows otherwise
-    # repaint the same 20px QPixmap hundreds of times on the Qt UI thread.
-    pixmap = QPixmap(20, 20)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    pen = QPen(QColor(PALETTE["GREEN"]), 1.8)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-    if kind == "quest":
-        painter.drawRoundedRect(5, 3, 10, 14, 2, 2)
-        painter.drawLine(7, 8, 13, 8)
-        painter.drawLine(7, 12, 12, 12)
-    elif kind == "solo":
-        painter.drawLine(6, 16, 14, 4)
-        painter.drawLine(10, 12, 14, 16)
-        painter.drawLine(9, 11, 5, 7)
-        painter.drawLine(5, 17, 8, 14)
-    elif kind == "group":
-        painter.drawLine(4, 16, 13, 5)
-        painter.drawLine(7, 13, 3, 9)
-        painter.drawLine(3, 17, 6, 14)
-        painter.drawLine(16, 16, 7, 5)
-        painter.drawLine(13, 13, 17, 9)
-        painter.drawLine(17, 17, 14, 14)
-    elif kind == "dungeon":
-        painter.drawRoundedRect(4, 7, 12, 10, 1, 1)
-        painter.drawArc(5, 2, 10, 10, 0, 180 * 16)
-        painter.drawLine(7, 7, 7, 17)
-        painter.drawLine(13, 7, 13, 17)
-        painter.drawEllipse(9, 12, 2, 2)
-    elif kind == "tactical":
-        painter.drawEllipse(4, 4, 12, 12)
-        painter.drawEllipse(8, 8, 4, 4)
-        painter.drawLine(10, 2, 10, 6)
-        painter.drawLine(10, 14, 10, 18)
-        painter.drawLine(2, 10, 6, 10)
-        painter.drawLine(14, 10, 18, 10)
-    elif kind == "drop":
-        painter.drawLine(10, 3, 15, 10)
-        painter.drawArc(5, 8, 10, 9, 200 * 16, 140 * 16)
-        painter.drawLine(10, 3, 5, 10)
-    elif kind == "item":
-        painter.drawPolygon(QPolygon([QPoint(10, 3), QPoint(16, 9), QPoint(10, 17), QPoint(4, 9)]))
-    elif kind == "combat":
-        painter.drawLine(4, 15, 16, 5)
-        painter.drawLine(5, 5, 16, 16)
-    else:
-        painter.drawEllipse(5, 5, 10, 10)
-        painter.drawLine(10, 2, 10, 5)
-        painter.drawLine(10, 15, 10, 18)
-    painter.end()
-    return QIcon(pixmap)
 
 
 def activity_icon_key(label: str) -> str:

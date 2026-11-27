@@ -26,6 +26,7 @@ from app.modules.encyclopedia.providers.achievement_provider import AchievementP
 from app.modules.encyclopedia.providers.dofus_item_provider import DOFUS_UNKNOWN_ICON, DofusItemProvider
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 from app.core.text import normalize_key as normalize_text
+from app.quest_source_index import QuestSourceError
 from app.modules.encyclopedia.services.guide_ganymede_cutover import (
     select_verified_replacement_path,
 )
@@ -297,12 +298,8 @@ class GuideProvider:
             errors.append("guide vide")
         reward_item_id = safe_int(payload.get("reward_item_id"))
         illustration_item_id = safe_int(payload.get("illustration_item_id"))
-        reward_item = self.dofus_item_provider.get_by_id(reward_item_id)
-        illustration_item = self.dofus_item_provider.get_by_id(illustration_item_id)
-        if reward_item_id is not None and reward_item is None:
-            errors.append(f"reward_item_id invalide: {reward_item_id}")
-        if illustration_item_id is not None and illustration_item is None:
-            errors.append(f"illustration_item_id invalide: {illustration_item_id}")
+        reward_item = self._optional_cover_item(reward_item_id, "reward_item_id", errors)
+        illustration_item = self._optional_cover_item(illustration_item_id, "illustration_item_id", errors)
         image_path = self._resolve_image_path(payload.get("image"))
         if not image_path and illustration_item is not None:
             image_path = illustration_item.image_path
@@ -356,6 +353,24 @@ class GuideProvider:
         if circular_errors:
             guide = replace(guide, validation_errors=tuple([*guide.validation_errors, *circular_errors]))
         return guide
+
+    def _optional_cover_item(self, item_id: int | None, field: str, errors: list[str]):
+        """Optional catalogue enrichment must not block an authored guide.
+
+        Missing/unreadable item sources are not proof of an invalid ID.
+        Record the failed verification; never fabricate an item or change the
+        authored ID. Required preparation and quest sources remain fail-closed.
+        """
+        if item_id is None:
+            return None
+        try:
+            item = self.dofus_item_provider.get_by_id(item_id)
+        except QuestSourceError as exc:
+            errors.append(f"{field} non vérifiable: {item_id} · source objets indisponible: {exc}")
+            return None
+        if item is None:
+            errors.append(f"{field} invalide: {item_id}")
+        return item
 
     def _parts(self, payload: dict[str, Any], guide_id: str, sections: tuple[GuideSection, ...]) -> tuple[GuidePart, ...]:
         part_rows = payload.get("parts", [])

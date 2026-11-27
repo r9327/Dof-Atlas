@@ -10,6 +10,42 @@ from app.services.guide_participant_service import GuideParticipantService
 
 
 class GuideParticipantServiceTests(unittest.TestCase):
+    def test_verified_projection_reuses_success_and_retries_transient_failure(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            payload = {"characters": {"1": {"name": "Alpha", "source": "verified_network_identity"}}}
+            bindings.write_text(json.dumps(payload))
+            profile = root / "profile.json"
+            profile.write_text(json.dumps({KEY_GUIDE_PARTICIPANTS: ["character:1"]}))
+            service = GuideParticipantService(profile, root / "clients.json", bindings)
+            with patch("app.services.guide_participant_service.read_json_resilient",
+                       side_effect=[None, payload]) as read:
+                self.assertEqual(service.selected_keys(), ())
+                self.assertEqual(service.selected_keys(), ("character:1",))
+                self.assertEqual(service.selected_keys(), ("character:1",))
+                self.assertEqual(read.call_count, 2)
+            bindings.write_text('{"characters":{}}')
+            self.assertEqual(service.selected_keys(), ())
+            self.assertEqual(service.available_characters(), ())
+
+    def test_participant_roster_does_not_publish_revoked_identity_during_read(self):
+        from unittest.mock import patch
+        from app.quest_catalog import QuestCharacter
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            bindings.write_text(json.dumps({"characters": {"1": {
+                "name": "Alpha", "source": "verified_network_identity",
+            }}}))
+            service = GuideParticipantService(root / "profile.json", root / "clients.json", bindings)
+            def stale_roster(*args, **kwargs):
+                bindings.write_text('{"characters":{}}')
+                return [QuestCharacter("character:1", "Alpha", 1, True)]
+            with patch("app.services.guide_participant_service.load_quest_characters", side_effect=stale_roster):
+                self.assertEqual(service.available_characters(), ())
+
     def test_selection_persists_canonical_ids_and_keeps_offline_characters(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -53,6 +89,92 @@ class GuideParticipantServiceTests(unittest.TestCase):
                 persisted[KEY_GUIDE_PARTICIPANTS],
                 ["character:2", "character:1"],
             )
+
+    def test_available_participants_reuse_shared_roster_without_retaining_revoked_ids(self):
+        from unittest.mock import patch
+        from app.pages import quest_character_cache as cache
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            bindings.write_text(json.dumps({"characters": {
+                "1": {"name": "Alpha", "source": "verified_network_identity"},
+            }}), encoding="utf-8")
+            service = GuideParticipantService(root / "profile.json", root / "clients.json", bindings)
+            cache.clear_quest_character_cache()
+            try:
+                with patch.object(cache, "_ORIGINAL_LOAD_QUEST_CHARACTERS",
+                                  wraps=cache._ORIGINAL_LOAD_QUEST_CHARACTERS) as load:
+                    first = service.available_characters()
+                    self.assertEqual([row.key for row in first], ["character:1"])
+                    first[0].label = "modified"
+                    self.assertEqual(service.available_characters()[0].label, "Alpha")
+                    load.assert_called_once()
+                    bindings.write_text('{"characters":{}}', encoding="utf-8")
+                    self.assertEqual(service.available_characters(), ())
+            finally:
+                cache.clear_quest_character_cache()
+
+    def test_travel_requires_current_transport_and_local_window_without_losing_selection(self):
+        from unittest.mock import patch
+        from app.network.character_runtime_state import CharacterRuntimeStateStore
+        from app.quest_catalog import QuestCharacter
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bindings = root / "bindings.json"
+            bindings.write_text(json.dumps({"characters": {
+                "1": {"name": "Alpha", "source": "verified_network_identity"},
+                "2": {"name": "Beta", "source": "verified_network_identity"},
+            }}))
+            service = GuideParticipantService(root / "profile.json", root / "clients.json", bindings)
+            service.save_selected_keys(("character:1", "character:2"))
+            rows = (QuestCharacter("character:1", "Alpha", 1, True),
+                    QuestCharacter("character:2", "Beta", 2, False))
+            state = CharacterRuntimeStateStore()
+            with patch.object(service, "available_characters", return_value=rows), \
+                    patch("app.network.character_runtime_state.character_runtime_state", return_value=state):
+                self.assertEqual([row.connected for row in service.available_travel_characters()],
+                                 [False, False])
+                state.identify(session_id="a", character_key="character:1", character_id=1, name="Alpha")
+                state.identify(session_id="b", character_key="character:2", character_id=2, name="Beta")
+                self.assertEqual([row.connected for row in service.available_travel_characters()],
+                                 [True, False])
+                state.close_session("a")
+                self.assertEqual([row.connected for row in service.available_travel_characters()],
+                                 [False, False])
+                self.assertEqual(service.selected_keys(), ("character:1", "character:2"))
+                self.assertTrue(rows[0].connected)
+
+    def test_connected_travel_projection_rejects_duplicate_identities(self):
+        from app.quest_catalog import QuestCharacter
+        from app.services.guide_participant_service import connected_travel_recipients
+
+        rows = [QuestCharacter("character:1", "Alpha", 1, True),
+                QuestCharacter("character:2", "Beta", 2, False)]
+        self.assertEqual(connected_travel_recipients(rows, ("character:2", "character:1")),
+                         ("character:1",))
+        with self.assertRaises(ValueError):
+            connected_travel_recipients([*rows, rows[0]], ("character:1",))
+        with self.assertRaises(ValueError):
+            connected_travel_recipients(rows, ("character:1", "character:1"))
+        with self.assertRaises(ValueError):
+            connected_travel_recipients(rows, ("slot:1",))
+
+    def test_selection_read_write_normalizes_whitespace_and_deduplicates(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profile.json"
+            binding = root / "bindings.json"
+            profile.write_text("{}", encoding="utf-8")
+            binding.write_text(json.dumps({"characters": {
+                "3": {"source": "verified_network_identity"},
+            }}), encoding="utf-8")
+            service = GuideParticipantService(profile, root / "clients.json", binding)
+            result = service.save_selected_keys(
+                [" character:3 ", "character:3", "slot:3", "character:4"]
+            )
+            self.assertEqual(result, ("character:3",))
+            self.assertEqual(service.selected_keys(), result)
 
     def test_corrupt_selection_type_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

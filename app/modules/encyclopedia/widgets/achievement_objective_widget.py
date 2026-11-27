@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QCheckBox, QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
@@ -22,6 +22,7 @@ class AchievementObjectiveWidget(QFrame):
         entity_ref_override: EntityRef | None = None,
         navigate_callback: Callable[[str, int], bool] | None = None,
         parent=None,
+        completion_changed_callback: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("ObjectiveRow")
@@ -29,6 +30,7 @@ class AchievementObjectiveWidget(QFrame):
         self.progress_service = progress_service
         self.character_key = character_key
         self.navigate_callback = navigate_callback
+        self.completion_changed_callback = completion_changed_callback
         self.entity_ref = entity_ref_override or objective.entity_ref
         if self.entity_ref is not None and navigate_callback is not None:
             self.setCursor(Qt.PointingHandCursor)
@@ -77,3 +79,10 @@ class AchievementObjectiveWidget(QFrame):
             self.objective.id,
             checked,
         )
+        effective = self.progress_service.is_objective_completed(
+            self.character_key, self.objective.achievement_id, self.objective.id,
+        )
+        with QSignalBlocker(self.check):
+            self.check.setChecked(effective)
+        if self.completion_changed_callback is not None:
+            self.completion_changed_callback()

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
@@ -62,6 +64,78 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
         panel.deleteLater()
         QCoreApplication.sendPostedEvents(panel, QEvent.DeferredDelete)
 
+    def test_canvas_reuses_geometry_for_hit_testing_and_resets_on_view_change(self):
+        from PySide6.QtCore import QPointF
+        from app.ui.map_canvas_widget import MapCanvasWidget
+        canvas = MapCanvasWidget()
+        row = {"x": 1, "y": -2, "rect_json": '{"x": 10, "y": 20, "w": 40, "h": 60}'}
+        link = {"from_x": 1, "from_y": -2}
+        bad = {"x": 2, "y": 3, "rect_json": '{"x": 0, "y": 0, "w": NaN, "h": 4}'}
+        try:
+            with patch.object(canvas, "_decode_map_rect", wraps=canvas._decode_map_rect) as decode:
+                canvas.set_view({"view_key": "world"}, QPixmap(100, 100), [row, bad], [link], "", False)
+                for _ in range(30):
+                    self.assertIs(canvas.map_at(QPointF(15, 25)), row)
+                    self.assertEqual(canvas.link_point(link), QPointF(30, 50))
+                    self.assertIs(canvas.link_at(QPointF(30, 50)), link)
+                    self.assertIsNone(canvas.rect_for_map(bad))
+                self.assertEqual(decode.call_count, 2)
+                canvas.set_view(None, QPixmap(), [], [], "", True)
+                self.assertFalse(canvas._map_rects)
+                self.assertFalse(canvas._link_points)
+                self.assertFalse(canvas._coord_rects)
+                self.assertIsNone(canvas.link_point(link))
+        finally:
+            canvas.deleteLater()
+
+    def test_suspending_map_discards_render_cache_without_losing_navigation(self):
+        from app.ui.map_canvas_widget import MapCanvasWidget
+        canvas = MapCanvasWidget()
+        row = {"x": 3, "y": 4, "rect": {"x": 0, "y": 0, "w": 10, "h": 10}}
+        try:
+            canvas.set_view({"view_key": "world"}, QPixmap(100, 100), [row], [], "", False)
+            canvas.select_map_coord(3, 4)
+            self.assertTrue(canvas._map_rects)
+            canvas.suspend_rendering()
+            self.assertTrue(canvas.pixmap.isNull())
+            self.assertFalse(canvas._map_rects)
+            self.assertFalse(canvas._coord_rects)
+            self.assertEqual(canvas._selected_coord, (3, 4))
+            self.assertEqual(canvas.view_key, "world")
+        finally:
+            canvas.deleteLater()
+
+    def test_loading_canvas_draws_message_even_before_image_arrives(self):
+        from app.ui.map_canvas_widget import MapCanvasWidget
+        canvas = MapCanvasWidget()
+        try:
+            canvas.set_map_placeholder("Chargement de la cartographie…")
+            with patch.object(canvas, "_draw_placeholder_text",
+                              wraps=canvas._draw_placeholder_text) as draw:
+                canvas.resize(500, 350)
+                canvas.show()
+                self.app.processEvents()
+                canvas.grab()
+                self.assertGreaterEqual(draw.call_count, 1)
+        finally:
+            canvas.close()
+            canvas.deleteLater()
+
+    def test_local_image_stats_initializes_cache_layout_once(self) -> None:
+        import app.services.maps.map_cache_builder as builder
+
+        with tempfile.TemporaryDirectory() as directory:
+            image_directory = Path(directory) / "images"
+            with (
+                patch.object(builder, "LOCAL_IMAGE_DIRS", (image_directory,)),
+                patch.object(builder, "ensure_cache_layout") as initialize,
+            ):
+                stats = builder.get_local_image_stats()
+            initialize.assert_called_once_with()
+            self.assertEqual(stats.image_count, 0)
+            self.assertEqual(stats.total_bytes, 0)
+            self.assertEqual(stats.empty_dirs, (image_directory,))
+
     def test_world_service_can_skip_constructor_init_without_changing_default(self) -> None:
         with patch.object(world_service_module.world_db, "init_db") as init_db:
             WorldService()
@@ -80,7 +154,113 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 self.assertEqual(service.map_calls, 0)
                 self.assertEqual(service.link_calls, 0)
                 self.assertTrue(panel._initial_load_pending)
+                self.assertTrue(panel.world_menu_scroll.widgetResizable())
+                self.assertEqual(
+                    panel.world_menu_scroll.frameShape(), world_scan_module.QFrame.NoFrame,
+                )
+                self.assertEqual(
+                    panel.world_menu_scroll.horizontalScrollBarPolicy(),
+                    Qt.ScrollBarAlwaysOff,
+                )
+                self.assertEqual(
+                    panel.world_menu_scroll.verticalScrollBarPolicy(),
+                    Qt.ScrollBarAsNeeded,
+                )
             finally:
+                self._dispose_panel(panel)
+
+
+    def test_cache_builder_and_map_ui_share_unicode_world_normalization(self):
+        from app.services.maps.map_cache_builder import normalize_world
+
+        self.assertEqual(normalize_world("  MÓNDE des Douze  "), "monde des douze")
+        self.assertEqual(normalize_world("Île d’Otomaï"), "ile d'otomai")
+        self.assertEqual(normalize_world(None), "")
+        self.assertEqual(
+            normalize_world(" PANDALA "),
+            WorldScanPanel.normalize_world_name(None, " PANDALA "),
+        )
+
+    def test_world_name_normalization_preserves_real_display_labels(self) -> None:
+        self.assertEqual(
+            WorldScanPanel._world_name_from_view_data(
+                {"name": " Móndé des Douze – région "}
+            ),
+            world_scan_module.DEFAULT_WORLD_NAME,
+        )
+        self.assertEqual(
+            WorldScanPanel._world_name_from_view_data({"name": "  Pandala  "}),
+            "Pandala",
+        )
+        self.assertEqual(
+            WorldScanPanel._world_name_from_view_data({"name": ""}),
+            world_scan_module.DEFAULT_WORLD_NAME,
+        )
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                self.assertEqual(
+                    panel.normalize_world_name("  Écaflip’s World  "),
+                    "ecaflip's world",
+                )
+            finally:
+                self._dispose_panel(panel)
+
+    def test_world_menu_rebuild_cleans_widgets_with_shared_qt_layout(self) -> None:
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                panel.rebuild_world_menu([world_scan_module.DEFAULT_WORLD_NAME, "Pandala"])
+                self.assertEqual(len(panel.world_buttons), 2)
+                self.assertGreater(panel.world_menu_list.count(), 2)
+                panel._evict_world_menu_items()
+                self.assertEqual(panel.world_menu_list.count(), 0)
+                self.assertEqual(panel.world_buttons, {})
+                self.assertTrue(panel._world_menu_suspended)
+                panel.rebuild_world_menu(["Otomaï"])
+                self.assertEqual(tuple(panel.world_buttons), ("Otomaï",))
+                self.assertFalse(panel._world_menu_suspended)
+            finally:
+                self._dispose_panel(panel)
+
+    def test_map_buttons_reuse_the_shared_unity_button(self) -> None:
+        """Map actions use AtlasButton, preserving their existing selectors."""
+        from app.ui.components import AtlasButton, AtlasPageTitle
+
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                toolbar_button = panel.make_button("Actualiser", "WorldRefreshButton")
+                self.assertIsInstance(toolbar_button, AtlasButton)
+                self.assertEqual(toolbar_button.objectName(), "WorldRefreshButton")
+                from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+                geometry = UNITY_MODULE_GEOMETRY_PX["world_scan"]
+                self.assertEqual(toolbar_button.height(), geometry["toolbar_button_height"])
+                toolbar = panel.findChild(world_scan_module.QFrame, "MapToolbar")
+                margins = toolbar.layout().contentsMargins()
+                self.assertEqual(
+                    (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                    geometry["toolbar_margins"],
+                )
+                self.assertEqual(toolbar.layout().spacing(), geometry["toolbar_spacing"])
+                self.assertEqual(panel.detail_panel.layout().spacing(), geometry["detail_spacing"])
+                self.assertEqual(panel.world_menu_list.spacing(), geometry["menu_item_spacing"])
+                self.assertEqual(panel.status_label.height(), geometry["status_height"])
+                title = panel.findChild(AtlasPageTitle, "PageTitle")
+                self.assertIsNotNone(title)
+                self.assertEqual(title.text(), "Scan Monde")
+                self.assertEqual(title.height(), 28)
+                panel.rebuild_world_menu(["Amakna"])
+                self.assertIsInstance(panel.world_buttons["Amakna"], AtlasButton)
+                self.assertEqual(
+                    panel.world_buttons["Amakna"].objectName(), "WorldMenuItem"
+                )
+                self.assertEqual(
+                    panel.world_buttons["Amakna"].height(),
+                    geometry["world_menu_item_height"],
+                )
+            finally:
+                toolbar_button.deleteLater()
                 self._dispose_panel(panel)
 
     def test_first_show_only_starts_worker_and_keeps_db_off_ui_thread(self) -> None:

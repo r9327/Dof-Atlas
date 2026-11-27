@@ -26,6 +26,8 @@ from app.constants import (
     NETWORK_CHARACTER_BINDINGS_FILE,
     PROFILE_FILE,
 )
+from app.core.file_stamp import resolved_mtime_size_stamp
+from app.core.character_identity import iter_verified_character_bindings
 from app.quest_catalog import is_generic_dofus_client_name
 from app.services.profile_settings_service import ProfileSettingsService
 from app.storage import (
@@ -77,29 +79,14 @@ class CharacterSessionsMixin:
 
     def _verified_character_rows(self) -> tuple[tuple[int, dict[str, Any]], ...]:
         path = self._network_character_bindings_file()
-        try:
-            stat = path.stat()
-            stamp = (str(path.resolve()), int(stat.st_mtime_ns), int(stat.st_size))
-        except OSError:
-            stamp = (str(path.resolve()), 0, 0)
+        stamp = resolved_mtime_size_stamp(path)
         if stamp == getattr(self, "_verified_character_rows_stamp", None):
             return getattr(self, "_verified_character_rows_cache", ())
         payload = read_json(path, {})
-        characters = payload.get("characters", {}) if isinstance(payload, dict) else {}
-        rows: list[tuple[int, dict[str, Any]]] = []
-        for raw_id, row in characters.items() if isinstance(characters, dict) else ():
-            if not str(raw_id).isdigit() or not isinstance(row, dict):
-                continue
-            try:
-                character_id = int(raw_id)
-            except (ValueError, OverflowError):
-                # Unicode digit-like keys and oversized integers must not
-                # interrupt the entire verified identity refresh.
-                continue
-            if character_id <= 0 or str(row.get("source") or "") != "verified_network_identity":
-                continue
-            rows.append((character_id, dict(row)))
-        result = tuple(rows)
+        result = tuple(
+            (ident, dict(row))
+            for ident, row in iter_verified_character_bindings(payload, strict_registry_keys=True)
+        )
         self._verified_character_rows_stamp = stamp
         self._verified_character_rows_cache = result
         return result
@@ -615,6 +602,18 @@ class CharacterSessionsMixin:
         else:
             self.status_callback("Raccourcis Python recharges: aucune session Unity detectee.")
 
+    def _has_unique_live_name_class(self, name_key: str, class_key: str) -> bool:
+        """Both identity paths reject ambiguous live windows before binding."""
+        found = False
+        for candidate in self.sessions:
+            if (session_is_detected(candidate)
+                    and normalize_key(clean_auto_group_name(session_name(candidate))) == name_key
+                    and (dofus_class_key_from_window_name(session_name(candidate)) or "") == class_key):
+                if found:
+                    return False
+                found = True
+        return found
+
     def verified_character_token_for_session(self, session: dict[str, Any]) -> str:
         pid = session_pid(session)
         pid_matches: list[str] = []
@@ -623,14 +622,7 @@ class CharacterSessionsMixin:
         class_key = dofus_class_key_from_window_name(session_name(session)) or ""
         # Two live windows with the same displayed name and class cannot both
         # own the same network identity, even if one PID matches an old binding.
-        live_matches = [
-            candidate
-            for candidate in self.sessions
-            if session_is_detected(candidate)
-            and normalize_key(clean_auto_group_name(session_name(candidate))) == name_key
-            and (dofus_class_key_from_window_name(session_name(candidate)) or "") == class_key
-        ]
-        if len(live_matches) != 1:
+        if not self._has_unique_live_name_class(name_key, class_key):
             return ""
         for character_id, row in self._verified_character_rows():
             token = f"character:{character_id}"
@@ -659,14 +651,7 @@ class CharacterSessionsMixin:
         class_key = dofus_class_key_from_window_name(session_name(session)) or ""
         if not name_key or not class_key or is_generic_dofus_client_name(name):
             return ""
-        matches = [
-            candidate
-            for candidate in self.sessions
-            if session_is_detected(candidate)
-            and normalize_key(clean_auto_group_name(session_name(candidate))) == name_key
-            and (dofus_class_key_from_window_name(session_name(candidate)) or "") == class_key
-        ]
-        if len(matches) != 1:
+        if not self._has_unique_live_name_class(name_key, class_key):
             return ""
         return f"name-class:{name_key}:{class_key}"
 

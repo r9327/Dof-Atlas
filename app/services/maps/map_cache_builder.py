@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from app.core.text import normalize_world_label
 from app.services.maps.map_manifest import (
     DEFAULT_WORLD_NAME,
     MAP_IMAGES_DIR,
@@ -54,7 +54,8 @@ def get_local_image_files() -> list[Path]:
 
 
 def get_local_image_stats() -> LocalImageStats:
-    ensure_cache_layout()
+    # get_local_image_files owns the cache layout setup. Avoid a second
+    # scan/update of manifest and worlds metadata in the same request.
     files = get_local_image_files()
     empty_dirs: list[Path] = []
     for root in LOCAL_IMAGE_DIRS:
@@ -124,9 +125,7 @@ def is_default_world_entry(entry: MapEntry) -> bool:
 
 
 def normalize_world(value: str | None) -> str:
-    normalized = unicodedata.normalize("NFKD", str(value or ""))
-    ascii_text = "".join(char for char in normalized if not unicodedata.combining(char))
-    return ascii_text.replace("’", "'").strip().casefold()
+    return normalize_world_label(value)
 
 
 def build_cache_from_providers(providers: Iterable[BaseMapProvider]) -> MapCacheSummary:

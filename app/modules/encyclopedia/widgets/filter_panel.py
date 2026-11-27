@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -14,7 +13,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.models.achievement import AchievementCategory
+from app.ui.components import (
+    AtlasComboBox, configure_unity_progress_bar, configure_unity_scroll_area,
+    configure_unity_number_spinbox, clear_unity_widget_layout,
+)
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+FILTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["achievement_filters"]
 
 
 class AchievementFilterPanel(QWidget):
@@ -25,22 +33,23 @@ class AchievementFilterPanel(QWidget):
         self.setObjectName("AchievementFilterPanel")
         self.categories: list[AchievementCategory] = []
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(7)
+        root.setContentsMargins(*FILTER_GEOMETRY["page_margins"])
+        root.setSpacing(FILTER_GEOMETRY["page_spacing"])
         title = QLabel("Filtres")
         title.setObjectName("PanelTitle")
         root.addWidget(title)
 
-        self.category_combo = QComboBox()
-        self.subcategory_combo = QComboBox()
-        self.min_level = QSpinBox()
-        self.max_level = QSpinBox()
-        self.state_combo = QComboBox()
+        self.category_combo = AtlasComboBox()
+        self.subcategory_combo = AtlasComboBox()
+        self.min_level = configure_unity_number_spinbox(
+            QSpinBox(), minimum=0, maximum=999, value=0,
+        )
+        self.max_level = configure_unity_number_spinbox(
+            QSpinBox(), minimum=0, maximum=999, value=999,
+        )
+        self.state_combo = AtlasComboBox()
         self.hide_completed = QCheckBox("Masquer les succès terminés")
 
-        self.min_level.setRange(0, 999)
-        self.max_level.setRange(0, 999)
-        self.max_level.setValue(999)
         self.state_combo.addItems(["Tous", "Terminés", "Non terminés"])
 
         for label, widget in (
@@ -54,14 +63,12 @@ class AchievementFilterPanel(QWidget):
             root.addWidget(widget)
         root.addWidget(self.hide_completed)
 
-        self.category_area = QScrollArea()
+        self.category_area = configure_unity_scroll_area(QScrollArea())
         self.category_area.setObjectName("CategoryProgressArea")
-        self.category_area.setWidgetResizable(True)
-        self.category_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.category_content = QWidget()
         self.category_layout = QVBoxLayout(self.category_content)
         self.category_layout.setContentsMargins(0, 0, 0, 0)
-        self.category_layout.setSpacing(5)
+        self.category_layout.setSpacing(FILTER_GEOMETRY["category_spacing"])
         self.category_area.setWidget(self.category_content)
         root.addWidget(self._label("Progression catégories"))
         root.addWidget(self.category_area, 1)
@@ -76,26 +83,21 @@ class AchievementFilterPanel(QWidget):
 
     def set_categories(self, categories: list[AchievementCategory]) -> None:
         self.categories = list(categories)
-        self.category_combo.blockSignals(True)
-        self.category_combo.clear()
-        self.category_combo.addItem("Toutes", 0)
-        for category in self.parent_categories():
-            self.category_combo.addItem(category.name, category.id)
-        self.category_combo.blockSignals(False)
+        with QSignalBlocker(self.category_combo):
+            self.category_combo.clear()
+            self.category_combo.addItem("Toutes", 0)
+            for category in self.parent_categories():
+                self.category_combo.addItem(category.name, category.id)
         self.rebuild_subcategories()
 
     def set_category_cards(self, summaries: list[tuple[str, int, int]]) -> None:
-        while self.category_layout.count():
-            item = self.category_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        clear_unity_widget_layout(self.category_layout, detach_widgets=False)
         for name, completed, total in summaries:
             card = QFrame()
             card.setObjectName("CategoryProgressCard")
             layout = QVBoxLayout(card)
-            layout.setContentsMargins(7, 6, 7, 6)
-            layout.setSpacing(4)
+            layout.setContentsMargins(*FILTER_GEOMETRY["card_margins"])
+            layout.setSpacing(FILTER_GEOMETRY["card_spacing"])
             row = QHBoxLayout()
             label = QLabel(name)
             label.setObjectName("CompactLabel")
@@ -103,11 +105,10 @@ class AchievementFilterPanel(QWidget):
             count.setObjectName("MutedLabel")
             row.addWidget(label, 1)
             row.addWidget(count)
-            bar = QProgressBar()
-            bar.setObjectName("EncyclopediaProgressBar")
-            bar.setTextVisible(False)
-            bar.setRange(0, 100)
-            bar.setValue(int(round((completed / total) * 100)) if total else 0)
+            bar = configure_unity_progress_bar(
+                QProgressBar(), object_name="EncyclopediaProgressBar",
+            )
+            bar.setValue(clamped_percent(completed, total))
             layout.addLayout(row)
             layout.addWidget(bar)
             self.category_layout.addWidget(card)
@@ -132,13 +133,12 @@ class AchievementFilterPanel(QWidget):
 
     def rebuild_subcategories(self) -> None:
         parent_id = int(self.category_combo.currentData() or 0)
-        self.subcategory_combo.blockSignals(True)
-        self.subcategory_combo.clear()
-        self.subcategory_combo.addItem("Toutes", 0)
-        for category in self.categories:
-            if parent_id and category.parent_id == parent_id:
-                self.subcategory_combo.addItem(category.name, category.id)
-        self.subcategory_combo.blockSignals(False)
+        with QSignalBlocker(self.subcategory_combo):
+            self.subcategory_combo.clear()
+            self.subcategory_combo.addItem("Toutes", 0)
+            for category in self.categories:
+                if parent_id and category.parent_id == parent_id:
+                    self.subcategory_combo.addItem(category.name, category.id)
 
     @staticmethod
     def _label(text: str) -> QLabel:
@@ -148,5 +148,5 @@ class AchievementFilterPanel(QWidget):
 
     @staticmethod
     def _progress_text(completed: int, total: int) -> str:
-        percent = int(round((completed / total) * 100)) if total else 0
+        percent = clamped_percent(completed, total)
         return f"{completed}/{total} · {percent}%"

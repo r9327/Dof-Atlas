@@ -7,6 +7,7 @@ import time
 import uuid
 from typing import Sequence
 
+from app.core.numbers import positive_int as _positive_int
 from app.core.settings import load_settings
 from app.network.build_fingerprint import ActiveProtocolBuildFingerprintProvider
 from app.network.discovery import ProtocolTargetDiscoveryCollector
@@ -129,15 +130,6 @@ def _character_names_for_slot(character_slot: int | None) -> tuple[str, ...]:
             names.append(label)
     return tuple(names)
 
-
-def _positive_int(value: object) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 def build_parser() -> argparse.ArgumentParser:

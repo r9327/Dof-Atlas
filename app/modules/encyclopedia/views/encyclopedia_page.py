@@ -5,18 +5,18 @@ import logging
 import weakref
 from pathlib import Path
 from queue import Empty, Queue
-from threading import Thread, current_thread
+from threading import Event, Thread, current_thread
 from typing import TYPE_CHECKING, Callable
 
-from PySide6.QtCore import QTimer, Qt, Signal
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import QSignalBlocker, QTimer, Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
 
 from app.background_work import background_io_priority
 from app.core.character_identity import is_character_key
 from app.constants import CLIENT_INDEX_JSON, CRAFT_SELECTION_FILE, PROFILE_FILE, QUEST_PROGRESS_FILE
 from app.modules.encyclopedia.constants import (
     ACHIEVEMENTS_TAB, ARCHMONSTERS_TAB, DEFAULT_TAB, DUNGEONS_TAB,
-    ENCYCLOPEDIA_TABS, GUIDES_TAB, MONSTERS_TAB, QUESTS_TAB, WANTED_TAB,
+    ENCYCLOPEDIA_TABS, GUIDES_TAB, MONSTERS_TAB, QUESTS_TAB, WANTED_TAB, BESTIARY_TABS,
 )
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.modules.encyclopedia.services import (
@@ -36,8 +36,14 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadGate,
     RelatedPreloadState,
 )
-from app.pages.quest_character_cache import quest_character_source_signature
-from app.quest_catalog import QuestCharacter, load_quest_characters
+from app.pages.quest_character_cache import (
+    quest_character_source_signature, cached_load_quest_characters as load_quest_characters,
+)
+from app.ui.components import (
+    AtlasComboBox, AtlasPageTitle, AtlasUnavailablePage, set_unity_widget_property,
+    populate_character_combo, select_character_combo_key,
+)
+from app.quest_catalog import QuestCharacter
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.views.achievements_view import AchievementsView
@@ -50,7 +56,7 @@ if TYPE_CHECKING:
 
 LOGGER = logging.getLogger(__name__)
 GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
-_BESTIARY_TABS = frozenset({DUNGEONS_TAB, MONSTERS_TAB, ARCHMONSTERS_TAB, WANTED_TAB})
+_BESTIARY_TABS = frozenset(BESTIARY_TABS)
 
 _ACHIEVEMENTS_VIEW_TYPE: type | None = None
 _GUIDE_CATALOG_VIEW_TYPE: type | None = None
@@ -79,11 +85,6 @@ def _resolve_guide_catalog_view_type() -> type:
 def _resolve_guides_view_type() -> type:
     global _GUIDES_VIEW_TYPE
     if _GUIDES_VIEW_TYPE is None:
-        # Install the Guide image policy only when Guide is actually requested.
-        # Loading Encyclopedia/Quests must not import the full Guide widget tree.
-        from app.modules.encyclopedia.views import _ensure_guide_view_loaded
-
-        _ensure_guide_view_loaded()
         from app.modules.encyclopedia.views.deferred_achievement_guides_view import (
             DeferredAchievementGuidesView,
         )
@@ -244,7 +245,7 @@ class EncyclopediaPage(QWidget):
         self.character_label.setObjectName("MutedLabel")
         self.character_label.setVisible(False)
         header.addWidget(self.character_label)
-        self.character_combo = QComboBox()
+        self.character_combo = AtlasComboBox()
         self.character_combo.setObjectName("EncyclopediaCharacterCombo")
         self.character_combo.setMinimumWidth(0)
         self.character_combo.setMaximumWidth(0)
@@ -257,6 +258,9 @@ class EncyclopediaPage(QWidget):
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName("EncyclopediaTabs")
+        # Stable per-label tab widths even when the containing page is resized
+        # between Bestiary and Encyclopedia navigation.
+        self.tabs.tabBar().setExpanding(False)
         self.tabs.tabBar().setProperty("guideActive", False)
         root.addWidget(self.tabs, 1)
 
@@ -287,21 +291,14 @@ class EncyclopediaPage(QWidget):
             if self._lazy_slots.get(label) is widget:
                 # No Bestiary business view is available yet. Never expose
                 # an empty lazy slot or imply the section has loaded.
-                page = QWidget()
-                page.setObjectName("EncyclopediaUnavailableBestiary")
-                layout = QVBoxLayout(page)
-                layout.setContentsMargins(24, 24, 24, 24)
-                title = QLabel(label.title())
-                title.setObjectName("PageTitle")
-                layout.addWidget(title)
-                message = QLabel(
+                page = AtlasUnavailablePage(
+                    label.title(),
                     "Module en préparation : ce volet du Bestiaire n'est pas encore "
-                    "disponible. Revenez à Quêtes, Succès ou Guides."
+                    "disponible. Revenez à Quêtes, Succès ou Guides.",
+                    badge="En travaux",
+                    object_name="EncyclopediaUnavailableBestiary",
+                    message_role="EncyclopediaUnavailableMessage",
                 )
-                message.setObjectName("EncyclopediaUnavailableMessage")
-                message.setWordWrap(True)
-                layout.addWidget(message)
-                layout.addStretch(1)
                 self.replace_tab_widget(label, page)
                 return page
             return widget
@@ -320,13 +317,28 @@ class EncyclopediaPage(QWidget):
         index = self.tab_labels().index(label)
         current_label = self.current_tab_label()
         old_widget = self.tabs.widget(index)
-        self.tabs.blockSignals(True)
-        self.tabs.removeTab(index)
-        self.tabs.insertTab(index, widget, label)
-        target_label = label if current_label == label else current_label
-        if target_label in self.tab_labels():
-            self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
-        self.tabs.blockSignals(False)
+        # Qt removes/reinserts a QTabWidget tab when a lazy page is hydrated.
+        # This may make OTHER hidden tabs visible again, particularly when
+        # replacing the currently selected Bestiary tab. Preserve the entire
+        # per-label visibility map, not merely the tab being replaced.
+        tab_bar = self.tabs.tabBar()
+        visibility = {
+            self.tabs.tabText(tab_index): tab_bar.isTabVisible(tab_index)
+            for tab_index in range(self.tabs.count())
+        }
+        was_blocked = self.tabs.blockSignals(True)
+        try:
+            self.tabs.removeTab(index)
+            self.tabs.insertTab(index, widget, label)
+            for tab_index, tab_name in enumerate(self.tab_labels()):
+                tab_bar.setTabVisible(
+                    tab_index, visibility.get(tab_name, True)
+                )
+            target_label = label if current_label == label else current_label
+            if target_label in self.tab_labels():
+                self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
+        finally:
+            self.tabs.blockSignals(was_blocked)
         self._lazy_slots.pop(label, None)
         if old_widget is not widget:
             old_widget.deleteLater()
@@ -397,49 +409,17 @@ class EncyclopediaPage(QWidget):
             self.client_index_path,
             connected_only=True,
         )
-        self.character_combo.blockSignals(True)
-        self.character_combo.clear()
-        selected_index = 0
-        for index, character in enumerate(self.characters):
-            self.character_combo.addItem(character.label, character)
-            self.character_combo.setItemData(index, character.label, Qt.ToolTipRole)
-            if character.key == previous_key:
-                selected_index = index
-            elif not previous_key and character.connected:
-                selected_index = index
-        self.character_combo.setCurrentIndex(selected_index)
-        self.character_combo.blockSignals(False)
-        character = self.character_combo.currentData()
-        self.current_character_key = (
-            character.key if isinstance(character, QuestCharacter) else previous_key
+        self.current_character_key = populate_character_combo(
+            self.character_combo, self.characters, previous_key,
         )
-        self.character_combo.setToolTip(character.label if isinstance(character, QuestCharacter) else "")
 
     def set_character_key(self, character_key: str) -> None:
         """Synchronise le personnage global piloté par AtlasWindow."""
         target = str(character_key or "")
-        target_index = -1
-        for index in range(self.character_combo.count()):
-            character = self.character_combo.itemData(index)
-            if isinstance(character, QuestCharacter) and character.key == target:
-                target_index = index
-                break
-        if target_index < 0:
+        if not select_character_combo_key(self.character_combo, target):
             self.refresh_characters()
-            for index in range(self.character_combo.count()):
-                character = self.character_combo.itemData(index)
-                if isinstance(character, QuestCharacter) and character.key == target:
-                    target_index = index
-                    break
-        if target_index >= 0:
-            self.character_combo.blockSignals(True)
-            self.character_combo.setCurrentIndex(target_index)
-            self.character_combo.blockSignals(False)
-            character = self.character_combo.currentData()
-            self.current_character_key = character.key if isinstance(character, QuestCharacter) else target
-            self.character_combo.setToolTip(character.label if isinstance(character, QuestCharacter) else "")
-        else:
-            self.current_character_key = target
+            select_character_combo_key(self.character_combo, target)
+        self.current_character_key = target
         self.sync_character_to_children()
 
     def on_global_character_changed(self) -> None:
@@ -455,8 +435,15 @@ class EncyclopediaPage(QWidget):
             return
         self._syncing_character = True
         try:
-            if self.guides_view is not None and getattr(self.guides_view, "current_character_key", None) != self.current_character_key:
-                self.guides_view.set_character_key(self.current_character_key)
+            if self.guides_view is not None:
+                if getattr(self.guides_view, "current_character_key", None) != self.current_character_key:
+                    self.guides_view.set_character_key(self.current_character_key)
+                # A network membership change need not change the active
+                # character or write quest progress. Refresh visible Guide
+                # actions independently of those two triggers.
+                refresh_connections = getattr(self.guides_view, "refresh_connection_state", None)
+                if callable(refresh_connections):
+                    refresh_connections()
             if self.quest_page is not None:
                 self.sync_quest_page_character()
             achievements_view = self.get_achievements_view()
@@ -468,28 +455,7 @@ class EncyclopediaPage(QWidget):
     def sync_quest_page_character(self) -> None:
         if self.quest_page is None:
             return
-        combo = self.quest_page.character_combo
-        target_index = -1
-        for index in range(combo.count()):
-            character = combo.itemData(index)
-            if isinstance(character, QuestCharacter) and character.key == self.current_character_key:
-                target_index = index
-                break
-        if target_index >= 0:
-            combo.blockSignals(True)
-            combo.setCurrentIndex(target_index)
-            combo.blockSignals(False)
-        if self.quest_page.current_character_key == self.current_character_key:
-            return
-        self.quest_page.current_character_key = self.current_character_key
-        self.quest_page.progress = self.quest_page.quest_progress_service.reload()
-        self.quest_page.rebuild_hierarchy()
-        self.quest_page.refresh_quests()
-        detail_view = self.quest_page.quest_detail_view
-        if detail_view is not None:
-            detail_view.set_character_key(self.current_character_key)
-        if self.quest_page.selected_quest_id is not None:
-            self.quest_page.show_quest_detail(self.quest_page.selected_quest_id)
+        self.quest_page.set_character_key(self.current_character_key)
 
     def on_search_changed(self, text: str) -> None:
         widget = self.tabs.currentWidget()
@@ -508,9 +474,8 @@ class EncyclopediaPage(QWidget):
         was_lazy_slot = self._lazy_slots.get(label) is self.tabs.widget(index)
         if was_lazy_slot and label in {GUIDES_TAB, ACHIEVEMENTS_TAB} and not self._related_ready:
             fallback = self._last_ready_tab_index
-            self.tabs.blockSignals(True)
-            self.tabs.setCurrentIndex(fallback)
-            self.tabs.blockSignals(False)
+            with QSignalBlocker(self.tabs):
+                self.tabs.setCurrentIndex(fallback)
             self.request_related_preload(label)
             self.status_callback(f"Préparation de {label} en arrière-plan...")
             return
@@ -531,12 +496,7 @@ class EncyclopediaPage(QWidget):
     def sync_tab_accent(self, label: str | None = None) -> None:
         active = (label if label is not None else self.current_tab_label()) == GUIDES_TAB
         tab_bar = self.tabs.tabBar()
-        if tab_bar.property("guideActive") == active:
-            return
-        tab_bar.setProperty("guideActive", active)
-        tab_bar.style().unpolish(tab_bar)
-        tab_bar.style().polish(tab_bar)
-        tab_bar.update()
+        set_unity_widget_property(tab_bar, "guideActive", active)
 
     def _sync_search_visibility_base(self) -> None:
         """Compatibility hook: the Encyclopedia no longer has global search."""
@@ -594,6 +554,7 @@ class EncyclopediaPage(QWidget):
 
     def __init__(self, *args, **kwargs) -> None:
         self._runtime_threads: list[Thread] = []
+        self._runtime_released = Event()
         self._guide_runtime_ready = False
         self._success_runtime_requested = False
         self._full_guide_tab_requested = False
@@ -604,13 +565,15 @@ class EncyclopediaPage(QWidget):
 
         self._quest_load_queue: Queue[object] = Queue(maxsize=1)
         self._quest_load_started = False
+        self._quest_load_abandoned = False
         self._achievement_load_started = False
         self._achievement_ready = False
         self._catalog_context_published = False
         self._character_sources_signature: tuple[object, ...] | None = None
         self._initialize_encyclopedia_shell(*args, **kwargs)
         self.destroyed.connect(
-            lambda _obj=None, threads=self._runtime_threads: _join_runtime_threads(threads)
+            lambda _obj=None, threads=self._runtime_threads, released=self._runtime_released:
+                None if released.is_set() else _join_runtime_threads(threads)
         )
         # Loaded providers are not equivalent to a hydrated Guide widget.
         # Keep the gate idle until the actual Guide view is ready.
@@ -636,10 +599,30 @@ class EncyclopediaPage(QWidget):
             self._related_preload_gate.mark_ready()
         self._stabilize_header_geometry()
 
+    def release_runtime(self) -> None:
+        """Retire a reconstructible page without joining I/O on the Qt thread."""
+        if self._runtime_released.is_set():
+            return
+        self._runtime_released.set()
+        self._quest_load_timer.stop()
+        self._quest_load_abandoned = True
+        self._pending_lazy_tab = ""
+        self._pending_guide_id = ""
+        self._pending_achievement_id = None
+        self._pending_achievement_context_id = None
+        if self.quest_page is not None:
+            release = getattr(self.quest_page, "release_runtime", None)
+            if callable(release):
+                release()
+        # Workers hold only data and their captured cancellation event.
+        # Any already queued result is discarded by the retired receiver.
+        self._quest_load_queue = Queue(maxsize=1)
+
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
         if hasattr(self, "_quest_load_timer"):
             self._quest_load_timer.stop()
-        _join_runtime_threads(self._runtime_threads)
+        if not self._runtime_released.is_set():
+            _join_runtime_threads(self._runtime_threads)
         super().closeEvent(event)
 
     @property
@@ -650,6 +633,7 @@ class EncyclopediaPage(QWidget):
         return quest_character_source_signature(
             self.profile_path,
             self.client_index_path,
+            connected_only=True,
         )
 
     def refresh_characters(self) -> None:
@@ -779,13 +763,17 @@ class EncyclopediaPage(QWidget):
         self._catalog_context_published = True
 
     def request_quest_runtime(self) -> None:
-        if self.quest_page is not None:
+        if self._runtime_released.is_set() or self.quest_page is not None:
             return
         if self._quest_load_started:
+            # A user who returned before the worker finished still wants it.
+            self._quest_load_abandoned = False
             return
+        self._quest_load_abandoned = False
         self._quest_load_started = True
         provider = self.quest_provider
         results = self._quest_load_queue
+        released = self._runtime_released
 
         def worker() -> None:
             with background_io_priority():
@@ -795,18 +783,31 @@ class EncyclopediaPage(QWidget):
                     result: object = _QuestRuntimePayload(graph)
                 except Exception as exc:
                     result = exc
-                results.put(result)
+                if not released.is_set():
+                    results.put(result)
 
-        _start_runtime_thread(self, worker, "DofusAtlasQuestIndex")
+        try:
+            _start_runtime_thread(self, worker, "DofusAtlasQuestIndex")
+        except RuntimeError as exc:
+            self._quest_load_started = False
+            self.status_callback(f"Chargement Quêtes impossible : {exc}")
+            return
         self._quest_load_timer.start()
 
     def _collect_quest_runtime(self) -> None:
+        if self._runtime_released.is_set():
+            return
         try:
             result = self._quest_load_queue.get_nowait()
         except Empty:
             return
         self._quest_load_timer.stop()
         self._quest_load_started = False
+        if self._quest_load_abandoned:
+            # Worker cannot be forcibly interrupted; discard only the stale
+            # result, without mounting a heavy Quest widget off-screen.
+            self._quest_load_abandoned = False
+            return
         if isinstance(result, Exception):
             self.status_callback(f"Chargement Quêtes impossible : {result}")
             return
@@ -901,6 +902,11 @@ class EncyclopediaPage(QWidget):
             self._on_tab_changed_indexed(index)
             return
 
+        if getattr(self, "_quest_load_started", False):
+            # Let the worker finish safely, but never hydrate Quests after
+            # its tab was abandoned. Returning before completion reuses it.
+            self._quest_load_abandoned = label != QUESTS_TAB
+
         # A background Success/Guide load must never steal focus back after the
         # player explicitly switches to another Encyclopedia tab.
         if label != ACHIEVEMENTS_TAB and self._pending_lazy_tab == ACHIEVEMENTS_TAB:
@@ -968,6 +974,8 @@ class EncyclopediaPage(QWidget):
         self.request_achievement_runtime()
 
     def request_related_preload(self, target_tab: str = "") -> None:
+        if self._runtime_released.is_set():
+            return
         if target_tab:
             self._pending_lazy_tab = str(target_tab)
         if self._guide_runtime_ready:
@@ -990,6 +998,9 @@ class EncyclopediaPage(QWidget):
         character_key = str(self.current_character_key or "")
         quest_progress_path = self.quest_progress_path
         existing_graph = getattr(self, "_quest_graph", None)
+        released = self._runtime_released
+        page_ref = weakref.ref(self)
+        build_progress = type(self)._build_guide_progress_snapshot
 
         def worker() -> None:
             with background_io_priority():
@@ -1031,8 +1042,10 @@ class EncyclopediaPage(QWidget):
                         raise RuntimeError(
                             f"Aucun guide chargé depuis {catalog_path}{detail}"
                         )
+                    if released.is_set():
+                        return
                     try:
-                        progress = self._build_guide_progress_snapshot(
+                        progress = build_progress(
                             active_guide_provider,
                             character_key,
                             quest_progress_path,
@@ -1049,13 +1062,15 @@ class EncyclopediaPage(QWidget):
                 except Exception as exc:
                     LOGGER.exception("Chargement du runtime Guide impossible")
                     result = exc
-                try:
-                    self.guideRuntimeFinished.emit(result)
-                except RuntimeError:
-                    LOGGER.debug(
-                        "Guide runtime receiver deleted before worker completion.",
-                        exc_info=True,
-                    )
+                page = page_ref() if not released.is_set() else None
+                if page is not None:
+                    try:
+                        page.guideRuntimeFinished.emit(result)
+                    except RuntimeError:
+                        LOGGER.debug(
+                            "Guide runtime receiver deleted before worker completion.",
+                            exc_info=True,
+                        )
 
         try:
             _start_runtime_thread(self, worker, "DofusAtlasGuideStage")
@@ -1066,6 +1081,8 @@ class EncyclopediaPage(QWidget):
             self.status_callback(f"Chargement Guide impossible : {exc}")
 
     def collect_related_preload(self, result: object) -> None:
+        if self._runtime_released.is_set():
+            return
         self._related_preload_started = False
 
         if isinstance(result, Exception):
@@ -1085,6 +1102,10 @@ class EncyclopediaPage(QWidget):
 
         view = self.ensure_guides_view()
         try:
+            # The worker may have replaced a provider whose catalogue was
+            # unavailable. A pre-existing loading view must use that exact
+            # recovered provider, not try the failed instance a second time.
+            view.provider = result.guide_provider
             view.hydrate_runtime(
                 graph=result.graph,
                 initial_progress_by_guide=result.progress_by_guide,
@@ -1129,6 +1150,8 @@ class EncyclopediaPage(QWidget):
         self._start_achievement_stage(open_success=False)
 
     def _start_achievement_stage(self, *, open_success: bool) -> None:
+        if self._runtime_released.is_set():
+            return
         if open_success:
             self._success_runtime_requested = True
             self._pending_lazy_tab = ACHIEVEMENTS_TAB
@@ -1159,6 +1182,7 @@ class EncyclopediaPage(QWidget):
             self.service.guide_provider if self._guide_runtime_ready else None
         )
         page_ref = weakref.ref(self)
+        released = self._runtime_released
 
         def worker() -> None:
             with background_io_priority():
@@ -1168,7 +1192,15 @@ class EncyclopediaPage(QWidget):
                     if callable(load_runtime):
                         load_runtime()
                     else:
-                        achievement_provider.load_all()
+                        catalogue_only = getattr(
+                            achievement_provider, "load_catalogue_only", None,
+                        )
+                        if callable(catalogue_only):
+                            catalogue_only()
+                        else:
+                            achievement_provider.load_all()
+                    if released.is_set():
+                        return
                     if pending_detail_id is not None:
                         try:
                             # Refuse an unrelated/non-retained link before an
@@ -1176,7 +1208,21 @@ class EncyclopediaPage(QWidget):
                             # already loaded in this same canonical stage.
                             retained = getattr(achievement_provider, "is_retained", None)
                             if not callable(retained) or retained(pending_detail_id):
-                                # Reuse the same provider and its bounded cache.
+                                # A direct deep link explicitly needs the rich
+                                # reward sources. Prepare them on this existing
+                                # background stage, never on the Qt thread.
+                                prepare = getattr(
+                                    achievement_provider, "prepare_detail_sources", None
+                                )
+                                needs_index = getattr(
+                                    achievement_provider, "detail_source_index_required", None
+                                )
+                                if (
+                                    getattr(achievement_provider, "detail_sources_ready", True)
+                                    is False and callable(prepare)
+                                    and (not callable(needs_index) or needs_index())
+                                ):
+                                    prepare()
                                 achievement_provider.get_detail_by_id(pending_detail_id)
                         except Exception:
                             # A missing/corrupt individual detail must not
@@ -1185,6 +1231,8 @@ class EncyclopediaPage(QWidget):
                                 "Préparation du détail Succès %s impossible",
                                 pending_detail_id,
                             )
+                    if released.is_set():
+                        return
                     progress_synchronized = False
                     if is_character_key(character_key):
                         achievement_progress_service.sync_from_quest_progress(
@@ -1207,7 +1255,7 @@ class EncyclopediaPage(QWidget):
                 except Exception as exc:
                     LOGGER.exception("Chargement du runtime Succès impossible")
                     result = exc
-                page = page_ref()
+                page = page_ref() if not released.is_set() else None
                 if page is not None:
                     try:
                         page.achievementRuntimeFinished.emit(result)
@@ -1225,6 +1273,8 @@ class EncyclopediaPage(QWidget):
             return
 
     def _collect_achievement_runtime(self, result: object) -> None:
+        if self._runtime_released.is_set():
+            return
         self._achievement_load_started = False
 
         if isinstance(result, Exception):
@@ -1423,7 +1473,10 @@ class EncyclopediaPage(QWidget):
 
         self._pending_lazy_tab = ""
         if label == GUIDES_TAB:
-            needs_detail = bool(self._pending_guide_id) or (
+            from app.modules.encyclopedia.views.guide_catalog_view import OPTIMIZED_GUIDE_IDS
+
+            guide_id = self._pending_guide_id
+            needs_detail = guide_id in OPTIMIZED_GUIDE_IDS or (
                 self._pending_achievement_context_id is not None
                 and self._achievement_ready
             )
@@ -1432,10 +1485,15 @@ class EncyclopediaPage(QWidget):
                 if needs_detail
                 else self.ensure_guides_view()
             )
-            if self._pending_guide_id:
-                guide_id = self._pending_guide_id
+            if guide_id:
                 self._pending_guide_id = ""
-                view.select_guide(guide_id)
+                if guide_id in OPTIMIZED_GUIDE_IDS:
+                    view.select_guide(guide_id)
+                else:
+                    if not isinstance(view, _resolve_guide_catalog_view_type()):
+                        self._restore_guides_catalog_home()
+                        view = self.ensure_guides_view()
+                    view.show_pending_guide(guide_id)
             if (
                 self._pending_achievement_context_id is not None
                 and self._achievement_ready

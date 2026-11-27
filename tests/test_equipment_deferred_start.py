@@ -16,6 +16,31 @@ class EquipmentDeferredStartTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_equipment_title_inherits_the_universal_ui_index(self) -> None:
+        from app.ui.components import AtlasPageTitle
+
+        page = EquipmentPage(lambda _text: None)
+        try:
+            title = page.findChild(AtlasPageTitle, "PageTitle")
+            self.assertIsNotNone(title)
+            self.assertEqual(title.text(), "Équipement")
+            self.assertEqual(title.styleSheet(), "")
+        finally:
+            page.deleteLater()
+
+    def test_equipment_layout_keeps_indexed_geometry(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        page = EquipmentPage(lambda _text: None)
+        try:
+            geometry = UNITY_MODULE_GEOMETRY_PX["equipment"]
+            self.assertEqual(page.layout().getContentsMargins(),
+                             geometry["page_margins"])
+            self.assertEqual(page.layout().spacing(),
+                             geometry["page_spacing"])
+        finally:
+            page.deleteLater()
+
     def test_equipment_shell_is_navigation_ready_before_webengine(self) -> None:
         page = EquipmentPage(lambda _text: None)
         self.assertTrue(page.is_navigation_ready())
@@ -25,14 +50,20 @@ class EquipmentDeferredStartTests(unittest.TestCase):
 
     def test_webengine_start_is_deferred_after_page_can_paint(self) -> None:
         page = EquipmentPage(lambda _text: None)
-        with patch("app.pages.equipment_page.QTimer.singleShot") as single_shot:
+        try:
             page.schedule_web_start()
-            single_shot.assert_called_once()
-            delay_ms, callback = single_shot.call_args.args
-            self.assertEqual(delay_ms, WEBENGINE_START_DELAY_MS)
-            self.assertEqual(callback, page._start_scheduled_web)
+            timer = page._web_start_timer
+            self.assertIs(timer.parent(), page)
+            self.assertEqual(timer.interval(), WEBENGINE_START_DELAY_MS)
+            self.assertTrue(timer.isActive())
+            page.schedule_web_start()
+            self.assertIs(page._web_start_timer, timer)
             self.assertTrue(page._web_start_scheduled)
-        page.deleteLater()
+            page.release_runtime()
+            self.assertFalse(timer.isActive())
+            self.assertFalse(page._web_start_scheduled)
+        finally:
+            page.deleteLater()
 
     def test_deferred_start_only_builds_webengine_while_visible(self) -> None:
         page = EquipmentPage(lambda _text: None)

@@ -3,7 +3,9 @@ from __future__ import annotations
 from PySide6.QtWidgets import QFrame, QLabel, QProgressBar, QVBoxLayout
 
 from app.modules.encyclopedia.models.achievement import Achievement
+from app.modules.encyclopedia.services.achievement_progress_logic import achievement_progress_snapshot
 from app.modules.encyclopedia.models.progress_state import ProgressState
+from app.ui.components import configure_unity_progress_bar
 
 
 class AchievementSummaryWidget(QFrame):
@@ -17,16 +19,12 @@ class AchievementSummaryWidget(QFrame):
         title.setObjectName("PanelTitle")
         title.setWordWrap(True)
         layout.addWidget(title)
-        done = sum(1 for objective in achievement.objectives if progress.is_objective_completed(achievement.id, objective.id))
-        total = len(achievement.objectives)
-        completed = progress.is_achievement_completed(achievement.id)
-        percent = 100 if completed else int(round((done / total) * 100)) if total else 0
+        done, total, _completed, percent = achievement_progress_snapshot(achievement, progress)
         meta = QLabel(f"{achievement.points} point(s) • {done} / {total} objectif(s) • {percent} %")
         meta.setObjectName("MutedLabel")
         layout.addWidget(meta)
-        bar = QProgressBar()
-        bar.setObjectName("EncyclopediaProgressBar")
-        bar.setTextVisible(False)
-        bar.setRange(0, 100)
+        bar = configure_unity_progress_bar(
+            QProgressBar(), object_name="EncyclopediaProgressBar",
+        )
         bar.setValue(percent)
         layout.addWidget(bar)

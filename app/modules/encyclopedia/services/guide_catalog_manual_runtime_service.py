@@ -9,15 +9,20 @@ import os
 import sys
 import sqlite3
 from collections import OrderedDict
-from functools import lru_cache
 from pathlib import Path
 from time import perf_counter
-import re
 from typing import Any
 from uuid import uuid4
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR, USER_DATA_ROOT
+from app.core import file_stamp, map_coordinates
+from app.core.file_stamp import mtime_size_stamp_optional
+from app.core.map_coordinates import extract_bracketed_coordinates
 from app.quest_catalog import quest_catalog_cache_signature
+from app.modules.encyclopedia.services.guide_catalog_step_index import (
+    resolved_route_quests, route_position_key, route_positions_merge, route_positions_split,
+)
+from app.modules.encyclopedia.services.guide_release_signature import guide_step_identity_rows
 from app.modules.encyclopedia.providers.quest_provider import QuestProvider
 
 from app.modules.encyclopedia.services.guide_catalog_route_store import (
@@ -28,7 +33,6 @@ from app.modules.encyclopedia.services.guide_catalog_route_store import (
 )
 from app.modules.encyclopedia.services.guide_quest_view_model import (
     clean_requirement_line,
-    first_position_from_quest,
     quest_items_from_objectives,
     quest_solution_steps,
     quest_start_info,
@@ -43,23 +47,7 @@ from app.modules.encyclopedia.services.guide_ultime_player_policy import (
     line_acquires_resource,
     preparation_resource_name,
 )
-from app.core.text import normalize_key as normalize_text
 
-
-_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
-
-
-@lru_cache(maxsize=4096)
-def _position_key_short(text: str) -> str:
-    """Cache only short position labels shared by thousands of route objectives."""
-    return _position_key_uncached(text)
-
-
-def _position_key_uncached(text: str) -> str:
-    match = _COORD_RE.search(text)
-    if match is not None:
-        return f"{int(match.group(1))},{int(match.group(2))}"
-    return normalize_text(text)
 
 
 
@@ -86,18 +74,11 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
     loaded = getattr(provider, "_catalog", None)
     if loaded is not None and not bool(getattr(loaded, "deferred_details", False)):
         return None
-    guide = service.catalog_guide
-    steps = [
-        (
-            str(getattr(step, "id", "") or ""),
-            str(getattr(step, "step_type", "") or ""),
-            str(getattr(step, "entity_id", "") or ""),
-            int(getattr(step, "order", 0) or 0),
-        )
-        for step in getattr(guide, "required_steps", ()) or ()
-    ]
+    steps = guide_step_identity_rows(service.catalog_guide)
     from app.modules.encyclopedia.services import (
         guide_catalog_route_store,
+        guide_catalog_step_index,
+        guide_release_signature,
         guide_quest_view_model,
         guide_ultime_player_policy,
     )
@@ -106,6 +87,10 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         Path(guide_quest_view_model.__file__),
         Path(guide_ultime_player_policy.__file__),
         Path(guide_catalog_route_store.__file__),
+        Path(guide_catalog_step_index.__file__),
+        Path(guide_release_signature.__file__),
+        Path(map_coordinates.__file__),
+        Path(file_stamp.__file__),
     )
     # Frozen bundles unpack sources to a different temporary path on each
     # launch. Bind cache validity to the durable executable version instead.
@@ -116,7 +101,7 @@ def _catalog_route_cache_identity(service: Any) -> tuple[Path, str] | None:
         source_stats = [("frozen_executable", meta.st_mtime_ns, meta.st_size)]
     else:
         source_stats = [
-            (str(path), path.stat().st_mtime_ns, path.stat().st_size)
+            (str(path), *mtime_size_stamp_optional(path, strict=True))
             for path in sources
         ]
     quest_sources = quest_catalog_cache_signature(data_dir)
@@ -383,27 +368,12 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
 
         projection_started = perf_counter()
         quest_count = 0
-        raw_segments: list[dict[str, Any]] = []
         seen_quests: set[int] = set()
+        raw_segments: list[dict[str, Any]] = []
 
-        for step in sorted(
-            getattr(self.catalog_guide, "required_steps", ()) or (),
-            key=lambda row: int(getattr(row, "order", 0) or 0),
-        ):
-            if str(getattr(step, "step_type", "")) != "quest":
-                continue
-            raw_id = getattr(step, "entity_id", None)
-            try:
-                quest_id = int(raw_id)
-            except (TypeError, ValueError):
-                continue
-            if quest_id in seen_quests:
-                continue
-            quest = self.quest_provider.get_quest(quest_id)
-            if quest is None:
-                continue
-            seen_quests.add(quest_id)
+        for step, quest in resolved_route_quests(self.catalog_guide, self.quest_provider):
             quest_count += 1
+            seen_quests.add(int(quest.id))
             raw_segments.extend(self._quest_segments(step, quest, finalize=False))
 
         raw_segment_count = len(raw_segments)
@@ -484,11 +454,9 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         quest_id = int(quest.id)
         quest_name = str(getattr(quest, "name", "") or f"Quête #{quest_id}")
         start = quest_start_info(quest, include_map_images=False)
-        start_position = str(
-            start.position
-            or first_position_from_quest(quest, start_info=start)
-            or ""
-        ).strip()
+        # Objective hints remain available on their own rows, but cannot
+        # become a start-map assertion or the location of a launch action.
+        start_position = start.declared_launch_position
         zone = str(
             start.zone
             or (quest.zones[0] if getattr(quest, "zones", ()) else "")
@@ -532,12 +500,16 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
             )
 
         location = " — ".join(value for value in (start_position, zone) if value)
-        if start.npc:
-            text = f"Prends la quête « {quest_name} » auprès de {start.npc}."
+        if start.launch_instruction:
+            text = start.launch_instruction
+        elif start.declared_launch_npc:
+            text = f"Prends la quête « {quest_name} » auprès de {start.declared_launch_npc}."
             if location:
                 text += f" {location}"
         else:
             text = f"Commence / poursuis la quête « {quest_name} »."
+        if not start_position and start.launch_status != "DOCUMENTED_START":
+            text += " Position de lancement à confirmer."
         first["sections"]["now"].append(
             self._line("action", start_position, text)
         )
@@ -567,7 +539,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
                 ).strip()
                 # Resolve each coordinate once; preserve the original split rule.
                 objective_key = self._position_key(objective_position)
-                if objective_key and current_key and objective_key != current_key:
+                if route_positions_split(current_key, objective_key):
                     if finalize:
                         self._finalize_segment(current)
                     if self._segment_has_content(current):
@@ -657,7 +629,7 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
         for raw in segments:
             segment = raw if consume else copy.deepcopy(raw)
             key = self._position_key(segment.get("position"))
-            if merged and key and key == previous_key:
+            if merged and route_positions_merge(previous_key, key):
                 # The source is private to this route only in consume mode.
                 self._merge_segment(
                     merged[-1], segment, finalize=False, consume=consume,
@@ -860,16 +832,11 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
 
     @staticmethod
     def _coords(position: str) -> tuple[int, int] | None:
-        match = _COORD_RE.search(str(position or ""))
-        if match is None:
-            return None
-        return int(match.group(1)), int(match.group(2))
+        return extract_bracketed_coordinates(position)
 
     @staticmethod
     def _position_key(value: Any) -> str:
-        text = " ".join(str(value or "").split()).strip()
-        # No unbounded retention of long walkthroughs or unhashable input.
-        return _position_key_short(text) if len(text) <= 160 else _position_key_uncached(text)
+        return route_position_key(value)
 
     @staticmethod
     def _dedupe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

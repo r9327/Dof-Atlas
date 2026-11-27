@@ -28,6 +28,48 @@ class DeepIntelligenceTests(unittest.TestCase):
             self.assertEqual(report["counts"]["literal_json_references"], 1)
             self.assertTrue(report["duplicate_bodies"][0]["review_only"])
 
+    def test_large_duplicate_review_preserves_cross_file_coverage(self):
+        from tools.atlas_doctor_lib.duplicate_evidence import summarize_ast_duplicates
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = []
+            for i in range(358):
+                path = f"source_{i:03d}.py"
+                value = i if i < 258 else i - 258
+                (root / path).write_text(f"def value():\n    return {value}\n", encoding="utf-8")
+                paths.append(path)
+            source = scan_sources(root, paths)
+            result = summarize_ast_duplicates(
+                {"kind": "doctor_code_inspection", "status": "REVIEW", "source": source},
+                sha="a" * 40,
+            )
+            self.assertEqual(result["status"], "PASS")
+            self.assertEqual(len(source["paths_inspected"]), 358)
+            self.assertEqual(source["counts"]["duplicate_groups"], 100)
+            self.assertEqual(len(source["duplicate_bodies"]), 100)
+            self.assertTrue(result["review_required"])
+            self.assertTrue(any(
+                {row["path"] for row in group["occurrences"]}
+                == {"source_000.py", "source_258.py"}
+                for group in source["duplicate_bodies"]
+            ))
+
+    def test_duplicate_review_still_blocks_partial_source_scan(self):
+        from tools.atlas_doctor_lib.duplicate_evidence import summarize_ast_duplicates
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = ["a.py", "b.py", "c.py"]
+            for path in paths:
+                (root / path).write_text("def value():\n    return 1\n", encoding="utf-8")
+            with patch("tools.atlas_doctor_lib.deep_intelligence.MAX_FILES", 2):
+                source = scan_sources(root, paths)
+                result = summarize_ast_duplicates(
+                    {"kind": "doctor_code_inspection", "status": "REVIEW", "source": source},
+                    sha="b" * 40,
+                )
+            self.assertEqual(len(source["paths_inspected"]), 2)
+            self.assertEqual(result["status"], "BLOCKED")
+
     def test_symlink_and_traversal_are_blocked(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256 as _strict_sha256
+from app.network.contracts import (
+    _is_sha256 as _strict_sha256, active_build_matches,
+    forward_decoder_reset, forward_decoder_session_closed,
+    protocol_event_id, required_mapping_identity,
+)
 
-import hashlib
 from dataclasses import dataclass
 from typing import Callable
 
 from app.network.normalizer import DecodedClientMessage
-from app.network.protobuf_fields import ProtobufDecodeError, parse_protobuf_fields
+from app.network.protobuf_fields import ProtobufDecodeError, parse_protobuf_fields, decode_packed_positive_varints
 from app.network.transport import CapturedProtocolMessage, ProtocolMessageDecoder
-from app.network.wire import IncompleteVarint, InvalidVarint, decode_varint
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,14 +71,9 @@ class QuestJournalDecoder:
         max_active_quests: int = 4096,
         max_finished_quests: int = 8192,
     ) -> None:
-        version = str(mapping_version or "").strip()
-        fingerprint = str(mapping_fingerprint or "").strip().casefold()
-        if not version:
-            raise ValueError("mapping_version cannot be empty")
-        if not self._is_sha256(fingerprint):
-            raise ValueError("mapping_fingerprint must be a SHA-256 digest")
-        if active_fingerprint_provider is None:
-            raise ValueError("active_fingerprint_provider is required")
+        version, fingerprint = required_mapping_identity(
+            mapping_version, mapping_fingerprint, active_fingerprint_provider,
+        )
         self.delegate = delegate
         self.rule = rule
         self.mapping_version = version
@@ -132,7 +129,7 @@ class QuestJournalDecoder:
             packed = packed_rows[0]
             if not isinstance(packed, bytes):
                 return None
-            additional = self._decode_packed_positive_varints(packed)
+            additional = decode_packed_positive_varints(packed, limit=self.max_finished_quests - len(finished_ids))
             if additional is None:
                 return None
             finished_ids.extend(additional)
@@ -142,14 +139,6 @@ class QuestJournalDecoder:
 
         active = self._dedupe(active_ids)
         finished = self._dedupe(finished_ids)
-        digest = hashlib.sha256()
-        digest.update(self.mapping_version.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(self.mapping_fingerprint.encode("ascii"))
-        digest.update(b"\0quest_journal_snapshot\0")
-        digest.update(message.type_url.encode("utf-8", errors="strict"))
-        digest.update(b"\0")
-        digest.update(message.payload)
         return DecodedClientMessage(
             session_id=message.session_id,
             event_type="quest_journal_snapshot",
@@ -157,7 +146,10 @@ class QuestJournalDecoder:
                 "active_quest_ids": active,
                 "finished_quest_ids": finished,
             },
-            event_id=f"proto:{digest.hexdigest()[:32]}",
+            event_id=protocol_event_id(
+                self.mapping_version, self.mapping_fingerprint, message.type_url, message.payload,
+                namespace="quest_journal_snapshot",
+            ),
             verified=True,
         )
 
@@ -199,45 +191,22 @@ class QuestJournalDecoder:
 
     @staticmethod
     def _decode_packed_positive_varints(payload: bytes) -> tuple[int, ...] | None:
-        values: list[int] = []
-        offset = 0
-        try:
-            while offset < len(payload):
-                value, offset = decode_varint(payload, offset)
-                if value <= 0:
-                    return None
-                values.append(int(value))
-        except (IncompleteVarint, InvalidVarint):
-            return None
-        return tuple(values)
+        return decode_packed_positive_varints(payload)
 
     @staticmethod
     def _dedupe(values: list[int]) -> tuple[int, ...]:
-        result: list[int] = []
-        seen: set[int] = set()
-        for value in values:
-            if value in seen:
-                continue
-            seen.add(value)
-            result.append(value)
-        return tuple(result)
+        return tuple(dict.fromkeys(values))
 
     def session_closed(self, session_id: str) -> None:
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session_id)
+        forward_decoder_session_closed(self.delegate, session_id)
 
     def reset(self) -> None:
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.delegate)
 
     def _build_matches(self) -> bool:
-        try:
-            active = str(self.active_fingerprint_provider() or "").strip().casefold()
-        except Exception:
-            return False
-        return active == self.mapping_fingerprint
+        return active_build_matches(
+            self.active_fingerprint_provider, self.mapping_fingerprint,
+        )
 
     @staticmethod
     def _is_sha256(value: str) -> bool:

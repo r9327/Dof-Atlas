@@ -2,33 +2,21 @@ from __future__ import annotations
 
 import json
 from logging import Logger
-from typing import Any
+from typing import Any, Callable
 
+from app.core.numbers import coerce_positive_int as _positive_int
 from app.core.logger import get_runtime_logger
+from app.network.character_runtime_decoder import (
+    _CHARACTER_CHARACTERISTICS_TYPE_URL,
+    _candidate_character_stats,
+)
 from app.network.character_resolver import CharacterResolution, CharacterSlotResolver
 from app.network.character_runtime_state import CharacterRuntimeStateStore, character_runtime_state
-from app.network.current_protocol_profile import DOFUS_361010_PROFILE
 from app.network.events import CharacterIdentifiedEvent, SessionClosedEvent
 from app.quest_catalog import is_generic_dofus_client_name, normalize_text
 
 
 _VERIFIED_SOURCE = "verified_network_identity"
-_IDENTITY_TYPE_URLS = frozenset(
-    {
-        DOFUS_361010_PROFILE.character_roster_type_url,
-        DOFUS_361010_PROFILE.character_selected_type_url,
-    }
-)
-
-
-def _positive_int(value: object) -> int | None:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
-
-
 def _trusted_client_label(row: dict[str, Any]) -> str:
     # Organizer's exported ``label`` is synthetic ("Personnage N") and must
     # never participate in identity recovery. ``character_name`` is the cleaned
@@ -177,19 +165,26 @@ class KnownSessionProtocolMessageDecoder:
         delegate,
         recovery: VerifiedKnownSessionRecovery,
         *,
+        active_profile_matches: Callable[[], bool],
         state: CharacterRuntimeStateStore | None = None,
         logger: Logger | None = None,
     ) -> None:
         self.delegate = delegate
         self.recovery = recovery
+        self.active_profile_matches = active_profile_matches
         self.state = state or character_runtime_state()
         self.logger = logger or get_runtime_logger()
 
     def decode(self, message):
-        # A real current-build identity exchange always wins. Recovering the old
-        # PID binding immediately before kvi/kva could briefly route profile
-        # facts to the previous character during A -> B selection.
-        if str(getattr(message, "type_url", "") or "") not in _IDENTITY_TYPE_URLS:
+        # A PID may own non-game connections. Require evidence of the
+        # reviewed game profile before attaching an already-open character.
+        if (
+            message.type_url == _CHARACTER_CHARACTERISTICS_TYPE_URL
+            and message.direction == "server_to_client"
+            and self.state.snapshot_for_session(message.session_id) is None
+            and self.active_profile_matches()
+            and _candidate_character_stats(message.payload) is not None
+        ):
             self._recover(message.session_id)
         return self.delegate.decode(message)
 
@@ -205,7 +200,7 @@ class KnownSessionProtocolMessageDecoder:
 
     def _recover(self, session_id: str) -> None:
         session = str(session_id or "").strip()
-        if not session or self.state.snapshot_for_session(session) is not None:
+        if not session:
             return
         resolution = self.recovery.resolve(session)
         if resolution is None:
@@ -230,12 +225,16 @@ class KnownSessionProtocolMessageDecoder:
 class KnownSessionProgressBridge:
     """Route later progression through the existing bridge after safe recovery."""
 
-    def __init__(self, delegate, recovery: VerifiedKnownSessionRecovery) -> None:
+    def __init__(
+        self, delegate, recovery: VerifiedKnownSessionRecovery, *,
+        state: CharacterRuntimeStateStore | None = None,
+    ) -> None:
         self.delegate = delegate
         self.recovery = recovery
+        self.state = state or character_runtime_state()
 
     def handle(self, event):
-        if not isinstance(event, (CharacterIdentifiedEvent, SessionClosedEvent)):
+        if event.reliable and not isinstance(event, (CharacterIdentifiedEvent, SessionClosedEvent)):
             session = str(getattr(event, "session_id", "") or "").strip()
             if session and not self.delegate.session_character_key(session):
                 resolution = self.recovery.resolve(session)
@@ -244,7 +243,7 @@ class KnownSessionProgressBridge:
                         str(resolution.character_key).removeprefix("character:")
                     )
                     if stable_id is not None:
-                        self.delegate.handle(
+                        identified = self.delegate.handle(
                             CharacterIdentifiedEvent(
                                 session_id=session,
                                 event_id="known-session-recovery",
@@ -253,6 +252,11 @@ class KnownSessionProgressBridge:
                                 character_id=stable_id,
                             )
                         )
+                        if identified.accepted and identified.character_key == resolution.character_key:
+                            self.state.identify(
+                                session_id=session, character_key=resolution.character_key,
+                                character_id=stable_id, name=resolution.label,
+                            )
         return self.delegate.handle(event)
 
     def reset_sessions(self) -> None:

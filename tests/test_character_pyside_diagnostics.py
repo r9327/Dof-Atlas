@@ -23,8 +23,8 @@ class CharacterPySideDiagnosticsTests(unittest.TestCase):
             "tests.test_pyside_shell.PySideShellTests.test_organizer_session_order_is_reapplied_after_scan",
             "tests.test_pyside_shell.PySideShellTests.test_organizer_window_event_detects_dofus_started_after_atlas",
             "tests.test_pyside_shell.PySideShellTests.test_quests_page_tracks_progress_per_character",
-            "tests.test_pyside_shell.PySideShellTests.test_shell_follows_only_connected_character_without_organizer_favorite",
-            "tests.test_pyside_shell.PySideShellTests.test_shell_follows_organizer_favorite_character_after_network_identity",
+            "tests.test_pyside_shell.PySideShellTests.test_shell_preserves_manual_character_on_network_login_without_favorite",
+            "tests.test_pyside_shell.PySideShellTests.test_shell_favorite_does_not_infer_foreground_on_network_login",
             "tests.test_pyside_shell.PySideShellTests.test_shell_refreshes_connected_character_name_after_organizer_scan",
         ]
         completed = subprocess.run(

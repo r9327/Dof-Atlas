@@ -8,9 +8,15 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QListView, QStyle, QStyledItemDelegate, QWidget
 
 from app.constants import DATA_DIR
+from app.core.file_stamp import mtime_ctime_size_stamp
+from app.core.numbers import clamped_percent
 from app.modules.encyclopedia.models import Guide
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+from app.modules.encyclopedia.services.guide_progress_wording import guide_progress_noun
 from app.ui.theme import PALETTE
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
 GUIDE_ID_ROLE = Qt.UserRole + 11
 GUIDE_ROLE = Qt.UserRole + 12
@@ -27,7 +33,7 @@ class GuideHomeColumns(QWidget):
         self.setObjectName("GuidesHomeColumns")
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(14)
+        layout.setSpacing(GUIDE_CARD_GEOMETRY["library_columns_spacing"])
         layout.addWidget(left, 1)
         layout.addWidget(right, 3)
         # Left is navigation, right is content: never give the menu a third
@@ -36,19 +42,29 @@ class GuideHomeColumns(QWidget):
         self._right = right
         left.setMinimumWidth(0)
         right.setMinimumWidth(0)
-        left.setMaximumWidth(295)
+        left.setMaximumWidth(GUIDE_CARD_GEOMETRY["library_left_max_width"])
         self._columns_layout = layout
 
     def set_available_width(self, width: int) -> None:
         """Use the outer viewport width, not a stale oversized child width."""
-        direction = QBoxLayout.LeftToRight if width >= 730 else QBoxLayout.TopToBottom
+        direction = (
+            QBoxLayout.LeftToRight
+            if width >= GUIDE_CARD_GEOMETRY["library_columns_horizontal_min_width"]
+            else QBoxLayout.TopToBottom
+        )
         if self._columns_layout.direction() != direction:
             self._columns_layout.setDirection(direction)
         # The maximum width is relaxed when the panes stack. Bound only the
         # stacked navigation height: otherwise its stretch consumes a quarter
         # of a short screen and pushes the Dofus cards below the fold.
-        self._left.setMaximumWidth(295 if direction == QBoxLayout.LeftToRight else 16777215)
-        self._left.setMaximumHeight(220 if direction == QBoxLayout.TopToBottom else 16777215)
+        self._left.setMaximumWidth(
+            GUIDE_CARD_GEOMETRY["library_left_max_width"]
+            if direction == QBoxLayout.LeftToRight else 16777215
+        )
+        self._left.setMaximumHeight(
+            GUIDE_CARD_GEOMETRY["library_left_stacked_max_height"]
+            if direction == QBoxLayout.TopToBottom else 16777215
+        )
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -66,7 +82,7 @@ class GuideListModel(QAbstractListModel):
         self.subtitle_overrides: dict[str, str] = {}
         # A small per-model memo avoids repeated filesystem stats on each
         # Qt paint/hover event. Only 32 already-scaled 48px thumbnails.
-        self._icon_cache: OrderedDict[str, QPixmap] = OrderedDict()
+        self._icon_cache: OrderedDict[str, tuple[tuple[int, int, int] | None, QPixmap]] = OrderedDict()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self.entries)
@@ -83,7 +99,7 @@ class GuideListModel(QAbstractListModel):
             return None
         guide = entry
         done, total, state = self.progress_by_guide.get(guide.id, (0, 0, "Non commencé"))
-        percent = int(round((done / total) * 100)) if total else 0
+        percent = clamped_percent(done, total)
         if role == Qt.DisplayRole:
             levels = self._level_text(guide)
             title = self.display_title(guide)
@@ -96,10 +112,11 @@ class GuideListModel(QAbstractListModel):
             cached = self._icon_cache.get(key)
             if cached is not None:
                 self._icon_cache.move_to_end(key)
-                return cached if not cached.isNull() else None
+                return QPixmap(cached[1]) if not cached[1].isNull() else None
+            stamp = mtime_ctime_size_stamp(image_path)
             pixmap = (ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(image_path, QSize(48, 48))
-                      if image_path.exists() else QPixmap())
-            self._icon_cache[key] = pixmap
+                      if stamp is not None else QPixmap())
+            self._icon_cache[key] = (stamp, QPixmap(pixmap))
             if len(self._icon_cache) > 32:
                 self._icon_cache.popitem(last=False)
             return pixmap if not pixmap.isNull() else None
@@ -164,12 +181,28 @@ class GuideListModel(QAbstractListModel):
             old is new if isinstance(new, Guide) else old == new
             for old, new in zip(self.entries, entries_for_column)
         ):
+            self._refresh_cached_artwork()
             return
         self.beginResetModel()
         self._icon_cache.clear()
         self.guides = guides_for_column
         self.entries = entries_for_column
         self.endResetModel()
+
+    def _refresh_cached_artwork(self) -> None:
+        """Check at catalogue refresh, not on every Qt hover/paint."""
+        obsolete = {key for key, (stamp, _) in self._icon_cache.items()
+                    if mtime_ctime_size_stamp(Path(key)) != stamp}
+        if not obsolete:
+            return
+        for key in obsolete:
+            self._icon_cache.pop(key, None)
+        for row, entry in enumerate(self.entries):
+            if isinstance(entry, Guide):
+                key = str(Path(entry.image_path) if entry.image_path else DOFUS_UNKNOWN_ICON)
+                if key in obsolete:
+                    index = self.index(row, 0)
+                    self.dataChanged.emit(index, index, [Qt.DecorationRole])
 
     def set_progress(self, progress_by_guide: dict[str, tuple[int, int, str]]) -> None:
         if self.progress_by_guide == progress_by_guide:
@@ -249,10 +282,7 @@ class GuideListModel(QAbstractListModel):
 
     @staticmethod
     def _progress_word(guide: Guide, total: int) -> str:
-        required = list(guide.required_steps)
-        if total and (not required or all(step.step_type == "quest" for step in required)):
-            return "quête" if total == 1 else "quêtes"
-        return "étape" if total == 1 else "étapes"
+        return guide_progress_noun(guide, total, empty_counts_as_quests=True)
 
 
 class GuideCardDelegate(QStyledItemDelegate):

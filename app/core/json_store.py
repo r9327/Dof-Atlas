@@ -39,7 +39,7 @@ def read_json_resilient(path: Path, default: Any, *, logger: logging.Logger | No
         return copy.deepcopy(default)
     try:
         return json.loads(target.read_text(encoding="utf-8-sig"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         backup = backup_corrupt_json(target)
         active_logger = logger or LOGGER
         active_logger.error(
@@ -65,7 +65,7 @@ def read_json_validated(
         return copy.deepcopy(default)
     try:
         payload = json.loads(target.read_text(encoding="utf-8-sig"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         raise _reject_persistent_json(target, f"lecture impossible: {exc}", logger) from exc
     reason = validator(payload)
     if reason is not None:
@@ -87,6 +87,33 @@ def _reject_persistent_json(
         reason,
     )
     return InvalidPersistentJsonError(path, reason, backup)
+
+
+COMPACT_JSON_MAX_BYTES = 4 * 1024 * 1024
+
+
+def encode_compact_json(payload: Any) -> bytes:
+    """Compact UTF-8 JSON, using the existing fast zlib level-one format."""
+    import zlib
+
+    return zlib.compress(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), 1)
+
+
+def decode_compact_json(payload: object, expected_type: type, *, max_bytes: int = COMPACT_JSON_MAX_BYTES) -> Any | None:
+    """Bound both compressed and decompressed input; reject malformed caches."""
+    import zlib
+
+    if not isinstance(payload, (bytes, bytearray)) or len(payload) > max_bytes:
+        return None
+    try:
+        decoder = zlib.decompressobj()
+        raw = decoder.decompress(payload, max_bytes + 1)
+        if not decoder.eof or len(raw) > max_bytes:
+            return None
+        decoded = json.loads(raw.decode("utf-8"))
+    except (OSError, ValueError, TypeError, RecursionError, zlib.error):
+        return None
+    return decoded if isinstance(decoded, expected_type) else None
 
 
 def _same_path(left: Path, right: Path) -> bool:

@@ -6,7 +6,12 @@ from typing import Any
 from app.constants import DATA_DIR
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated, write_json_atomic
-from app.core.progress_coordinator import coordinator_for
+from app.core.progress_coordinator import (
+    CoordinatedProgressReader, coordinator_for,
+    complete_progress_root, empty_progress_payload as _empty_progress,
+    mutable_progress_character, progress_characters_for_validation, progress_mapping_values_error, read_progress_character,
+    read_progress_mapping, mutable_progress_mapping,
+)
 
 
 GUIDE_PROGRESS_FILE = DATA_DIR / "encyclopedia" / "progress" / "guide_progress.json"
@@ -18,63 +23,20 @@ def read_json_resilient(path: Path, default: Any) -> Any:
     return read_json_validated(path, default, _guide_progress_schema_error)
 
 
-def _empty_progress() -> dict[str, Any]:
-    return {"version": 1, "characters": {}}
-
-
-class GuideProgressService:
+class GuideProgressService(CoordinatedProgressReader):
     def __init__(self, path: Path = GUIDE_PROGRESS_FILE) -> None:
         self.path = Path(path)
         self._coordinator = coordinator_for(self.path)
         self._manual_steps_cache: dict[tuple[str, str], frozenset[str]] = {}
         with self._coordinator.lock:
             self.progress = self._load()
-            self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
+            self._record_snapshot_identity_locked()
 
-    def _current_disk_signature(self) -> tuple[int, int, int] | None:
-        try:
-            stat = self.path.stat()
-        except OSError:
-            return None
-        return int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size)
+    def _coordinated_load(self) -> dict[str, Any]:
+        return self._load()
 
-    def _clear_manual_steps_cache(self) -> None:
+    def _coordinated_invalidate(self) -> None:
         self._manual_steps_cache.clear()
-
-    def _ensure_fresh(self) -> None:
-        if self._seen_generation == self._coordinator.generation:
-            return
-        with self._coordinator.lock:
-            if self._seen_generation != self._coordinator.generation:
-                self.progress = self._load()
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_manual_steps_cache()
-
-    def refresh_if_changed(self) -> bool:
-        with self._coordinator.lock:
-            generation = self._coordinator.generation
-            disk_signature = self._current_disk_signature()
-            if generation == self._seen_generation and disk_signature == self._disk_signature:
-                return False
-            self.progress = self._load()
-            self._seen_generation = generation
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
-            return True
-
-    def reload(self) -> dict[str, Any]:
-        with self._coordinator.lock:
-            generation = self._coordinator.generation
-            disk_signature = self._current_disk_signature()
-            if generation == self._seen_generation and disk_signature == self._disk_signature:
-                return self.progress
-            self.progress = self._load()
-            self._seen_generation = generation
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
-        return self.progress
 
     def _manual_steps_snapshot(self, character_key: str, guide_id: str) -> frozenset[str]:
         self._ensure_fresh()
@@ -88,9 +50,8 @@ class GuideProgressService:
         guide_steps = self._read_manual_steps_map(key[0])
         values = guide_steps.get(key[1], [])
         snapshot = frozenset(
-            str(value)
-            for value in values
-            if isinstance(values, list) and str(value)
+            str(value) for value in (values if isinstance(values, list) else ())
+            if str(value)
         )
         self._manual_steps_cache[key] = snapshot
         return snapshot
@@ -128,7 +89,7 @@ class GuideProgressService:
                     )
                     if previous != bool(expected_completed[key]):
                         self._seen_generation = self._coordinator.generation
-                        self._clear_manual_steps_cache()
+                        self._coordinated_invalidate()
                         raise RuntimeError("Guide progress changed since selection; reload before validating")
             changed = False
             for key in keys:
@@ -149,11 +110,7 @@ class GuideProgressService:
                     guide_steps.pop(str(guide_id), None)
             if changed:
                 self._save_unlocked()
-                self._seen_generation = self._coordinator.mark_changed()
-            else:
-                self._seen_generation = self._coordinator.generation
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
+            self._accept_snapshot_locked(changed=changed)
             return changed
 
     def set_manual_step_completed(
@@ -163,116 +120,42 @@ class GuideProgressService:
         step_id: str,
         completed: bool,
     ) -> bool:
-        key = require_character_key(character_key)
-        with self._coordinator.lock:
-            # Always mutate the latest on-disk payload. The generation bump makes
-            # every other live GuideProgressService refresh on its next read.
-            self.progress = self._load()
-            self._disk_signature = self._current_disk_signature()
-            guide_steps = self._manual_steps_map(key)
-            raw_values = guide_steps.get(str(guide_id), [])
-            values = {
-                str(value)
-                for value in raw_values if isinstance(raw_values, list) and str(value)
-            }
-            previous = set(values)
-            if completed:
-                values.add(str(step_id))
-            else:
-                values.discard(str(step_id))
-            if values == previous:
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_manual_steps_cache()
-                return False
-            if values:
-                guide_steps[str(guide_id)] = sorted(values)
-            else:
-                guide_steps.pop(str(guide_id), None)
-            self._save_unlocked()
-            self._seen_generation = self._coordinator.mark_changed()
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
-            return True
+        return self.set_manual_steps_for_characters(
+            (character_key,), guide_id, step_id, completed,
+        )
 
     def save(self) -> None:
         """Persist a deliberate compatibility snapshot only when it is current."""
         with self._coordinator.lock:
-            if (
-                self._seen_generation != self._coordinator.generation
-                or self._disk_signature != self._current_disk_signature()
-            ):
-                self.progress = self._load()
-                self._seen_generation = self._coordinator.generation
-                self._disk_signature = self._current_disk_signature()
-                self._clear_manual_steps_cache()
-                raise RuntimeError(
-                    "Guide progress snapshot is stale; reload and apply the mutation again."
-                )
-            self._validate_write_snapshot()
+            self._require_current_snapshot_locked("Guide")
             self._save_unlocked()
-            self._seen_generation = self._coordinator.mark_changed()
-            self._disk_signature = self._current_disk_signature()
-            self._clear_manual_steps_cache()
+            self._accept_snapshot_locked(changed=True)
 
     def _save_unlocked(self) -> None:
-        self._validate_write_snapshot()
-        write_json_atomic(self.path, self.progress)
+        self._persist_progress_snapshot_locked(
+            lambda: write_json_atomic(self.path, self.progress),
+        )
 
     def _load(self) -> dict[str, Any]:
-        payload = read_json_resilient(self.path, _empty_progress())
-        payload.setdefault("version", 1)
-        payload.setdefault("characters", {})
-        return payload
+        return complete_progress_root(read_json_resilient(self.path, _empty_progress()))
 
     def _manual_steps_map(self, character_key: str) -> dict[str, list[str]]:
-        characters = self.progress.setdefault("characters", {})
-        if not isinstance(characters, dict):
-            characters = {}
-            self.progress["characters"] = characters
-        key = require_character_key(character_key)
-        character = characters.setdefault(key, {})
-        if not isinstance(character, dict):
-            character = {}
-            characters[key] = character
-        manual_steps = character.setdefault("manual_steps", {})
-        if not isinstance(manual_steps, dict):
-            manual_steps = {}
-            character["manual_steps"] = manual_steps
-        return manual_steps
+        character = mutable_progress_character(self.progress, character_key)
+        return mutable_progress_mapping(character, "manual_steps")
 
     def _read_manual_steps_map(self, character_key: str) -> dict[str, list[str]]:
-        characters = self.progress.get("characters", {})
-        if not isinstance(characters, dict):
-            return {}
-        character = characters.get(str(character_key or "").strip(), {})
-        if not isinstance(character, dict):
-            return {}
-        manual_steps = character.get("manual_steps", {})
-        return manual_steps if isinstance(manual_steps, dict) else {}
-
-    def _validate_write_snapshot(self) -> None:
-        characters = self.progress.get("characters", {})
-        if not isinstance(characters, dict):
-            raise ValueError("progress characters must be a mapping")
-        for character_key in characters:
-            require_character_key(character_key)
+        character = read_progress_character(self.progress, character_key)
+        return read_progress_mapping(character, "manual_steps")
 
 def _guide_progress_schema_error(payload: Any) -> str | None:
-    if not isinstance(payload, dict):
-        return "la racine doit être un objet"
-    if payload.get("version", 1) != 1:
-        return f"version inconnue: {payload.get('version')!r}"
-    characters = payload.get("characters", {})
-    if not isinstance(characters, dict):
-        return "characters doit être un objet"
+    characters, error = progress_characters_for_validation(payload)
+    if error is not None:
+        return error
     for character_key, character in characters.items():
-        if not isinstance(character, dict):
-            return f"characters[{character_key!r}] doit être un objet"
         manual_steps = character.get("manual_steps", {})
         if not isinstance(manual_steps, dict):
             return f"characters[{character_key!r}].manual_steps doit être un objet"
-        for guide_id, values in manual_steps.items():
-            if not isinstance(values, list):
-                return f"manual_steps[{guide_id!r}] doit être une liste"
+        error = progress_mapping_values_error("manual_steps", manual_steps, value_type=list)
+        if error is not None:
+            return error
     return None

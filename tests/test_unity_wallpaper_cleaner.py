@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import tempfile
 import unittest
+import zipfile
 
 from pathlib import Path
 from unittest.mock import patch
@@ -84,6 +85,44 @@ class WallpaperCleanerTests(unittest.TestCase):
             self.assertEqual(output.read_bytes(), b"previous approved wallpaper")
             self.assertEqual(sorted(x.name for x in Path(directory).iterdir()),
                              ["clean.png", "original.png"])
+
+    def test_personal_install_from_verified_archive_without_sprite_pack(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = root / "original.png"
+            Image.new("RGB", (1919, 1079), (20, 40, 90)).save(original)
+            expected = hashlib.sha256(original.read_bytes()).hexdigest()
+            archive = root / "source.zip"
+            with zipfile.ZipFile(archive, "w") as bundle:
+                bundle.write(original, "selection_perso_original.png")
+            before = archive.read_bytes()
+            command = ["clean_unity_wallpaper", "--archive", str(archive),
+                       "--personal", "--corner-toolbar"]
+            with patch("tools.assets.clean_unity_wallpaper.SOURCE_SHA256", expected), \
+                 patch.dict("os.environ", {"LOCALAPPDATA": directory}), \
+                 patch("sys.argv", command):
+                self.assertEqual(main(), 0)
+            installed = root / "DofusAtlas/themes/dofus_unity/background_selection_clean.png"
+            with Image.open(installed) as cleaned:
+                self.assertEqual(cleaned.size, (1919, 1079))
+            self.assertEqual(archive.read_bytes(), before)
+            self.assertFalse((installed.parent / "sprites").exists())
+            self.assertFalse((installed.parent / ".enabled").exists())
+
+    def test_wrong_archive_cannot_replace_personal_wallpaper(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / "source.zip"
+            with zipfile.ZipFile(archive, "w") as bundle:
+                bundle.writestr("selection_perso_original.png", b"invalid")
+            output = root / "clean.png"
+            output.write_bytes(b"previous")
+            with patch("sys.argv", ["clean_unity_wallpaper", "--archive", str(archive),
+                                    "--output", str(output), "--corner-toolbar"]), \
+                 patch("sys.stderr"):
+                with self.assertRaises(SystemExit):
+                    main()
+            self.assertEqual(output.read_bytes(), b"previous")
 
     def test_invalid_areas_and_coordinates_rejected(self):
         with self.assertRaises(ValueError):

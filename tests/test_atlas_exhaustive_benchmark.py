@@ -70,16 +70,42 @@ class ExhaustiveGuideBenchmarkTests(unittest.TestCase):
         service.available = False
         self.assertFalse(guide_visible(page, "dofus_sylvestre"))
 
+    def test_pending_preview_requires_visible_actual_pending_panel(self):
+        marker = SimpleNamespace(isVisible=lambda: True,
+                                 text=lambda: "Suivi des quêtes · En attente du parcours Ganymède")
+        panel = SimpleNamespace(objectName=lambda: "GuidePendingContainer",
+                                isVisible=lambda: True, findChild=lambda *args: marker)
+        view = SimpleNamespace(_runtime_ready=True, current_guide_id="dofus_cawotte",
+                               _pending_guide_container=panel,
+                               home_scroll=SimpleNamespace(isHidden=lambda: True))
+        page = SimpleNamespace(guides_view=view, _pending_guide_id="")
+        self.assertTrue(guide_visible(page, "dofus_cawotte", pending_preview=True))
+        self.assertFalse(guide_visible(page, "dofus_cawotte"))
+        panel.isVisible = lambda: False
+        self.assertFalse(guide_visible(page, "dofus_cawotte", pending_preview=True))
+
+    def test_preview_latency_does_not_mask_playable_route_latency(self):
+        result = summarize_samples([
+            {"guide_id": "a", "cycle": 1, "status": "PASS", "open_ms": 2000,
+             "coverage_kind": "playable_route"},
+            {"guide_id": "b", "cycle": 1, "status": "PASS", "open_ms": 1,
+             "coverage_kind": "pending_preview"},
+        ])
+        self.assertEqual(result["open_p50_ms"], 2000)
+        self.assertEqual(result["pending_preview_p95_ms"], 1)
+        self.assertEqual(result["playable_passed"], 1)
+        self.assertEqual(result["pending_preview_passed"], 1)
+
     def test_metadata_only_ganymede_does_not_count_as_runnable(self):
-        rows = ganymede_inventory({"dofus_argente"})
+        rows = ganymede_inventory({"dofus_argente"}, set())
         from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
         self.assertEqual(len(rows), len(load_ganymede_listings()))
         mapped = next(x for x in rows if x["source_id"] == 2203)
-        self.assertEqual(mapped["coverage"], "atlas_equivalent_benchmarked")
+        self.assertEqual(mapped["coverage"], "atlas_pending_preview_only")
         unrelated = next(x for x in rows if x["source_id"] == 2251)
         self.assertEqual(unrelated["coverage"], "metadata_only_not_executable")
         self.assertTrue(all(x["coverage"] in {
-            "atlas_equivalent_benchmarked", "metadata_only_not_executable",
+            "atlas_playable_equivalent", "atlas_pending_preview_only", "metadata_only_not_executable",
         } for x in rows))
 
 

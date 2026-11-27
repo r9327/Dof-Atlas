@@ -20,6 +20,130 @@ class GuideManualStructuredRuntimeTests(unittest.TestCase):
         }
         return service
 
+    def test_guide_launch_actions_never_promote_objective_or_conflicting_start(self):
+        from types import SimpleNamespace
+        from app.quest_catalog import QuestRecord, QuestStep, QuestObjective
+        from app.modules.encyclopedia.services.guide_catalog_manual_runtime_service import GuideCatalogManualRuntimeService
+        from app.modules.encyclopedia.services.guide_ultime_route_adapter import GuideUltimeRouteAdapter
+        from app.modules.encyclopedia.services.guide_quest_view_model import quest_start_info
+
+        quest = QuestRecord(101, "Quête A", "Test", 1, 1, "", steps=[
+            QuestStep(id=1, name="Objectif", description="", objectives=[
+                QuestObjective(id=1, text="Aller au lieu", type_id=0, map_label="[5,6]"),
+            ]),
+        ])
+        service = object.__new__(GuideCatalogManualRuntimeService)
+        step = SimpleNamespace(id="q101")
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.position, "[5,6]")
+        self.assertEqual(info.declared_launch_position, "")
+        cards = service._quest_segments(step, quest, finalize=False)
+        self.assertEqual(cards[0]["position"], "")
+        self.assertIn("Position de lancement à confirmer", cards[0]["sections"]["now"][0]["text"])
+        self.assertTrue(any(row.get("position") == "[5,6]" for card in cards
+                            for row in card["sections"]["now"]))
+        adapter = object.__new__(GuideUltimeRouteAdapter)
+        adapter.catalog = SimpleNamespace(by_id={101: quest})
+        adapter.raw_quests = {101: {"startPosition": [{"mapId": 10}]}}
+        adapter.raw_maps = {10: {"posX": 1, "posY": 2}}
+        quest.source_info = {"native_start": {"map_id": 10, "position": "[1,2]"},
+                             "source_meta": {"startCoords": "[3,4]"}}
+        self.assertEqual(service._quest_segments(step, quest, finalize=False)[0]["position"], "")
+        self.assertIsNone(adapter._start_location(101).x)
+        quest.source_info["source_meta"]["startCoords"] = "[1,2]"
+        self.assertEqual(service._quest_segments(step, quest, finalize=False)[0]["position"], "[1,2]")
+        self.assertEqual((adapter._start_location(101).x, adapter._start_location(101).y), (1, 2))
+
+        instruction = "Passez par la statue de votre temple, puis parlez au forgeron."
+        quest.source_info = {
+            "native_start": {"map_id": 10, "position": "[1,2]"},
+            "launch_position": {"instruction": instruction, "source_url": "https://example.org/quete"},
+        }
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.launch_status, "DOCUMENTED_START")
+        self.assertEqual(info.declared_launch_position, "")
+        self.assertEqual(info.position, "[5,6]")
+        cards = service._quest_segments(step, quest)
+        self.assertEqual(cards[0]["position"], "")
+        self.assertEqual(cards[0]["sections"]["now"][0],
+                         {"kind": "action", "position": "", "text": instruction})
+        self.assertIsNone(adapter._start_location(101).x)
+
+    def test_first_incomplete_uses_one_rule_for_generated_and_manual_routes(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.services.guide_ultime_runtime_service import GuideUltimeRuntimeService
+
+        self.assertIs(GuideUltimeManualRuntimeService.first_incomplete_index,
+                      GuideUltimeRuntimeService.first_incomplete_index)
+        for runtime in (GuideUltimeRuntimeService, GuideUltimeManualRuntimeService):
+            with self.subTest(runtime=runtime.__name__):
+                service = object.__new__(runtime)
+                service.cards = [{"quest_ids": [101]}, {}, {}]
+                service.reload_progress = Mock()
+                service.quest_progress = SimpleNamespace(completed_quest_ids=lambda key: {101})
+                service._route_cache_key = lambda key: (key, 0)
+                service.card_state = Mock(side_effect=lambda key, card, index, **kw:
+                                          SimpleNamespace(complete=index != 0))
+                # Historical quest completion must not bypass the actual
+                # automatic conditions and class/order gates of the sheet.
+                self.assertEqual(service.first_incomplete_index("a"), 0)
+                self.assertEqual(service.card_state.call_count, 1)
+                self.assertEqual(service.route_sheet_progress("a"), (2, 3))
+                self.assertEqual(service.card_state.call_count, 4)
+                self.assertEqual(service.first_incomplete_index("a"), 0)
+                self.assertEqual(service.card_state.call_count, 4)
+
+    def test_route_completion_cache_reuses_eight_characters_and_current_revision(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        service = self._service()
+        service.cards = [{}, {}, {}]
+        service.reload_progress = Mock()
+        service.quest_progress = SimpleNamespace(completed_quest_ids=lambda key: set())
+        revision = [0]
+        service._route_cache_key = lambda key: (key, id(service.cards), len(service.cards), revision[0])
+        service.card_state = Mock(side_effect=lambda key, card, index, **kw:
+                                  SimpleNamespace(complete=index != int(key) % 3))
+        keys = tuple(str(i) for i in range(8))
+        for key in keys:
+            self.assertEqual(service.route_sheet_progress(key), (2, 3))
+        self.assertEqual(service.card_state.call_count, 24)
+        for key in reversed(keys):
+            self.assertEqual(service.first_incomplete_index(key), int(key) % 3)
+            self.assertEqual(service.route_sheet_progress(key), (2, 3))
+        self.assertEqual(service.card_state.call_count, 24)
+        self.assertEqual(len(service._route_completion_cache), 8)
+        service.route_sheet_progress("8")
+        self.assertEqual(len(service._route_completion_cache), 8)
+        revision[0] += 1
+        service.route_sheet_progress("1")
+        self.assertEqual(service.card_state.call_count, 30)
+        self.assertEqual(len(service._route_completion_cache), 1)
+
+    def test_route_completion_scan_is_not_cached_if_revision_changes_mid_scan(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        service = self._service()
+        service.cards = [{}]
+        service.reload_progress = Mock()
+        service.quest_progress = SimpleNamespace(completed_quest_ids=lambda key: set())
+        revision = [0]
+        service._route_cache_key = lambda key: (key, id(service.cards), len(service.cards), revision[0])
+        def changing_state(*args, **kwargs):
+            revision[0] += 1
+            return SimpleNamespace(complete=False)
+        service.card_state = Mock(side_effect=changing_state)
+        self.assertEqual(service.route_completion_flags("1"), b"\x00")
+        self.assertFalse(getattr(service, "_route_completion_cache", {}))
+        self.assertEqual(service.route_completion_flags("1"), b"\x00")
+        self.assertEqual(service.card_state.call_count, 2)
+
+    def test_manual_runtime_integer_adapter_keeps_existing_conversion(self) -> None:
+        for source, expected in (("12", 12), (True, 1), (-8, -8), (None, None), ("bad", None)):
+            with self.subTest(source=source):
+                self.assertEqual(GuideUltimeManualRuntimeService._as_int(source), expected)
+
     def test_waypoints_emit_only_canonical_travel_semantics(self) -> None:
         service = self._service()
         stage = {

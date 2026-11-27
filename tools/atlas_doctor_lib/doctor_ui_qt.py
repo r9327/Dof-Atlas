@@ -290,16 +290,24 @@ class UiSession:
 
         self.step += 1
         # The consolidated 5-scenario run includes four extra real PR254
-        # catalog captures. Its previous 120-action limit cut off four final
-        # assertions after 114 successful checks. Preserve a strict 128 cap.
-        if self.step > 128:
+        # catalog captures plus nine mandatory preparation checks across three
+        # real Guide scenarios. Keep a strict 144-action ceiling, never an
+        # unbounded capture or repeated GUI traversal.
+        if self.step > 144:
             raise RuntimeError("Doctor UI action budget exceeded")
         prefix = f"{self.step:03d}-{self.scenario}"
         tree = widget_tree(root)
         files = [prefix + "-tree.json"]
         write_json(self.folder / files[0], tree)
         if self.mode in {"all", "capture"}:
-            pixmap = root.grab()
+            # Capture the actual backdrop under translucent page surfaces.
+            # QWidget.grab() on a transparent child alone drops its parent paint.
+            backdrop = getattr(root, "_doctor_backdrop", None)
+            if backdrop is not None:
+                backdrop.resize(root.size())
+                pixmap = backdrop.grab()
+            else:
+                pixmap = root.grab()
             if pixmap.isNull() or not pixmap.save(str(self.folder / (prefix + ".png"))):
                 raise RuntimeError("Qt PNG capture failed")
             files.append(prefix + ".png")
@@ -454,6 +462,7 @@ def build_scene(temp: Path):
         ensure_lazy_catalog_cache,
     )
     from app.ui.theme import atlas_stylesheet
+    from app.ui.unity_skin import UnityBackdrop
 
     app = QApplication.instance() or QApplication([])
     app._doctor_font_registration = configure_validation_fonts(app)
@@ -476,14 +485,18 @@ def build_scene(temp: Path):
     for name in ("quests", "achievements", "guides", "profiles", "clients", "items"):
         paths[name] = temp / (name + ".json")
         write_json(paths[name], {})
+    backdrop = UnityBackdrop()
     page = EncyclopediaPage(
-        lambda _message: None, quest_provider=quests,
+        lambda _message: None, parent=backdrop, quest_provider=quests,
         achievement_provider=achievements, guide_provider=guides,
         quest_graph=QuestGraphService(quests, guides, achievements, eager=False),
         progress_path=paths["quests"], achievement_progress_path=paths["achievements"],
         guide_progress_path=paths["guides"], profile_path=paths["profiles"],
         client_index_path=paths["clients"], owned_items_path=paths["items"])
     page.resize(1200, 800)
+    backdrop.resize(page.size())
+    page._doctor_backdrop = backdrop
+    page.destroyed.connect(backdrop.deleteLater)
     page.set_character_key("character:990000001")
     # Local Doctor-only source fixture: genuine canonical IDs with explicit
     # verification provenance. Never infer a progression ID from a slot/name.
@@ -506,6 +519,7 @@ def build_scene(temp: Path):
     page._doctor_participant_service = owner.guide_participant_service
     if not owner._runtime_ready:
         owner.hydrate_runtime(graph=page._quest_graph)
+    backdrop.show()
     page.show()
     settle()
     return app, page, owner
@@ -543,7 +557,10 @@ def mounted_action_line_html(sheet) -> list[str]:
     from PySide6.QtWidgets import QFrame, QLabel, QToolButton
 
     actual = []
-    for row in sheet.findChildren(QFrame, "GuideManualLineRow"):
+    row_names = {"GuideManualLineRow", "GuideManualCombatLineRow"}
+    for row in sheet.findChildren(QFrame):
+        if row.objectName() not in row_names:
+            continue
         labels = [
             widget for widget in row.findChildren(QLabel)
             if widget.parentWidget() is row
@@ -600,7 +617,7 @@ def sheet_observations(view, expected_card) -> dict:
                 if not text:
                     continue
                 position = sheet._display_position(str(row.get("position") or ""))
-                prefix = "⚠ " if row.get("kind") == "warning" else "• "
+                prefix = "⚠ " if row.get("kind") == "warning" else ""
                 expected.append(sheet._format_line_html(prefix, position, text,
                                 sheet._npc_names(text), sheet._resource_names))
         sheet._last_route_position_key = last_position
@@ -741,24 +758,23 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         page.resize(1200, 800)
         view.scroll.verticalScrollBar().setValue(0)
         settle()
+        view.global_details_button.setChecked(True)
         view.preparation_button.setChecked(True)
         settle()
         session.snapshot(page)
         for filter_name in ("Potions", "Objets"):
-            filter_button = next(
-                button
-                for button in view.preparation_filter_group.buttons()
-                if button.property("filterKey") == filter_name
-            )
-            filter_button.click()
+            if view.preparation_filter.findText(filter_name) < 0:
+                raise RuntimeError(f"Missing indexed preparation category: {filter_name}")
+            view.preparation_filter.setCurrentText(filter_name)
             settle()
             session.snapshot(page)
         view.preparation_button.setChecked(False)
+        view.global_details_button.setChecked(False)
         view.participants_button.setChecked(True)
         settle()
         session.snapshot(page)
         view.participants_button.setChecked(False)
-        view.summary_button.setChecked(True)
+        view.global_details_button.setChecked(True)
         settle()
         session.snapshot(page)
         return
@@ -788,6 +804,72 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             settle()
     view._show_index(0)
     settle()
+    # Exercise the real Preparation drawer in the verification campaign.
+    # Historically only the Dev UI fiction was captured in CI, while the
+    # production Guide drawer remained closed in every real route image.
+    parent_click = click_target(page, view.global_details_button)
+    settle()
+    preparation_click = (
+        click_target(page, view.preparation_button)
+        if view.preparation_button.isVisible() else
+        {"accessible": False, "reason": "NO_VISIBLE_PREPARATION_COMMAND"}
+    )
+    settle()
+    preparation_open = (
+        view.global_details_panel.isVisible()
+        and view.preparation_panel.isVisible()
+        and view.preparation_scroll.isVisible()
+        and view.preparation_filter.isVisible()
+    )
+    session.check(
+        "preparation-open",
+        "Open the actual indexed Guide preparation drawer on Windows Qt",
+        "Production panel, scroll area and category selector are visibly mounted",
+        {
+            "open": preparation_open,
+            "parent_click": parent_click,
+            "preparation_click": preparation_click,
+            "visible_categories": [
+                view.preparation_filter.itemText(i)
+                for i in range(view.preparation_filter.count())
+            ],
+            "drawer_height": view.preparation_scroll.height(),
+            "drawer_max_height": view.preparation_scroll.maximumHeight(),
+            "loaded_needs": len(view._preparation_needs),
+        },
+        parent_click["accessible"] and preparation_click["accessible"]
+        and preparation_open
+        and bool(view._preparation_needs or view._preparation_preview)
+        and 0 < view.preparation_scroll.height() <= view.preparation_scroll.maximumHeight(),
+        page,
+    )
+    for filter_name in ("Potions", "Objets"):
+        index = view.preparation_filter.findText(filter_name)
+        if index < 0:
+            session.check(
+                "preparation-filter-" + filter_name.lower(),
+                "Find production preparation category", "A real indexed filter exists",
+                {"filter": filter_name, "available": False},
+                False, page, status="BLOCKED",
+            )
+            continue
+        view.preparation_filter.setCurrentIndex(index)
+        settle()
+        session.check(
+            "preparation-filter-" + filter_name.lower(),
+            "Switch production preparation category via the real combo",
+            "Selected category stays visible and drawer retains valid geometry",
+            {"selected": view.preparation_filter.currentText(),
+             "panel_visible": view.preparation_panel.isVisible(),
+             "drawer_height": view.preparation_scroll.height()},
+            view.preparation_filter.currentText() == filter_name
+            and view.preparation_panel.isVisible()
+            and 0 < view.preparation_scroll.height() <= view.preparation_scroll.maximumHeight(),
+            page,
+        )
+    view.preparation_button.setChecked(False)
+    view.global_details_button.setChecked(False)
+    settle()
     for turn in range(1 if smoke else repeats):
         previous_sheet = view.findChild(QFrame, "GuideManualSheet")
         click = click_target(page, view.next_button)
@@ -802,37 +884,61 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view.refresh_external_progress()
         settle()
         check_sheet(session, page, view, f"refresh-{turn}")
-    # Persisted lock and actual navigation blocking are distinct assertions.
-    lock = view.route_lock_check
-    if not view.settings_panel.isVisible():
-        click_target(page, view.settings_button)
+    # The obsolete Route lock was removed by the shared global-first header.
+    # Two real Qt clicks now verify the canonical disclosure, its accessible
+    # name and that expanding content never mutates Guide progression.
+    disclosure = view.global_details_button
+    if disclosure.isChecked():
+        disclosure.setChecked(False)
         settle()
+    progress_before = view.global_progress_bar.value()
     trace_path = session.folder / "runtime-trace.json"
     if not trace_path.exists():
         from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver
 
-        # Reuse Doctor's bounded observer on one small real interaction. Tracing
-        # provider hydration would turn a targeted UI check into a costly scan.
         observer = RuntimeObserver(Path(__file__).resolve().parents[2], max_events=200)
         with observer:
-            click = click_target(page, lock)
+            click = click_target(page, disclosure)
         write_json(trace_path, observer.report())
         session.evidence.append(trace_path.name)
     else:
-        click = click_target(page, lock)
-    view.service.reload_progress()
-    saved = view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-    view._jump_from_progress(1.0)
-    session.check("lock", "QTest lock then attempt progress navigation", "Lock persisted, accessible label and index unchanged",
-                  {"click": click, "saved": saved, "index": view.view_index, "label": lock.accessibleName()},
-                  click["accessible"] and saved and view.view_index == 0 and lock.accessibleName() == "Verrouillé", page)
-    click_target(page, lock)
-    view.service.reload_progress()
-    session.check("unlock", "QTest unlock then reload", "Unlocked in service and accessibility label",
-                  {"saved": view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY),
-                   "label": lock.accessibleName()},
-                  not view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-                  and lock.accessibleName() == "Déverrouillé", page)
+        click = click_target(page, disclosure)
+    settle()
+    header = view.reading_header
+    nested_metrics = (
+        header.preparation_column.parentWidget() is view.global_details_panel
+        and header.summary_column.parentWidget() is view.global_details_panel
+        and header.summary_column.isVisible() == bool(view.service.cards)
+        and header.preparation_column.isVisible()
+        == bool(view._preparation_needs or view._preparation_preview)
+    )
+    expanded = disclosure.isChecked() and view.global_details_panel.isVisible() and nested_metrics
+    session.check(
+        "global-open", "QTest déplier Progression globale",
+        "Real indexed panel visible; accessible name updated; progress unchanged",
+        {"click": click, "expanded": expanded, "label": disclosure.accessibleName(),
+         "progress_before": progress_before, "progress_after": view.global_progress_bar.value()},
+        click["accessible"] and expanded
+        and disclosure.accessibleName() == "Replier la progression globale"
+        and view.global_progress_bar.value() == progress_before, page,
+    )
+    close_click = click_target(page, disclosure)
+    settle()
+    collapsed = (
+        not disclosure.isChecked() and not view.global_details_panel.isVisible()
+        and not header.preparation_column.isVisible()
+        and not header.summary_column.isVisible()
+        and view.global_progress_bar.isVisible()
+    )
+    session.check(
+        "global-close", "QTest replier Progression globale",
+        "Panel hidden; control accessible name restored; progress unchanged",
+        {"click": close_click, "collapsed": collapsed, "label": disclosure.accessibleName(),
+         "progress_before": progress_before, "progress_after": view.global_progress_bar.value()},
+        close_click["accessible"] and collapsed
+        and disclosure.accessibleName() == "Déplier la progression globale"
+        and view.global_progress_bar.value() == progress_before, page,
+    )
     # Blank temporary profile is never evidence for automatic in-game completion.
     card = view.service.cards[0]
     automatic = view.service.card_auto_complete(view.character_key, card)
@@ -1997,7 +2103,9 @@ def worker(folder: Path) -> int:
                         device_pixel_ratio=screen.devicePixelRatio(),
                         data_source="canonical local public catalog + authored Guide data",
                         validation_fonts=getattr(app, "_doctor_font_registration", {}),
-                        progress_source="temporary isolated canonical services")
+                        progress_source="temporary isolated canonical services",
+                        background_source=("local-unity-image" if page._doctor_backdrop.has_wallpaper
+                                           else "unity-blue-gradient"))
         write_json(folder / "manifest.json", manifest)
         for name in request["scenarios"]:
             session.scenario = name

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256 as _strict_sha256
+from app.network.contracts import (
+    _is_sha256 as _strict_sha256, active_build_matches,
+    forward_decoder_reset, forward_decoder_session_closed,
+    protocol_event_id, required_mapping_identity,
+)
 
-import hashlib
 from dataclasses import dataclass
 from typing import Callable
 
@@ -79,14 +82,9 @@ class QuestCompletionInfoDecoder:
         active_fingerprint_provider: Callable[[], str | None],
         max_parameters: int = 32,
     ) -> None:
-        version = str(mapping_version or "").strip()
-        fingerprint = str(mapping_fingerprint or "").strip().casefold()
-        if not version:
-            raise ValueError("mapping_version cannot be empty")
-        if not self._is_sha256(fingerprint):
-            raise ValueError("mapping_fingerprint must be a SHA-256 digest")
-        if active_fingerprint_provider is None:
-            raise ValueError("active_fingerprint_provider is required")
+        version, fingerprint = required_mapping_identity(
+            mapping_version, mapping_fingerprint, active_fingerprint_provider,
+        )
         self.delegate = delegate
         self.rule = rule
         self.mapping_version = version
@@ -152,38 +150,27 @@ class QuestCompletionInfoDecoder:
         if quest_id <= 0:
             return None
 
-        digest = hashlib.sha256()
-        digest.update(self.mapping_version.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(self.mapping_fingerprint.encode("ascii"))
-        digest.update(b"\0quest_completed_info\0")
-        digest.update(message.type_url.encode("utf-8", errors="strict"))
-        digest.update(b"\0")
-        digest.update(message.payload)
         return DecodedClientMessage(
             session_id=message.session_id,
             event_type="quest_completed",
             fields={"quest_id": quest_id},
-            event_id=f"proto:{digest.hexdigest()[:32]}",
+            event_id=protocol_event_id(
+                self.mapping_version, self.mapping_fingerprint, message.type_url, message.payload,
+                namespace="quest_completed_info",
+            ),
             verified=True,
         )
 
     def session_closed(self, session_id: str) -> None:
-        hook = getattr(self.delegate, "session_closed", None)
-        if callable(hook):
-            hook(session_id)
+        forward_decoder_session_closed(self.delegate, session_id)
 
     def reset(self) -> None:
-        hook = getattr(self.delegate, "reset", None)
-        if callable(hook):
-            hook()
+        forward_decoder_reset(self.delegate)
 
     def _build_matches(self) -> bool:
-        try:
-            active = str(self.active_fingerprint_provider() or "").strip().casefold()
-        except Exception:
-            return False
-        return active == self.mapping_fingerprint
+        return active_build_matches(
+            self.active_fingerprint_provider, self.mapping_fingerprint,
+        )
 
     @staticmethod
     def _is_sha256(value: str) -> bool:

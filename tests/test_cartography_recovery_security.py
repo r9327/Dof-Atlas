@@ -4,10 +4,15 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from app.services.maps.cartography_asset_recovery import run_recovery_commands
+from app.services.maps.cartography_asset_recovery import normalize_text, run_recovery_commands
 
 
 class CartographyRecoverySecurityTests(unittest.TestCase):
+    def test_asset_normalization_shares_unicode_folding_and_slash_rules(self):
+        self.assertEqual(normalize_text(r"Été\Île d’Otomaï"), "ete/ile d’otomai")
+        self.assertEqual(normalize_text(r"BRÂKMAR\MÔNDE"), "brakmar/monde")
+        self.assertEqual(normalize_text("Mérék"), "merek")
+
     @patch("app.services.maps.cartography_asset_recovery.subprocess.run")
     def test_doduda_commands_never_use_shell(self, mocked_run) -> None:
         mocked_run.return_value = subprocess.CompletedProcess(

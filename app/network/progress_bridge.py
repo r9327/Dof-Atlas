@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from logging import Logger
 from typing import Any
 
+from app.core.numbers import coerce_positive_int
 from app.core.logger import get_runtime_logger
 from app.modules.encyclopedia.services.quest_progress_service import QuestProgressService
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
@@ -15,6 +16,7 @@ from app.network.character_resolver import CharacterSlotResolver
 from app.network.events import (
     AchievementCompletedEvent,
     AchievementObjectiveCompletedEvent,
+    AchievementSnapshotEvent,
     BusinessNetworkEvent,
     CharacterIdentifiedEvent,
     FinishedQuestsSnapshotEvent,
@@ -185,6 +187,8 @@ class NetworkProgressBridge:
             return self._complete_quest_objective(session_id, event)
         if isinstance(event, QuestStartedEvent):
             return self._observe_quest_started(session_id, event)
+        if isinstance(event, AchievementSnapshotEvent):
+            return self._apply_achievement_snapshot(session_id, event)
         if isinstance(event, AchievementCompletedEvent):
             return self._complete_achievement(session_id, event)
         if isinstance(event, AchievementObjectiveCompletedEvent):
@@ -260,7 +264,10 @@ class NetworkProgressBridge:
             if journal_result.accepted:
                 return EventApplicationResult(
                     True,
-                    bool(route_changed or journal_result.changed),
+                    bool(journal_result.changed),
+                    # The reason already signals an identity transition.
+                    # "changed" must represent persistent progress only, so
+                    # an unchanged journal cannot repaint the entire catalogue.
                     "character_identified_with_quest_journal",
                     resolution.character_key,
                 )
@@ -467,6 +474,27 @@ class NetworkProgressBridge:
         # current project has no such shared contract yet; observe only.
         return EventApplicationResult(True, False, "quest_started_observed", character_key)
 
+    def _apply_achievement_snapshot(
+        self,
+        session_id: str,
+        event: AchievementSnapshotEvent,
+    ) -> EventApplicationResult:
+        character_id = self._positive_int(self._session_character_ids.get(session_id))
+        character_key = self._character_key_or_empty(session_id)
+        if character_id is None or character_key != f"character:{character_id}":
+            return EventApplicationResult(False, False, "character_id_missing", character_key)
+
+        known_ids = {
+            achievement_id
+            for raw_id in event.completed_achievement_ids
+            if (achievement_id := self._positive_int(raw_id)) is not None
+            and self.achievement_provider.get_by_id(achievement_id) is not None
+        }
+        changed = self.achievement_progress_service.set_achievements_completed(character_key, known_ids)
+        return EventApplicationResult(
+            True, changed, "achievement_snapshot_applied", character_key,
+        )
+
     def _complete_achievement(
         self,
         session_id: str,
@@ -563,11 +591,7 @@ class NetworkProgressBridge:
 
     @staticmethod
     def _positive_int(value: Any) -> int | None:
-        try:
-            parsed = int(value)
-        except (TypeError, ValueError, OverflowError):
-            return None
-        return parsed if parsed > 0 else None
+        return coerce_positive_int(value)
 
 
 __all__ = ["EventApplicationResult", "NetworkProgressBridge"]

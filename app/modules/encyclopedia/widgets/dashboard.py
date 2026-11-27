@@ -18,7 +18,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.ui.components import AtlasButton
+from app.ui.components import (
+    AtlasButton, AtlasStatusBadge, clear_unity_widget_layout,
+    configure_unity_scroll_area, refresh_unity_widget_style,
+)
 
 
 class HideCompletedButton(AtlasButton):
@@ -32,9 +35,7 @@ class HideCompletedButton(AtlasButton):
 
     def _sync_state(self, checked: bool) -> None:
         self.setText("✓ Terminées masquées" if checked else "Masquer les terminées")
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self.update()
+        refresh_unity_widget_style(self)
         self.stateChanged.emit(checked)
 
 
@@ -134,8 +135,9 @@ class CompactScroll(QScrollArea):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("CompactScroll")
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.NoFrame)
+        configure_unity_scroll_area(
+            self, borderless=True, horizontal_policy=Qt.ScrollBarAsNeeded,
+        )
         self.content = QWidget()
         self.content.setObjectName("CompactScrollContent")
         self.layout = QVBoxLayout(self.content)
@@ -144,22 +146,14 @@ class CompactScroll(QScrollArea):
         self.setWidget(self.content)
 
     def clear(self) -> None:
-        while self.layout.count():
-            item = self.layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+        clear_unity_widget_layout(self.layout)
 
     def finish(self) -> None:
         self.layout.addStretch(1)
 
 
-class StatusBadge(QLabel):
-    def __init__(self, text: str, state: str = "neutral", parent=None) -> None:
-        super().__init__(text, parent)
-        self.setObjectName("StatusBadge")
-        self.setProperty("state", state)
+# Preserve the old dashboard import without a second badge implementation.
+StatusBadge = AtlasStatusBadge
 
 
 class ActivityBadge(QLabel):

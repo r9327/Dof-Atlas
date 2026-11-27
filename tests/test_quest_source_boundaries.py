@@ -80,6 +80,89 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 fresh.close()
 
+    def test_corrupt_nonfirst_disk_offset_fails_closed_without_full_read(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "Premier", "2": "Deuxième"}}),
+                encoding="utf-8",
+            )
+            sources = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = sources.mapping(source, "entries")
+                self.assertEqual(rows["1"], "Premier")
+                db = rows._disk_index
+                self.assertIsNotNone(db)
+                # The initial representative row remains valid; only the
+                # second offset is damaged after index initialization.
+                for start, end in (
+                    (0, -1),
+                    (-1, 10),
+                    (0, source.stat().st_size * 100),
+                    ("invalid", 10),
+                ):
+                    with self.subTest(start=start, end=end):
+                        with closing(sqlite3.connect(db)) as conn, conn:
+                            conn.execute(
+                                "UPDATE offsets SET start=?, end=? WHERE key='2'",
+                                (start, end),
+                            )
+                        with self.assertRaises(QuestSourceError):
+                            _ = rows["2"]
+                        self.assertNotIn("2", rows._cache)
+                        self.assertEqual(rows["1"], "Premier")
+            finally:
+                sources.close()
+
+    def test_optional_corrupt_disk_offset_is_not_materialized(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "Valide", "2": "Invalide"}}),
+                encoding="utf-8",
+            )
+            sources = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = sources.mapping(source, "entries", required=False)
+                self.assertEqual(rows["1"], "Valide")
+                with closing(sqlite3.connect(rows._disk_index)) as conn, conn:
+                    conn.execute("UPDATE offsets SET end=-1 WHERE key='2'")
+                self.assertIsNone(rows.get("2"))
+                self.assertEqual(rows["1"], "Valide")
+            finally:
+                sources.close()
+
+    def test_in_bounds_but_non_json_offset_respects_required_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "Sain", "2": "Valide"}}),
+                encoding="utf-8",
+            )
+            required = QuestSources(root / "cache", disk_backed=True)
+            optional = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = required.mapping(source, "entries")
+                self.assertEqual(rows["1"], "Sain")
+                # Structurally valid span, but only a single opening brace.
+                with closing(sqlite3.connect(rows._disk_index)) as conn, conn:
+                    conn.execute(
+                        "UPDATE offsets SET start=0, end=1 WHERE key='2'"
+                    )
+                with self.assertRaises(QuestSourceError):
+                    _ = rows["2"]
+                self.assertNotIn("2", rows._cache)
+                other = optional.mapping(source, "entries", required=False)
+                self.assertEqual(other["1"], "Sain")
+                self.assertIsNone(other.get("2"))
+                self.assertNotIn("2", other._cache)
+            finally:
+                required.close()
+                optional.close()
+
     def test_missing_offsets_schema_rebuilds_readable_index(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -206,6 +289,44 @@ class QuestSourceBoundaryTests(unittest.TestCase):
                 self.assertEqual(sources.rows(path)[42]["nameId"], 7)
             finally:
                 sources.close()
+
+    def test_index_cannot_reassign_valid_doduda_row_to_another_quest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            path = root / "quests.json"
+            path.write_text(
+                json.dumps({"RefIds": [
+                    {"data": {"id": 42, "nameId": 7}},
+                    {"data": {"id": 43, "nameId": 8}},
+                ]}),
+                encoding="utf-8",
+            )
+            sources = QuestSources(root / "cache", disk_backed=True)
+            optional = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = sources.rows(path)
+                self.assertEqual(rows[42]["nameId"], 7)
+                db = rows._disk_index
+                with closing(sqlite3.connect(db)) as conn, conn:
+                    start, end = conn.execute(
+                        "SELECT start, end FROM offsets WHERE key='42'"
+                    ).fetchone()
+                    conn.execute(
+                        "UPDATE offsets SET start=?, end=? WHERE key='43'",
+                        (start, end),
+                    )
+                with self.assertRaises(QuestSourceError):
+                    _ = rows[43]
+                self.assertNotIn(43, rows._cache)
+                self.assertEqual(rows[42]["nameId"], 7)
+                fallback = optional.mapping(
+                    path, "RefIds", doduda=True, required=False,
+                )
+                self.assertIsNone(fallback.get(43))
+                self.assertEqual(fallback[42]["nameId"], 7)
+            finally:
+                sources.close()
+                optional.close()
 
     def test_completed_source_read_drops_decoded_rows_but_reuses_offsets(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

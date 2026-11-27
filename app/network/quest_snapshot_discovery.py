@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import AbstractSet
 
-from app.network.protobuf_fields import ProtobufDecodeError, parse_protobuf_fields
+from app.network.contracts import is_current_ankama_alias
+from app.network.protobuf_fields import (
+    ProtobufDecodeError, parse_protobuf_fields, historical_quest_entry_id, historical_reinitialized_ids,
+)
 from app.network.transport import CapturedProtocolMessage
-from app.network.wire import IncompleteVarint, InvalidVarint, decode_varint
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,61 +138,15 @@ def discover_current_quest_snapshot(
 
 
 def _finished_quest_id(raw_entry: object) -> int | None:
-    if not isinstance(raw_entry, bytes):
-        return None
-    try:
-        fields = parse_protobuf_fields(raw_entry)
-    except ProtobufDecodeError:
-        return None
-    if not fields or not set(fields).issubset({1, 2}):
-        return None
-    quest_rows = fields.get(1, ())
-    if len(quest_rows) != 1 or not isinstance(quest_rows[0], int) or quest_rows[0] <= 0:
-        return None
-    count_rows = fields.get(2, ())
-    if len(count_rows) != 1 or not isinstance(count_rows[0], int) or count_rows[0] <= 0:
-        return None
-    return int(quest_rows[0])
+    return historical_quest_entry_id(raw_entry, finished=True)
 
 
 def _active_quest_id(raw_entry: object) -> int | None:
-    if not isinstance(raw_entry, bytes):
-        return None
-    try:
-        fields = parse_protobuf_fields(raw_entry)
-    except ProtobufDecodeError:
-        return None
-    if not fields or not set(fields).issubset({1, 2}):
-        return None
-    quest_rows = fields.get(1, ())
-    if len(quest_rows) != 1 or not isinstance(quest_rows[0], int) or quest_rows[0] <= 0:
-        return None
-    details_rows = fields.get(2, ())
-    if len(details_rows) > 1 or any(not isinstance(value, bytes) for value in details_rows):
-        return None
-    return int(quest_rows[0])
+    return historical_quest_entry_id(raw_entry, finished=False)
 
 
 def _parse_reinitialized_ids(rows: tuple[object, ...]) -> tuple[int, ...] | None:
-    values: list[int] = []
-    for row in rows:
-        if isinstance(row, int):
-            if row <= 0:
-                return None
-            values.append(int(row))
-            continue
-        if not isinstance(row, bytes):
-            return None
-        offset = 0
-        try:
-            while offset < len(row):
-                value, offset = decode_varint(row, offset)
-                if int(value) <= 0:
-                    return None
-                values.append(int(value))
-        except (IncompleteVarint, InvalidVarint):
-            return None
-    return _unique_positive(values)
+    return historical_reinitialized_ids(rows)
 
 
 def _unique_positive(values: list[int]) -> tuple[int, ...]:
@@ -198,9 +154,7 @@ def _unique_positive(values: list[int]) -> tuple[int, ...]:
 
 
 def _is_current_type_url(value: str) -> bool:
-    prefix = "type.ankama.com/"
-    alias = value[len(prefix) :] if value.startswith(prefix) else ""
-    return len(alias) == 3 and alias.isascii() and alias.isalpha() and alias.islower()
+    return is_current_ankama_alias(value)
 
 
 __all__ = ["QuestSnapshotDiscoveryCandidate", "discover_current_quest_snapshot"]

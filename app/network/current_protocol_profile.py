@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.network.contracts import _is_sha256
+from app.network.contracts import _is_sha256, is_current_ankama_alias
 
 import hashlib
 import json
@@ -204,9 +204,7 @@ def _copy_step_validated() -> dict[str, Any]:
 
 
 def _is_current_type_url(value: str) -> bool:
-    prefix = "type.ankama.com/"
-    alias = value[len(prefix) :] if value.startswith(prefix) else ""
-    return len(alias) == 3 and alias.isascii() and alias.isalpha() and alias.islower()
+    return is_current_ankama_alias(value)
 
 
 

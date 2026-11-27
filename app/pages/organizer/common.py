@@ -4,7 +4,9 @@ from pathlib import Path
 from typing import Any
 
 from app.constants import CLIENT_INDEX_JSON, DATA_DIR
+from app.core.numbers import exact_native_integer
 from app.storage import normalize_key, read_json
+from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
 CLASS_ICON_DIRS = (
     DATA_DIR / "images" / "classes",
@@ -17,15 +19,15 @@ SESSION_SLOT_COUNT = 8
 KEY_SESSION_SLOT_ASSIGNMENTS = "__organizer_slot_assignments__"
 WINDOW_EVENT_DEBOUNCE_MS = 80
 RELEASE_RETRY_DELAYS_MS = (200, 500, 1000, 2000)
-CARD_PADDING = 12
-CARD_SPACING = 10
-BUTTON_HEIGHT = 30
-INPUT_HEIGHT = 32
-KEY_BADGE_HEIGHT = 22
-KEY_BADGE_MIN_WIDTH = 34
-FAVORITE_CHIP_HEIGHT = 28
-CHARACTER_SLOT_HEIGHT = 36
-STOP_BUTTON_HEIGHT = 34
+CARD_PADDING = UNITY_ORGANIZER_METRICS_PX["card_padding"]
+CARD_SPACING = UNITY_ORGANIZER_METRICS_PX["card_spacing"]
+BUTTON_HEIGHT = UNITY_ORGANIZER_METRICS_PX["button_height"]
+INPUT_HEIGHT = UNITY_ORGANIZER_METRICS_PX["input_height"]
+KEY_BADGE_HEIGHT = UNITY_ORGANIZER_METRICS_PX["key_badge_height"]
+KEY_BADGE_MIN_WIDTH = UNITY_ORGANIZER_METRICS_PX["key_badge_min_width"]
+FAVORITE_CHIP_HEIGHT = UNITY_ORGANIZER_METRICS_PX["favorite_chip_height"]
+CHARACTER_SLOT_HEIGHT = UNITY_ORGANIZER_METRICS_PX["character_slot_height"]
+STOP_BUTTON_HEIGHT = UNITY_ORGANIZER_METRICS_PX["stop_button_height"]
 
 DOFUS_CLASS_DEFINITIONS = {
     "feca": {"id": 1, "label": "Feca", "aliases": ("feca", "féca")},
@@ -66,19 +68,8 @@ def session_name(session: dict[str, Any] | None) -> str:
 
 
 def _validated_session_number(raw: Any, maximum: int) -> int:
-    # Win32 session IDs are exact unsigned integers, not booleans/floats.
-    # Keep persisted JSON decimal strings but never truncate a fractional
-    # HWND into an unrelated genuine window.
-    if type(raw) is int:
-        number = raw
-    elif type(raw) is str and raw.isascii() and raw.strip().isdecimal():
-        try:
-            number = int(raw.strip())
-        except (ValueError, OverflowError):
-            return 0
-    else:
-        return 0
-    return number if 0 < number <= maximum else 0
+    # The Organizer's public missing-window sentinel remains zero.
+    return exact_native_integer(raw, maximum) or 0
 
 
 def session_hwnd(session: dict[str, Any] | None) -> int:
@@ -116,31 +107,41 @@ def dofus_class_key_for_character_name(value: Any) -> str | None:
     character_key = normalize_key(value)
     if not character_key:
         return None
-    payload = read_json(CLIENT_INDEX_JSON, {"clients": []})
-    clients = payload.get("clients", []) if isinstance(payload, dict) else []
-    if not isinstance(clients, list):
-        return None
+    return class_key_from_client_index(value, read_json(CLIENT_INDEX_JSON, {"clients": []}))
 
-    matches: set[str] = set()
-    for client in clients:
+
+def client_class_candidates(payload: object) -> dict[str, set[str]]:
+    """One cosmetic metadata projection for direct and cached class lookup."""
+    candidates: dict[str, set[str]] = {}
+    clients = payload.get("clients", []) if isinstance(payload, dict) else []
+    for client in clients if isinstance(clients, list) else []:
         if not isinstance(client, dict):
             continue
-        display_name = str(client.get("character_name") or "").strip()
-        if normalize_key(display_name) != character_key:
+        name = normalize_key(client.get("character_name"))
+        if not name:
             continue
-        explicit_class = normalize_key(client.get("class_key"))
-        if explicit_class in DOFUS_CLASS_DEFINITIONS:
-            matches.add(explicit_class)
-            continue
-        inferred_class = dofus_class_key_from_window_name(client.get("name"))
-        if inferred_class:
-            matches.add(inferred_class)
-    if len(matches) != 1:
+        class_key = normalize_key(client.get("class_key"))
+        if class_key not in DOFUS_CLASS_DEFINITIONS:
+            class_key = dofus_class_key_from_window_name(client.get("name")) or ""
+        if class_key:
+            candidates.setdefault(name, set()).add(class_key)
+    return candidates
+
+
+def class_key_from_client_index(value: Any, payload: object) -> str | None:
+    """Resolve only unambiguous class metadata from an explicit index."""
+    character_key = normalize_key(value)
+    if not character_key:
         return None
-    return next(iter(matches))
+    matches = client_class_candidates(payload).get(character_key, set())
+    return next(iter(matches)) if len(matches) == 1 else None
 
 
-def class_icon_candidates(class_key: str) -> list[Path]:
+def class_icon_candidates(
+    class_key: str, *, directories=None, extensions=None,
+) -> list[Path]:
+    directories = CLASS_ICON_DIRS if directories is None else directories
+    extensions = CLASS_ICON_EXTENSIONS if extensions is None else extensions
     definition = DOFUS_CLASS_DEFINITIONS.get(class_key)
     if not definition:
         return []
@@ -152,9 +153,9 @@ def class_icon_candidates(class_key: str) -> list[Path]:
             stems.append(key)
     stems.extend([f"symbol_{class_id}", f"logo_transparent_{class_id}", f"class_{class_key}"])
     candidates: list[Path] = []
-    for directory in CLASS_ICON_DIRS:
+    for directory in directories:
         for stem in stems:
-            for extension in CLASS_ICON_EXTENSIONS:
+            for extension in extensions:
                 candidates.append(directory / f"{stem}{extension}")
     return candidates
 

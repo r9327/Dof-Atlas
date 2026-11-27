@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,6 +12,18 @@ from local_dofus_data import utils
 
 
 class JsonStoreTests(unittest.TestCase):
+    def test_compact_json_codec_bounds_and_validates_payload(self) -> None:
+        from app.core.json_store import decode_compact_json, encode_compact_json
+
+        payload = {"name": "Éliotrope", "steps": [1, 2]}
+        encoded = encode_compact_json(payload)
+        self.assertEqual(decode_compact_json(encoded, dict), payload)
+        self.assertEqual(decode_compact_json(bytearray(encoded), dict), payload)
+        self.assertIsNone(decode_compact_json(encoded, list))
+        self.assertIsNone(decode_compact_json(encoded[:-1], dict))
+        self.assertIsNone(decode_compact_json(b"invalid zlib", dict))
+        self.assertIsNone(decode_compact_json(encode_compact_json(["x" * 1024]), list, max_bytes=64))
+
     def test_corrupt_json_is_backed_up_before_default_is_returned(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "settings.json"
@@ -22,6 +35,32 @@ class JsonStoreTests(unittest.TestCase):
             backups = list(Path(tmp).glob("settings.json.corrupt.*.bak"))
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(encoding="utf-8"), '{"broken": ')
+
+    def test_unrepresentable_json_uses_both_existing_error_policies(self) -> None:
+        from app.core.json_store import InvalidPersistentJsonError, read_json_validated
+
+        cases = (
+            ('{"id": ' + "9" * 5000 + "}", nullcontext()),
+            ("[[]]", patch("app.core.json_store.json.loads", side_effect=RecursionError)),
+        )
+        for invalid, decoder in cases:
+            with self.subTest(length=len(invalid)), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "settings.json"
+                path.write_text(invalid, encoding="utf-8")
+                with decoder:
+                    self.assertEqual(read_json_resilient(path, {"default": True}), {"default": True})
+                    with self.assertRaises(InvalidPersistentJsonError):
+                        read_json_validated(path, {}, lambda _payload: None)
+                self.assertEqual(path.read_text(encoding="utf-8"), invalid)
+                backups = list(Path(tmp).glob("settings.json.corrupt.*.bak"))
+                self.assertEqual(len(backups), 2)
+                self.assertTrue(all(p.read_text(encoding="utf-8") == invalid for p in backups))
+
+    def test_legacy_numeric_import_keeps_decimal_strings_and_rejects_infinity(self) -> None:
+        self.assertEqual(utils.safe_int("4.9"), 4)
+        for raw in (float("inf"), -float("inf"), "inf", "1e9999"):
+            with self.subTest(raw=raw):
+                self.assertEqual(utils.safe_int(raw, 7), 7)
 
     def test_atomic_writer_round_trips_unicode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

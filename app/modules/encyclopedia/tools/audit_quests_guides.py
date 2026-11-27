@@ -870,11 +870,11 @@ def is_exploitable_image(path: Path, *, decode: bool = False) -> bool:
         if not is_exploitable_image(path):
             return False
         from PySide6.QtCore import QSize
-        from app.modules.encyclopedia.views.guide_image_runtime_policy import decode_scaled_image
+        from app.modules.encyclopedia.services.image_service import read_scaled_image
 
         # Exercise the same decoder as the application, at a bounded display
         # size. A plausible header alone cannot pass this explicit audit mode.
-        return not decode_scaled_image(path, QSize(64, 64), kind="audit").isNull()
+        return not read_scaled_image(path, QSize(64, 64)).isNull()
     try:
         if path.stat().st_size <= 0:
             return False

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import subprocess
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -16,39 +18,90 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         from tools.atlas_doctor_lib import runtime_benchmark as doctor
         from app.modules.encyclopedia.tools import benchmark_guides_performance as phase
 
-        return ((doctor, doctor._first_achievement_detail, "_current_encyclopedia_page", "_pump_events"),
-                (phase, phase.first_achievement_detail, "current_encyclopedia_page", "pump_events"))
+        return (
+            (doctor, doctor._first_achievement_detail,
+             "_current_encyclopedia_page", "_wait_until_with_ui_block"),
+            (phase, phase.first_achievement_detail,
+             "current_encyclopedia_page", "wait_until_with_ui_block"),
+        )
 
-    def test_first_detail_selects_paginated_reference_without_eager_catalogue(self):
-        view = SimpleNamespace(_runtime_ready=True, achievements=[],
-                               filtered=[SimpleNamespace(id=42)],
-                               select_achievement=Mock(return_value=True))
+    def test_first_detail_waits_until_worker_renders_without_eager_catalogue(self):
+        view = SimpleNamespace(
+            _runtime_ready=True, achievements=[],
+            filtered=[SimpleNamespace(id=42)],
+            select_achievement=Mock(return_value=True),
+            current_achievement_id=42, _detail_open=False,
+            _detail_requested=(1, 42), _detail_worker_running=True,
+        )
         page = SimpleNamespace(get_achievements_view=lambda: view)
-        for module, measure, page_name, pump_name in self.detail_benchmarks():
+
+        def simulate_worker_completion(app, predicate, timeout, description):
+            self.assertEqual(timeout, 30.0)
+            self.assertIn("42", description)
+            self.assertFalse(predicate())  # Worker is still running.
+            view._detail_worker_running = False
+            view._detail_requested = None
+            view._detail_open = True
+            self.assertTrue(predicate())  # Actual detail now displayed.
+            return 7.5  # Qt UI-block measurement, not only click time.
+
+        for module, measure, page_name, wait_name in self.detail_benchmarks():
             with self.subTest(module=module.__name__), patch.object(
                 module, page_name, return_value=page
-            ), patch.object(module, pump_name):
+            ), patch.object(
+                module, wait_name, side_effect=simulate_worker_completion
+            ) as wait:
                 view.select_achievement.reset_mock()
+                view._detail_open = False
+                view._detail_requested = (1, 42)
+                view._detail_worker_running = True
                 elapsed, ident, block = measure(object(), object())
                 self.assertEqual(ident, 42)
                 self.assertGreaterEqual(elapsed, 0)
-                self.assertGreaterEqual(block, 0)
+                self.assertGreaterEqual(block, 7.5)
+                wait.assert_called_once()
                 view.select_achievement.assert_called_once_with(42)
                 self.assertEqual(view.achievements, [])
 
-    def test_first_detail_still_rejects_empty_invalid_or_unselectable_catalogue(self):
-        for module, measure, page_name, pump_name in self.detail_benchmarks():
-            for refs, selected, error in (([], True, "no selectable achievement"),
-                                          ([SimpleNamespace(id=0)], True, "invalid achievement id"),
-                                          ([SimpleNamespace(id=42)], False, "Unable to select Success")):
-                view = SimpleNamespace(_runtime_ready=True, achievements=[SimpleNamespace(id=99)],
-                                       filtered=refs, select_achievement=Mock(return_value=selected))
+    def test_first_detail_rejects_empty_invalid_or_unselectable_catalogue(self):
+        for module, measure, page_name, wait_name in self.detail_benchmarks():
+            for refs, selected, error in (
+                ([], True, "no selectable achievement"),
+                ([SimpleNamespace(id=0)], True, "invalid achievement id"),
+                ([SimpleNamespace(id=42)], False, "Unable to select Success"),
+            ):
+                view = SimpleNamespace(
+                    _runtime_ready=True, achievements=[SimpleNamespace(id=99)],
+                    filtered=refs, select_achievement=Mock(return_value=selected),
+                )
                 page = SimpleNamespace(get_achievements_view=lambda: view)
                 with self.subTest(module=module.__name__, error=error), patch.object(
                     module, page_name, return_value=page
-                ), patch.object(module, pump_name):
+                ), patch.object(module, wait_name) as wait:
                     with self.assertRaisesRegex(RuntimeError, error):
                         measure(object(), object())
+                    wait.assert_not_called()
+
+    def test_first_detail_does_not_report_a_failed_worker_as_loaded(self):
+        for module, measure, page_name, wait_name in self.detail_benchmarks():
+            view = SimpleNamespace(
+                _runtime_ready=True, achievements=[],
+                filtered=[SimpleNamespace(id=42)],
+                select_achievement=Mock(return_value=True),
+                current_achievement_id=42,
+                _detail_open=False, _detail_requested=None,
+                _detail_worker_running=False,
+            )
+            page = SimpleNamespace(get_achievements_view=lambda: view)
+            def assert_worker_completion(app, predicate, timeout, description):
+                return predicate()
+            with self.subTest(module=module.__name__), patch.object(
+                module, page_name, return_value=page
+            ), patch.object(
+                module, wait_name, side_effect=assert_worker_completion
+            ):
+                with self.assertRaisesRegex(RuntimeError, "detail failed to render"):
+                    measure(object(), object())
 
     @staticmethod
     def sample(*, head: str, startup_ms: float, rss_mb: float) -> dict[str, object]:
@@ -91,6 +144,66 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertEqual(benchmark["medians"]["hot_round_trip_guide"]["avg_ms"], 11.0)
         self.assertEqual(benchmark["after"], benchmark["medians"])
 
+    def test_success_distributions_report_exact_ranks_and_sample_quality(self) -> None:
+        samples = [
+            self.sample(head="sha", startup_ms=120, rss_mb=100),
+            self.sample(head="sha", startup_ms=140, rss_mb=101),
+            self.sample(head="sha", startup_ms=160, rss_mb=102),
+        ]
+        for value, sample in zip((90.0, 120.0, 210.0), samples):
+            sample["metrics"]["first_achievement_detail_ms"] = value
+            sample["metrics"]["rss_after_first_achievement_detail_mb"] = 101.0
+
+        benchmark = aggregate_samples(samples)
+        timings = benchmark["distributions"]["first_achievement_detail_ms"]
+        self.assertEqual(timings["sample_count"], 3)
+        self.assertEqual(timings["p50"], 120.0)
+        self.assertEqual(timings["p95"], 210.0)
+        self.assertEqual(timings["p99"], 210.0)
+        self.assertEqual(timings["unit"], "ms")
+        self.assertEqual(timings["p99_quality"], "DESCRIPTIVE_ONLY")
+        self.assertEqual(benchmark["medians"]["first_achievement_detail_ms"], 120.0)
+        rss = benchmark["distributions"]["rss_after_first_achievement_detail_mb"]
+        self.assertEqual(rss["unit"], "MB")
+        self.assertEqual(rss["p95"], 101.0)
+        self.assertNotIn("achievements_open_ms", benchmark["distributions"])
+        self.assertEqual(benchmark["after"], benchmark["medians"])
+
+    def test_success_catalogue_strata_never_infer_cold_cache_from_sample_order(self):
+        samples = [self.sample(head="sha", startup_ms=100, rss_mb=100) for _ in range(4)]
+        cases = (
+            (False, "DISPOSABLE_WORKER", 19000),
+            (False, "COMPACT_CACHE", 80),
+            (True, "COMPACT_CACHE", 30),
+            (None, "UNKNOWN", 120),
+        )
+        for sample, (loaded, source, timing) in zip(samples, cases):
+            sample["metrics"]["achievements_open_ms"] = timing
+            if loaded is not None:
+                sample["success_catalogue"] = {
+                    "before_open": {"loaded": loaded},
+                    "after_open": {"loaded": True, "load_source": source},
+                }
+        strata = aggregate_samples(samples)["success_catalogue_strata"]
+        for label, expected in (("DISPOSABLE_WORKER", 19000), ("COMPACT_CACHE", 80),
+                                ("ALREADY_LOADED", 30), ("UNKNOWN", 120)):
+            self.assertEqual(strata[label]["sample_count"], 1)
+            self.assertEqual(strata[label]["distributions"]["achievements_open_ms"]["p95"], expected)
+
+    def test_reject_mixed_sha_or_qt_environment_before_benchmark_aggregation(self) -> None:
+        first = self.sample(head="a1", startup_ms=100, rss_mb=95)
+        different = self.sample(head="b2", startup_ms=120, rss_mb=96)
+        with self.assertRaisesRegex(ValueError, "git_head"):
+            aggregate_samples([first, different])
+
+        different["environment"]["git_head"] = "a1"
+        different["environment"]["pyside"] = "other-Qt"
+        with self.assertRaisesRegex(ValueError, "pyside"):
+            aggregate_samples([first, different])
+
+        different["environment"]["pyside"] = first["environment"]["pyside"]
+        self.assertEqual(aggregate_samples([first, different])["sample_count"], 2)
+
     def test_compare_to_legacy_baseline_reports_cost_deltas(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=120.0, rss_mb=100.0)]
@@ -121,6 +234,18 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertEqual(startup["delta_percent"], 20.0)
         self.assertEqual(len(comparison["regressions_15pct"]), 1)
 
+    def test_baseline_comparison_never_passes_without_valid_common_costs(self) -> None:
+        current = aggregate_samples([self.sample(head="new", startup_ms=100, rss_mb=100)])
+        environment = {**current["environment"], "git_head": "old"}
+        for metrics in ({}, {"other_ms": 20}, {"startup_stabilized_ms": float("nan")},
+                        {"startup_stabilized_ms": float("inf")}, {"startup_stabilized_ms": -1}):
+            with self.subTest(metrics=metrics):
+                baseline = {"environment": environment, "medians": metrics}
+                self.assertEqual(compare_to_baseline(current, baseline)["status"], "UNAVAILABLE")
+        baseline = {"environment": {**environment, "git_head": "unknown"},
+                    "medians": current["medians"]}
+        self.assertEqual(compare_to_baseline(current, baseline)["status"], "UNAVAILABLE")
+
     def test_environment_mismatch_refuses_false_comparison(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=100.0, rss_mb=100.0)]
@@ -143,6 +268,107 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
 
         self.assertEqual(comparison["status"], "UNAVAILABLE")
         self.assertEqual(comparison["environment_mismatches"], ["platform"])
+
+    def test_baseline_worktree_cleanup_retries_transient_windows_lock(self):
+        from tools.atlas_doctor_lib import perf
+        failure = subprocess.CalledProcessError(
+            1, ["git", "worktree", "remove"], stderr="file is being used"
+        )
+        with patch.object(perf.subprocess, "run", side_effect=[failure, Mock()]) as run, \
+                patch.object(perf.time, "sleep") as sleep:
+            perf._remove_baseline_worktree(Path("candidate"), Path("base"), {})
+        self.assertEqual(run.call_count, 2)
+        sleep.assert_called_once_with(0.25)
+
+    def test_baseline_cleanup_failure_retains_git_diagnostic(self):
+        from tools.atlas_doctor_lib import perf
+        failure = subprocess.CalledProcessError(
+            1, ["git", "worktree", "remove"], stderr="file is being used"
+        )
+        with patch.object(perf.subprocess, "run", side_effect=failure) as run, \
+                patch.object(perf.time, "sleep"):
+            with self.assertRaisesRegex(ValueError, "file is being used"):
+                perf._remove_baseline_worktree(Path("candidate"), Path("base"), {})
+        self.assertEqual(run.call_count, 5)
+
+    def test_same_runner_comparison_excludes_changed_detail_probe(self):
+        from tools.atlas_doctor_lib.perf import _paired_success_comparison
+        env = {"platform": "Windows", "python": "3.13", "pyside": "6.12", "qt_qpa_platform": "offscreen"}
+        def report(sha, opening, detail):
+            return {"samples": [{"environment": {**env, "git_head": sha},
+                "metrics": {"achievements_open_ms": opening,
+                            "achievements_open_max_ui_block_ms": 12,
+                            "rss_after_achievements_mb": 90,
+                            "first_achievement_detail_ms": detail}}]}
+        paired = _paired_success_comparison(report("new", 50, 2000), report("old", 100, 10))
+        self.assertEqual(paired["scope"], "SUCCESS_FIRST_VIEW_ONLY")
+        self.assertEqual(paired["baseline_sha"], "old")
+        self.assertEqual(paired["candidate_sha"], "new")
+        metrics = {row["metric"]: row for row in paired["comparison"]["metrics"]}
+        self.assertEqual(metrics["achievements_open_ms"]["delta_percent"], -50)
+        self.assertNotIn("first_achievement_detail_ms", metrics)
+        self.assertEqual(paired["comparison"]["status"], "PASS")
+        self.assertFalse(paired["catalogue_strata_comparable"])
+        self.assertIn("UNKNOWN", paired["baseline_catalogue_strata"])
+
+    def test_same_runner_comparison_rejects_incomplete_or_unbalanced_samples(self):
+        from tools.atlas_doctor_lib.perf import _paired_success_comparison
+
+        def sample(sha, value):
+            row = self.sample(head=sha, startup_ms=10, rss_mb=10)
+            row["metrics"].update(achievements_open_ms=value,
+                                  achievements_open_max_ui_block_ms=12,
+                                  rss_after_achievements_mb=90)
+            return row
+        before = {"samples": [sample("old", 100), sample("old", 100)]}
+        for invalid in (None, float("nan"), float("inf"), -1, True):
+            with self.subTest(invalid=invalid):
+                after = {"samples": [sample("new", 50), sample("new", invalid)]}
+                paired = _paired_success_comparison(after, before)
+                self.assertEqual(paired["comparison"]["status"], "UNAVAILABLE")
+                self.assertIn("candidate:2:achievements_open_ms",
+                              paired["comparison"]["incomplete_samples"])
+        unequal = _paired_success_comparison({"samples": [sample("new", 50)]}, before)
+        self.assertEqual(unequal["comparison"]["status"], "UNAVAILABLE")
+        paired = _paired_success_comparison({"samples": [sample("new", 50), sample("new", 60)]}, before)
+        self.assertEqual(paired["comparison"]["status"], "PASS")
+        self.assertEqual(paired["candidate_distributions"]["achievements_open_max_ui_block_ms"]["p95"], 12)
+
+    def test_quest_coverage_evidence_rejects_changed_sha_or_incomplete_inventory(self):
+        from tools.atlas_doctor_lib import perf
+        root = Path("candidate")
+        good = {"quests_considered": 1976, "counts": {},
+                "native_start_coverage": {"quests_considered": 1976, "counts": {}}}
+        with patch.object(perf, "git_state", return_value={"head": "candidate"}), \
+                patch.object(perf, "_local_quest_coverage", return_value=good) as audit:
+            report = perf.collect_quest_coverage_evidence(root, "candidate")
+            self.assertEqual(report, {"status": "MEASURED", "git_head": "candidate",
+                                      "coverage": good})
+            audit.assert_called_once_with(root)
+        with patch.object(perf, "git_state", return_value={"head": "other"}), \
+                patch.object(perf, "_local_quest_coverage") as audit:
+            self.assertEqual(perf.collect_quest_coverage_evidence(root, "candidate")["status"],
+                             "UNAVAILABLE")
+            audit.assert_not_called()
+        with patch.object(perf, "git_state", side_effect=[{"head": "candidate"}, {"head": "other"}]), \
+                patch.object(perf, "_local_quest_coverage", return_value=good):
+            self.assertEqual(perf.collect_quest_coverage_evidence(root, "candidate")["status"],
+                             "UNAVAILABLE")
+        for bad in ({}, {"quests_considered": 0, "native_start_coverage": {"quests_considered": 0}},
+                    {"quests_considered": 1976, "native_start_coverage": {"quests_considered": 1}}):
+            with patch.object(perf, "git_state", return_value={"head": "candidate"}), \
+                    patch.object(perf, "_local_quest_coverage", return_value=bad):
+                self.assertEqual(perf.collect_quest_coverage_evidence(root, "candidate")["status"],
+                                 "UNAVAILABLE")
+
+    def test_quest_coverage_evidence_preserves_subprocess_error(self):
+        from tools.atlas_doctor_lib import perf
+        failure = subprocess.CalledProcessError(1, ["audit"], stderr="Missing native source")
+        with patch.object(perf, "git_state", return_value={"head": "candidate"}), \
+                patch.object(perf, "_local_quest_coverage", side_effect=failure):
+            report = perf.collect_quest_coverage_evidence(Path("candidate"), "candidate")
+        self.assertEqual(report["status"], "UNAVAILABLE")
+        self.assertIn("Missing native source", report["reason"])
 
     def test_attach_baseline_keeps_reproducible_baseline_snapshot(self) -> None:
         current = aggregate_samples(

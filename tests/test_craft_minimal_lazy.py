@@ -33,6 +33,18 @@ class CraftMinimalLazyTests(unittest.TestCase):
         load_selection.assert_not_called()
         self.assertFalse(page._runtime_ready)
         self.assertEqual(page.results.count(), 1)
+        from app.ui.unity_palette import UNITY_SPACING_PX
+        self.assertEqual(page.craft_body.spacing(), UNITY_SPACING_PX["sm"])
+        self.assertEqual(page.global_scroll.widget().layout().spacing(), UNITY_SPACING_PX["sm"])
+        for panel in (page.craft_left_panel, page.craft_right_panel, page.jobs_panel):
+            layout = panel.layout()
+            self.assertEqual(layout.spacing(), UNITY_SPACING_PX["sm"])
+            margins = layout.contentsMargins()
+            self.assertEqual(
+                (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                (UNITY_SPACING_PX["md"],) * 4,
+            )
+        self.assertEqual(page.job_grid.spacing(), UNITY_SPACING_PX["xs"])
         page.deleteLater()
 
     def test_factory_returns_stable_craft_page_before_preload_finishes(self) -> None:

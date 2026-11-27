@@ -13,7 +13,10 @@ from app.constants import (
     PROFILE_FILE,
     QUEST_PROGRESS_FILE,
 )
-from app.core.character_identity import character_key as canonical_character_key
+from app.core.numbers import coerce_positive_int
+from app.core.character_identity import (
+    character_key as canonical_character_key, is_verified_character_binding, VERIFIED_NETWORK_IDENTITY,
+)
 from app.core.json_store import (
     InvalidPersistentJsonError,
     read_json_validated,
@@ -104,7 +107,7 @@ def merge_verified_binding_classes(
         verified_name_counts: dict[str, int] = {}
         for rows in row_groups:
             for row in rows.values():
-                if not isinstance(row, dict) or str(row.get("source") or "") != "verified_network_identity":
+                if not is_verified_character_binding(row):
                     continue
                 name_key = normalize_text(row.get("name"))
                 if name_key:
@@ -113,7 +116,7 @@ def merge_verified_binding_classes(
         changed = False
         for rows in row_groups:
             for raw_key, row in list(rows.items()):
-                if not isinstance(row, dict) or str(row.get("source") or "") != "verified_network_identity":
+                if not is_verified_character_binding(row):
                     continue
                 name_key = normalize_text(row.get("name"))
                 if not name_key or verified_name_counts.get(name_key) != 1:
@@ -345,8 +348,7 @@ class CharacterSlotResolver:
         previous = characters.get(identity_key)
         class_key = ""
         if (
-            isinstance(previous, dict)
-            and str(previous.get("source") or "") == "verified_network_identity"
+            is_verified_character_binding(previous)
             and normalize_text(previous.get("name")) == normalize_text(label)
         ):
             class_key = str(previous.get("class_key") or "").strip().casefold()
@@ -370,7 +372,7 @@ class CharacterSlotResolver:
         updated = {
             "name": label,
             "pid": int(pid),
-            "source": "verified_network_identity",
+            "source": VERIFIED_NETWORK_IDENTITY,
         }
         if organizer_slot is not None:
             updated["organizer_slot"] = int(organizer_slot)
@@ -386,11 +388,7 @@ class CharacterSlotResolver:
 
     @staticmethod
     def _positive_int(value: object) -> int | None:
-        try:
-            parsed = int(value)
-        except (TypeError, ValueError, OverflowError):
-            return None
-        return parsed if parsed > 0 else None
+        return coerce_positive_int(value)
 
     def _legacy_slot_for_identity_unlocked(
         self,
