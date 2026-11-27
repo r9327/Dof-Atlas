@@ -1,0 +1,93 @@
+name: PR365 isolated exact-SHA commit audit
+on:
+  push:
+    branches: [audit/pr365-final-50ddcbe1]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    name: Audit original PR patches and surviving source
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CANDIDATE_SHA: 50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0
+      BASE_SHA: 76c0008bdfcbb8dca3315121496e5e52388e0b9f
+    steps:
+      - name: Checkout exact PR candidate without LFS
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - name: Verify audit range
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git merge-base --is-ancestor "$BASE_SHA" "$CANDIDATE_SHA"
+          test "$(git rev-list --count "$BASE_SHA..$CANDIDATE_SHA")" = "1599"
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.13"
+      - name: Test existing audit scanner
+        run: python -m unittest discover -s tests -p test_pr303_commit_audit.py -v
+      - name: Check surviving Python syntax and deleted Guide imports
+        shell: bash
+        run: |
+          mkdir -p artifacts/pr365
+          python -m compileall -q app tools tests main.py
+          python - <<'PY'
+          import ast, json, pathlib, subprocess
+          deleted = {
+              'app.modules.encyclopedia.views.guide_home_image_cache',
+              'app.modules.encyclopedia.views.guide_image_runtime_policy',
+              'app.modules.encyclopedia.widgets.guide_progress_header',
+              'app.modules.encyclopedia.widgets.guide_section_widget',
+              'app.modules.encyclopedia.widgets.guide_step_widget',
+          }
+          removed_exports = {'GuideProgressHeader', 'GuideSectionWidget', 'GuideStepWidget'}
+          paths = [pathlib.Path(p) for p in subprocess.check_output(
+              ['git', 'ls-files', 'app', 'tests', 'tools', 'main.py'], text=True
+          ).splitlines() if p.endswith('.py')]
+          hits = []
+          for path in paths:
+              for node in ast.walk(ast.parse(path.read_bytes(), filename=str(path))):
+                  if isinstance(node, ast.Import):
+                      names = {a.name for a in node.names}
+                  elif isinstance(node, ast.ImportFrom):
+                      module = node.module or ''
+                      names = {module, *(module + '.' + a.name for a in node.names)}
+                      if module == 'app.modules.encyclopedia.widgets':
+                          names |= {a.name for a in node.names} & removed_exports
+                  else:
+                      continue
+                  if names & (deleted | removed_exports):
+                      hits.append({'path': str(path), 'line': node.lineno, 'names': sorted(names & (deleted | removed_exports))})
+          print('Parsed Python source files:', len(paths))
+          print('Direct imports of deleted Guide modules/exports:', len(hits))
+          result = {'python_files': len(paths), 'obsolete_imports': hits}
+          pathlib.Path('artifacts/pr365/source-review.json').write_text(json.dumps(result, indent=2))
+          if hits:
+              raise SystemExit('Obsolete imports detected: ' + repr(hits))
+          PY
+      - name: Inventory every original commit patch
+        run: |
+          python -m tools.audit_pr303_commits --base-sha "$BASE_SHA" --head-sha "$CANDIDATE_SHA" --expected 1599 --output artifacts/pr365/audit.json
+          python - <<'PY'
+          import collections, json, pathlib
+          report = json.loads(pathlib.Path('artifacts/pr365/audit.json').read_text())
+          assert report['inspected'] == report['expected'] == 1599
+          assert report['auto_merge_authorized'] is False
+          flags = collections.Counter(f for r in report['records'] for f in r['flags'])
+          print('Patch inventory:', report['inspected'], '/', report['expected'])
+          print('Flag counts:', json.dumps(flags, sort_keys=True))
+          print('No merge, no human approval, no runtime certification implied.')
+          PY
+      - name: Upload exact-SHA machine audit evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: pr365-audit-50ddcbe1
+          path: artifacts/pr365/
+          if-no-files-found: error
+          retention-days: 14
