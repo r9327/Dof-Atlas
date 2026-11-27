@@ -1,0 +1,97 @@
+name: PR365 isolated regression comparison
+on:
+  push:
+    branches: [audit/pr365-50ddcbe1]
+    paths: [.github/workflows/pr365-isolated-regression-comparison.yml]
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: Regression diagnostic / ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: main
+            sha: 76c0008bdfcbb8dca3315121496e5e52388e0b9f
+          - label: candidate
+            sha: 50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+      PYTHONUTF8: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.13"
+      - name: Install same pinned Linux Qt diagnostic environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1
+          python -m pip install --disable-pip-version-check "PySide6==6.12.0"
+      - name: Run the 24 historical regression test modules
+        shell: bash
+        env:
+          AUDIT_SHA: ${{ matrix.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$AUDIT_SHA"
+          mkdir -p artifacts/pr365-regression
+          python - <<'PY'
+          import json, os, sys, unittest, traceback
+          from pathlib import Path
+          modules = ["tests.test_pyside_shell","tests.test_achievement_provider_lazy_rewards","tests.test_achievements_phase2","tests.test_encyclopedia_corrective","tests.test_encyclopedia_final_mission","tests.test_encyclopedia_phase1","tests.test_encyclopedia_widgets_lazy_exports","tests.test_guide_ganymede_continuous_plan","tests.test_guide_library_home","tests.test_guides_phase3","tests.test_lanyel_shared_manual_ui","tests.test_lazy_encyclopedia_public_view","tests.test_network_catchup_lifecycle","tests.test_normalize_text_canonical_boundary","tests.test_organizer_zaap_popup","tests.test_quest_detail_requirement_cache","tests.test_quest_hierarchy_lazy_render","tests.test_quest_interaction_runtime_patch","tests.test_quest_progress_read_snapshot_tolerance","tests.test_runtime_regression_contracts","tests.test_shared_profile_and_manual_contracts","tests.test_startup_preload_window_visibility","tests.test_ui_async_budget","tests.test_unity_skin"]
+          class Result(unittest.TextTestResult):
+              def __init__(self, *a, **k):
+                  super().__init__(*a, **k)
+                  self.rows = []
+              def record(self, test, status, detail=""):
+                  self.rows.append(dict(id=test.id(), status=status, detail=detail))
+              def addSuccess(self, test):
+                  super().addSuccess(test)
+                  self.record(test, "PASS")
+              def addFailure(self, test, err):
+                  super().addFailure(test, err)
+                  self.record(test, "FAIL", self._exc_info_to_string(err, test))
+              def addError(self, test, err):
+                  super().addError(test, err)
+                  self.record(test, "ERROR", self._exc_info_to_string(err, test))
+              def addSkip(self, test, reason):
+                  super().addSkip(test, reason)
+                  self.record(test, "SKIP", reason)
+              def addExpectedFailure(self, test, err):
+                  super().addExpectedFailure(test, err)
+                  self.record(test, "EXPECTED_FAILURE", self._exc_info_to_string(err, test))
+              def addUnexpectedSuccess(self, test):
+                  super().addUnexpectedSuccess(test)
+                  self.record(test, "UNEXPECTED_SUCCESS")
+              def addSubTest(self, test, subtest, err):
+                  super().addSubTest(test, subtest, err)
+                  if err is not None:
+                      self.record(subtest, "SUBTEST_FAILURE", self._exc_info_to_string(err, test))
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromNames(modules)
+          result = unittest.TextTestRunner(verbosity=2, resultclass=Result).run(suite)
+          from collections import Counter
+          report = dict(sha=os.environ["AUDIT_SHA"], python=sys.version, modules=modules, tests_run=result.testsRun, counts=dict(Counter(row["status"] for row in result.rows)), successful=result.wasSuccessful(), rows=result.rows, loader_errors=loader.errors)
+          Path("artifacts/pr365-regression/result.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("PR365_REGRESSION_SUMMARY", json.dumps({k:v for k,v in report.items() if k not in ("rows","loader_errors")}))
+          print("PR365_NONPASS", json.dumps([dict(id=r["id"],status=r["status"]) for r in result.rows if r["status"] != "PASS"]))
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: pr365-regression-${{ matrix.label }}
+          path: artifacts/pr365-regression/
+          if-no-files-found: error
+          retention-days: 30
