@@ -12,7 +12,7 @@ jobs:
       matrix:
         include:
           - name: candidate
-            sha: 93d44459c4ca4104fc06f8c61b9cb4c51a3fa110
+            sha: fbf66263ae225633efdd3cef7d1ea80de717f07e
     runs-on: windows-latest
     timeout-minutes: 35
     env:
@@ -35,6 +35,8 @@ jobs:
         shell: pwsh
         run: |
           if ((git rev-parse HEAD).Trim() -ne $env:EXPECTED_SHA) { throw 'SHA mismatch' }
+          python -m tools.ai_context check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --no-deps "hypothesis==6.170.15" "sortedcontainers==2.4.0"
@@ -48,18 +50,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m scripts.windows.craft_seed --download
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Run historical regression cohort in one process
+      - name: Run seven exact missing regression tests
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force audit-lot4 | Out-Null
           @'
           import json, os, pathlib, unittest
           root = pathlib.Path("audit-lot4")
-          requested = ["tests.test_achievement_provider_lazy_rewards","tests.test_achievements_phase2","tests.test_encyclopedia_corrective","tests.test_encyclopedia_final_mission","tests.test_encyclopedia_phase1","tests.test_encyclopedia_widgets_lazy_exports","tests.test_guide_ganymede_continuous_plan","tests.test_guide_library_home","tests.test_guides_phase3","tests.test_lanyel_shared_manual_ui","tests.test_lazy_encyclopedia_public_view","tests.test_network_catchup_lifecycle","tests.test_normalize_text_canonical_boundary","tests.test_organizer_zaap_popup","tests.test_quest_detail_requirement_cache","tests.test_quest_hierarchy_lazy_render","tests.test_quest_interaction_runtime_patch","tests.test_quest_progress_read_snapshot_tolerance","tests.test_runtime_regression_contracts","tests.test_shared_profile_and_manual_contracts","tests.test_startup_preload_window_visibility","tests.test_ui_async_budget","tests.test_unity_skin"]
-          missing = [name for name in requested if not pathlib.Path(*name.split(".")).with_suffix(".py").is_file()]
-          present = [name for name in requested if name not in missing]
+          requested = ["tests.test_guide_manual_long_layout.GuideManualLongLayoutTests.test_long_shared_summary_is_lazy_and_keeps_existing_rows","tests.test_guide_ultime_manual_ui_navigation.GuideUltimeManualUiNavigationTests.test_shared_summary_replaces_legacy_widgets_and_retains_navigation","tests.test_achievement_compact_subprocess_lifecycle.AchievementCompactSubprocessTests.test_error_output_is_file_backed_and_failure_keeps_diagnostic","tests.test_guides_phase3.GuidePhase3Tests.test_unimported_guide_catalogue_keeps_pending_container","tests.test_guides_phase3.GuidePhase3Tests.test_guide_to_quest_stays_in_guide_and_uses_shared_quest_view","tests.test_guides_phase3.GuidePhase3Tests.test_guide_quest_prerequisite_opens_quest_tab_and_preserves_guide_state","tests.test_unity_skin.UnitySkinTests.test_reader_header_drawer_and_footer_share_one_glass_rule"]
+          missing = []
           loader = unittest.TestLoader()
-          suite = loader.loadTestsFromNames(present)
+          suite = loader.loadTestsFromNames(requested)
+          if loader.errors:
+              raise RuntimeError(loader.errors)
           def flatten(s):
               for item in s:
                   if isinstance(item, unittest.TestSuite):
@@ -68,11 +71,13 @@ jobs:
                       yield item.id()
           inventory = list(flatten(suite))
           root.joinpath("inventory.json").write_text(json.dumps({"sha":os.environ["EXPECTED_SHA"],"missing_modules":missing,"test_ids":inventory},indent=2),encoding="utf-8")
+          if sorted(inventory) != sorted(requested):
+              raise RuntimeError(f'Wrong test inventory: {inventory}')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           report = {"sha":os.environ["EXPECTED_SHA"],"tests_run":result.testsRun,"missing_modules":missing,"failures":[[test.id(),trace] for test,trace in result.failures],"errors":[[test.id(),trace] for test,trace in result.errors],"skipped":[[test.id(),reason] for test,reason in result.skipped],"successful":result.wasSuccessful()}
           root.joinpath("result.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
           print(json.dumps({k:v for k,v in report.items() if k not in ("failures","errors","skipped")}))
-          if not result.wasSuccessful() or (missing and os.environ["EXPECTED_SHA"] == "93d44459c4ca4104fc06f8c61b9cb4c51a3fa110"):
+          if not result.wasSuccessful() or result.skipped or result.testsRun != len(requested):
               raise SystemExit(1)
           '@ | python -X faulthandler -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
