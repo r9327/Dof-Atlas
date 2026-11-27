@@ -11,10 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: base
-            sha: 76c0008bdfcbb8dca3315121496e5e52388e0b9f
           - name: candidate
-            sha: f556c6bece23ec553648f163d049955392d4f0bf
+            sha: 93d44459c4ca4104fc06f8c61b9cb4c51a3fa110
     runs-on: windows-latest
     timeout-minutes: 35
     env:
@@ -74,7 +72,7 @@ jobs:
           report = {"sha":os.environ["EXPECTED_SHA"],"tests_run":result.testsRun,"missing_modules":missing,"failures":[[test.id(),trace] for test,trace in result.failures],"errors":[[test.id(),trace] for test,trace in result.errors],"skipped":[[test.id(),reason] for test,reason in result.skipped],"successful":result.wasSuccessful()}
           root.joinpath("result.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
           print(json.dumps({k:v for k,v in report.items() if k not in ("failures","errors","skipped")}))
-          if not result.wasSuccessful() or (missing and os.environ["EXPECTED_SHA"] == "f556c6bece23ec553648f163d049955392d4f0bf"):
+          if not result.wasSuccessful() or (missing and os.environ["EXPECTED_SHA"] == "93d44459c4ca4104fc06f8c61b9cb4c51a3fa110"):
               raise SystemExit(1)
           '@ | python -X faulthandler -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
