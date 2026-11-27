@@ -1,0 +1,48 @@
+name: PR365 isolated commit audit
+on:
+  push:
+    branches: [audit/pr365-50ddcbe1]
+    paths: [.github/workflows/pr365-isolated-commit-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.13"
+      - name: Exact candidate and existing scanner tests
+        run: |
+          test "$(git rev-parse HEAD)" = "50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0"
+          python -m unittest discover -s tests -p test_pr303_commit_audit.py -v
+      - name: Inventory every commit patch and both merge parents
+        run: |
+          python -m tools.audit_pr303_commits --base-sha 76c0008bdfcbb8dca3315121496e5e52388e0b9f --head-sha 50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0 --expected 1599 --output artifacts/pr365-audit/commits.json
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          r=json.loads(Path('artifacts/pr365-audit/commits.json').read_text())
+          assert r['head_sha']=='50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0'
+          assert r['expected']==r['inspected']==1599
+          assert len({c['sha'] for c in r['records']})==1599
+          print('PR365 coverage:',r['inspected'], '/',r['expected'])
+          print('Flags:',dict(Counter(f for c in r['records'] for f in c['flags'])))
+          print('Risk leads:',dict(Counter(k for c in r['records'] for p in c['parents'] for k in p['risk_leads'])))
+          print('Semantic review remains open; no merge authorized.')
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: pr365-1599-commit-audit
+          path: artifacts/pr365-audit/
+          if-no-files-found: error
+          retention-days: 30
