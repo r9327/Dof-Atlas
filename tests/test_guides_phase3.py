@@ -453,12 +453,32 @@ class GuidePhase3Tests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_unimported_guide_catalogue_keeps_pending_container(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            page = self.make_page(Path(tmp))
+            page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
+            view = page.ensure_guides_view()
+            self.assertTrue(view.select_guide(TURQUOISE_GUIDE_ID))
+            self.app.processEvents()
+
+            self.assertEqual(page.current_tab_label(), GUIDES_TAB)
+            self.assertIs(page.guides_view, view)
+            self.assertEqual(view.current_guide_id, TURQUOISE_GUIDE_ID)
+            self.assertIsNotNone(view._pending_guide_container)
+            self.assertFalse(view.findChildren(QuestLine))
+            self.assertTrue(any("En attente du parcours Ganymède" in label.text()
+                                for label in view.findChildren(QLabel)))
+            page.deleteLater()
+            self.app.processEvents()
+
     def test_guide_to_quest_stays_in_guide_and_uses_shared_quest_view(self):
         with tempfile.TemporaryDirectory() as tmp:
             page = self.make_page(Path(tmp))
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
-            assert page.guides_view is not None
-            page.guides_view.select_guide(TURQUOISE_GUIDE_ID)
+            # The legacy rich reader remains a reusable navigation contract,
+            # but unimported catalogue entries intentionally open placeholders.
+            view = page.ensure_full_guides_view()
+            self.assertTrue(view.select_guide(TURQUOISE_GUIDE_ID))
             self.app.processEvents()
 
             line = next(
@@ -535,9 +555,9 @@ class GuidePhase3Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             page = self.make_page(Path(tmp))
             page.tabs.setCurrentIndex(page.tab_labels().index(GUIDES_TAB))
-            assert page.guides_view is not None
-            page.guides_view.select_guide(TURQUOISE_GUIDE_ID)
-            page.guides_view.show_quest_detail(1654)
+            view = page.ensure_full_guides_view()
+            self.assertTrue(view.select_guide(TURQUOISE_GUIDE_ID))
+            self.assertTrue(view.show_quest_detail(1654))
             self.app.processEvents()
 
             prerequisite = next(

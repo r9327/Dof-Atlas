@@ -291,6 +291,7 @@ class UnitySkinTests(unittest.TestCase):
         from app.ui.theme import atlas_stylesheet
         style = atlas_stylesheet({"PANEL_2": "#203040", "PANEL": "#304050"})
         self.assertIn("QFrame#GuideCompactHeader,\nQFrame#GuidePreparationPanel,\n"
+                      'QFrame[guideMetricDrawer="true"],\n'
                       "QFrame#GuideSheetHeader,\nQFrame#GuideManualNav {", style)
         self.assertNotIn("QFrame#GuideManualNav {", unity_skin_stylesheet())
         self.assertNotIn("QFrame#GuidePreparationPanel {", unity_skin_stylesheet())
