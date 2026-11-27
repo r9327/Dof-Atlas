@@ -1,0 +1,37 @@
+name: PR365 Lot 3 isolated CI contract audit
+on:
+  push:
+    branches: [audit/pr365-lot3-ci-removals]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: f556c6bece23ec553648f163d049955392d4f0bf
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.13"
+      - name: Verify exact candidate and targeted CI contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "f556c6bece23ec553648f163d049955392d4f0bf"
+          git diff --check 50ddcbe1e7b5160f3670117f0b3d8d1cee3d34a0 HEAD
+          for suite in ci_domain_certification ci_required_certification phase_certification_guardrails doctor_ci_orchestrator phase_adaptive_gate ci_verified_pr_full ci_runner_guardrails public_pr_ci_guardrails security_hardening_guardrails; do
+            python -m unittest discover -s tests -p "test_${suite}.py" -v
+          done
+          python - <<'PY'
+          from tools.ci_required_certification import candidate_paths, classify_merge_route
+          base = '76c0008bdfcbb8dca3315121496e5e52388e0b9f'
+          head = 'f556c6bece23ec553648f163d049955392d4f0bf'
+          paths, removed = candidate_paths(base, head)
+          print('Exact removed paths:', removed)
+          assert len(removed) == 5, removed
+          assert classify_merge_route(paths, deleted_paths=removed)['route'] == 'FULL_REQUIRED'
+          PY
