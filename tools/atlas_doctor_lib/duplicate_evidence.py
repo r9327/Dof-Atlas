@@ -13,7 +13,7 @@ from typing import Any
 
 
 def summarize_ast_duplicates(raw: dict[str, Any], *, sha: str) -> dict[str, Any]:
-    from .deep_intelligence import MAX_FINDINGS, MAX_FILES
+    from .deep_intelligence import MAX_DUPLICATE_FINDINGS, MAX_FILES
 
     if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
         raise ValueError("Exact Git SHA required")
@@ -39,8 +39,8 @@ def summarize_ast_duplicates(raw: dict[str, Any], *, sha: str) -> dict[str, Any]
         and isinstance(counts.get("functions"), int)
         and isinstance(counts.get("duplicate_groups"), int)
         and isinstance(counts.get("near_duplicate_groups"), int)
-        and 0 <= counts["duplicate_groups"] <= MAX_FINDINGS
-        and 0 <= counts["near_duplicate_groups"] <= MAX_FINDINGS
+        and 0 <= counts["duplicate_groups"] <= MAX_DUPLICATE_FINDINGS
+        and 0 <= counts["near_duplicate_groups"] <= MAX_DUPLICATE_FINDINGS
         and len(duplicates) == counts["duplicate_groups"]
         and len(near) == counts["near_duplicate_groups"]
     )

@@ -368,10 +368,12 @@ class GuideCatalogManualRuntimeService(GuideUltimeManualRuntimeService):
 
         projection_started = perf_counter()
         quest_count = 0
+        seen_quests: set[int] = set()
         raw_segments: list[dict[str, Any]] = []
 
         for step, quest in resolved_route_quests(self.catalog_guide, self.quest_provider):
             quest_count += 1
+            seen_quests.add(int(quest.id))
             raw_segments.extend(self._quest_segments(step, quest, finalize=False))
 
         raw_segment_count = len(raw_segments)
