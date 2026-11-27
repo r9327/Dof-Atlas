@@ -39,6 +39,55 @@ class GuideManualLongLayoutTests(unittest.TestCase):
             view.deleteLater()
             QCoreApplication.sendPostedEvents(view, QEvent.DeferredDelete)
 
+    def test_long_shared_summary_is_lazy_and_keeps_existing_rows(self):
+        app = QApplication.instance() or QApplication([])
+        from app.ui.components import AtlasGuideReadingHeader
+
+        header = AtlasGuideReadingHeader("Guide long")
+        titles = tuple(f"Fiche {index + 1}" for index in range(267))
+        calls = []
+        requests = []
+
+        def provide_titles():
+            calls.append(True)
+            return titles
+
+        try:
+            header.set_summary_provider(provide_titles)
+            header.summaryRequested.connect(requests.append)
+            header.set_summary_position(10)
+            self.assertEqual(calls, [])
+            self.assertEqual(header.summary_panel.count(), 0)
+            header.global_details_button.click()
+            self.assertEqual(calls, [])
+            header.summary_button.click()
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(header.summary_panel.count(), 267)
+            self.assertEqual(header.summary_panel.currentRow(), 10)
+            first = header.summary_panel.item(0)
+            self.assertEqual(first.text(), "1. Fiche 1")
+            first.setData(Qt.UserRole, "existing-row")
+
+            header.set_summary_position(266)
+            self.assertEqual(header.summary_panel.currentRow(), 266)
+            self.assertEqual(header.summary_panel.item(266).text(), "267. Fiche 267")
+            self.assertEqual(header.summary_panel.item(0).data(Qt.UserRole), "existing-row")
+            self.assertEqual(requests, [])
+
+            header.global_details_button.click()
+            calls_before = len(calls)
+            header.set_summary_position(20)
+            self.assertEqual(len(calls), calls_before)
+            header.global_details_button.click()
+            self.assertEqual(header.summary_panel.currentRow(), 20)
+            self.assertEqual(header.summary_panel.item(0).data(Qt.UserRole), "existing-row")
+            self.assertEqual(requests, [])
+        finally:
+            header.close()
+            header.deleteLater()
+            QCoreApplication.sendPostedEvents(header, QEvent.DeferredDelete)
+            app.processEvents()
+
     def test_long_canonical_card_scrolls_and_navigation_stays_reachable(self):
         app = QApplication.instance() or QApplication([])
         with tempfile.TemporaryDirectory() as temp:
