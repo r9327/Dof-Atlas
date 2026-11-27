@@ -23,6 +23,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             },
             "app/modules/encyclopedia/views/guide_home_image_cache.py": {"guides", "ui"},
             "app/network/controller.py": network_owners,
+            "app/network/events.py": network_owners,
+            "app/network/mapping_manifest.py": network_owners,
             "app/network/transport.py": network_owners,
             "app/network/wire.py": network_owners,
             "tests/test_known_session_recovery.py": network_owners,
@@ -35,6 +37,9 @@ class ModularDomainRoutingTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(owners_for(path), frozenset(domains))
         self.assertEqual(owners_for("app/network/unreviewed_runtime.py"), frozenset())
+        for neighbor in ("app/network/events_future.py", "app/network/mapping_manifest_future.py"):
+            self.assertEqual(owners_for(neighbor), frozenset())
+            self.assertEqual(self.route([neighbor])["status"], "BLOCKED")
         deleted = ["app/modules/encyclopedia/views/guide_home_image_cache.py"]
         plan = plan_domains(base_sha=B, candidate_sha=H, paths=list(paths), deleted=deleted)
         self.assertEqual(plan["unknown_paths"], [])
