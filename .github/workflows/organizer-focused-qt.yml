@@ -67,7 +67,7 @@ jobs:
       - name: Test Organizer macro controls, radial and mirror safety
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_organizer_layout tests.test_organizer_next_character tests.test_organizer_speed_presets tests.test_organizer_radial_overlay tests.test_organizer_macro_generation tests.test_runtime_state tests.test_hotkeys
+          python -X faulthandler -m unittest -v tests.test_organizer_layout tests.test_organizer_character_order tests.test_organizer_next_character tests.test_organizer_speed_presets tests.test_organizer_radial_overlay tests.test_organizer_macro_generation tests.test_runtime_state tests.test_hotkeys
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test input and clipboard regression contracts
         shell: pwsh
