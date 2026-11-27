@@ -10,11 +10,11 @@ jobs:
     timeout-minutes: 12
     env:
       BASE_SHA: 76c0008bdfcbb8dca3315121496e5e52388e0b9f
-      HEAD_SHA: f497225750120d5f3d5dd9257a99730370821d2d
+      HEAD_SHA: 93d44459c4ca4104fc06f8c61b9cb4c51a3fa110
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: f497225750120d5f3d5dd9257a99730370821d2d
+          ref: 93d44459c4ca4104fc06f8c61b9cb4c51a3fa110
           fetch-depth: 0
           lfs: false
           persist-credentials: false
@@ -54,7 +54,7 @@ jobs:
               for path in git("ls-tree", "-r", "--name-only", ref, "tests").splitlines():
                   if not path.endswith(".py"):
                       continue
-                  tree = ast.parse(git("show", ref + ":" + path), filename=path)
+                  tree = ast.parse(git("show", ref + ":" + path).lstrip("\ufeff"), filename=path)
                   scopes = [("", tree.body)]
                   while scopes:
                       prefix, nodes = scopes.pop()
