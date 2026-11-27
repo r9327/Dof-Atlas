@@ -1338,15 +1338,13 @@ class OrganizerUiMixin:
             )
             class_key = str(verified_row.get("class_key") or "").strip().casefold()
             verified_class = class_key in DOFUS_CLASS_DEFINITIONS
+            title_class_key = None
             if not verified_class:
                 # Cosmetic hint only: a visible Unity window can show its
                 # class portrait before network proof exists. Never promote
                 # this title-derived class into a progression identity.
-                class_key = (
-                    dofus_class_key_from_window_name(name)
-                    or dofus_class_key_for_character_name(name)
-                    or ""
-                )
+                title_class_key = dofus_class_key_from_window_name(name)
+                class_key = title_class_key or dofus_class_key_for_character_name(name) or ""
             if class_key not in DOFUS_CLASS_DEFINITIONS:
                 class_key = ""
             icon_path = next(
@@ -1360,9 +1358,12 @@ class OrganizerUiMixin:
                 icon.setPixmap(pixmap)
             if class_key:
                 label = DOFUS_CLASS_DEFINITIONS[class_key]["label"]
-                icon.setToolTip(
-                    label if verified_class else f"{label} (classe non vérifiée)"
-                )
+                if verified_class:
+                    icon.setToolTip(label)
+                elif title_class_key:
+                    icon.setToolTip(f"{label} (titre Unity, non vérifié)")
+                else:
+                    icon.setToolTip(f"{label} (classe non vérifiée)")
             icon.setCursor(Qt.OpenHandCursor)
             self.bind_session_drag_events(icon, index, row)
             layout.addWidget(icon)

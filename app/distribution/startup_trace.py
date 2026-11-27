@@ -57,6 +57,13 @@ def _windows_process_tree_rss() -> tuple[int, int] | None:
     """
     if os.name != "nt":
         return None
+    # A process can exit between enumeration and memory sampling. Retry the
+    # entire snapshot once rather than reporting an incomplete tree as valid.
+    sample = _windows_process_tree_rss_snapshot()
+    return sample if sample is not None else _windows_process_tree_rss_snapshot()
+
+
+def _windows_process_tree_rss_snapshot() -> tuple[int, int] | None:
     try:
         import ctypes
         from ctypes import wintypes
@@ -88,8 +95,10 @@ def _windows_process_tree_rss() -> tuple[int, int] | None:
                 ("PeakPagefileUsage", ctypes.c_size_t),
             ]
 
-        kernel = ctypes.windll.kernel32
-        psapi = ctypes.windll.psapi
+        # Private function bindings avoid sharing ctypes signatures with
+        # unrelated Win32 consumers; preserve the native enumeration error.
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        psapi = ctypes.WinDLL("psapi", use_last_error=True)
         kernel.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
         kernel.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
         kernel.Process32FirstW.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessEntry)]
@@ -117,6 +126,8 @@ def _windows_process_tree_rss() -> tuple[int, int] | None:
             while True:
                 parents[int(entry.th32ProcessID)] = int(entry.th32ParentProcessID)
                 if not kernel.Process32NextW(snapshot, ctypes.byref(entry)):
+                    if ctypes.get_last_error() != 18:  # ERROR_NO_MORE_FILES
+                        return None
                     break
         finally:
             kernel.CloseHandle(snapshot)
@@ -131,7 +142,9 @@ def _windows_process_tree_rss() -> tuple[int, int] | None:
             tracked.update(descendants)
         total = 0
         for pid in tracked:
-            handle = kernel.OpenProcess(0x0400 | 0x0010, False, pid)
+            # GetProcessMemoryInfo only needs QUERY_LIMITED_INFORMATION
+            # on supported Windows versions; VM_READ is unnecessary.
+            handle = kernel.OpenProcess(0x1000, False, pid)
             if not handle:
                 return None
             try:
