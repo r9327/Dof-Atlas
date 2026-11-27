@@ -1,0 +1,105 @@
+name: PR365 final test coverage inventory
+on:
+  push:
+    branches: [audit/pr365-final-regression-inventory]
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BASE_SHA: 76c0008bdfcbb8dca3315121496e5e52388e0b9f
+      HEAD_SHA: f556c6bece23ec553648f163d049955392d4f0bf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: f556c6bece23ec553648f163d049955392d4f0bf
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.13"
+      - name: Inventory surviving baseline tests and assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
+          git diff --check "$BASE_SHA...$HEAD_SHA"
+          mkdir -p audit-output
+          python - <<'PY'
+          import ast, collections, hashlib, json, os, pathlib, subprocess
+          base, head = os.environ["BASE_SHA"], os.environ["HEAD_SHA"]
+          out = pathlib.Path("audit-output")
+          def git(*args):
+              return subprocess.check_output(["git", *args], text=True, encoding="utf-8")
+          def dump(node):
+              return ast.dump(node, include_attributes=False)
+          def assertions(node):
+              result = []
+              for n in ast.walk(node):
+                  if isinstance(n, ast.Assert):
+                      result.append(dump(n))
+                  elif isinstance(n, ast.Call):
+                      f = n.func
+                      name = f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else ""
+                      if name.startswith("assert") or name in {"fail", "raises", "skipTest", "skip", "xfail"}:
+                          result.append(dump(n))
+              return collections.Counter(result)
+          def index(ref):
+              result = {}
+              for path in git("ls-tree", "-r", "--name-only", ref, "tests").splitlines():
+                  if not path.endswith(".py"):
+                      continue
+                  tree = ast.parse(git("show", ref + ":" + path), filename=path)
+                  scopes = [("", tree.body)]
+                  while scopes:
+                      prefix, nodes = scopes.pop()
+                      for node in nodes:
+                          if isinstance(node, ast.ClassDef):
+                              scopes.append((prefix + node.name + ".", node.body))
+                          elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
+                              key = path + "::" + prefix + node.name
+                              body = "\n".join(dump(n) for n in node.body)
+                              sig = hashlib.sha256(body.encode()).hexdigest()
+                              if key in result:
+                                  raise RuntimeError("Duplicate test definition: " + key)
+                              result[key] = {"body": sig, "assertions": assertions(node), "line": node.lineno, "decorators": [dump(n) for n in node.decorator_list]}
+              return result
+          before, after = index(base), index(head)
+          new = sorted(after.keys() - before.keys())
+          missing = sorted(before.keys() - after.keys())
+          indexed = collections.defaultdict(list)
+          for key in after:
+              indexed[after[key]["body"]].append(key)
+          lost = [{"test": k, "line": before[k]["line"], "exact_body_survives": indexed[before[k]["body"]]} for k in missing]
+          changed = []
+          for key in sorted(before.keys() & after.keys()):
+              old, cur = before[key], after[key]
+              removed = old["assertions"] - cur["assertions"]
+              added = cur["assertions"] - old["assertions"]
+              if removed or added or old["decorators"] != cur["decorators"]:
+                  changed.append({"test": key, "before_line": old["line"], "after_line": cur["line"], "removed": dict(removed), "added": dict(added), "old_decorators": old["decorators"], "new_decorators": cur["decorators"]})
+          summary = {"base_sha":base,"head_sha":head,"base_test_definitions":len(before),"head_test_definitions":len(after),"new_names":len(new),"missing_names":len(missing),"missing_exact_body_survives":sum(bool(x["exact_body_survives"]) for x in lost),"retained_tests_with_assertion_changes":len(changed),"net_assertion_count_decreases":sum(sum(x["removed"].values())>sum(x["added"].values()) for x in changed),"semantic_certified":False}
+          out.joinpath("summary.json").write_text(json.dumps(summary,indent=2),encoding="utf-8")
+          out.joinpath("detailed.json").write_text(json.dumps({"summary":summary,"missing":lost,"new":new,"changed":changed},indent=2),encoding="utf-8")
+          print(json.dumps(summary))
+          print("MISSING BASELINE TESTS WITH NO EXACT BODY MATCH:")
+          for x in lost:
+              if not x["exact_body_survives"]:
+                  print(x["test"])
+          print("RETAINED TESTS WITH NET ASSERTION COUNT DECREASE:")
+          for x in changed:
+              n=sum(x["removed"].values())-sum(x["added"].values())
+              if n>0:
+                  print(n, x["test"])
+          PY
+      - name: Publish independent test inventory, not semantic certification
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: pr365-exact-test-inventory
+          path: audit-output/
+          if-no-files-found: error
