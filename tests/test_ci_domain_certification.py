@@ -1250,7 +1250,14 @@ class ModularDomainRoutingTests(unittest.TestCase):
         full_step = workflow.split(
             "      - name: Run full Atlas phase certification gate", 1)[1].split(
             "      - name: Verify public dataset inputs", 1)[0]
-        self.assertIn("github.event_name != 'pull_request'", full_step)
+        self.assertIn("(github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true')", full_step)
+        self.assertIn("from tools.ci_required_certification import candidate_paths", workflow)
+        for step in ("domain_fixtures", "domains"):
+            self.assertIn(
+                f"id: {step}\n        if: github.event_name == 'pull_request' && steps.pr_removals.outputs.required == 'false'",
+                workflow,
+            )
+        self.assertIn("PR removals require real FULL", workflow)
         enforce = workflow.split(
             "      - name: Enforce phase certification verdict", 1)[1].split(
             "      - name: Record final Phase outcome diagnostics", 1)[0]

@@ -333,12 +333,26 @@ jobs:
         run: |
           python -m tools.ci_verified_pr_full --repo "$env:GITHUB_REPOSITORY" --candidate-sha "$env:CANDIDATE_SHA" --output "artifacts/phase_certification/verified_pr_full.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Detect exact PR removals requiring FULL
+        id: pr_removals
+        if: github.event_name == 'pull_request'
+        run: |
+          @'
+          import os
+          from tools.ci_required_certification import candidate_paths
+          _, removed = candidate_paths(os.environ["BASE_SHA"], os.environ["CANDIDATE_SHA"])
+          print("Deleted or type-changed paths:", removed)
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("required=" + ("true" if removed else "false") + "\n")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "Exact PR removal routing failed" }
+
       - name: Resolve adaptive Doctor route on exact SHA
         id: route
         if: steps.reuse.outputs.reuse_full != 'true'
         run: |
           $forced = @()
-          if ("${{ github.event_name }}" -eq "workflow_dispatch" -or "${{ needs.doctor-plan.outputs.full }}" -eq "true") {
+          if ("${{ github.event_name }}" -eq "workflow_dispatch" -or "${{ needs.doctor-plan.outputs.full }}" -eq "true" -or "${{ steps.pr_removals.outputs.required }}" -eq "true") {
             # Explicit manual phase certification remains exhaustive; main pushes use Doctor.
             $forced += "--force-full"
           }
@@ -370,7 +384,7 @@ jobs:
 
       - name: Materialize selected domain fixtures
         id: domain_fixtures
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.pr_removals.outputs.required == 'false'
         run: |
           # Selectors from the exact Git merge-base, not the PR title.
           & python -m tools.ci_domain_certification `
@@ -415,9 +429,9 @@ jobs:
 
       - name: Run independently required domain certification
         id: domains
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.pr_removals.outputs.required == 'false'
         run: |
-          # No application-wide FULL_SUITE on PRs. Each changed owner has to
+          # Non-removal PRs use modular certification. Each changed owner has to
           # execute its exact-domain tests; an unknown owner is BLOCKED.
           & python -X faulthandler -m tools.ci_domain_certification `
             --base-sha "$env:BASE_SHA" `
@@ -427,7 +441,7 @@ jobs:
 
       - name: Materialize certification LFS fixtures
         id: lfs
-        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
+        if: (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/01_lfs.log"
@@ -460,7 +474,7 @@ jobs:
 
       - name: Materialize local Dofus catalog
         id: catalog
-        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
+        if: (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           $log = "artifacts/phase_certification/02_catalog.log"
@@ -529,7 +543,7 @@ jobs:
 
       - name: Capture exact public dataset inputs before validation
         id: inputs_before
-        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true'
+        if: (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true'
         continue-on-error: true
         run: |
           python -m tools.atlas_json_inventory --raw-inputs `
@@ -540,7 +554,7 @@ jobs:
       - name: Fail fast on changed test regressions before FULL
         id: diff_preflight
         if: >-
-          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
+          (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true' &&
           steps.catalog.outcome == 'success' &&
           steps.inputs_before.outcome == 'success'
         timeout-minutes: 12
@@ -605,7 +619,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'DIFF_TARGETS preflight failed; FULL blocked early' }
 
       - name: Preserve modular certification failure or timeout evidence
-        if: always() && github.event_name == 'pull_request' && steps.domains.outcome != 'success'
+        if: always() && github.event_name == 'pull_request' && steps.pr_removals.outputs.required != 'true' && steps.domains.outcome != 'success'
         shell: pwsh
         run: |
           $target = "artifacts/phase_certification/02c_domain_failure.json"
@@ -628,7 +642,7 @@ jobs:
       - name: Measure canonical Encyclopedia user paths
         id: timing
         if: >-
-          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
+          (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true' &&
           (github.event_name == 'workflow_dispatch' ||
            github.event_name == 'push' ||
            (github.event_name == 'pull_request' &&
@@ -689,7 +703,7 @@ jobs:
       - name: Run full Atlas phase certification gate
         id: certification
         if: >-
-          github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' &&
+          (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true' &&
           steps.inputs_before.outcome == 'success' &&
           steps.catalog.outcome == 'success' &&
           steps.diff_preflight.outcome == 'success'
@@ -709,7 +723,7 @@ jobs:
 
       - name: Verify public dataset inputs did not change during validation
         id: inputs_after
-        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && always()
+        if: (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true' && always()
         continue-on-error: true
         run: |
           python -m tools.atlas_json_inventory --raw-inputs `
@@ -735,7 +749,7 @@ jobs:
 
       - name: Compare Doctor plan with actual exact-SHA FULL evidence
         id: doctor_shadow
-        if: github.event_name != 'pull_request' && steps.route.outputs.run_full == 'true' && always()
+        if: (github.event_name != 'pull_request' || steps.pr_removals.outputs.required == 'true') && steps.route.outputs.run_full == 'true' && always()
         continue-on-error: true
         run: |
           $full = "artifacts/phase_certification/03_atlas_integrity_full.json"
@@ -756,6 +770,17 @@ jobs:
         if: always()
         run: |
           if ("${{ github.event_name }}" -eq "pull_request") {
+            if ("${{ steps.pr_removals.outcome }}" -ne "success" -or
+                "${{ steps.pr_removals.outputs.required }}" -notin @("true", "false")) {
+              throw "PHASE CERTIFICATION: invalid exact PR removal route"
+            }
+            if ("${{ steps.pr_removals.outputs.required }}" -eq "true" -and
+                "${{ steps.route.outputs.run_full }}" -ne "true") {
+              throw "PHASE CERTIFICATION: PR removals require real FULL"
+            }
+          }
+          if ("${{ github.event_name }}" -eq "pull_request" -and
+              "${{ steps.pr_removals.outputs.required }}" -eq "false") {
             # Modular PR evidence is a domain certificate, never a historical
             # FULL or a release/Guide Phase certification.
             if ("${{ steps.domains.outcome }}" -ne "success") {
