@@ -62,7 +62,9 @@ jobs:
                       if isinstance(x,dict):
                           for k in ('quests','data','items','results'):
                               if isinstance(x.get(k),list): return x[k]
-                          if all(isinstance(v,dict) for v in x.values()): return [dict(v, __audit_key=k) for k,v in x.items()]
+                          candidates=[x]+[v for v in x.values() if isinstance(v,dict)]
+                          keyed=max(candidates,key=lambda v:sum(str(k).isdigit() and isinstance(r,dict) and 'quest_id' in r for k,r in v.items()))
+                          if keyed and all(str(k).isdigit() and isinstance(v,dict) for k,v in keyed.items()): return list(keyed.values())
                       return []
                   def index(x):
                       rec=records(x)
@@ -70,6 +72,7 @@ jobs:
                       return {str(i):r for i,r in zip(ids,rec) if i is not None},len(rec),len(ids)-len(set(str(i) for i in ids)),ids.count(None)
                   oi,oc,odu,om=index(old)
                   ni,nc,ndu,nm=index(new)
+                  assert oc>0 and nc>0 and len(oi)==oc and len(ni)==nc, (list(old),list(new),oc,nc,om,nm)
                   common=set(oi)&set(ni)
                   changed=[k for k in common if oi[k]!=ni[k]]
                   fields=collections.Counter(f for k in changed for f in set(oi[k])|set(ni[k]) if oi[k].get(f)!=ni[k].get(f) or (f in oi[k])!=(f in ni[k]))
