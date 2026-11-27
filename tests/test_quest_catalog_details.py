@@ -128,6 +128,56 @@ class QuestDetailsTests(unittest.TestCase):
         }}})
         self.assertNotIn("native_start", unverified.source_info)
 
+    def test_cold_quest_index_two_workers_build_once(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from app.quest_catalog_details import ensure_lazy_catalog_cache
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "quest.sqlite3"
+            entered = threading.Event()
+            release = threading.Event()
+
+            def source(_data_dir):
+                entered.set()
+                if not release.wait(timeout=10):
+                    raise TimeoutError("test did not release source builder")
+                return [record(42)], [], {}
+
+            with (
+                patch("app.quest_catalog_details._cache_identity", return_value=((), path)),
+                patch("app.quest_catalog_details._signature", return_value=()),
+                patch("app.quest_catalog_details._source_index", side_effect=source) as build,
+                patch("app.quest_catalog_details._guide_evidence_index", return_value={}),
+                patch("app.quest_index_prebuilt.restore_quest_index", return_value=False),
+                ThreadPoolExecutor(max_workers=2) as workers,
+            ):
+                first = workers.submit(ensure_lazy_catalog_cache, root, cache_root=root)
+                try:
+                    self.assertTrue(entered.wait(timeout=10))
+                    second = workers.submit(ensure_lazy_catalog_cache, root, cache_root=root)
+                finally:
+                    release.set()
+                self.assertEqual(first.result(timeout=15), 1)
+                self.assertEqual(second.result(timeout=15), 1)
+                self.assertEqual(build.call_count, 1)
+
+    def test_warm_quest_index_does_not_request_sqlite_writer_lock(self):
+        from app.quest_catalog_details import ensure_lazy_catalog_cache
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "quest.sqlite3"
+            with closing(sqlite3.connect(path)) as writer:
+                writer.execute("PRAGMA journal_mode=WAL")
+                writer.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT)")
+                writer.execute("CREATE TABLE quests (id INTEGER PRIMARY KEY)")
+                writer.execute("INSERT INTO metadata VALUES ('ready', '1')")
+                writer.execute("INSERT INTO quests VALUES (42)")
+                writer.commit()
+                writer.execute("BEGIN IMMEDIATE")
+                with patch("app.quest_catalog_details._cache_identity", return_value=((), path)):
+                    self.assertEqual(ensure_lazy_catalog_cache(root, cache_root=root), 1)
+                writer.rollback()
+
     def test_compact_quest_id_inventory_preserves_duplicate_titles(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

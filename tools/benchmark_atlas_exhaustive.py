@@ -29,7 +29,7 @@ if str(ROOT / "tools") not in sys.path:
     sys.path.insert(0, str(ROOT / "tools"))
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 
 from app.modules.encyclopedia.constants import GUIDES_TAB
 from app.modules.encyclopedia.views.guide_library_sources import (
@@ -60,14 +60,20 @@ def summarize_samples(rows: list[dict[str, Any]]) -> dict[str, Any]:
     completed = [row for row in rows if row["status"] == "PASS"]
     # cProfile/tracemalloc can radically increase execution time; exclude
     # high-overhead targeted replays from normal distribution statistics.
-    clean = [row for row in completed if not row.get("profiled")]
+    playable = [row for row in completed if row.get("coverage_kind") != "pending_preview"]
+    previews = [row for row in completed if row.get("coverage_kind") == "pending_preview"]
+    clean = [row for row in playable if not row.get("profiled")]
+    preview_times = [float(row["open_ms"]) for row in previews if not row.get("profiled")]
     times = [float(row["open_ms"]) for row in clean]
     return {
         "planned": len(rows),
         "passed": len(completed),
         "failed": len(rows) - len(completed),
         "normal_samples": len(clean),
-        "profiled_samples": len(completed) - len(clean),
+        "profiled_samples": len(playable) - len(clean),
+        "playable_passed": len(playable),
+        "pending_preview_passed": len(previews),
+        "pending_preview_p95_ms": percentile(preview_times, 95),
         "open_p50_ms": percentile(times, 50),
         "open_p95_ms": percentile(times, 95),
         "open_p99_ms": percentile(times, 99),
@@ -83,7 +89,7 @@ def summarize_samples(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def ganymede_inventory(atlas_ids: set[str]) -> list[dict[str, Any]]:
+def ganymede_inventory(atlas_ids: set[str], playable_ids: set[str]) -> list[dict[str, Any]]:
     """Do not misreport reference-only Ganymede listings as runnable guides."""
     entries = load_ganymede_listings()
     result = []
@@ -94,7 +100,11 @@ def ganymede_inventory(atlas_ids: set[str]) -> list[dict[str, Any]]:
             "title": entry.title,
             "listed_steps": entry.step_count,
             "atlas_equivalent": atlas_id,
-            "coverage": "atlas_equivalent_benchmarked" if atlas_id in atlas_ids else "metadata_only_not_executable",
+            "coverage": (
+                "atlas_playable_equivalent" if atlas_id in playable_ids else
+                "atlas_pending_preview_only" if atlas_id in atlas_ids else
+                "metadata_only_not_executable"
+            ),
             "source_url": entry.source_url,
         })
     return result
@@ -189,7 +199,7 @@ class CpuRssSampler:
                     row["rss_peak_mb"] = round(max(row["rss_peak_mb"], current_rss), 2)
 
 
-def guide_visible(page: Any, guide_id: str) -> bool:
+def guide_visible(page: Any, guide_id: str, *, pending_preview: bool = False) -> bool:
     view = getattr(page, "guides_view", None)
     if view is None or not bool(getattr(view, "_runtime_ready", False)):
         return False
@@ -197,6 +207,15 @@ def guide_visible(page: Any, guide_id: str) -> bool:
         return False
     if str(getattr(view, "current_guide_id", "") or "") != guide_id:
         return False
+    if pending_preview:
+        panel = getattr(view, "_pending_guide_container", None)
+        home = getattr(view, "home_scroll", None)
+        if (panel is None or home is None or panel.objectName() != "GuidePendingContainer"
+                or not panel.isVisible() or not home.isHidden()):
+            return False
+        marker = panel.findChild(QLabel, "GuidesHomeEmptyText")
+        return bool(marker is not None and marker.isVisible()
+                    and "En attente du parcours Ganymède" in marker.text())
     if getattr(view, "state", None) != getattr(view, "GUIDE_OVERVIEW", object()):
         return False
     # A selected ID alone can be a false positive: demand an active detail widget.
@@ -229,7 +248,7 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 def export_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = (
-        "guide_id", "title", "cycle", "status", "open_ms", "return_home_ms",
+        "guide_id", "title", "cycle", "status", "coverage_kind", "route_status", "open_ms", "return_home_ms",
         "cpu_open_ms", "cpu_avg_pct_one_core", "cpu_peak_pct_one_core", "rss_before_mb", "rss_detail_mb",
         "rss_home_mb", "rss_peak_mb", "tree_detail_mb", "tree_home_mb",
         "ui_lag_p95_ms", "ui_lag_p99_ms", "ui_lag_max_ms", "ui_stalls_250ms", "error",
@@ -242,7 +261,8 @@ def export_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             resources = row.get("open_resources") or {}
             writer.writerow({
                 "guide_id": row["guide_id"], "title": row["title"], "cycle": row["cycle"],
-                "status": row["status"], "open_ms": row.get("open_ms"),
+                "status": row["status"], "coverage_kind": row.get("coverage_kind"),
+                "route_status": row.get("route_status"), "open_ms": row.get("open_ms"),
                 "return_home_ms": row.get("return_home_ms"),
                 "cpu_open_ms": row.get("cpu_open_ms"),
                 "cpu_avg_pct_one_core": row.get("cpu_avg_pct_one_core"),
@@ -324,6 +344,7 @@ def run(*, cycles: int, output: Path, timeout: float,
             "Process-tree peak excludes external launcher siblings unless they are descendants",
             "Guide opens measure selection and Qt-ready state, not display scan-out",
             "Ganymede metadata-only entries are not executable Atlas guide routes",
+            "Pending Guide previews are measured separately; their routes are NOT_RUN and not certified",
         ],
         "samples": rows,
         "timeline": timeline,
@@ -373,9 +394,15 @@ def run(*, cycles: int, output: Path, timeout: float,
                 f"missing={sorted(set(expected_ids)-set(guide_ids))}, "
                 f"extra={sorted(set(guide_ids)-set(expected_ids))}"
             )
+        from app.modules.encyclopedia.views.guide_catalog_view import OPTIMIZED_GUIDE_IDS
+        playable_ids = set(guide_ids) & OPTIMIZED_GUIDE_IDS
+        if not playable_ids or playable_ids != OPTIMIZED_GUIDE_IDS:
+            raise RuntimeError("Missing optimized Guide routes")
         payload["atlas_catalogue_count"] = len(guide_ids)
         payload["atlas_guide_ids"] = guide_ids
-        payload["ganymede_sources"] = ganymede_inventory(set(guide_ids))
+        payload["playable_guide_ids"] = sorted(playable_ids)
+        payload["pending_preview_guide_ids"] = sorted(set(guide_ids) - playable_ids)
+        payload["ganymede_sources"] = ganymede_inventory(set(guide_ids), playable_ids)
         payload["ganymede_source_count"] = len(payload["ganymede_sources"])
         if profile_startup:
             payload["startup_cpu_functions"] = startup_profiler.finish()
@@ -426,6 +453,8 @@ def run(*, cycles: int, output: Path, timeout: float,
                 row: dict[str, Any] = {
                     "guide_id": guide_id, "title": str(guide.title),
                     "cycle": cycle, "status": "FAIL",
+                    "coverage_kind": "playable_route" if guide_id in playable_ids else "pending_preview",
+                    "route_status": "NOT_RUN" if guide_id not in playable_ids else "FAIL",
                 }
                 rows.append(row)
                 try:
@@ -446,7 +475,8 @@ def run(*, cycles: int, output: Path, timeout: float,
                             if not page.navigate_to_guide(guide_id):
                                 raise RuntimeError("Navigation rejected the guide")
                             wait_until(
-                                app, lambda: guide_visible(page, guide_id),
+                                app, lambda: guide_visible(
+                                    page, guide_id, pending_preview=guide_id not in playable_ids),
                                 timeout=timeout, label=f"Guide {guide_id} detail",
                                 poll_seconds=0.01,
                             )
@@ -469,7 +499,9 @@ def run(*, cycles: int, output: Path, timeout: float,
                     row["method_hotspots"] = attributor.top(phase + ":open")
                     row["open_resources"] = cpu.get(phase + ":open")
                     row["checkpoints"] = []
-                    if checkpoints:
+                    if guide_id not in playable_ids:
+                        row["checkpoint_coverage"] = "NOT_RUN_PENDING_GANYMEDE"
+                    elif checkpoints:
                         view = getattr(page, "guides_view", None)
                         targets = guide_checkpoint_targets(guide, view, checkpoints)
                         if not targets:
@@ -533,6 +565,8 @@ def run(*, cycles: int, output: Path, timeout: float,
                     if page is None:
                         raise RuntimeError("Encyclopedia page lost after Home")
                     row["status"] = "PASS"
+                    if guide_id in playable_ids:
+                        row["route_status"] = "PASS"
                 except Exception as exc:
                     lag.stop()
                     watchdog.end()

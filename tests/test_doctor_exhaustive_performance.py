@@ -22,8 +22,11 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
             "coverage_complete": True,
             "atlas_guide_ids": ["a", "b"],
             "manifest_enabled_guide_ids": ["a", "b"],
+            "playable_guide_ids": ["a"], "pending_preview_guide_ids": ["b"],
             "samples": [
-                {"guide_id": ident, "cycle": cycle, "status": "PASS", "open_ms": 12}
+                {"guide_id": ident, "cycle": cycle, "status": "PASS", "open_ms": 12,
+                 "coverage_kind": "playable_route" if ident == "a" else "pending_preview",
+                 "route_status": "PASS" if ident == "a" else "NOT_RUN"}
                 for cycle in range(1, 3) for ident in ("a", "b")
             ],
             "timeline": {"functional_preload_ms": 140},
@@ -40,6 +43,16 @@ class DoctorDeepPerformanceTests(unittest.TestCase):
         incomplete["samples"] = self.payload["samples"][:-1]
         missing = review_evidence(incomplete, expected_sha="abc", cycles=2, process_exit=0)
         self.assertIn("MISSING_OR_DUPLICATED_GUIDE_MEASURES", missing["blocking_reasons"])
+
+    def test_pending_preview_is_not_playable_route_evidence(self):
+        evidence = dict(self.payload)
+        evidence["samples"] = [dict(row) for row in self.payload["samples"]]
+        evidence["samples"][1]["route_status"] = "PASS"
+        report = review_evidence(evidence, expected_sha="abc", cycles=2, process_exit=0)
+        self.assertIn("MISCLASSIFIED_GUIDE_COVERAGE", report["blocking_reasons"])
+        evidence = dict(self.payload, pending_preview_guide_ids=[])
+        report = review_evidence(evidence, expected_sha="abc", cycles=2, process_exit=0)
+        self.assertIn("INVALID_GUIDE_COVERAGE_PARTITION", report["blocking_reasons"])
 
     def test_doctor_names_hotspots_and_marks_stack_as_unconfirmed(self):
         evidence = dict(self.payload)

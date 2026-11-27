@@ -117,6 +117,20 @@ def review_evidence(payload: dict[str, Any], *, expected_sha: str, cycles: int,
     if not ids or len(ids) != len(set(ids)) or set(ids) != set(manifest):
         problems.append("INCOMPLETE_MANIFEST")
     samples = payload.get("samples") or []
+    playable = payload.get("playable_guide_ids") or []
+    pending = payload.get("pending_preview_guide_ids") or []
+    if (not playable or len(set(playable)) != len(playable)
+            or len(set(pending)) != len(pending) or set(playable) & set(pending)
+            or set(playable) | set(pending) != set(ids)):
+        problems.append("INVALID_GUIDE_COVERAGE_PARTITION")
+    if any(
+        (row.get("guide_id") in playable and
+         (row.get("coverage_kind") != "playable_route" or row.get("route_status") != "PASS"))
+        or (row.get("guide_id") in pending and
+            (row.get("coverage_kind") != "pending_preview" or row.get("route_status") != "NOT_RUN"))
+        for row in samples
+    ):
+        problems.append("MISCLASSIFIED_GUIDE_COVERAGE")
     expected = {(cycle, ident) for cycle in range(1, cycles + 1) for ident in ids}
     actual = [(r.get("cycle"), r.get("guide_id")) for r in samples]
     if len(samples) != len(expected) or set(actual) != expected or len(set(actual)) != len(actual):
@@ -142,6 +156,8 @@ def review_evidence(payload: dict[str, Any], *, expected_sha: str, cycles: int,
         "is_certification": False,
         "expected_sha": expected_sha, "observed_sha": payload.get("git_head"),
         "required_cycles": cycles, "atlas_guides": len(ids),
+        "playable_guides": len(playable), "pending_preview_guides": len(pending),
+        "pending_route_ids_not_run": pending,
         "measured_routes": len(actual), "expected_routes": len(expected),
         "ganymede_metadata_listings": payload.get("ganymede_source_count"),
         "summary": payload.get("summary", {}),

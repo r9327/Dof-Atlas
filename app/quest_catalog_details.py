@@ -19,6 +19,7 @@ from threading import RLock, current_thread
 from time import perf_counter
 
 from app import quest_catalog as qc
+from app.core.cache_write_lock import exclusive_cache_write_lock
 from app.quest_source_index import QuestSources
 
 _DETAIL_FIELDS = frozenset({"steps", "source_solution_steps", "solution_blocks", "source_info", "rewards"})
@@ -347,6 +348,31 @@ def ensure_lazy_catalog_cache(
     """Materialize the reconstructible Quest SQLite store without retaining rows."""
 
     signature, path = _cache_identity(data_dir, cache_root)
+    # Warm readers do not take a SQLite writer lock. A cold generation is
+    # built by exactly one process/thread using the existing shared lock.
+    with exclusive_cache_write_lock(path):
+        if path.is_file():
+            ready_count = _ready_catalog_count(path)
+            if ready_count is not None:
+                return ready_count
+        return _build_lazy_catalog_cache(data_dir, signature, path)
+
+
+def _ready_catalog_count(path: Path) -> int | None:
+    with _connect(path) as connection:
+        table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='metadata'"
+        ).fetchone()
+        if table is None:
+            return None
+        ready = connection.execute("SELECT value FROM metadata WHERE key='ready'").fetchone()
+        if ready is None:
+            return None
+        row = connection.execute("SELECT COUNT(*) FROM quests").fetchone()
+        return max(0, int(row[0] if row else 0))
+
+
+def _build_lazy_catalog_cache(data_dir: Path, signature: tuple, path: Path) -> int:
     if not path.is_file():
         # The release already contains this immutable summary-only database.
         # Restore only for the exact canonical data generation, without ever
